@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Siteplan - Detail Proyek</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { font-family: "Segoe UI", Arial, sans-serif; background:#f4f6f7; }
+    .container { max-width: 1000px; margin: 40px auto; padding: 20px; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .back { display:inline-block; margin-bottom: 10px; color:#2c3e50; text-decoration:none; }
+    h1 { margin:0 0 10px 0; }
+    .meta { color:#555; margin-bottom: 15px; }
+    .siteplan-placeholder { background: #e9ecef; height: 420px; border-radius: 6px; display:flex; align-items:center; justify-content:center; color:#7f8c8d; font-size:18px; }
+    .field { margin-bottom:12px; }
+    .field strong { display:inline-block; width:140px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a class="back" href="dashboard_operasional.html">← Kembali ke Dashboard</a>
+
+    <div class="card" id="content">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+        <h1 id="title">Detail Proyek</h1>
+        <div>
+          <button id="editBtn" class="btn-edit" style="padding:8px 12px; margin-right:8px;">Edit</button>
+        </div>
+      </div>
+      <div class="meta" id="meta">Memuat...</div>
+
+      <div id="viewSection">
+        <div class="field"><strong>Nama Proyek:</strong> <span id="nama"></span></div>
+        <div class="field"><strong>Lokasi:</strong> <span id="lokasi"></span></div>
+        <div class="field"><strong>Status:</strong> <span id="status"></span></div>
+        <div class="field"><strong>Progress:</strong> <span id="progress"></span></div>
+        <div class="field"><strong>Deadline:</strong> <span id="deadline"></span></div>
+
+        <h3>Siteplan / Placeholder</h3>
+        <div class="siteplan-placeholder" id="siteplanBox">Siteplan akan ditampilkan disini (placeholder)</div>
+      </div>
+
+      <div id="editSection" style="display:none; margin-top:16px;">
+        <h3>Ubah Data Proyek</h3>
+        <form id="editForm">
+          <div class="form-group">
+            <label for="editNama">Nama Proyek</label>
+            <input type="text" id="editNama" style="width:100%; padding:8px; margin-top:6px;" required>
+          </div>
+          <div class="form-group">
+            <label for="editLokasi">Lokasi</label>
+            <input type="text" id="editLokasi" style="width:100%; padding:8px; margin-top:6px;" required>
+          </div>
+          <div class="form-group">
+            <label for="editDeadline">Deadline</label>
+            <input type="date" id="editDeadline" style="width:100%; padding:8px; margin-top:6px;" required>
+          </div>
+          <div class="form-group">
+            <label for="editImage">Unggah Siteplan (PNG/JPG/SVG)</label>
+            <input type="file" id="editImage" accept="image/*" style="width:100%; margin-top:6px;">
+          </div>
+          <div class="form-group">
+            <label><input type="checkbox" id="removeImage"> Hapus gambar siteplan saat menyimpan</label>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <button type="submit" class="btn btn-save">Simpan perubahan</button>
+            <button type="button" id="cancelEdit" class="btn btn-cancel">Batal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function getQueryParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    function getData(key) {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    }
+
+    function renderNotFound() {
+      document.getElementById('title').textContent = 'Belum ada data untuk sementara waktu';
+      document.getElementById('meta').textContent = '';
+      document.getElementById('nama').textContent = '-';
+      document.getElementById('lokasi').textContent = '-';
+      document.getElementById('status').textContent = '-';
+      document.getElementById('progress').textContent = '-';
+      document.getElementById('deadline').textContent = '-';
+      document.getElementById('siteplanBox').textContent = 'Belum ada data untuk sementara waktu';
+    }
+
+    window.addEventListener('load', function() {
+      const id = getQueryParam('id');
+      if (!id) {
+        renderNotFound();
+        return;
+      }
+
+      const daftar = getData('daftarProyek');
+      const proyek = daftar.find(p => String(p.id) === String(id));
+      if (!proyek) {
+        renderNotFound();
+        return;
+      }
+
+      document.getElementById('title').textContent = proyek.nama;
+      document.getElementById('meta').textContent = 'Detail proyek — ' + (proyek.status || '—');
+      document.getElementById('nama').textContent = proyek.nama;
+      document.getElementById('lokasi').textContent = proyek.lokasi;
+      document.getElementById('status').textContent = proyek.status;
+      document.getElementById('progress').textContent = (proyek.progress || 0) + '%';
+      document.getElementById('deadline').textContent = proyek.deadline || '-';
+
+      // Jika ada gambar/siteplan tampilkan, jika tidak tampilkan pesan sementara
+      const box = document.getElementById('siteplanBox');
+      if (proyek.siteplanImage) {
+        box.innerHTML = '<img src="' + proyek.siteplanImage + '" alt="siteplan" style="max-width:100%; border-radius:6px;">';
+      } else {
+        box.textContent = 'Belum ada data untuk sementara waktu';
+      }
+
+      // Setup edit functionality
+      const editBtn = document.getElementById('editBtn');
+      const editSection = document.getElementById('editSection');
+      const viewSection = document.getElementById('viewSection');
+      const editForm = document.getElementById('editForm');
+      const editNama = document.getElementById('editNama');
+      const editLokasi = document.getElementById('editLokasi');
+      const editDeadline = document.getElementById('editDeadline');
+      const editImage = document.getElementById('editImage');
+      const removeImage = document.getElementById('removeImage');
+      const cancelEdit = document.getElementById('cancelEdit');
+
+      function openEdit() {
+        editNama.value = proyek.nama || '';
+        editLokasi.value = proyek.lokasi || '';
+        editDeadline.value = proyek.deadline || '';
+        removeImage.checked = false;
+        editImage.value = '';
+        viewSection.style.display = 'none';
+        editSection.style.display = 'block';
+      }
+
+      function closeEdit() {
+        viewSection.style.display = 'block';
+        editSection.style.display = 'none';
+      }
+
+      editBtn.addEventListener('click', function() {
+        openEdit();
+      });
+
+      cancelEdit.addEventListener('click', function() {
+        closeEdit();
+      });
+
+      // read file as data URL when user selects image
+      let selectedImageDataUrl = null;
+      editImage.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) { selectedImageDataUrl = null; return; }
+        const reader = new FileReader();
+        reader.onload = function(ev) { selectedImageDataUrl = ev.target.result; };
+        reader.readAsDataURL(file);
+      });
+
+      editForm.addEventListener('submit', function(ev) {
+        ev.preventDefault();
+        // update proyek object
+        const daftarAll = getData('daftarProyek');
+        const idx = daftarAll.findIndex(p => String(p.id) === String(id));
+        if (idx === -1) { alert('Proyek tidak ditemukan (saat simpan).'); return; }
+
+        daftarAll[idx].nama = editNama.value.trim() || daftarAll[idx].nama;
+        daftarAll[idx].lokasi = editLokasi.value.trim() || daftarAll[idx].lokasi;
+        daftarAll[idx].deadline = editDeadline.value || daftarAll[idx].deadline;
+
+        if (removeImage.checked) {
+          delete daftarAll[idx].siteplanImage;
+        }
+        if (selectedImageDataUrl) {
+          daftarAll[idx].siteplanImage = selectedImageDataUrl;
+        }
+
+        localStorage.setItem('daftarProyek', JSON.stringify(daftarAll));
+        // re-render current page with updated data
+        const updated = daftarAll[idx];
+        document.getElementById('title').textContent = updated.nama;
+        document.getElementById('meta').textContent = 'Detail proyek — ' + (updated.status || '—');
+        document.getElementById('nama').textContent = updated.nama;
+        document.getElementById('lokasi').textContent = updated.lokasi;
+        document.getElementById('status').textContent = updated.status;
+        document.getElementById('progress').textContent = (updated.progress || 0) + '%';
+        document.getElementById('deadline').textContent = updated.deadline || '-';
+
+        const box2 = document.getElementById('siteplanBox');
+        if (updated.siteplanImage) {
+          box2.innerHTML = '<img src="' + updated.siteplanImage + '" alt="siteplan" style="max-width:100%; border-radius:6px;">';
+        } else {
+          box2.textContent = 'Belum ada data untuk sementara waktu';
+        }
+
+        selectedImageDataUrl = null;
+        closeEdit();
+        alert('Perubahan disimpan.');
+      });
+    });
+  </script>
+</body>
+</html>

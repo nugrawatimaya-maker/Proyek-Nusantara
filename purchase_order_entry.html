@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Draft Purchase Order</title>
+  <style>
+    :root{
+      --bg:#f4f6fa;
+      --card:#ffffff;
+      --border:#d9e1ef;
+      --text:#0f172a;
+      --muted:#5f6b7c;
+      --primary:#2563eb;
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:"Segoe UI",Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    header{
+      padding:28px;
+      background:var(--card);
+      box-shadow:0 4px 20px rgba(15,23,42,0.08);
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+    }
+    header h1{margin:0;font-size:24px;}
+    header p{margin:6px 0 0;color:var(--muted);}
+    .back-btn{
+      border:none;
+      border-radius:999px;
+      padding:10px 18px;
+      font-weight:600;
+      background:#e7eaf5;
+      color:var(--text);
+      cursor:pointer;
+    }
+    main{
+      max-width:960px;
+      margin:30px auto 60px;
+      padding:0 24px 40px;
+    }
+    .card{
+      background:var(--card);
+      border-radius:16px;
+      padding:24px;
+      box-shadow:0 10px 30px rgba(15,23,42,0.08);
+      border:1px solid var(--border);
+    }
+    .card h2{
+      margin:0 0 16px;
+      font-size:20px;
+    }
+    label{
+      display:block;
+      font-weight:600;
+      font-size:13px;
+      margin-bottom:6px;
+      color:var(--text);
+    }
+    select{
+      width:100%;
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      font-size:14px;
+      background:#fff;
+      margin-bottom:18px;
+    }
+    .helper{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:-12px;
+      margin-bottom:18px;
+    }
+    input[type="text"],
+    input[type="number"]{
+      width:100%;
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      font-size:14px;
+      margin-bottom:18px;
+      background:#fff;
+    }
+    .material-field{
+      position:relative;
+    }
+    .material-suggestions{
+      position:absolute;
+      top:calc(100% - 10px);
+      left:0;
+      width:100%;
+      list-style:none;
+      margin:0;
+      padding:0;
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:12px;
+      box-shadow:0 12px 30px rgba(15,23,42,0.12);
+      max-height:220px;
+      overflow:auto;
+      z-index:10;
+    }
+    .material-suggestions li{
+      padding:10px 14px;
+      cursor:pointer;
+      border-bottom:1px solid #f1f5f9;
+    }
+    .material-suggestions li:last-child{
+      border-bottom:none;
+    }
+    .material-suggestions li:hover{
+      background:#eff6ff;
+    }
+    .price-row{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .price-row input{
+      flex:1;
+      margin-bottom:0;
+    }
+    .price-update-btn{
+      border:none;
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:600;
+      background:#fde68a;
+      color:#92400e;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Draft Purchase Order</h1>
+      <p>Isi data utama dokumen PO sebelum menambahkan detail item.</p>
+    </div>
+    <button class="back-btn" onclick="window.location.href='purchase_order.html'">Kembali</button>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Entry Data PO</h2>
+      <label for="projectSelect">PO untuk Proyek</label>
+      <select id="projectSelect">
+        <option value="">Pilih proyek</option>
+        <option value="Sunrise City Pinrang">Sunrise City Pinrang</option>
+        <option value="Sunrise City Maros">Sunrise City Maros</option>
+        <option value="Sunrise City Parepare">Sunrise City Parepare</option>
+        <option value="Kost Sunrise Banta Bantaeng">Kost Sunrise Banta Bantaeng</option>
+        <option value="Kost Sunrise Faisal">Kost Sunrise Faisal</option>
+      </select>
+
+      <label for="vendorSelect">Kepada Vendor</label>
+      <select id="vendorSelect">
+        <option value="">Memuat data vendor…</option>
+      </select>
+      <div class="helper">Daftar vendor diambil dari modul Input Tagihan Vendor pada dashboard finance.</div>
+
+      <label for="materialInput">Nama Material</label>
+      <div class="material-field">
+        <input type="text" id="materialInput" placeholder="Ketik nama material" oninput="handleMaterialPredict()" autocomplete="off" />
+        <ul class="material-suggestions hidden" id="materialSuggestions"></ul>
+      </div>
+      <div class="helper">Sistem akan memprediksi material yang pernah digunakan.</div>
+
+      <label for="qtyInput">Jumlah Item</label>
+      <input type="number" id="qtyInput" min="1" placeholder="Masukkan jumlah item" oninput="recalculateTotal()" />
+
+      <label for="unitSelect">Satuan</label>
+      <select id="unitSelect">
+        <option value="">Pilih satuan</option>
+      </select>
+      <div class="helper">Satuan akan terisi otomatis jika material sudah pernah tersimpan.</div>
+
+      <label for="priceInput">Harga Satuan (Rp)</label>
+      <div class="price-row">
+        <input type="number" id="priceInput" min="0" placeholder="Harga per satuan" oninput="recalculateTotal()" />
+        <button type="button" class="price-update-btn" onclick="togglePriceOverride()">Perubahan Harga</button>
+      </div>
+      <div class="helper">Harga akan otomatis terisi dari database jika tersedia.</div>
+
+      <label for="totalInput">Total (Rp)</label>
+      <input type="text" id="totalInput" readonly placeholder="Jumlah x Harga" />
+    </section>
+  </main>
+
+  <script>
+    const VENDOR_KEY = "master_vendor_local";
+    const MATERIAL_KEY = "master_material_local";
+
+    function loadMaterials(){
+      try{
+        const raw = localStorage.getItem(MATERIAL_KEY);
+        return raw ? JSON.parse(raw) : [];
+      }catch(err){
+        console.warn("Gagal load material", err);
+        return [];
+      }
+    }
+
+    function findMaterialByName(name){
+      const mats = loadMaterials();
+      const lower = name.trim().toLowerCase();
+      return mats.find(m => (m.name||"").toLowerCase() === lower);
+    }
+
+    function loadVendorsFromFinance(){
+      try{
+        const raw = localStorage.getItem(VENDOR_KEY);
+        return raw ? JSON.parse(raw) : [];
+      }catch(err){
+        console.warn("Gagal mengambil data vendor", err);
+        return [];
+      }
+    }
+
+    function populateVendorDropdown(){
+      const select = document.getElementById("vendorSelect");
+      const vendors = loadVendorsFromFinance();
+      if(!vendors.length){
+        select.innerHTML = '<option value="">Belum ada data vendor, input dari modul finance.</option>';
+        return;
+      }
+      select.innerHTML = '<option value="">Pilih vendor</option>' +
+        vendors.map(v => `<option value="${v.name}">${v.name} (${v.material} - TOP ${v.top})</option>`).join("");
+    }
+
+    function populateUnitOptions(){
+      const select = document.getElementById("unitSelect");
+      const commonUnits = ["pcs","sak","m","m2","m3","kg","liter","set","roll","batang","unit"];
+      select.innerHTML = '<option value="">Pilih satuan</option>' +
+        commonUnits.map(u => `<option value="${u}">${u.toUpperCase()}</option>`).join("");
+    }
+
+    function applyMaterialData(material){
+      const unitSelect = document.getElementById("unitSelect");
+      const priceInput = document.getElementById("priceInput");
+      if(!material) return;
+      if(material.unit){
+        unitSelect.value = material.unit;
+      }
+      if(material.price){
+        priceInput.value = material.price;
+        recalculateTotal();
+      }
+    }
+
+    function handleMaterialPredict(){
+      const input = document.getElementById("materialInput");
+      const list = document.getElementById("materialSuggestions");
+      const query = input.value.trim().toLowerCase();
+      const materials = loadMaterials();
+
+      if(!query){
+        list.classList.add("hidden");
+        list.innerHTML = "";
+        return;
+      }
+
+      const matches = materials.filter(m => (m.name||"").toLowerCase().includes(query));
+      if(!matches.length){
+        list.classList.add("hidden");
+        list.innerHTML = "";
+        return;
+      }
+
+      list.innerHTML = matches.map(m => `<li data-name="${m.name}">${m.name}</li>`).join("");
+      list.classList.remove("hidden");
+      list.querySelectorAll("li").forEach(item => {
+        item.addEventListener("click", () => {
+          input.value = item.dataset.name;
+          list.classList.add("hidden");
+          list.innerHTML = "";
+          const material = findMaterialByName(item.dataset.name);
+          applyMaterialData(material);
+        });
+      });
+    }
+
+    function togglePriceOverride(){
+      const priceInput = document.getElementById("priceInput");
+      priceInput.disabled = !priceInput.disabled;
+      if(!priceInput.disabled){
+        priceInput.focus();
+      }
+    }
+
+    function recalculateTotal(){
+      const qty = Number(document.getElementById("qtyInput").value || 0);
+      const price = Number(document.getElementById("priceInput").value || 0);
+      const total = qty * price;
+      const totalField = document.getElementById("totalInput");
+      totalField.value = total ? "Rp " + total.toLocaleString("id-ID") : "";
+    }
+
+    document.addEventListener("DOMContentLoaded", populateVendorDropdown);
+    document.addEventListener("DOMContentLoaded", populateUnitOptions);
+    document.getElementById("qtyInput").addEventListener("input", recalculateTotal);
+    document.getElementById("priceInput").addEventListener("input", recalculateTotal);
+  </script>
+</body>
+</html>

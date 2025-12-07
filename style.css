@@ -1,0 +1,73 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body, html {
+  height: 100%;
+}
+
+/* Background & layout utama */
+.page {
+  height: 100vh;
+  background-color: #28c8cb; /* hijau */
+  color: #0e39e4;
+  position: relative;
+}
+
+/* Judul kiri atas */
+.header {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+/* Kontainer login di tengah */
+.login-container {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Label dan input */
+.login-label {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.login-select {
+  width: 260px;
+  height: 40px;
+  border-radius: 2px;
+  border: 1px solid #ccc;
+  padding: 0 8px;
+  font-size: 16px;
+  color: #333;
+}
+
+/* Tombol login */
+.login-button {
+  height: 40px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 3px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #ffffff;
+  color: #335299;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.login-button:hover {
+  background-color: #f0f0f0;
+}

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Siteplan Interaktif - Sunrise City Maros</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body{font-family:Segoe UI, Arial, sans-serif; background:#f4f6f7}
+    .container{max-width:1200px;margin:24px auto;padding:18px}
+    .card{background:#fff;padding:16px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+    .viewer{position:relative;background:#222;border-radius:6px;overflow:hidden;height:680px;border:1px solid #ddd}
+    .imgwrap{position:absolute;left:0;top:0;transform-origin:0 0;cursor:grab}
+    .imgwrap.dragging{cursor:grabbing}
+    .imgwrap img{display:block;max-width:none;user-select:none;pointer-events:none}
+    .overlay{position:absolute;left:0;top:0;right:0;bottom:0}
+    .marker{position:absolute;width:24px;height:24px;border-radius:50%;background:#e74c3c;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);font-weight:bold}
+    .marker:hover{background:#c0392b;transform:scale(1.15)}
+    .controls{display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+    .controls label{font-weight:600;font-size:14px}
+    input[type=range]{width:150px}
+    .btn{padding:8px 14px;border-radius:6px;border:none;cursor:pointer;background:#3498db;color:white;font-size:13px}
+    .btn:hover{background:#2980b9}
+    .small{font-size:13px;color:#666}
+    .legend{display:flex;gap:12px;flex-wrap:wrap;padding:8px;background:#f9f9f9;border-radius:4px;margin-top:12px}
+    .legend-item{display:flex;align-items:center;gap:6px;font-size:12px}
+    .legend-dot{width:16px;height:16px;border-radius:50%;background:#e74c3c;border:1px solid #fff}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h1>Siteplan Interaktif - Sunrise City Maros</h1>
+      <button class="btn" onclick="window.location.href='dashboard_marketing.html'" style="background:#95a5a6">← Kembali</button>
+    </div>
+    
+    <div class="card">
+      <div class="controls">
+        <label>Zoom:</label>
+        <input id="zoomRange" type="range" min="0.3" max="4" step="0.05" value="1" />
+        <span id="zoomLabel" class="small">100%</span>
+        
+        <button class="btn" id="addMarkerBtn">+ Tambah Marker</button>
+        <span id="modeLabel" class="small" style="color:#e74c3c;font-weight:bold">Mode: Lihat</span>
+      </div>
+
+      <div class="viewer" id="viewer">
+        <div class="imgwrap" id="imgwrap">
+          <img id="siteImg" alt="siteplan" />
+        </div>
+        <div class="overlay" id="overlay"></div>
+      </div>
+
+      <div class="legend">
+        <div style="font-weight:600">Petunjuk:</div>
+        <div class="legend-item"><div class="legend-dot"></div> Klik marker untuk edit/hapus</div>
+        <div class="legend-item">Seret gambar untuk geser area</div>
+        <div class="legend-item">Gunakan zoom untuk perbesar/perkecil</div>
+      </div>
+
+      <div style="margin-top:12px;padding:10px;background:#f0f0f0;border-radius:4px;font-size:12px">
+        <strong>Daftar Marker:</strong>
+        <div id="markerList" style="margin-top:6px"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MARKER_KEY = 'siteplans_maros_markers';
+    const SITEPLAN_IMAGE = 'images/sunrise_city_maros.png';
+    
+    let markers = [];
+    let isAddMarkerMode = false;
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let dragging = false;
+    let dragStart = {x: 0, y: 0};
+
+    const imgwrap = document.getElementById('imgwrap');
+    const siteImg = document.getElementById('siteImg');
+    const overlay = document.getElementById('overlay');
+    const zoomRange = document.getElementById('zoomRange');
+    const zoomLabel = document.getElementById('zoomLabel');
+
+    // Load markers from localStorage
+    function loadMarkers() {
+      markers = JSON.parse(localStorage.getItem(MARKER_KEY) || '[]');
+    }
+
+    // Save markers to localStorage
+    function saveMarkers() {
+      localStorage.setItem(MARKER_KEY, JSON.stringify(markers));
+    }
+
+    // Initialize image and set up viewer
+    siteImg.src = SITEPLAN_IMAGE;
+    siteImg.onload = () => {
+      scale = 1;
+      offsetX = 0;
+      offsetY = 0;
+      zoomRange.value = 1;
+      updateTransform();
+    };
+
+    // Zoom control
+    zoomRange.addEventListener('input', (e) => {
+      scale = parseFloat(e.target.value);
+      zoomLabel.textContent = Math.round(scale * 100) + '%';
+      updateTransform();
+    });
+
+    // Pan/drag
+    imgwrap.addEventListener('mousedown', (e) => {
+      if (isAddMarkerMode) return;
+      dragging = true;
+      imgwrap.classList.add('dragging');
+      dragStart = { x: e.clientX - offsetX, y: e.clientY - offsetY };
+    });
+
+    window.addEventListener('mouseup', () => {
+      dragging = false;
+      imgwrap.classList.remove('dragging');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      offsetX = e.clientX - dragStart.x;
+      offsetY = e.clientY - dragStart.y;
+      updateTransform();
+    });
+
+    function updateTransform() {
+      imgwrap.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+      renderMarkers();
+    }
+
+    // Add marker button toggle
+    document.getElementById('addMarkerBtn').addEventListener('click', () => {
+      isAddMarkerMode = !isAddMarkerMode;
+      document.getElementById('modeLabel').textContent = isAddMarkerMode ? 'Mode: TAMBAH MARKER' : 'Mode: Lihat';
+      document.getElementById('addMarkerBtn').textContent = isAddMarkerMode ? '✓ Batal Tambah' : '+ Tambah Marker';
+      if (isAddMarkerMode) document.getElementById('addMarkerBtn').style.background = '#e74c3c';
+      else document.getElementById('addMarkerBtn').style.background = '#3498db';
+    });
+
+    // Click to add marker
+    document.getElementById('viewer').addEventListener('click', (e) => {
+      if (!isAddMarkerMode) return;
+      const rect = imgwrap.getBoundingClientRect();
+      const imgW = siteImg.naturalWidth;
+      const imgH = siteImg.naturalHeight;
+      if (!imgW || !imgH) return;
+      
+      const clickX = (e.clientX - rect.left) / scale;
+      const clickY = (e.clientY - rect.top) / scale;
+      if (clickX < 0 || clickY < 0 || clickX > imgW || clickY > imgH) {
+        alert('Klik di dalam gambar siteplan');
+        return;
+      }
+
+      const xPct = clickX / imgW;
+      const yPct = clickY / imgH;
+      const label = prompt('Label marker (mis: Blok A, Rumah 1):');
+      if (label === null) return;
+
+      markers.push({ id: Date.now(), x: xPct, y: yPct, label: label.trim() || ('Marker ' + (markers.length + 1)) });
+      saveMarkers();
+      renderMarkers();
+      updateMarkerList();
+      isAddMarkerMode = false;
+      document.getElementById('modeLabel').textContent = 'Mode: Lihat';
+      document.getElementById('addMarkerBtn').textContent = '+ Tambah Marker';
+      document.getElementById('addMarkerBtn').style.background = '#3498db';
+    });
+
+    function renderMarkers() {
+      overlay.innerHTML = '';
+      const imgW = siteImg.naturalWidth;
+      const imgH = siteImg.naturalHeight;
+      if (!imgW || !imgH) return;
+
+      markers.forEach((m, idx) => {
+        const el = document.createElement('div');
+        el.className = 'marker';
+        el.title = m.label;
+        el.textContent = (idx + 1);
+        const left = offsetX + (m.x * imgW * scale);
+        const top = offsetY + (m.y * imgH * scale);
+        el.style.left = left + 'px';
+        el.style.top = top + 'px';
+        el.onclick = (ev) => { ev.stopPropagation(); editMarker(m.id); };
+        overlay.appendChild(el);
+      });
+    }
+
+    function editMarker(id) {
+      const m = markers.find(x => x.id === id);
+      if (!m) return;
+      const newLabel = prompt('Ubah label marker:', m.label);
+      if (newLabel === null) return;
+      m.label = newLabel.trim() || m.label;
+      if (confirm('Hapus marker ini?')) {
+        markers = markers.filter(x => x.id !== id);
+      }
+      saveMarkers();
+      renderMarkers();
+      updateMarkerList();
+    }
+
+    function updateMarkerList() {
+      const list = document.getElementById('markerList');
+      if (!markers.length) { list.innerHTML = '<div class="small">Belum ada marker</div>'; return; }
+      list.innerHTML = markers.map((m, idx) => `<div class="small">• ${idx + 1}. ${m.label}</div>`).join('');
+    }
+
+    // Initialize
+    loadMarkers();
+    renderMarkers();
+    updateMarkerList();
+  </script>
+</body>
+</html>

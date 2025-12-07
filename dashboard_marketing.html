@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Dashboard Marketing - Siteplan Interaktif</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body{font-family:Segoe UI, Arial, sans-serif; background:#f4f6f7}
+    .container{max-width:1100px;margin:24px auto;padding:18px}
+    .card{background:#fff;padding:16px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+    .list{display:flex;gap:8px;flex-wrap:wrap}
+    .sitecard{border:1px solid #e6e6e6;padding:10px;border-radius:8px;min-width:200px}
+    .viewer{position:relative;background:#222;border-radius:6px;overflow:hidden;height:620px}
+    .imgwrap{position:absolute;left:0;top:0;transform-origin:0 0;cursor:grab}
+    .imgwrap.dragging{cursor:grabbing}
+    .imgwrap img{display:block;max-width:none;user-select:none;pointer-events:none}
+    .overlay{position:absolute;left:0;top:0;right:0;bottom:0}
+    .marker{position:absolute;width:18px;height:18px;border-radius:50%;background:#e74c3c;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;border:2px solid #fff}
+    .controls{display:flex;gap:8px;align-items:center;margin-top:10px}
+    input[type=file]{display:block}
+    .small{font-size:13px;color:#666}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Siteplan Interaktif - Marketing</h1>
+    <div class="card">
+      <h3>Pilih Proyek/Usaha</h3>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+        <label class="small">Pilih Proyek:</label>
+        <select id="projectSelect" style="padding:8px;border-radius:4px;border:1px solid #ccc;width:320px"></select>
+        <button class="btn" id="selectProjectBtn" style="height:36px;">Pilih</button>
+      </div>
+
+      <div id="siteList" class="list small"></div>
+    </div>
+
+    <div style="height:16px"></div>
+
+    <div id="viewerCard" class="card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 id="viewerTitle">Viewer</h3>
+        <div class="controls">
+          <label class="small">Zoom</label>
+          <input id="zoomRange" type="range" min="0.2" max="3" step="0.05" value="1" />
+          <button class="btn" id="addMarkerBtn">Tambah Marker</button>
+          <button class="btn" onclick="closeViewer()">Tutup</button>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="viewer" id="viewer">
+        <div class="imgwrap" id="imgwrap">
+          <img id="siteImg" src="" alt="siteplan" />
+        </div>
+        <div class="overlay" id="overlay"></div>
+      </div>
+      <div style="height:8px"></div>
+      <div class="small">Mode: <span id="modeLabel">Lihat</span>. Klik tombol "Tambah Marker" lalu klik posisi pada gambar untuk menambah marker.</div>
+    </div>
+  </div>
+
+  <script>
+    const SITE_KEY = 'siteplans';
+    let siteplans = [];
+    let currentSite = null;
+    let currentProject = null;
+    let isAddMarkerMode = false;
+    const DEFAULT_PROJECTS = [
+      'Sunrise City Maros',
+      'Sunrise City Pinrang',
+      'Sunrise City Parepare',
+      'Bumi Tirta Nusantara',
+      'Kost Sunrise Bantabantaeng',
+      'Kos Sunrise Faisal'
+    ];
+
+    function getSiteplans(){ return JSON.parse(localStorage.getItem(SITE_KEY)||'[]'); }
+    function saveSiteplans(){ localStorage.setItem(SITE_KEY, JSON.stringify(siteplans)); }
+
+    function renderList(){
+      siteplans = getSiteplans();
+      const el = document.getElementById('siteList'); el.innerHTML='';
+      // filter by currentProject if set
+      const filtered = currentProject ? siteplans.filter(s=>s.project===currentProject) : siteplans;
+      if (!filtered.length) { el.innerHTML = '<div class="small">Belum ada siteplan untuk proyek ini. Tambah menggunakan tombol di atas.</div>'; return; }
+      filtered.forEach(sp => {
+        const d = document.createElement('div'); d.className='sitecard';
+        d.innerHTML = `<strong>${escapeHtml(sp.name)}</strong><div class="small">${sp.markers?sp.markers.length:0} marker</div><div class="small">Proyek: ${escapeHtml(sp.project||'-')}</div>`;
+        const btnOpen = document.createElement('button'); btnOpen.className='btn'; btnOpen.style.marginTop='8px'; btnOpen.textContent='Buka'; btnOpen.onclick = ()=>openViewer(sp.id);
+        const btnDel = document.createElement('button'); btnDel.className='btn btn-delete'; btnDel.style.marginLeft='8px'; btnDel.textContent='Hapus'; btnDel.onclick = ()=>{ if(confirm('Hapus siteplan ini?')){ siteplans = siteplans.filter(x=>x.id!==sp.id); saveSiteplans(); renderList(); if(currentSite===sp.id) closeViewer(); }};
+        d.appendChild(btnOpen); d.appendChild(btnDel);
+        el.appendChild(d);
+      });
+    }
+
+    function addSiteplan(){
+      const name = document.getElementById('siteName').value.trim();
+      const file = document.getElementById('siteImage').files[0];
+      if(!name) return alert('Masukkan nama siteplan');
+      if(!file) return alert('Pilih gambar siteplan');
+      const reader = new FileReader();
+      reader.onload = function(e){
+        const url = e.target.result;
+        const proj = currentProject || document.getElementById('projectSelect').value || '';
+        const obj = { id: Date.now(), name, project: proj, image: url, markers: [] };
+        siteplans.push(obj); saveSiteplans(); renderList();
+        document.getElementById('siteName').value=''; document.getElementById('siteImage').value='';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Viewer logic (pan/zoom)
+    const imgwrap = document.getElementById('imgwrap');
+    const siteImg = document.getElementById('siteImg');
+    const overlay = document.getElementById('overlay');
+    let scale = 1; let offsetX = 0; let offsetY = 0; let dragging=false; let dragStart={x:0,y:0};
+
+    document.getElementById('zoomRange').addEventListener('input', (e)=>{ scale = parseFloat(e.target.value); updateTransform(); });
+
+    imgwrap.addEventListener('mousedown', (e)=>{ dragging=true; imgwrap.classList.add('dragging'); dragStart={x:e.clientX - offsetX, y:e.clientY - offsetY}; });
+    window.addEventListener('mouseup', ()=>{ dragging=false; imgwrap.classList.remove('dragging'); });
+    window.addEventListener('mousemove', (e)=>{ if(!dragging) return; offsetX = e.clientX - dragStart.x; offsetY = e.clientY - dragStart.y; updateTransform(); });
+
+    function updateTransform(){ imgwrap.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`; renderMarkers(); }
+
+    // open viewer
+    function openViewer(id){
+      const sp = siteplans.find(s=>s.id===id); if(!sp) return alert('Siteplan tidak ditemukan');
+      currentSite = id; document.getElementById('viewerCard').style.display='block'; document.getElementById('viewerTitle').textContent = sp.name;
+      siteImg.src = sp.image; siteImg.onload = ()=>{ // reset transform to fit image top-left
+        scale = 1; offsetX=0; offsetY=0; document.getElementById('zoomRange').value = '1'; updateTransform();
+      };
+      renderMarkers();
+      isAddMarkerMode = false; updateModeLabel();
+    }
+
+    function closeViewer(){ currentSite=null; document.getElementById('viewerCard').style.display='none'; overlay.innerHTML=''; }
+
+    function renderMarkers(){
+      overlay.innerHTML='';
+      if(!currentSite) return;
+      const sp = siteplans.find(s=>s.id===currentSite); if(!sp) return;
+      const imgW = siteImg.naturalWidth; const imgH = siteImg.naturalHeight; if(!imgW||!imgH) return;
+      const viewerRect = document.getElementById('viewer').getBoundingClientRect();
+      // compute display size
+      const dispW = imgW * scale; const dispH = imgH * scale;
+      // markers stored as percentages
+      (sp.markers||[]).forEach((m, idx)=>{
+        const el = document.createElement('div'); el.className='marker'; el.title = m.label || ('Marker '+(idx+1)); el.textContent = (idx+1);
+        // compute position in viewer: imgwrap has translate offsetX/offsetY
+        const left = offsetX + (m.x * imgW * scale);
+        const top = offsetY + (m.y * imgH * scale);
+        el.style.left = left + 'px'; el.style.top = top + 'px';
+        el.onclick = (ev)=>{ ev.stopPropagation(); editMarker(idx); };
+        overlay.appendChild(el);
+      });
+    }
+
+    // click on overlay to add marker when in add mode
+    document.getElementById('viewer').addEventListener('click', function(e){
+      if(!currentSite) return;
+      if(!isAddMarkerMode) return;
+      const rect = imgwrap.getBoundingClientRect();
+      const imgW = siteImg.naturalWidth; const imgH = siteImg.naturalHeight;
+      // compute click relative to image top-left in image pixels (account scale and offset)
+      const clickX = (e.clientX - rect.left) / scale;
+      const clickY = (e.clientY - rect.top) / scale;
+      if(clickX < 0 || clickY < 0 || clickX > imgW || clickY > imgH) { alert('Klik di dalam gambar siteplan'); return; }
+      const xPct = clickX / imgW; const yPct = clickY / imgH;
+      const label = prompt('Label marker (mis: Posisi A):');
+      if(label===null) return; // cancelled
+      const sp = siteplans.find(s=>s.id===currentSite);
+      sp.markers = sp.markers || [];
+      sp.markers.push({ x: xPct, y: yPct, label: label });
+      saveSiteplans(); renderMarkers(); isAddMarkerMode=false; updateModeLabel();
+    });
+
+    function editMarker(index){
+      const sp = siteplans.find(s=>s.id===currentSite); if(!sp) return;
+      const m = sp.markers[index];
+      const newLabel = prompt('Ubah label marker:', m.label||'');
+      if(newLabel===null) return; m.label = newLabel;
+      if(confirm('Hapus marker ini? Tekan OK untuk menghapus, Cancel untuk menyimpan label.')){ sp.markers.splice(index,1); }
+      saveSiteplans(); renderMarkers();
+    }
+
+    function updateModeLabel(){ document.getElementById('modeLabel').textContent = isAddMarkerMode? 'Tambah Marker' : 'Lihat'; document.getElementById('addMarkerBtn').textContent = isAddMarkerMode? 'Batal Tambah' : 'Tambah Marker'; }
+    document.getElementById('addMarkerBtn').addEventListener('click', ()=>{ isAddMarkerMode = !isAddMarkerMode; updateModeLabel(); });
+
+    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // init
+    (function(){
+      siteplans = getSiteplans();
+      // populate project select
+      const ps = document.getElementById('projectSelect');
+      DEFAULT_PROJECTS.forEach(p=>{ const o=document.createElement('option'); o.value=p; o.textContent=p; ps.appendChild(o); });
+      // restore last chosen project
+      const last = localStorage.getItem('marketingSelectedProject');
+      if(last) { ps.value = last; currentProject = last; }
+      ps.addEventListener('change', ()=>{ currentProject = ps.value; localStorage.setItem('marketingSelectedProject', currentProject); renderList();
+        // if selecting Sunrise City Maros (or any project that has siteplan in daftarProyek), try show its siteplan
+        if (currentProject) tryShowProjectSiteplan(currentProject);
+      });
+      // button to explicitly choose project
+      document.getElementById('selectProjectBtn').addEventListener('click', function(){
+        const sel = document.getElementById('projectSelect');
+        const val = sel.value;
+        if (!val) return alert('Pilih proyek terlebih dahulu');
+        currentProject = val;
+        localStorage.setItem('marketingSelectedProject', currentProject);
+        // special: if Sunrise City Maros, navigate to interactive siteplan page
+        if (val === 'Sunrise City Maros') {
+          window.location.href = 'siteplan_marketing.html';
+        } else {
+          renderList();
+          tryShowProjectSiteplan(currentProject);
+        }
+      });
+      renderList();
+    })();
+
+    // Try to show siteplan image from `daftarProyek` for given project name
+    function tryShowProjectSiteplan(projectName) {
+      try {
+        const daftar = JSON.parse(localStorage.getItem('daftarProyek') || '[]');
+        const p = daftar.find(x => (x.nama || '').toString().trim() === projectName);
+        if (p && p.siteplanImage) {
+          // show in viewer without markers
+          document.getElementById('viewerCard').style.display='block';
+          document.getElementById('viewerTitle').textContent = p.nama + ' (Siteplan)';
+          siteImg.src = p.siteplanImage;
+          siteImg.onload = ()=>{ scale=1; offsetX=0; offsetY=0; document.getElementById('zoomRange').value='1'; updateTransform(); };
+          overlay.innerHTML='';
+          currentSite = null;
+          isAddMarkerMode = false; updateModeLabel();
+        } else {
+          // nothing to show — close viewer if open
+          // but keep list rendered
+          // optional: show notice
+          // closeViewer();
+        }
+      } catch (e) { console.error(e); }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Input Tagihan Vendor</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .page-header {
+      padding: 28px 24px 12px;
+      background: #fff;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .page-header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .page-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+    .back-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 10px 18px rgba(239, 68, 68, 0.25);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .back-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 24px rgba(239, 68, 68, 0.28);
+    }
+    .wrap {
+      max-width: 800px;
+      margin: 32px auto 40px;
+      padding: 0 24px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .action-bar {
+      display: flex;
+      justify-content: flex-start;
+      gap: 12px;
+      margin-bottom: 0;
+    }
+    .floating-action {
+      background: transparent;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      padding: 24px;
+    }
+    h1, h2 {
+      margin: 0;
+      font-size: 22px;
+      color: var(--text);
+    }
+    p {
+      color: var(--muted);
+      margin: 6px 0 16px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 13px;
+      margin: 14px 0 6px;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      background: #fff;
+    }
+    input[type="file"] {
+      padding: 10px;
+      background: #f8fafc;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 11px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      cursor: pointer;
+      margin-top: 18px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      color: var(--text);
+    }
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 9px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    }
+    dialog {
+      border: none;
+      border-radius: 14px;
+      padding: 24px;
+      width: 360px;
+      max-width: calc(100% - 32px);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.3);
+    }
+    dialog::backdrop {
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .dialog-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      justify-content: flex-end;
+    }
+    .btn-outline {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <div>
+      <h1>Input Tagihan Vendor</h1>
+      <p>Isi data tagihan vendor berikut untuk pencatatan keuangan internal.</p>
+    </div>
+    <button class="back-btn" type="button" onclick="window.history.back()">Kembali</button>
+  </header>
+  <div class="wrap">
+    <div class="action-bar floating-action">
+      <button class="btn" id="btnVendor">+ Tambah Data Vendor</button>
+    </div>
+
+    <div class="card">
+      <form id="tagihanForm">
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:160px;">
+            <label for="tanggal">Tanggal Nota</label>
+            <input type="date" id="tanggal" style="width:20ch;" required />
+          </div>
+          <div style="flex:1; min-width:200px;">
+            <label for="jatuhTempo">Tanggal Jatuh Tempo</label>
+            <input type="text" id="jatuhTempo" readonly placeholder="Otomatis dari TOP" />
+          </div>
+        </div>
+
+        <label for="vendor">Nama Toko/Vendor</label>
+        <select id="vendor" required>
+          <option value="">Pilih vendor</option>
+        </select>
+
+        <label for="total">Total Harga (Rp)</label>
+        <input type="number" id="total" min="0" step="1000" placeholder="cth: 6500000" required />
+
+        <label for="bukti">Upload Foto Nota</label>
+        <input type="file" id="bukti" accept="image/*,.pdf" required />
+
+        <button type="submit">Simpan Tagihan</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Daftar Tagihan Tersimpan</h2>
+      <p class="muted">Data hanya tersimpan di browser (localStorage) untuk simulasi.</p>
+
+      <table id="tableTagihan" style="display:none;">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Tanggal Nota</th>
+            <th>Jatuh Tempo</th>
+            <th>Nama Toko/Vendor</th>
+            <th>Total Harga</th>
+            <th>Foto Nota</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="emptyState" class="muted">Belum ada tagihan yang disimpan.</div>
+    </div>
+  </div>
+
+  <dialog id="vendorDialog">
+    <form method="dialog" id="vendorForm">
+      <h2>Tambah Data Vendor</h2>
+      <label for="vendorName">Nama Vendor</label>
+      <input type="text" id="vendorName" placeholder="Misal: PT Maju Jaya" required />
+
+      <label for="vendorMaterial">Jenis Material Konstruksi</label>
+      <input type="text" id="vendorMaterial" placeholder="Misal: Semen, Baja, Pasir" required />
+
+      <label for="vendorTop">TOP (Termin Pembayaran)</label>
+      <input type="text" id="vendorTop" placeholder="Misal: 30 hari" required />
+
+      <div class="dialog-actions">
+        <button class="btn-outline" type="button" id="cancelVendor">Batal</button>
+        <button class="btn" type="submit">Simpan</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const STORAGE_KEY = "tagihan_vendor_local";
+    const VENDOR_KEY = "master_vendor_local";
+    const form = document.getElementById("tagihanForm");
+    const table = document.getElementById("tableTagihan");
+    const tbody = table.querySelector("tbody");
+    const emptyState = document.getElementById("emptyState");
+
+    const vendorSelect = document.getElementById("vendor");
+    const jatuhTempoInput = document.getElementById("jatuhTempo");
+    document.getElementById("tanggal").addEventListener("change", updateDueDate);
+    vendorSelect.addEventListener("change", updateDueDate);
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const tanggal = document.getElementById("tanggal").value;
+      const vendor = vendorSelect.value;
+      const total = document.getElementById("total").value;
+      const buktiInput = document.getElementById("bukti");
+      const buktiFile = buktiInput.files[0];
+
+      if (!tanggal || !vendor || !total || !buktiFile) {
+        alert("Lengkapi semua field sebelum menyimpan.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        const data = loadData();
+        data.push({
+          id: Date.now(),
+          tanggal,
+          vendorName: vendor,
+          total: Number(total),
+          jatuhTempo: jatuhTempoInput.value,
+          buktiNama: buktiFile.name,
+          buktiLink: evt.target.result
+        });
+        saveData(data);
+        form.reset();
+        renderTable();
+      };
+      reader.readAsDataURL(buktiFile);
+    });
+
+    function loadData() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveData(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function renderTable() {
+      const data = loadData();
+      if (!data.length) {
+        table.style.display = "none";
+        emptyState.style.display = "block";
+        return;
+      }
+
+      table.style.display = "table";
+      emptyState.style.display = "none";
+
+      tbody.innerHTML = data.map((item, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${formatDate(item.tanggal)}</td>
+          <td>${item.jatuhTempo ? formatDate(item.jatuhTempo) : "-"}</td>
+          <td>${item.vendorName}</td>
+          <td>${formatRupiah(item.total)}</td>
+          <td><a href="${item.buktiLink}" target="_blank" rel="noopener">${item.buktiNama}</a></td>
+        </tr>
+      `).join("");
+    }
+
+    function formatDate(value) {
+      try {
+        return new Date(value).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+      } catch {
+        return value;
+      }
+    }
+
+    const vendorDialog = document.getElementById("vendorDialog");
+    const vendorForm = document.getElementById("vendorForm");
+    document.getElementById("btnVendor").addEventListener("click", () => {
+      vendorForm.reset();
+      vendorDialog.showModal();
+    });
+    document.getElementById("cancelVendor").addEventListener("click", () => vendorDialog.close());
+    vendorForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("vendorName").value.trim();
+      const material = document.getElementById("vendorMaterial").value.trim();
+      const top = document.getElementById("vendorTop").value.trim();
+      if (!name || !material || !top) {
+        alert("Lengkapi semua kolom vendor.");
+        return;
+      }
+
+      const vendors = loadVendors();
+      const days = parseInt(top.match(/\d+/)?.[0], 10);
+      vendors.push({
+        id: Date.now(),
+        name,
+        material,
+        top,
+        days: isNaN(days) ? null : days
+      });
+      saveVendors(vendors);
+      populateVendorOptions();
+      alert("Vendor tersimpan.");
+      vendorDialog.close();
+    });
+
+    function loadVendors() {
+      try {
+        return JSON.parse(localStorage.getItem(VENDOR_KEY)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveVendors(data) {
+      localStorage.setItem(VENDOR_KEY, JSON.stringify(data));
+    }
+
+    function populateVendorOptions() {
+      const current = vendorSelect.value;
+      const vendors = loadVendors();
+      if (!vendors.length) {
+        vendorSelect.innerHTML = '<option value="">Belum ada vendor. Tambahkan terlebih dahulu.</option>';
+        return;
+      }
+      vendorSelect.innerHTML = '<option value="">Pilih vendor</option>' + vendors.map(v => `<option value="${v.name}" data-top="${v.top}">${v.name} (${v.material}, TOP ${v.top})</option>`).join("");
+      if (current) vendorSelect.value = current;
+      updateDueDate();
+    }
+
+    function formatRupiah(nominal) {
+      const num = Number(nominal || 0);
+      return "Rp " + num.toLocaleString("id-ID");
+    }
+
+    function updateDueDate() {
+      const tanggal = document.getElementById("tanggal").value;
+      const topText = vendorSelect.selectedOptions[0]?.dataset.top || "";
+      if (!tanggal || !topText) {
+        jatuhTempoInput.value = "";
+        return;
+      }
+      const days = parseInt(topText.match(/\d+/)?.[0], 10);
+      if (isNaN(days)) {
+        jatuhTempoInput.value = "";
+        return;
+      }
+      const due = new Date(tanggal);
+      due.setDate(due.getDate() + days);
+      jatuhTempoInput.value = due.toISOString().split("T")[0];
+    }
+
+    populateVendorOptions();
+    renderTable();
+  </script>
+</body>
+</html>
