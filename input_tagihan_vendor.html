@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Input Tagihan Vendor</title>
+  <script>
+    // Set di runtime: window.PN_VENDOR_SCRIPT_URL = "https://script.google.com/macros/s/xxxx/exec";
+    // Opsional kalau mau buka spreadsheet: window.PN_VENDOR_SHEET_ID = "spreadsheetId";
+  </script>
   <style>
     :root {
       --bg: #f4f6f9;
@@ -37,6 +41,26 @@
       margin: 6px 0 0;
       color: var(--muted);
     }
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .home-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 10px 18px rgba(2, 132, 199, 0.25);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .home-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 24px rgba(2, 132, 199, 0.28);
+    }
     .back-btn {
       border: none;
       border-radius: 999px;
@@ -53,12 +77,10 @@
       box-shadow: 0 14px 24px rgba(239, 68, 68, 0.28);
     }
     .wrap {
-      max-width: 800px;
-      margin: 32px auto 40px;
-      padding: 0 24px 48px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
     }
     .action-bar {
       display: flex;
@@ -164,6 +186,66 @@
       background: #fff;
       color: var(--text);
     }
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+    }
+    .status.show { display: block; }
+    .status.success { background:#ecfdf3; color:#15803d; border:1px solid #bbf7d0; }
+    .status.error { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .status.info { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+    .page-section {
+      max-width: 1200px;
+      margin: 24px auto 48px;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .side-panel h2 { margin: 0 0 8px; }
+    .side-panel p { margin: 0 0 12px; }
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    @media (max-width: 1023px) {
+      .page-section {
+        grid-template-columns: 1fr;
+        padding: 0 16px;
+      }
+    }
+    @media (max-width: 767px) {
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px 18px 10px;
+      }
+      .nav-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+      .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .page-section { margin: 16px auto 32px; }
+      .card { padding: 18px; }
+      .actions-row { flex-direction: column; gap: 8px; align-items: stretch; }
+      button { width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -172,60 +254,101 @@
       <h1>Input Tagihan Vendor</h1>
       <p>Isi data tagihan vendor berikut untuk pencatatan keuangan internal.</p>
     </div>
-    <button class="back-btn" type="button" onclick="window.history.back()">Kembali</button>
+    <div class="nav-actions">
+      <button class="home-btn" type="button" onclick="window.location.href='index.html'">Home</button>
+      <button class="back-btn" type="button" onclick="window.history.back()">Kembali</button>
+    </div>
   </header>
-  <div class="wrap">
-    <div class="action-bar floating-action">
-      <button class="btn" id="btnVendor">+ Tambah Data Vendor</button>
-    </div>
+  <div class="page-section">
+    <div class="stack">
+      <div class="action-bar floating-action">
+        <button class="btn" id="btnVendor">+ Tambah Data Vendor</button>
+        <button class="btn" id="btnSettings" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">Pengaturan</button>
+      </div>
 
-    <div class="card">
-      <form id="tagihanForm">
-        <div style="display:flex; gap:12px; flex-wrap:wrap;">
-          <div style="flex:1; min-width:160px;">
-            <label for="tanggal">Tanggal Nota</label>
-            <input type="date" id="tanggal" style="width:20ch;" required />
+      <div class="card">
+        <form id="tagihanForm" method="POST" target="hidden_iframe" enctype="multipart/form-data">
+          <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:160px;">
+              <label for="tanggal">Tanggal Nota</label>
+              <input type="date" id="tanggal" name="tanggal" style="width:20ch;" required />
+            </div>
+            <div style="flex:1; min-width:200px;">
+              <label for="jatuhTempo">Tanggal Jatuh Tempo</label>
+              <input type="text" id="jatuhTempo" name="jatuhTempo" readonly placeholder="Otomatis dari TOP" />
+            </div>
           </div>
-          <div style="flex:1; min-width:200px;">
-            <label for="jatuhTempo">Tanggal Jatuh Tempo</label>
-            <input type="text" id="jatuhTempo" readonly placeholder="Otomatis dari TOP" />
+
+          <label for="vendor">Nama Toko/Vendor</label>
+          <select id="vendor" name="vendor" required>
+            <option value="">Pilih vendor</option>
+          </select>
+
+          <label for="total">Total Harga (Rp)</label>
+          <input type="number" id="total" name="total" min="0" step="1000" placeholder="cth: 6500000" required />
+
+          <label for="bukti">Upload Foto Nota</label>
+          <input type="file" id="bukti" name="bukti" accept="image/*,.pdf" required />
+
+          <input type="hidden" id="vendorMaterialHidden" name="material" />
+          <input type="hidden" id="vendorTopHidden" name="top" />
+          <input type="hidden" name="action" value="simpan_tagihan" />
+
+          <button type="submit">Simpan Tagihan</button>
+          <div id="statusBox" class="status" aria-live="polite"></div>
+        </form>
+        <iframe name="hidden_iframe" style="display:none;"></iframe>
+      </div>
+
+      <div class="card">
+        <h2>Daftar Tagihan Tersimpan</h2>
+        <p class="muted">Data dikirim ke Apps Script (spreadsheet) dan disalin ke browser (localStorage) untuk pratinjau.</p>
+
+        <table id="tableTagihan" style="display:none;">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Tanggal Nota</th>
+              <th>Jatuh Tempo</th>
+              <th>Nama Toko/Vendor</th>
+              <th>Total Harga</th>
+              <th>Foto Nota</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div id="emptyState" class="muted">Belum ada tagihan yang disimpan.</div>
+      </div>
+    </div>
+
+    <aside class="stack side-panel">
+      <div class="card">
+        <h2>Tarik Data</h2>
+        <p>Filter rentang tanggal, vendor, dan jatuh tempo.</p>
+        <form id="filterForm">
+          <label for="filterMulai">Mulai tanggal</label>
+          <input id="filterMulai" name="mulai" type="date" />
+
+          <label for="filterSampai">Sampai tanggal</label>
+          <input id="filterSampai" name="sampai" type="date" />
+
+          <label for="filterVendor">Nama Vendor</label>
+          <select id="filterVendor" name="filterVendor">
+            <option value="">Semua vendor</option>
+          </select>
+
+          <label for="filterJatuhTempo">Tanggal Jatuh Tempo</label>
+          <input id="filterJatuhTempo" name="filterJatuhTempo" type="date" />
+
+          <div class="actions-row">
+            <button type="submit" style="background:linear-gradient(135deg,#16a34a,#15803d);">Terapkan Filter</button>
+            <button type="button" id="btnExcel" style="background:linear-gradient(135deg,#10b981,#059669);">Download Excel</button>
+            <button type="button" id="filterSheetBtn" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">Buka Spreadsheet</button>
           </div>
-        </div>
-
-        <label for="vendor">Nama Toko/Vendor</label>
-        <select id="vendor" required>
-          <option value="">Pilih vendor</option>
-        </select>
-
-        <label for="total">Total Harga (Rp)</label>
-        <input type="number" id="total" min="0" step="1000" placeholder="cth: 6500000" required />
-
-        <label for="bukti">Upload Foto Nota</label>
-        <input type="file" id="bukti" accept="image/*,.pdf" required />
-
-        <button type="submit">Simpan Tagihan</button>
-      </form>
-    </div>
-
-    <div class="card">
-      <h2>Daftar Tagihan Tersimpan</h2>
-      <p class="muted">Data hanya tersimpan di browser (localStorage) untuk simulasi.</p>
-
-      <table id="tableTagihan" style="display:none;">
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Tanggal Nota</th>
-            <th>Jatuh Tempo</th>
-            <th>Nama Toko/Vendor</th>
-            <th>Total Harga</th>
-            <th>Foto Nota</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <div id="emptyState" class="muted">Belum ada tagihan yang disimpan.</div>
-    </div>
+          <div id="filterStatus" class="status info" aria-live="polite" style="display:none;"></div>
+        </form>
+      </div>
+    </aside>
   </div>
 
   <dialog id="vendorDialog">
@@ -247,18 +370,74 @@
     </form>
   </dialog>
 
+  <dialog id="configDialog">
+    <form method="dialog" id="configForm">
+      <h2>Pengaturan Spreadsheet</h2>
+      <label for="configScriptUrl">Apps Script URL</label>
+      <input type="url" id="configScriptUrl" placeholder="https://script.google.com/macros/s/..." />
+
+      <label for="configSheetId">ID Spreadsheet</label>
+      <input type="text" id="configSheetId" placeholder="1abcDEF..." />
+
+      <div class="dialog-actions">
+        <button class="btn-outline" type="button" id="cancelConfig">Batal</button>
+        <button class="btn" type="submit">Simpan</button>
+      </div>
+    </form>
+  </dialog>
+
   <script>
     const STORAGE_KEY = "tagihan_vendor_local";
     const VENDOR_KEY = "master_vendor_local";
+    const CONFIG_URL_KEY = "pn_vendor_script_url";
+    const CONFIG_SHEET_KEY = "pn_vendor_sheet_id";
+
     const form = document.getElementById("tagihanForm");
     const table = document.getElementById("tableTagihan");
     const tbody = table.querySelector("tbody");
     const emptyState = document.getElementById("emptyState");
+    const statusBox = document.getElementById("statusBox");
+    const filterForm = document.getElementById("filterForm");
+    const filterMulai = document.getElementById("filterMulai");
+    const filterSampai = document.getElementById("filterSampai");
+    const filterVendor = document.getElementById("filterVendor");
+    const filterJatuhTempo = document.getElementById("filterJatuhTempo");
+    const filterStatus = document.getElementById("filterStatus");
+    const filterSheetBtn = document.getElementById("filterSheetBtn");
+    const btnExcel = document.getElementById("btnExcel");
+    const configDialog = document.getElementById("configDialog");
+    const configForm = document.getElementById("configForm");
+    const configScriptUrl = document.getElementById("configScriptUrl");
+    const configSheetId = document.getElementById("configSheetId");
+    const cancelConfig = document.getElementById("cancelConfig");
+    const btnSettings = document.getElementById("btnSettings");
 
     const vendorSelect = document.getElementById("vendor");
     const jatuhTempoInput = document.getElementById("jatuhTempo");
+    const vendorMaterialHidden = document.getElementById("vendorMaterialHidden");
+    const vendorTopHidden = document.getElementById("vendorTopHidden");
     document.getElementById("tanggal").addEventListener("change", updateDueDate);
     vendorSelect.addEventListener("change", updateDueDate);
+    vendorSelect.addEventListener("change", syncHiddenVendor);
+
+    function getScriptUrl() {
+      return localStorage.getItem(CONFIG_URL_KEY) || window.PN_VENDOR_SCRIPT_URL || "";
+    }
+
+    function getSheetId() {
+      return localStorage.getItem(CONFIG_SHEET_KEY) || window.PN_VENDOR_SHEET_ID || "";
+    }
+
+    function setStatus(type, message) {
+      statusBox.className = `status ${type} show`;
+      statusBox.textContent = message;
+    }
+
+    function setFilterStatus(type, message) {
+      filterStatus.className = `status ${type} show`;
+      filterStatus.textContent = message;
+      filterStatus.style.display = "block";
+    }
 
     form.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -273,6 +452,20 @@
         return;
       }
 
+      syncHiddenVendor();
+
+      const scriptUrl = getScriptUrl();
+      if (!scriptUrl) {
+        setStatus("error", "URL Apps Script belum diatur. Isi lewat tombol Pengaturan atau set window.PN_VENDOR_SCRIPT_URL.");
+      } else {
+        setStatus("info", "Mengirim ke Apps Script...");
+        form.action = scriptUrl;
+        form.method = "POST";
+        form.target = "hidden_iframe";
+        form.submit();
+        setStatus("success", "Dikirim ke spreadsheet. Cek spreadsheet untuk memastikan tersimpan.");
+      }
+
       const reader = new FileReader();
       reader.onload = function (evt) {
         const data = loadData();
@@ -280,6 +473,8 @@
           id: Date.now(),
           tanggal,
           vendorName: vendor,
+          material: vendorMaterialHidden.value,
+          top: vendorTopHidden.value,
           total: Number(total),
           jatuhTempo: jatuhTempoInput.value,
           buktiNama: buktiFile.name,
@@ -363,6 +558,7 @@
       });
       saveVendors(vendors);
       populateVendorOptions();
+      sendVendorToScript({ name, material, top });
       alert("Vendor tersimpan.");
       vendorDialog.close();
     });
@@ -384,11 +580,19 @@
       const vendors = loadVendors();
       if (!vendors.length) {
         vendorSelect.innerHTML = '<option value="">Belum ada vendor. Tambahkan terlebih dahulu.</option>';
+        populateFilterVendor();
         return;
       }
-      vendorSelect.innerHTML = '<option value="">Pilih vendor</option>' + vendors.map(v => `<option value="${v.name}" data-top="${v.top}">${v.name} (${v.material}, TOP ${v.top})</option>`).join("");
+      vendorSelect.innerHTML = '<option value="">Pilih vendor</option>' + vendors.map(v => `<option value="${v.name}" data-top="${v.top}" data-material="${v.material}">${v.name} (${v.material}, TOP ${v.top})</option>`).join("");
       if (current) vendorSelect.value = current;
       updateDueDate();
+      syncHiddenVendor();
+      populateFilterVendor();
+    }
+
+    function populateFilterVendor() {
+      const vendors = loadVendors();
+      filterVendor.innerHTML = '<option value="">Semua vendor</option>' + vendors.map(v => `<option value="${v.name}">${v.name}</option>`).join("");
     }
 
     function formatRupiah(nominal) {
@@ -412,6 +616,122 @@
       due.setDate(due.getDate() + days);
       jatuhTempoInput.value = due.toISOString().split("T")[0];
     }
+
+    filterForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const mulai = filterMulai.value;
+      const sampai = filterSampai.value;
+      const jatuh = filterJatuhTempo.value;
+      if (mulai && sampai && new Date(mulai) > new Date(sampai)) {
+        setFilterStatus("error", "Rentang tanggal tidak valid. Pastikan tanggal awal tidak melebihi tanggal akhir.");
+        return;
+      }
+      const vendor = filterVendor.value || "Semua";
+      setFilterStatus(
+        "info",
+        `Filter diterapkan: ${mulai || "awal"} sampai ${sampai || "sekarang"}, vendor ${vendor}, jatuh tempo ${jatuh || "semua"}.`
+      );
+    });
+
+    filterSheetBtn?.addEventListener("click", () => {
+      const sheetId = getSheetId();
+      if (!sheetId || sheetId.startsWith("<")) {
+        alert("Set dulu ID spreadsheet di Pengaturan atau window.PN_VENDOR_SHEET_ID.");
+        return;
+      }
+      const sheetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
+      window.open(sheetUrl, "_blank");
+    });
+
+    // --- Script Download Excel ---
+    btnExcel?.addEventListener("click", () => {
+      const scriptUrl = getScriptUrl();
+      if (!scriptUrl) {
+        alert("URL Script belum diatur.");
+        return;
+      }
+
+      // Ambil nilai filter
+      const mulai = filterMulai.value;
+      const sampai = filterSampai.value;
+      const vendor = filterVendor.value;
+
+      // Tampilkan status loading
+      filterStatus.className = "status info show";
+      filterStatus.textContent = "Sedang memproses file Excel...";
+      filterStatus.style.display = "block";
+
+      // Susun URL: action=excel
+      const excelUrl = `${scriptUrl}?action=excel&mulai=${encodeURIComponent(mulai)}&sampai=${encodeURIComponent(sampai)}&vendor=${encodeURIComponent(vendor)}`;
+
+      // Buka URL (browser akan otomatis download file .csv/.xlsx sesuai Apps Script)
+      window.open(excelUrl, "_blank");
+
+      // Reset pesan
+      setTimeout(() => {
+        filterStatus.textContent = "File Excel berhasil diproses. Cek folder download Anda.";
+      }, 3000);
+    });
+
+    function syncHiddenVendor() {
+      const opt = vendorSelect.selectedOptions[0];
+      vendorMaterialHidden.value = opt?.dataset.material || "";
+      vendorTopHidden.value = opt?.dataset.top || "";
+    }
+
+    function sendVendorToScript({ name, material, top }) {
+      const scriptUrl = getScriptUrl();
+      if (!scriptUrl) {
+        console.warn("Script URL belum diatur, vendor tidak dikirim ke spreadsheet.");
+        return;
+      }
+      // Kirim via form tersembunyi supaya kompatibel dengan Apps Script
+      const tempForm = document.createElement("form");
+      tempForm.style.display = "none";
+      tempForm.action = scriptUrl;
+      tempForm.method = "POST";
+      tempForm.target = "hidden_iframe";
+
+      const add = (k, v) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = k;
+        input.value = v || "";
+        tempForm.appendChild(input);
+      };
+
+      // Tambahan action agar Apps Script tahu ini form vendor
+      add("action", "simpan_vendor");
+      add("vendorName", name);
+      add("vendorMaterial", material);
+      add("vendorTop", top);
+
+      document.body.appendChild(tempForm);
+      tempForm.submit();
+      setTimeout(() => tempForm.remove(), 1000);
+    }
+
+    btnSettings?.addEventListener("click", () => {
+      configScriptUrl.value = getScriptUrl();
+      configSheetId.value = getSheetId();
+      configDialog.showModal();
+    });
+
+    cancelConfig?.addEventListener("click", () => configDialog.close());
+
+    configForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const url = configScriptUrl.value.trim();
+      const sheetId = configSheetId.value.trim();
+      if (url) localStorage.setItem(CONFIG_URL_KEY, url);
+      if (sheetId) localStorage.setItem(CONFIG_SHEET_KEY, sheetId);
+      if (!url && !sheetId) {
+        alert("Isi salah satu atau kedua pengaturan sebelum menyimpan.");
+        return;
+      }
+      configDialog.close();
+      setStatus("success", "Pengaturan disimpan. Form akan memakai Apps Script/Spreadsheet baru.");
+    });
 
     populateVendorOptions();
     renderTable();

@@ -247,6 +247,10 @@
       font-weight: bold;
     }
   </style>
+  <script src="auth.js"></script>
+  <script>
+    PNAuth.requireAuth(["operasional"]);
+  </script>
 </head>
 <body>
   <div class="dashboard-container">
@@ -541,7 +545,8 @@
 
     function logout() {
       if (confirm("Apakah Anda yakin ingin logout?")) {
-        window.location.href = "Index.html";
+        PNAuth.clearAuth();
+        window.location.href = "index.html";
       }
     }
 

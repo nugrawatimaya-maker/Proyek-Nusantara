@@ -158,6 +158,60 @@
       color:var(--muted);
     }
 
+    /* Modal login */
+    .auth-modal{
+      position:fixed;
+      inset:0;
+      background:rgba(15,23,42,.25);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index:20;
+    }
+    .auth-modal.active{display:flex;}
+    .auth-card{
+      background:white;
+      border-radius:14px;
+      border:1px solid var(--border);
+      box-shadow:0 16px 40px rgba(0,0,0,.12);
+      width:min(420px, 100%);
+      padding:22px;
+    }
+    .auth-title{
+      margin:0 0 4px;
+      font-size:20px;
+      font-weight:800;
+    }
+    .auth-sub{
+      margin:0 0 14px;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .auth-field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-bottom:12px;
+    }
+    .auth-label{
+      font-size:13px;
+      color:var(--muted);
+      font-weight:600;
+    }
+    .auth-input{
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:14px;
+    }
+    .auth-actions{
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      margin-top:4px;
+    }
+
     @media (max-width: 980px){
       .roles{grid-template-columns: repeat(2, minmax(180px, 1fr));}
     }
@@ -179,7 +233,7 @@
 
     <div class="panel">
       <div class="roles">
-        <a class="role-card" href="dashboard_operasional.html">
+        <a class="role-card" href="dashboard_operasional.html" data-role-login="operasional">
           <span class="role-tag">Operasional</span>
           <h3 class="role-title">Dashboard Operasional</h3>
           <p class="role-desc">
@@ -187,7 +241,7 @@
           </p>
         </a>
 
-        <a class="role-card" href="dashboard_finance.html">
+        <a class="role-card" href="dashboard_finance.html" data-role-login="finance">
           <span class="role-tag">Finance</span>
           <h3 class="role-title">Dashboard Finance</h3>
           <p class="role-desc">
@@ -195,7 +249,7 @@
           </p>
         </a>
 
-        <a class="role-card" href="dashboard_marketing.html">
+        <a class="role-card" href="dashboard_marketing.html" data-role-login="marketing">
           <span class="role-tag">Marketing</span>
           <h3 class="role-title">Dashboard Marketing</h3>
           <p class="role-desc">
@@ -204,7 +258,7 @@
         </a>
 
         <!-- Kalau belum ada file dashboard_direktur.html, sementara arahkan ke finance/operasional -->
-        <a class="role-card" href="dashboard_finance.html">
+        <a class="role-card" href="dashboard_finance.html" data-role-login="direktur">
           <span class="role-tag">Direktur</span>
           <h3 class="role-title">Dashboard Direktur</h3>
           <p class="role-desc">
@@ -226,5 +280,88 @@
       </div>
     </div>
   </div>
+
+  <div class="auth-modal" id="authModal">
+    <div class="auth-card">
+      <h3 class="auth-title">Masuk</h3>
+      <p class="auth-sub">Masukkan password untuk role <strong id="authRoleName">-</strong></p>
+      <form id="authForm">
+        <div class="auth-field">
+          <label class="auth-label" for="authPassword">Password</label>
+          <input class="auth-input" type="password" id="authPassword" placeholder="••••••••" required />
+        </div>
+        <div class="auth-actions">
+          <button type="button" class="btn" id="authCancel">Batal</button>
+          <button type="submit" class="btn primary">Masuk</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    (function () {
+      const roleConfig = {
+        operasional: { label: "Operasional", password: "op123", target: "dashboard_operasional.html" },
+        finance: { label: "Finance", password: "fin123", target: "dashboard_finance.html" },
+        marketing: { label: "Marketing", password: "mkt123", target: "dashboard_marketing.html" },
+        direktur: { label: "Direktur", password: "dir123", target: "dashboard_finance.html" },
+      };
+
+      const modal = document.getElementById("authModal");
+      const roleName = document.getElementById("authRoleName");
+      const passwordInput = document.getElementById("authPassword");
+      const cancelBtn = document.getElementById("authCancel");
+      const form = document.getElementById("authForm");
+      let currentRole = null;
+
+      function openModal(role) {
+        currentRole = role;
+        roleName.textContent = roleConfig[role].label;
+        modal.classList.add("active");
+        passwordInput.value = "";
+        passwordInput.focus();
+      }
+
+      function closeModal() {
+        modal.classList.remove("active");
+        currentRole = null;
+      }
+
+      document.querySelectorAll("[data-role-login]").forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          const role = link.dataset.roleLogin;
+          if (!roleConfig[role]) {
+            alert("Role tidak dikenali.");
+            return;
+          }
+          openModal(role);
+        });
+      });
+
+      cancelBtn.addEventListener("click", closeModal);
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (!currentRole || !roleConfig[currentRole]) {
+          alert("Role tidak dikenali.");
+          return;
+        }
+        const expected = roleConfig[currentRole].password;
+        if (passwordInput.value !== expected) {
+          alert("Password salah. Coba lagi.");
+          passwordInput.focus();
+          return;
+        }
+        PNAuth.setAuth(currentRole);
+        window.location.href = roleConfig[currentRole].target;
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeModal();
+      });
+    })();
+  </script>
 </body>
 </html>

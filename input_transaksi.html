@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Input Transaksi Kas</title>
+  <script src="auth.js"></script>
+  <script>
+  window.PN_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrWAZO79-fc4nhWhmDGOLnESU7QuxrlPUtL9pRIRH7s2FClGb9WlZzl4O4lhWbiw2D3A/exec";
+  // opsional kalau mau dipakai tombol download
+  window.PN_SHEET_ID = "1s94wBnBjXVLclxw8i1P9J7uqHbZiMaONvzA2DMoQgNQ";
+    PNAuth.requireAuth(["finance", "direktur"]);
+  </script>
   <style>
     body {
       margin: 0;
@@ -28,25 +35,40 @@
       margin: 6px 0 0;
       color: #6b7280;
     }
-    .back-btn {
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .back-btn, .home-btn {
       border: none;
       border-radius: 999px;
       padding: 10px 20px;
       font-weight: 600;
-      background: linear-gradient(135deg, #ef4444, #dc2626);
       color: #fff;
       cursor: pointer;
-      box-shadow: 0 10px 18px rgba(239, 68, 68, 0.25);
       transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .back-btn {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      box-shadow: 0 10px 18px rgba(239, 68, 68, 0.25);
     }
     .back-btn:hover {
       transform: translateY(-1px);
       box-shadow: 0 14px 24px rgba(239, 68, 68, 0.28);
     }
+    .home-btn {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      box-shadow: 0 10px 18px rgba(2, 132, 199, 0.25);
+    }
+    .home-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 24px rgba(2, 132, 199, 0.28);
+    }
     .wrap {
-      max-width: 640px;
-      margin: 32px auto 40px;
-      padding: 0 24px 48px;
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
     }
     .card {
       background: #ffffff;
@@ -70,12 +92,28 @@
       font-weight: 600;
     }
     input, select {
-      width: 35%;
+      width: 100%;
       padding: 10px 12px;
       border-radius: 8px;
       border: 1px solid #d4d6dd;
       font-size: 14px;
       background: #fff;
+    }
+    /* Hilangkan teks default "Tidak ada file yang dipilih" pada input file */
+    .file-input {
+      color: transparent;
+    }
+    .file-input::-webkit-file-upload-text {
+      visibility: hidden;
+    }
+    .file-input::file-selector-button,
+    .file-input::-webkit-file-upload-button {
+      color: #111;
+      background: #f8fafc;
+      border: 1px solid #d4d6dd;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
     }
     button {
       margin-top: 20px;
@@ -93,6 +131,77 @@
       color: #9ca3af;
       margin-top: 8px;
     }
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      display: none;
+    }
+    .status.show { display: block; }
+    .status.success { background:#ecfdf3; color:#15803d; border:1px solid #bbf7d0; }
+    .status.error { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .status.info { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+    .page-section {
+      max-width: 1200px;
+      margin: 24px auto 48px;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .side-panel h2 { margin: 0 0 8px; }
+    .side-panel p { margin: 0 0 12px; }
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    /* Responsif */
+    @media (min-width: 768px) {
+      .wrap { max-width: 840px; }
+      input, select { width: 75%; }
+      .nav-actions { justify-content: flex-end; }
+    }
+    @media (max-width: 1023px) {
+      .page-section {
+        grid-template-columns: 1fr;
+        padding: 0 16px;
+      }
+    }
+    @media (max-width: 767px) {
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px 18px 10px;
+      }
+      .nav-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+      .nav-actions button {
+        width: 100%;
+        justify-content: center;
+      }
+      .wrap {
+        margin: 18px auto 28px;
+        padding: 0 16px 36px;
+      }
+      .card { padding: 18px; }
+      button { width: 100%; }
+      .actions-row { flex-direction: column; gap: 8px; align-items: stretch; }
+      table { font-size: 13px; }
+      th, td { padding: 10px 6px !important; }
+    }
   </style>
 </head>
 <body>
@@ -101,141 +210,221 @@
       <h1>Input Transaksi Kas</h1>
       <p>Gunakan form ini untuk mencatat transaksi kas masuk/keluar sebagai bahan entry jurnal.</p>
     </div>
-    <button class="back-btn" type="button" onclick="window.history.back()">Kembali</button>
+    <div class="nav-actions">
+      <button class="home-btn" type="button" onclick="window.location.href='index.html'">Home</button>
+      <button class="back-btn" type="button" onclick="window.history.back()">Kembali</button>
+    </div>
   </header>
-  <div class="wrap">
-    <div class="card">
+  <div class="page-section">
+    <div class="stack">
+      <div class="card">
 
-      <form id="formKas">
-        <label for="tanggal">Tanggal Transaksi</label>
-        <input id="tanggal" type="date" required />
+        <form id="formKas" method="POST" target="hidden_iframe" enctype="multipart/form-data">
+          <label for="tanggal">Tanggal Transaksi</label>
+          <input id="tanggal" name="tanggal" type="date" required />
 
-        <label for="jenis">Jenis Transaksi</label>
-        <select id="jenis" required>
-          <option value="">Pilih jenis transaksi</option>
-          <option value="kas-masuk">Kas Masuk</option>
-          <option value="kas-keluar">Kas Keluar</option>
-        </select>
-
-        <div id="kasMasukFields" style="display:none;">
-          <label for="kasMasukSumber">Kas Masuk dari</label>
-          <select id="kasMasukSumber">
-            <option value="">Pilih sumber kas masuk</option>
-            <option value="2301">2301 Booking Fee</option>
-            <option value="2302">2302 Uang Muka DP</option>
-            <option value="2303">2303 Uang Muka Pelanggan Kelebihan Bayar</option>
-            <option value="2304">2304 Titipan Pelanggan (jika ada skema titipan)</option>
-            <option value="4101">4101 Penjualan Unit Rumah Cash</option>
-            <option value="4102">4102 Penjualan Kavling Tanah</option>
-            <option value="4103">4103 Penjualan Upgrade/Perubahan Spesifikasi</option>
-            <option value="1201">1201 Piutang Usaha Retensi Bank/SBUM</option>
-            <option value="1202">1202 Piutang KPR/Subsidi</option>
-            <option value="4201">4201 Pendapatan Lain-lain Proyek</option>
-            <option value="4202">4202 Pendapatan Sewa Lahan/Tempat</option>
-            <option value="4203">4203 Pendapatan Layanan/Utilitas</option>
-            <option value="4204">4204 Pendapatan Denda Keterlambatan</option>
-            <option value="3101">3101 Modal Disetor</option>
-            <option value="2105">2105 Pinjaman Bank ? Konstruksi</option>
-            <option value="2106">2106 Pinjaman Investor/Partner</option>
-            <option value="2107">2107 Pinjaman Pemegang Saham</option>
-          </select>
-        </div>
-
-        <div id="kasMasukDetail" style="display:none;">
-          <label for="kasMasukJumlah">Jumlah (Rp)</label>
-          <input id="kasMasukJumlah" type="number" min="0" step="1000" placeholder="Masukkan nominal" />
-
-          <label for="kasMasukBank">Transfer dari</label>
-          <select id="kasMasukBank">
-            <option value="">Pilih bank pengirim</option>
-            <option value="BRI 006401001615303">BRI 006401001615303</option>
-            <option value="BRI 006401001622300">BRI 006401001622300</option>
-            <option value="BRI 022401001933307">BRI 022401001933307</option>
-            <option value="BRI 022401070785561">BRI 022401070785561</option>
+          <label for="jenis">Jenis Transaksi</label>
+          <select id="jenis" name="jenis" required>
+            <option value="">Pilih jenis transaksi</option>
+            <option value="kas-masuk">Kas Masuk</option>
+            <option value="kas-keluar">Kas Keluar</option>
           </select>
 
-          <label for="kasMasukKet">Keterangan (maks. 500 huruf)</label>
-          <textarea id="kasMasukKet" maxlength="500" placeholder="Tambahkan informasi tambahan jika diperlukan" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #d4d6dd;font-size:14px;height:90px;"></textarea>
+          <div id="kasMasukFields" style="display:none;">
+            <label for="kasMasukSumber">Kas Masuk dari</label>
+            <select id="kasMasukSumber" name="kasMasukSumber">
+              <option value="">Pilih sumber kas masuk</option>
+              <option value="2301">2301 Booking Fee</option>
+              <option value="2302">2302 Uang Muka DP</option>
+              <option value="2303">2303 Uang Muka Pelanggan Kelebihan Bayar</option>
+              <option value="2304">2304 Titipan Pelanggan (jika ada skema titipan)</option>
+              <option value="4101">4101 Penjualan Unit Rumah Cash</option>
+              <option value="4102">4102 Penjualan Kavling Tanah</option>
+              <option value="4103">4103 Penjualan Upgrade/Perubahan Spesifikasi</option>
+              <option value="1201">1201 Piutang Usaha Retensi Bank/SBUM</option>
+              <option value="1202">1202 Piutang KPR/Subsidi</option>
+              <option value="4201">4201 Pendapatan Lain-lain Proyek</option>
+              <option value="4202">4202 Pendapatan Sewa Lahan/Tempat</option>
+              <option value="4203">4203 Pendapatan Layanan/Utilitas</option>
+              <option value="4204">4204 Pendapatan Denda Keterlambatan</option>
+              <option value="3101">3101 Modal Disetor</option>
+              <option value="2105">2105 Pinjaman Bank ? Konstruksi</option>
+              <option value="2106">2106 Pinjaman Investor/Partner</option>
+              <option value="2107">2107 Pinjaman Pemegang Saham</option>
+            </select>
+          </div>
 
-          <label for="kasMasukBukti">Upload Bukti Transfer</label>
-          <input id="kasMasukBukti" type="file" accept="image/*,.pdf" />
-        </div>
+          <div id="kasMasukDetail" style="display:none;">
+            <label for="kasMasukJumlah">Jumlah (Rp)</label>
+            <input id="kasMasukJumlah" name="kasMasukJumlah" type="number" min="0" step="1000" placeholder="Masukkan nominal" />
 
-        <div id="kasKeluarFields" style="display:none;">
-          <label for="kasKeluarAkun">Kas Keluar ke</label>
-          <select id="kasKeluarAkun">
-            <option value="">Pilih akun tujuan kas keluar</option>
-            <option value="1101">1101 Kas Kecil (Petty Cash)</option>
-            <option value="1102">1102 Kas Operasional Proyek</option>
-            <option value="1111">1111 Bank Operasional</option>
-            <option value="1112">1112 Bank Proyek (rekening khusus proyek)</option>
-            <option value="1113">1113 Bank Escrow</option>
-            <option value="1302">1302 Persediaan Material Bangunan</option>
-            <option value="1401">1401 WIP – Biaya Konstruksi</option>
-            <option value="2101">2101 Hutang Usaha – Kontraktor/Subkon</option>
-            <option value="1402">1402 WIP – Biaya Infrastruktur</option>
-            <option value="1403">1403 WIP – Perizinan & Legal Proyek</option>
-            <option value="6102">6102 Beban Gaji Proyek</option>
-            <option value="6102.01">6102.01 Gaji Staf Lapangan</option>
-            <option value="6102.02">6102.02 Gaji Administrasi Umum</option>
-            <option value="6103">6103 Beban Administrasi & Umum Proyek</option>
-            <option value="6101">6101 Beban Pemasaran & Komisi</option>
-            <option value="2201">2201 Hutang Pajak PPN</option>
-            <option value="2202">2202 Hutang Pajak – PPh Final 4(2)</option>
-            <option value="6100">6100 Beban Pajak</option>
-            <option value="2203">2203 Hutang Pajak Lainnya</option>
-            <option value="2105">2105 Pinjaman Bank – Konstruksi</option>
-            <option value="2106">2106 Pinjaman Investor/Partner</option>
-            <option value="6106">6106 Beban Bunga</option>
-            <option value="1404">1404 Biaya Pendanaan Proyek (opsional)</option>
-          </select>
+            <label for="kasMasukBank">Rekening penerima</label>
+            <select id="kasMasukBank" name="kasMasukBank">
+              <option value="">Pilih bank pengirim</option>
+              <option value="BRI 006401001615303">BRI 006401001615303</option>
+              <option value="BRI 006401001622300">BRI 006401001622300</option>
+              <option value="BRI 022401001933307">BRI 022401001933307</option>
+              <option value="BRI 022401070785561">BRI 022401070785561</option>
+            </select>
 
-          <label for="kasKeluarJumlah">Jumlah (Rp)</label>
-          <input id="kasKeluarJumlah" type="number" min="0" step="1000" placeholder="Masukkan nominal" />
+            <label for="kasMasukKet">Keterangan (maks. 500 huruf)</label>
+            <textarea id="kasMasukKet" name="kasMasukKet" maxlength="500" placeholder="Tambahkan informasi tambahan jika diperlukan" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #d4d6dd;font-size:14px;height:90px;"></textarea>
 
-          <label for="kasKeluarKet">Keterangan (maks. 500 huruf)</label>
-          <textarea id="kasKeluarKet" maxlength="500" placeholder="Tambahkan informasi tambahan jika diperlukan" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #d4d6dd;font-size:14px;height:90px;"></textarea>
+            <label for="kasMasukBukti">Upload Bukti Transfer Jika ada</label>
+            <input class="file-input" id="kasMasukBukti" name="kasMasukBukti" type="file" accept="image/*,.pdf" />
+          </div>
 
-          <label for="kasKeluarBukti">Upload Bukti Pengeluaran</label>
-          <input id="kasKeluarBukti" type="file" accept="image/*,.pdf" />
-        </div>
+          <div id="kasKeluarFields" style="display:none;">
+            <label for="kasKeluarAkun">Kas Keluar ke</label>
+            <select id="kasKeluarAkun" name="kasKeluarAkun">
+              <option value="">Pilih akun tujuan kas keluar</option>
+              <option value="1101">1101 Kas Kecil (Petty Cash)</option>
+              <option value="1102">1102 Kas Operasional Proyek</option>
+              <option value="1111">1111 Bank Operasional</option>
+              <option value="1112">1112 Bank Proyek (rekening khusus proyek)</option>
+              <option value="1113">1113 Bank Escrow</option>
+              <option value="1302">1302 Persediaan Material Bangunan</option>
+              <option value="1401">1401 WIP – Biaya Konstruksi</option>
+              <option value="2101">2101 Hutang Usaha – Kontraktor/Subkon</option>
+              <option value="1402">1402 WIP – Biaya Infrastruktur</option>
+              <option value="1403">1403 WIP – Perizinan & Legal Proyek</option>
+              <option value="6102">6102 Beban Gaji Proyek</option>
+              <option value="6102.01">6102.01 Gaji Staf Lapangan</option>
+              <option value="6102.02">6102.02 Gaji Administrasi Umum</option>
+              <option value="6103">6103 Beban Administrasi & Umum Proyek</option>
+              <option value="6101">6101 Beban Pemasaran & Komisi</option>
+              <option value="2201">2201 Hutang Pajak PPN</option>
+              <option value="2202">2202 Hutang Pajak – PPh Final 4(2)</option>
+              <option value="6100">6100 Beban Pajak</option>
+              <option value="2203">2203 Hutang Pajak Lainnya</option>
+              <option value="2105">2105 Pinjaman Bank – Konstruksi</option>
+              <option value="2106">2106 Pinjaman Investor/Partner</option>
+              <option value="6106">6106 Beban Bunga</option>
+              <option value="1404">1404 Biaya Pendanaan Proyek (opsional)</option>
+            </select>
 
-        <button type="submit">Simpan</button>
-        <div class="small">Validasi: tanggal wajib diisi dan jenis transaksi harus dipilih.</div>
-      </form>
+            <label for="kasKeluarJumlah">Jumlah (Rp)</label>
+            <input id="kasKeluarJumlah" name="kasKeluarJumlah" type="number" min="0" step="1000" placeholder="Masukkan nominal" />
+
+            <label for="kasKeluarKet">Keterangan (maks. 500 huruf)</label>
+            <textarea id="kasKeluarKet" name="kasKeluarKet" maxlength="500" placeholder="Tambahkan informasi tambahan jika diperlukan" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #d4d6dd;font-size:14px;height:90px;"></textarea>
+
+            <label for="kasKeluarBukti">Upload Bukti Pengeluaran</label>
+            <input class="file-input" id="kasKeluarBukti" name="kasKeluarBukti" type="file" accept="image/*,.pdf" />
+          </div>
+
+          <input type="hidden" id="akunFinal" name="akun" />
+          <input type="hidden" id="hiddenJumlah" name="jumlah" />
+          <input type="hidden" id="hiddenBank" name="bank" />
+          <input type="hidden" id="hiddenKet" name="keterangan" />
+          <input type="hidden" id="buktiFinal" name="bukti" />
+
+          <div class="actions-row">
+            <button type="submit">Simpan</button>
+            <button type="button" id="downloadBtn" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">Download Data</button>
+          </div>
+          <div class="small">Validasi: tanggal wajib diisi dan jenis transaksi harus dipilih.</div>
+          <div id="statusBox" class="status" aria-live="polite"></div>
+        </form>
+        <iframe name="hidden_iframe" style="display:none;"></iframe>
+      </div>
+
+      <div class="card">
+        <h2>Preview Input Terakhir</h2>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left;border-bottom:1px solid #ececec;padding:8px;">Field</th>
+              <th style="text-align:left;border-bottom:1px solid #ececec;padding:8px;">Nilai</th>
+            </tr>
+          </thead>
+          <tbody id="previewBody">
+            <tr><td colspan="2" style="padding:8px;color:#94a3b8;">Belum ada input.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
 
-  <div class="wrap">
-    <div class="card">
-      <h2>Preview Input Terakhir</h2>
-      <table style="width:100%;border-collapse:collapse;">
-        <thead>
-          <tr>
-            <th style="text-align:left;border-bottom:1px solid #ececec;padding:8px;">Field</th>
-            <th style="text-align:left;border-bottom:1px solid #ececec;padding:8px;">Nilai</th>
-          </tr>
-        </thead>
-        <tbody id="previewBody">
-          <tr><td colspan="2" style="padding:8px;color:#94a3b8;">Belum ada input.</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <aside class="stack side-panel">
+      <div class="card">
+        <h2>Tarik Data</h2>
+        <p>Filter rentang tanggal dan jenis transaksi untuk melihat ringkasannya.</p>
+        <form id="filterForm">
+          <label for="filterMulai">Mulai tanggal</label>
+          <input id="filterMulai" name="mulai" type="date" />
+
+          <label for="filterSampai">Sampai tanggal</label>
+          <input id="filterSampai" name="sampai" type="date" />
+
+          <label for="filterJenis">Jenis</label>
+          <select id="filterJenis" name="filterJenis">
+            <option value="">Semua</option>
+            <option value="kas-masuk">Kas Masuk</option>
+            <option value="kas-keluar">Kas Keluar</option>
+          </select>
+
+          <label for="filterKasMasuk">Kas Masuk dari</label>
+          <select id="filterKasMasuk" name="filterKasMasuk">
+            <option value="">Semua sumber kas masuk</option>
+          </select>
+
+          <label for="filterKasKeluar">Tujuan Kas Keluar</label>
+          <select id="filterKasKeluar" name="filterKasKeluar">
+            <option value="">Semua tujuan kas keluar</option>
+          </select>
+
+          <div class="actions-row">
+            <button type="submit" style="background:linear-gradient(135deg,#16a34a,#15803d);">Terapkan Filter</button>
+            <button type="button" id="filterSheetBtn" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">Buka Spreadsheet</button>
+          </div>
+          <div id="filterStatus" class="status info" aria-live="polite" style="display:none;"></div>
+        </form>
+      </div>
+    </aside>
   </div>
 
   <script>
+    // Pakai Apps Script langsung (tidak fallback ke FastAPI)
+    // Bisa override via window.PN_APPS_SCRIPT_URL dan window.PN_SHEET_ID (lihat <head>).
+    const APPS_SCRIPT_URL = window.PN_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwrWAZO79-fc4nhWhmDGOLnESU7QuxrlPUtL9pRIRH7s2FClGb9WlZzl4O4lhWbiw2D3A/exec";
+    const SHEET_ID = window.PN_SHEET_ID || "1s94wBnBjXVLclxw8i1P9J7uqHbZiMaONvzA2DMoQgNQ"; // untuk tombol download
+    const formKas = document.getElementById("formKas");
+    const statusBox = document.getElementById("statusBox");
     const jenisSelect = document.getElementById("jenis");
     const kasMasukFields = document.getElementById("kasMasukFields");
     const kasMasukDetail = document.getElementById("kasMasukDetail");
     const kasMasukSumber = document.getElementById("kasMasukSumber");
     const kasMasukJumlah = document.getElementById("kasMasukJumlah");
     const kasMasukBank = document.getElementById("kasMasukBank");
+    const hiddenAkun = document.getElementById("akunFinal");
+    const hiddenJumlah = document.getElementById("hiddenJumlah");
+    const hiddenBank = document.getElementById("hiddenBank");
+    const hiddenKet = document.getElementById("hiddenKet");
+    const hiddenBukti = document.getElementById("buktiFinal");
 
     const kasKeluarFields = document.getElementById("kasKeluarFields");
     const kasKeluarAkun = document.getElementById("kasKeluarAkun");
     const kasKeluarJumlah = document.getElementById("kasKeluarJumlah");
     const kasKeluarKet = document.getElementById("kasKeluarKet");
     const kasKeluarBukti = document.getElementById("kasKeluarBukti");
+    const filterForm = document.getElementById("filterForm");
+    const filterMulai = document.getElementById("filterMulai");
+    const filterSampai = document.getElementById("filterSampai");
+    const filterJenis = document.getElementById("filterJenis");
+    const filterKasMasuk = document.getElementById("filterKasMasuk");
+    const filterKasKeluar = document.getElementById("filterKasKeluar");
+    const filterStatus = document.getElementById("filterStatus");
+    const filterSheetBtn = document.getElementById("filterSheetBtn");
+
+    function syncHiddenAkun() {
+      if (jenisSelect.value === "kas-masuk") {
+        hiddenAkun.value = kasMasukSumber.value || "";
+      } else if (jenisSelect.value === "kas-keluar") {
+        hiddenAkun.value = kasKeluarAkun.value || "";
+      } else {
+        hiddenAkun.value = "";
+      }
+    }
 
     jenisSelect.addEventListener("change", function () {
       if (this.value === "kas-masuk") {
@@ -266,6 +455,7 @@
           kasKeluarBukti.value = "";
         }
       }
+      syncHiddenAkun();
     });
 
     kasMasukSumber.addEventListener("change", function () {
@@ -278,9 +468,31 @@
         document.getElementById("kasMasukKet").value = "";
         kasMasukBukti.value = "";
       }
+      syncHiddenAkun();
     });
 
-    document.getElementById("formKas").addEventListener("submit", function (e) {
+    kasKeluarAkun.addEventListener("change", syncHiddenAkun);
+
+    function populateFilterOptions(sourceSelect, targetSelect, placeholder) {
+      const opts = Array.from(sourceSelect.options)
+        .filter(opt => opt.value)
+        .map(opt => `<option value="${opt.value}">${opt.text}</option>`)
+        .join("");
+      targetSelect.innerHTML = `<option value="">${placeholder}</option>` + opts;
+    }
+
+    populateFilterOptions(kasMasukSumber, filterKasMasuk, "Semua sumber kas masuk");
+    populateFilterOptions(kasKeluarAkun, filterKasKeluar, "Semua tujuan kas keluar");
+
+    function setStatus(type, message) {
+      statusBox.className = `status ${type} show`;
+      statusBox.textContent = message;
+    }
+
+    // pastikan form mengarah ke Apps Script terbaru
+    formKas.action = APPS_SCRIPT_URL;
+
+    formKas.addEventListener("submit", function (e) {
       e.preventDefault();
       const tanggal = document.getElementById("tanggal").value;
       const jenis = jenisSelect.value;
@@ -303,7 +515,7 @@
         info =
           "\nKas masuk dari: " + kasMasukSumber.options[kasMasukSumber.selectedIndex].text +
           "\nJumlah: Rp " + Number(kasMasukJumlah.value).toLocaleString("id-ID") +
-          "\nTransfer dari: " + kasMasukBank +
+          "\nRekening penerima: " + kasMasukBank.value +
           (document.getElementById("kasMasukKet").value ? ("\nKeterangan: " + document.getElementById("kasMasukKet").value) : "");
       } else if (jenis === "kas-keluar") {
         if (!kasKeluarAkun.value) {
@@ -332,6 +544,34 @@
           : (kasKeluarBukti.files[0] ? kasKeluarBukti.files[0].name : "-")
       });
 
+      // Normalisasi field supaya Apps Script menerima payload yang konsisten
+      syncHiddenAkun();
+      hiddenJumlah.value = jenis === "kas-masuk" ? kasMasukJumlah.value : kasKeluarJumlah.value;
+      hiddenBank.value = jenis === "kas-masuk" ? kasMasukBank.value : "";
+      hiddenKet.value = jenis === "kas-masuk"
+        ? (document.getElementById("kasMasukKet").value || "")
+        : (kasKeluarKet.value || "");
+
+      const fileMasuk = document.getElementById("kasMasukBukti")?.files?.[0];
+      const fileKeluar = document.getElementById("kasKeluarBukti")?.files?.[0];
+      hiddenBukti.value = jenis === "kas-masuk"
+        ? (fileMasuk ? fileMasuk.name : "")
+        : (fileKeluar ? fileKeluar.name : "");
+
+      if (!APPS_SCRIPT_URL) {
+        setStatus("error", "URL Apps Script belum diatur.");
+        return;
+      }
+
+      // Submit form langsung ke Apps Script via iframe (menghindari CORS/fetch).
+      setStatus("info", "Mengirim ke spreadsheet lewat form...");
+      formKas.action = APPS_SCRIPT_URL;
+      formKas.method = "POST";
+      formKas.target = "hidden_iframe";
+      formKas.submit();
+
+      setStatus("success", "Dikirim. Cek spreadsheet untuk memastikan tersimpan.");
+
       alert("Transaksi tersimpan:\nTanggal: " + tanggal + "\nJenis: " + jenis.replace("-", " ") + info);
       e.target.reset();
       kasMasukFields.style.display = "none";
@@ -348,13 +588,55 @@
       kasKeluarBukti.value = "";
     });
 
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      if (!SHEET_ID || SHEET_ID.startsWith("<")) {
+        alert("Set dulu ID spreadsheet di window.PN_SHEET_ID atau ganti nilai SHEET_ID di script.");
+        return;
+      }
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=xlsx`;
+      setStatus("info", "Mempersiapkan unduhan spreadsheet...");
+      window.open(url, "_blank");
+    });
+
+    function setFilterBox(type, message) {
+      filterStatus.className = `status ${type} show`;
+      filterStatus.textContent = message;
+      filterStatus.style.display = "block";
+    }
+
+    filterForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const mulai = filterMulai.value;
+      const sampai = filterSampai.value;
+      if (mulai && sampai && new Date(mulai) > new Date(sampai)) {
+        setFilterBox("error", "Rentang tanggal tidak valid. Pastikan tanggal awal tidak melebihi tanggal akhir.");
+        return;
+      }
+      const jenis = filterJenis.value || "Semua";
+      const masuk = filterKasMasuk.value ? filterKasMasuk.options[filterKasMasuk.selectedIndex].text : "Semua";
+      const keluar = filterKasKeluar.value ? filterKasKeluar.options[filterKasKeluar.selectedIndex].text : "Semua";
+      setFilterBox(
+        "info",
+        `Filter diterapkan: ${mulai || "awal"} sampai ${sampai || "sekarang"}, jenis ${jenis}, kas masuk ${masuk}, kas keluar ${keluar}.`
+      );
+    });
+
+    filterSheetBtn?.addEventListener("click", () => {
+      if (!SHEET_ID || SHEET_ID.startsWith("<")) {
+        alert("Set dulu ID spreadsheet di window.PN_SHEET_ID atau ganti nilai SHEET_ID di script.");
+        return;
+      }
+      const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
+      window.open(sheetUrl, "_blank");
+    });
+
     function updatePreview(data) {
       const rows = [
         ["Tanggal", data.tanggal],
         ["Jenis", data.jenis.replace("-", " ")],
         ["Kas Masuk dari", data.sumber],
         ["Jumlah", data.jumlah ? "Rp " + data.jumlah : "-"],
-        ["Transfer dari", data.bank],
+        ["Rekening penerima", data.bank],
         ["Keterangan", data.keterangan],
         ["Bukti Transfer", data.bukti]
       ];
