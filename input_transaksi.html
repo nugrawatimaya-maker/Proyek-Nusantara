@@ -719,16 +719,22 @@
       if (jenis === "kas-masuk") {
           hiddenAkun.value = kasMasukSumber.value;
           hiddenNoBukti.value = kasMasukNoBukti.value;
+          
+          // --- INI YANG KEMARIN HILANG (WAJIB ADA) ---
           document.getElementById("hiddenJumlah").value = kasMasukJumlah.value;
           document.getElementById("hiddenBank").value = kasMasukBank.value;
           document.getElementById("hiddenKet").value = kasMasukKet.value;
-          // Kita tidak perlu hiddenBukti, karena file dikirim langsung
+          // -------------------------------------------
+
       } else {
           hiddenAkun.value = kasKeluarAkun.value;
           hiddenNoBukti.value = kasKeluarNoBukti.value;
+          
+          // --- INI JUGA WAJIB ADA UNTUK KAS KELUAR ---
           document.getElementById("hiddenJumlah").value = kasKeluarJumlah.value;
           document.getElementById("hiddenBank").value = kasKeluarBank.value;
           document.getElementById("hiddenKet").value = kasKeluarKet.value;
+          // -------------------------------------------
       }
 
       // B. BUNGKUS DATA MENGGUNAKAN FORMDATA
