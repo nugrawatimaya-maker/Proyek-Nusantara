@@ -857,6 +857,7 @@
           const rowKey = `${section.stage}-${idx}`;
           const state = lotState[rowKey] || {};
           const applied = Boolean(state.date);
+          const disabledAttr = applied ? "disabled" : "";
           if (applied) {
             stageWeight += row.weight;
             stageAmount += row.amount;
@@ -874,13 +875,15 @@
                     inputmode="numeric"
                     placeholder="dd/mm/yyyy"
                     data-row-display="${rowKey}"
-                    value="${formatInputDateValue(state.date)}">
+                    value="${formatInputDateValue(state.date)}"
+                    ${disabledAttr}>
                   <input
                     type="date"
                     class="native-date-input"
                     data-row-hidden="${rowKey}"
-                    value="${normalizeDateInput(state.date)}">
-                  <button type="button" class="date-picker-btn" data-row="${rowKey}">📅</button>
+                    value="${normalizeDateInput(state.date)}"
+                    ${disabledAttr}>
+                  <button type="button" class="date-picker-btn" data-row="${rowKey}" ${disabledAttr}>📅</button>
                   <button type="button" class="apply-row" data-row="${rowKey}" data-lot="${lotKey}">Apply</button>
                 </div>
                 <div class="date-info">${state.date ? formatDate(state.date) : "Belum ditetapkan"}</div>
@@ -1275,49 +1278,62 @@
       return null;
     }
 
-    // Fungsi Utama: Sinkronisasi Data saat Web Dibuka
+    // ==========================================
+    // VERSI FINAL: SINKRONISASI DATA SPREADSHEET
+    // ==========================================
     async function loadDataFromSheet() {
-      const SPREADSHEET_ID = window.PN_SHEET_ID || "1s94wBnBjXVLclxw8i1P9J7uqHbZiMaONvzA2DMoQgNQ";
-      const SHEET_NAME = "Laporan_Upah_Tukang";
+      const SPREADSHEET_ID = "1s94wBnBjXVLclxw8i1P9J7uqHbZiMaONvzA2DMoQgNQ"; 
+      const SHEET_NAME = "Laporan_Upah_Tukang"; 
+      const SCRIPT_URL = window.PN_UPAH_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwlBHrduAIgPZZrPMYAiEwaFUJOrGws1IbIzw09jXt9sdDNafaAzRS3RT2AWxVTop_oIQ/exec";
 
-      if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("PASTE_URL")) {
-        console.warn("URL Script belum diset.");
-        return;
-      }
-
-      console.log("Sedang menarik data dari Spreadsheet...");
+      console.log("Memulai penarikan data...");
 
       try {
-        const url = `${GOOGLE_SCRIPT_URL}?sheetName=${SHEET_NAME}&sheetId=${SPREADSHEET_ID}`;
+        const url = `${SCRIPT_URL}?sheetName=${SHEET_NAME}&sheetId=${SPREADSHEET_ID}`;
         const response = await fetch(url);
         const data = await response.json();
 
-        if (!Array.isArray(data)) {
-          console.error("Format data salah:", data);
-          return;
-        }
+        if (!Array.isArray(data)) return;
 
         data.forEach(item => {
-          const lotKey = item.kavling || item.Kavling;
-          const jobName = item.pekerjaan || item.Pekerjaan;
-          const tglCair = item.tanggal_cair || item.Tanggal_Cair;
-          const nilaiCair = item.nilai_pencairan || item.Nilai_Pencairan;
+          // 1. Ambil Data
+          const lotKeyRaw = item.kavling || item.Kavling || "";
+          const lotKey = String(lotKeyRaw).trim(); 
+          
+          const jobNameRaw = item.pekerjaan || item.Pekerjaan || "";
+          const jobName = String(jobNameRaw).trim();
+
+          let tglCair = item.tanggalcair || item.tanggal_cair || item.Tanggal_Cair;
+          const nilaiCair = item.nilaipencairan || item.nilai_pencairan || item.Nilai_Pencairan;
           const ket = item.keterangan || item.Keterangan;
+
+          // 2. PERBAIKAN FORMAT TANGGAL (PENTING!)
+          if (tglCair && typeof tglCair === 'string' && tglCair.includes('T')) {
+              tglCair = tglCair.split('T')[0];
+          }
 
           if (lotKey && jobName) {
             const rowKey = getRowKeyByName(jobName);
+            
             if (rowKey) {
               if (!rowState[lotKey]) rowState[lotKey] = {};
-              rowState[lotKey][rowKey] = {
-                date: normalizeDateInput(tglCair),
-                note: ket
-              };
+              
+              // Simpan Tanggal
+              if (tglCair && tglCair !== "-" && tglCair !== "") {
+                  rowState[lotKey][rowKey] = {
+                    date: tglCair, 
+                    note: ket
+                  };
+              }
 
-              const sections = ensureLotProgress(lotKey);
-              const target = findRowByKey(sections, rowKey);
-              if (target && nilaiCair) {
+              // Simpan Uang
+              if (nilaiCair) {
                 const numericNilai = Number(String(nilaiCair).replace(/[^0-9.-]/g, ""));
-                target.row.amount = numericNilai;
+                if (numericNilai > 0) {
+                    const sections = ensureLotProgress(lotKey);
+                    const target = findRowByKey(sections, rowKey);
+                    if (target) target.row.amount = numericNilai;
+                }
               }
             }
           }
@@ -1326,13 +1342,13 @@
         persistRowState();
         persistProgressData();
         applyLotColors();
-
+        
         if (currentLotKey) {
-          const element = document.querySelector(`[data-unit-id="${currentLotKey}"]`);
-          if (element) handleLotClick(element);
+             const element = document.querySelector(`[data-unit-id="${currentLotKey}"]`);
+             if(element) handleLotClick(element);
         }
+        console.log("Sinkronisasi Selesai! Data tanggal sudah diperbaiki.");
 
-        console.log("Sinkronisasi Selesai!");
       } catch (error) {
         console.error("Gagal menarik data:", error);
       }

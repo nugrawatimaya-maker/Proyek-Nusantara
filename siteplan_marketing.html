@@ -11,6 +11,7 @@
       --selected: #e74c3c;
       --hover: #ffeaa7;
       --stroke: #2c3e50;
+      --lot-base: #ffffff;
     }
     body {
       font-family: "Segoe UI", Arial, sans-serif;
@@ -55,6 +56,16 @@
       box-shadow: 0 8px 18px rgba(37,99,235,0.25);
     }
     .btn:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(37,99,235,0.35); }
+    .select {
+      border: 1px solid #d5d9e2;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #0f172a;
+      background: #fff;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    }
     
     /* Viewer Area */
     .viewer {
@@ -90,7 +101,7 @@
 
     /* Reset semua path/rect di dalam SVG agar putih */
     svg [data-unit-id] {
-      fill: #ffffff !important;   /* Blok warna putih */
+      fill: var(--lot-base, #ffffff) !important;   /* Blok warna putih */
       stroke: var(--stroke) !important; /* Garis gelap */
       stroke-width: 15px !important; /* Ketebalan garis disesuaikan dengan skala SVG */
       cursor: pointer;
@@ -192,6 +203,12 @@
           <small style="color:#475569; font-weight:600;">Sunrise City Maros · Klik blok untuk memilih unit</small>
         </div>
         <div class="controls">
+          <select id="paletteSelect" class="select">
+            <option value="default">Default</option>
+            <option value="tropical">Tropical</option>
+            <option value="pastel">Pastel</option>
+            <option value="mono">Monokrom</option>
+          </select>
           <button class="btn" onclick="resetView()">Update Siteplan</button>
           </div>
       </div>
@@ -416,6 +433,52 @@
     const infoText = document.getElementById("infoText");
     const loader = document.getElementById("loader");
     const lotTooltip = document.getElementById("lotTooltip");
+    const paletteSelect = document.getElementById("paletteSelect");
+
+    const palettes = {
+      default: {
+        bg: "#f4f6f7",
+        primary: "#3498db",
+        selected: "#e74c3c",
+        hover: "#ffeaa7",
+        stroke: "#2c3e50",
+        lot: "#ffffff"
+      },
+      tropical: {
+        bg: "#f1f8f5",
+        primary: "#16a34a",
+        selected: "#f97316",
+        hover: "#bbf7d0",
+        stroke: "#0f172a",
+        lot: "#fffef3"
+      },
+      pastel: {
+        bg: "#f9fafb",
+        primary: "#7c3aed",
+        selected: "#ef4444",
+        hover: "#e0e7ff",
+        stroke: "#4b5563",
+        lot: "#ffffff"
+      },
+      mono: {
+        bg: "#f5f6f8",
+        primary: "#111827",
+        selected: "#6b7280",
+        hover: "#e5e7eb",
+        stroke: "#111827",
+        lot: "#ffffff"
+      }
+    };
+
+    function applyPalette(name) {
+      const p = palettes[name] || palettes.default;
+      document.documentElement.style.setProperty("--bg", p.bg);
+      document.documentElement.style.setProperty("--primary", p.primary);
+      document.documentElement.style.setProperty("--selected", p.selected);
+      document.documentElement.style.setProperty("--hover", p.hover);
+      document.documentElement.style.setProperty("--stroke", p.stroke);
+      document.documentElement.style.setProperty("--lot-base", p.lot);
+    }
 
     function setTransform() {
       contentWrap.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
@@ -579,12 +642,14 @@
     window.onload = () => {
       // Tunggu sejenak agar layout stabil, lalu fitToScreen dan fade-in konten
       requestAnimationFrame(() => {
+        applyPalette(paletteSelect?.value || "default");
         fitToScreen();
         contentWrap.classList.add("ready");
         if (loader) loader.style.display = "none";
       });
     };
     window.addEventListener("resize", fitToScreen);
+    paletteSelect?.addEventListener("change", () => applyPalette(paletteSelect.value));
 
   </script>
 </body>
