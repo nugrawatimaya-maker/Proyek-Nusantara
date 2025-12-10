@@ -374,6 +374,31 @@
       font-size: 11px;
       margin-top: 2px;
     }
+
+    /* ===== RESPONSIVE UNTUK HP ===== */
+    @media (max-width: 768px) {
+      main {
+        /* dari 2 kolom jadi 1 kolom */
+        grid-template-columns: 1fr;
+        height: auto; /* jangan paksa 100vh di HP */
+      }
+
+      .panels-header {
+        grid-template-columns: 1fr;
+      }
+
+      /* Biar kedua panel ikut memanjang normal */
+      .sitepanel,
+      .detailpanel {
+        max-height: none;
+        min-height: 0;
+      }
+
+      /* Tabel tetap bisa di-scroll tapi tidak memaksa lebar kolom lain jadi 0 */
+      .table-wrapper {
+        max-height: none;
+      }
+    }
   </style>
 </head>
 <body>
