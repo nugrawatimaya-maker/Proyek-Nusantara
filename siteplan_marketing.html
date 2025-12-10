@@ -61,9 +61,10 @@
       height: calc(100vh - 170px);
       min-height: 420px;
       position: relative;
-      background: #eef2f7;
+      background: linear-gradient(180deg, #f4f7fb 0%, #e8edf5 100%);
       overflow: hidden;
       cursor: grab;
+      border-top: 1px solid #e5e7eb;
     }
     .viewer:active { cursor: grabbing; }
     
@@ -158,6 +159,27 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Hover tooltip untuk blok */
+    .lot-tooltip {
+      position: absolute;
+      padding: 6px 10px;
+      background: #0f172a;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 8px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.35);
+      pointer-events: none;
+      transform: translate(-50%, -120%);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.1s ease;
+      z-index: 6;
+    }
+    .lot-tooltip.visible {
+      opacity: 1;
+    }
+
   </style>
 </head>
 <body>
@@ -170,7 +192,7 @@
           <small style="color:#475569; font-weight:600;">Sunrise City Maros · Klik blok untuk memilih unit</small>
         </div>
         <div class="controls">
-          <button class="btn" onclick="resetView()">Reset Tampilan</button>
+          <button class="btn" onclick="resetView()">Update Siteplan</button>
           </div>
       </div>
 
@@ -366,6 +388,8 @@
           <span>Memuat siteplan...</span>
         </div>
 
+        <div class="lot-tooltip" id="lotTooltip"></div>
+
         <div class="info-box" id="infoBox">
           <div class="info-title">Unit Terpilih</div>
           <div class="info-detail" id="infoText">Kavling: -</div>
@@ -379,6 +403,7 @@
     // --- ZOOM & PAN LOGIC ---
     const SVG_WIDTH = 29700;
     const SVG_HEIGHT = 21000;
+    const VIEWER_PADDING = 80;
     let scale = 1; // akan di-set otomatis via fitToScreen()
     let panning = false;
     let pointX = 0;
@@ -390,6 +415,7 @@
     const infoBox = document.getElementById("infoBox");
     const infoText = document.getElementById("infoText");
     const loader = document.getElementById("loader");
+    const lotTooltip = document.getElementById("lotTooltip");
 
     function setTransform() {
       contentWrap.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
@@ -399,8 +425,10 @@
       const w = viewer.clientWidth;
       const h = viewer.clientHeight;
       if (!w || !h) return;
-      const padding = 0.92; // sedikit ruang di sekeliling
-      scale = Math.min(w / SVG_WIDTH, h / SVG_HEIGHT) * padding;
+      const usableW = Math.max(0, w - VIEWER_PADDING * 2);
+      const usableH = Math.max(0, h - VIEWER_PADDING * 2);
+      const baseScale = Math.min(usableW / SVG_WIDTH, usableH / SVG_HEIGHT);
+      scale = baseScale * 0.95; // beri ruang ekstra agar lega seperti contoh
       const scaledW = SVG_WIDTH * scale;
       const scaledH = SVG_HEIGHT * scale;
       pointX = (w - scaledW) / 2;
@@ -479,6 +507,27 @@
     // --- SELECTION LOGIC ---
     const lots = document.querySelectorAll("svg [data-unit-id]");
     let selectedLot = null;
+
+    // Hover tooltip per blok
+    lots.forEach(lot => {
+      lot.addEventListener("mouseenter", () => {
+        if (!lotTooltip) return;
+        lotTooltip.textContent = lot.dataset.unitId || "";
+        lotTooltip.classList.add("visible");
+      });
+      lot.addEventListener("mousemove", (e) => {
+        if (!lotTooltip) return;
+        const rect = viewer.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        lotTooltip.style.left = `${x}px`;
+        lotTooltip.style.top = `${y}px`;
+      });
+      lot.addEventListener("mouseleave", () => {
+        if (!lotTooltip) return;
+        lotTooltip.classList.remove("visible");
+      });
+    });
 
     lots.forEach(lot => {
       lot.addEventListener("click", (e) => {
