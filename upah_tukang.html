@@ -1259,6 +1259,90 @@
       renderDetail(payload);
     }
 
+    // ==========================================
+    // FITUR BARU: TARIK DATA DARI SPREADSHEET
+    // ==========================================
+    // Helper: Mencari ID Pekerjaan (misal "1-0") berdasarkan Nama (misal "Bowplank")
+    function getRowKeyByName(jobName) {
+      for (let sIdx = 0; sIdx < TEMPLATE.length; sIdx++) {
+        const section = TEMPLATE[sIdx];
+        for (let rIdx = 0; rIdx < section.rows.length; rIdx++) {
+          if (section.rows[rIdx].name === jobName) {
+            return `${section.stage}-${rIdx}`; // Ketemu, kembalikan ID "1-0"
+          }
+        }
+      }
+      return null;
+    }
+
+    // Fungsi Utama: Sinkronisasi Data saat Web Dibuka
+    async function loadDataFromSheet() {
+      const SPREADSHEET_ID = window.PN_SHEET_ID || "1s94wBnBjXVLclxw8i1P9J7uqHbZiMaONvzA2DMoQgNQ";
+      const SHEET_NAME = "Laporan_Upah_Tukang";
+
+      if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("PASTE_URL")) {
+        console.warn("URL Script belum diset.");
+        return;
+      }
+
+      console.log("Sedang menarik data dari Spreadsheet...");
+
+      try {
+        const url = `${GOOGLE_SCRIPT_URL}?sheetName=${SHEET_NAME}&sheetId=${SPREADSHEET_ID}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+          console.error("Format data salah:", data);
+          return;
+        }
+
+        data.forEach(item => {
+          const lotKey = item.kavling || item.Kavling;
+          const jobName = item.pekerjaan || item.Pekerjaan;
+          const tglCair = item.tanggal_cair || item.Tanggal_Cair;
+          const nilaiCair = item.nilai_pencairan || item.Nilai_Pencairan;
+          const ket = item.keterangan || item.Keterangan;
+
+          if (lotKey && jobName) {
+            const rowKey = getRowKeyByName(jobName);
+            if (rowKey) {
+              if (!rowState[lotKey]) rowState[lotKey] = {};
+              rowState[lotKey][rowKey] = {
+                date: normalizeDateInput(tglCair),
+                note: ket
+              };
+
+              const sections = ensureLotProgress(lotKey);
+              const target = findRowByKey(sections, rowKey);
+              if (target && nilaiCair) {
+                const numericNilai = Number(String(nilaiCair).replace(/[^0-9.-]/g, ""));
+                target.row.amount = numericNilai;
+              }
+            }
+          }
+        });
+
+        persistRowState();
+        persistProgressData();
+        applyLotColors();
+
+        if (currentLotKey) {
+          const element = document.querySelector(`[data-unit-id="${currentLotKey}"]`);
+          if (element) handleLotClick(element);
+        }
+
+        console.log("Sinkronisasi Selesai!");
+      } catch (error) {
+        console.error("Gagal menarik data:", error);
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      renderDetail(lastPayload);
+      loadDataFromSheet();
+    });
+
     function showPlaceholder() {
       lotInfoEl.innerHTML = "Pilih blok pada siteplan, lalu rincian pekerjaan akan muncul di sini.";
       tableBody.innerHTML = `<tr><td colspan="5" class="placeholder">Belum ada blok yang dipilih.</td></tr>`;

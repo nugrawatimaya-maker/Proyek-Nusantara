@@ -2,221 +2,541 @@
 <html lang="id">
 <head>
   <meta charset="utf-8" />
-  <title>Siteplan Interaktif - Sunrise City Maros</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Siteplan Marketing - Sunrise City Maros</title>
   <style>
-    body{font-family:Segoe UI, Arial, sans-serif; background:#f4f6f7}
-    .container{max-width:1200px;margin:24px auto;padding:18px}
-    .card{background:#fff;padding:16px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
-    .viewer{position:relative;background:#222;border-radius:6px;overflow:hidden;height:680px;border:1px solid #ddd}
-    .imgwrap{position:absolute;left:0;top:0;transform-origin:0 0;cursor:grab}
-    .imgwrap.dragging{cursor:grabbing}
-    .imgwrap img{display:block;max-width:none;user-select:none;pointer-events:none}
-    .overlay{position:absolute;left:0;top:0;right:0;bottom:0}
-    .marker{position:absolute;width:24px;height:24px;border-radius:50%;background:#e74c3c;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);font-weight:bold}
-    .marker:hover{background:#c0392b;transform:scale(1.15)}
-    .controls{display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
-    .controls label{font-weight:600;font-size:14px}
-    input[type=range]{width:150px}
-    .btn{padding:8px 14px;border-radius:6px;border:none;cursor:pointer;background:#3498db;color:white;font-size:13px}
-    .btn:hover{background:#2980b9}
-    .small{font-size:13px;color:#666}
-    .legend{display:flex;gap:12px;flex-wrap:wrap;padding:8px;background:#f9f9f9;border-radius:4px;margin-top:12px}
-    .legend-item{display:flex;align-items:center;gap:6px;font-size:12px}
-    .legend-dot{width:16px;height:16px;border-radius:50%;background:#e74c3c;border:1px solid #fff}
+    :root {
+      --bg: #f4f6f7;
+      --primary: #3498db;
+      --selected: #e74c3c;
+      --hover: #ffeaa7;
+      --stroke: #2c3e50;
+    }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 0;
+    }
+    .page {
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .card {
+      width: min(1300px, 100%);
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(15,23,42,0.12);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #e5e7eb;
+    }
+    /* Header & Controls */
+    .header {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #f7fafc, #e9f5ff);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .header h1 { margin: 0; font-size: 18px; color: #0f172a; }
+    .controls { display: flex; align-items: center; gap: 12px; }
+    .btn {
+      padding: 8px 14px; border-radius: 10px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-size: 14px; font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 8px 18px rgba(37,99,235,0.25);
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(37,99,235,0.35); }
+    
+    /* Viewer Area */
+    .viewer {
+      height: calc(100vh - 170px);
+      min-height: 420px;
+      position: relative;
+      background: #eef2f7;
+      overflow: hidden;
+      cursor: grab;
+    }
+    .viewer:active { cursor: grabbing; }
+    
+    .content-wrap {
+      transform-origin: 0 0;
+      position: absolute;
+      top: 0; left: 0;
+      transition: transform 0.1s ease-out, opacity 0.3s ease;
+      will-change: transform;
+      opacity: 0; /* fade in setelah siap */
+    }
+    .content-wrap.ready { opacity: 1; }
+
+    /* --- GAYA KHUSUS SVG (OVERRIDE WARNA ASLI) --- */
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      image-rendering: optimizeSpeed !important;
+      /* Memastikan garis tidak terlalu tebal saat di zoom out, opsional */
+      vector-effect: non-scaling-stroke; 
+    }
+
+    /* Reset semua path/rect di dalam SVG agar putih */
+    svg [data-unit-id] {
+      fill: #ffffff !important;   /* Blok warna putih */
+      stroke: var(--stroke) !important; /* Garis gelap */
+      stroke-width: 15px !important; /* Ketebalan garis disesuaikan dengan skala SVG */
+      cursor: pointer;
+      transition: fill 0.2s, filter 0.2s;
+    }
+
+    /* Efek Hover */
+    svg [data-unit-id]:hover {
+      fill: var(--hover) !important;
+      filter: drop-shadow(0 0 10px rgba(0,0,0,0.2));
+      z-index: 2;
+    }
+
+    /* Efek Terpilih (Diklik) */
+    svg [data-unit-id].selected {
+      fill: var(--primary) !important; /* Warna biru saat dipilih */
+      stroke: #fff !important;
+      stroke-width: 20px !important;
+    }
+    
+    /* Info Box Floating */
+    .info-box {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      width: 300px;
+      max-width: 90%;
+      pointer-events: none; /* Supaya tidak mengganggu klik */
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .info-box.active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .info-title { font-weight: bold; font-size: 16px; margin-bottom: 5px; color: #2c3e50; }
+    .info-detail { font-size: 14px; color: #555; }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
+      color: #0f172a;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      z-index: 5;
+    }
+    .loading-overlay .spinner {
+      width: 18px;
+      height: 18px;
+      border: 3px solid #d0d7e2;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      margin-right: 10px;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
   </style>
 </head>
 <body>
-  <div class="container">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <h1>Siteplan Interaktif - Sunrise City Maros</h1>
-      <button class="btn" onclick="window.location.href='dashboard_marketing.html'" style="background:#95a5a6">← Kembali</button>
-    </div>
-    
+
+  <div class="page">
     <div class="card">
-      <div class="controls">
-        <label>Zoom:</label>
-        <input id="zoomRange" type="range" min="0.3" max="4" step="0.05" value="1" />
-        <span id="zoomLabel" class="small">100%</span>
-        
-        <button class="btn" id="addMarkerBtn">+ Tambah Marker</button>
-        <span id="modeLabel" class="small" style="color:#e74c3c;font-weight:bold">Mode: Lihat</span>
+      <div class="header">
+        <div>
+          <h1>Siteplan Marketing</h1>
+          <small style="color:#475569; font-weight:600;">Sunrise City Maros · Klik blok untuk memilih unit</small>
+        </div>
+        <div class="controls">
+          <button class="btn" onclick="resetView()">Reset Tampilan</button>
+          </div>
       </div>
 
       <div class="viewer" id="viewer">
-        <div class="imgwrap" id="imgwrap">
-          <img id="siteImg" alt="siteplan" />
+        <div class="content-wrap" id="contentWrap">
+          <svg xml:space="preserve" width="29700" height="21000" viewBox="0 0 29700 21000" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd">
+         <defs>
+          <style type="text/css">
+            /* Style bawaan SVG diminimalkan agar di-handle oleh CSS utama */
+            .str0 {stroke:#363333;stroke-width:35.28;stroke-miterlimit:22.9256}
+            .fil2 {fill:none}
+            /* Warna-warna lain diabaikan karena ditimpa !important di CSS atas */
+          </style>
+         </defs>
+         <g id="Layer_x0020_1">
+            <path style="fill:#5CA47A" d="M26585.05 2731.37c-20.8,114.84 -388.6,1032.8 -388.6,1032.8l-312.27 555.04 -1246.48 106.83 -1273.83 323.56 -1612.15 38.65 -2195.44 647.55 -1378.17 -72.79 -2044.86 -254.49 -3327.15 -0.92 -1342.51 -58.24 -1405.95 -402.29 -640.18 127.2 -1280.92 254.55 -881.65 879.47 -1544.84 377.41 -1381.55 -218.46 -611.95 1882.29c0,0 -1084.7,375.83 -1057.1,350.92 27.59,-24.91 -1341.16,-15.2 -1341.16,-15.2l-515.09 243.21 404.77 1328.12 636.27 366.56 989.79 -689.68 581.54 800 1611.29 665.8 2545.49 1114.01 405.64 623.67 2004.33 517.27 2532.03 1046.26 1855.37 476.45 1137.89 55.6 2567.69 22.79 522.29 2628.36 2310.65 1135.17 1140.51 -490.04 1706.4 -1132.09 431.17 -4853.17 0 0 1683.27 379.49 412.07 338.79 825.7 1505.35 873.31 -3163.83 -1222.2 -6232.46 1009.74 -1448.62 -1183.16 -790.89z" />
+            
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22314.1 9426.76)" width="4445" height="8890" data-unit-id="C1" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21033.7 9681.19)" width="4445" height="8890" data-unit-id="C9" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21161 10321.4)" width="4445" height="8890" data-unit-id="C10" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21288.2 10961.6)" width="4445" height="8890" data-unit-id="C11" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21415.4 11601.7)" width="4445" height="8890" data-unit-id="C12" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21542.6 12241.9)" width="4445" height="8890" data-unit-id="C13" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21669.8 12882.1)" width="4445" height="8890" data-unit-id="C14" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21797 13522.3)" width="4445" height="8890" data-unit-id="C15" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21924.2 14162.4)" width="4445" height="8890" data-unit-id="C16" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22051.5 14802.6)" width="4445" height="8890" data-unit-id="C17" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22178.7 15442.8)" width="4445" height="8890" data-unit-id="C18" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22305.9 16083)" width="4445" height="8890" data-unit-id="C19" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22433.1 16723.2)" width="4445" height="8890" data-unit-id="C20" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22441.3 10066.9)" width="4445" height="8890" data-unit-id="C2" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22568.5 10707.1)" width="4445" height="8890" data-unit-id="C3" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22695.7 11347.3)" width="4445" height="8890" data-unit-id="C4" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22823 11987.5)" width="4445" height="8890" data-unit-id="C5" />
+            
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25213.3 7296.06)" width="4445" height="8890" data-unit-id="A4" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23933 7550.49)" width="4445" height="8890" data-unit-id="A7" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23805.8 6910.31)" width="4445" height="8890" data-unit-id="A6" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23678.6 6270.13)" width="4445" height="8890" data-unit-id="A5" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25086.1 6655.88)" width="4445" height="8890" data-unit-id="A3" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24958.9 6015.7)" width="4445" height="8890" data-unit-id="A2" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24831.7 5375.52)" width="4445" height="8890" data-unit-id="A1" />
+            
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 26030.2 11354.6)" width="4445" height="8890" data-unit-id="B5" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25903 10714.4)" width="4445" height="8890" data-unit-id="B4" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25775.7 10074.3)" width="4445" height="8890" data-unit-id="B3" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25648.5 9434.07)" width="4445" height="8890" data-unit-id="B2" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25521.3 8793.89)" width="4445" height="8890" data-unit-id="B1" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24241 9048.32)" width="4445" height="8890" data-unit-id="B6" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24368.2 9688.5)" width="4445" height="8890" data-unit-id="B7" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24495.4 10328.7)" width="4445" height="8890" data-unit-id="B8" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24622.6 10968.9)" width="4445" height="8890" data-unit-id="B9" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24749.8 11609)" width="4445" height="8890" data-unit-id="B10" />
+            
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19114.6 10060.9)" width="4445" height="8890" data-unit-id="D1" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 17834.3 10315.3)" width="4445" height="8890" data-unit-id="D14" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 17961.5 10955.5)" width="4445" height="8890" data-unit-id="D15" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18088.7 11595.7)" width="4445" height="8890" data-unit-id="D16" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18215.9 12235.8)" width="4445" height="8890" data-unit-id="D17" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18343.1 12876)" width="4445" height="8890" data-unit-id="D18" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18470.3 13516.2)" width="4445" height="8890" data-unit-id="D19" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18597.5 14156.4)" width="4445" height="8890" data-unit-id="D20" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18724.7 14796.6)" width="4445" height="8890" data-unit-id="D21" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18852 15436.7)" width="4445" height="8890" data-unit-id="D22" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18979.2 16076.9)" width="4445" height="8890" data-unit-id="D23" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19106.4 16717.1)" width="4445" height="8890" data-unit-id="D24" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19233.6 17357.3)" width="4445" height="8890" data-unit-id="D25" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19241.8 10701.1)" width="4445" height="8890" data-unit-id="D2" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19369 11341.2)" width="4445" height="8890" data-unit-id="D3" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19496.3 11981.4)" width="4445" height="8890" data-unit-id="D4" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19623.5 12621.6)" width="4445" height="8890" data-unit-id="D5" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19750.7 13261.8)" width="4445" height="8890" data-unit-id="D6" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19877.9 13902)" width="4445" height="8890" data-unit-id="D7" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20005.1 14542.1)" width="4445" height="8890" data-unit-id="D8" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20132.3 15182.3)" width="4445" height="8890" data-unit-id="D9" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20259.5 15822.5)" width="4445" height="8890" data-unit-id="D10" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20386.7 16462.7)" width="4445" height="8890" data-unit-id="D11" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20514 17102.9)" width="4445" height="8890" data-unit-id="D12" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20641.2 17743)" width="4445" height="8890" data-unit-id="D13" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20768.4 18383.2)" width="4445" height="8890" data-unit-id="D13A" />
+            
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15915.2 10697.8)" width="4445" height="8890" data-unit-id="G1" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14634.8 10952.2)" width="4445" height="8890" data-unit-id="G8" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14762 11592.4)" width="4445" height="8890" data-unit-id="G9" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14889.2 12232.6)" width="4445" height="8890" data-unit-id="G10" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15016.4 12872.8)" width="4445" height="8890" data-unit-id="G11" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15143.7 13512.9)" width="4445" height="8890" data-unit-id="G12" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15270.9 14153.1)" width="4445" height="8890" data-unit-id="G13" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16042.4 11338)" width="4445" height="8890" data-unit-id="G2" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16169.6 11978.2)" width="4445" height="8890" data-unit-id="G3" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16296.8 12618.3)" width="4445" height="8890" data-unit-id="G4" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16424 13258.5)" width="4445" height="8890" data-unit-id="G5" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16551.2 13898.7)" width="4445" height="8890" data-unit-id="G6" />
+            <rect transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16678.4 14538.9)" width="4445" height="8890" data-unit-id="G7" />
+            
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18687 7923.74)" width="4445" height="8890" data-unit-id="E4" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17406.6 8178.16)" width="4445" height="8890" data-unit-id="E9" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17279.4 7537.98)" width="4445" height="8890" data-unit-id="E8" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17152.2 6897.8)" width="4445" height="8890" data-unit-id="E7" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17025 6257.62)" width="4445" height="8890" data-unit-id="E6" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 16897.8 5617.44)" width="4445" height="8890" data-unit-id="E5" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18559.8 7283.56)" width="4445" height="8890" data-unit-id="E3" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18432.5 6643.38)" width="4445" height="8890" data-unit-id="E2" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18305.3 6003.2)" width="4445" height="8890" data-unit-id="E1" />
+            
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15489 8563.84)" width="4445" height="8890" data-unit-id="F6" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14208.6 8818.27)" width="4445" height="8890" data-unit-id="F13" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14081.4 8178.09)" width="4445" height="8890" data-unit-id="F12" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13954.2 7537.91)" width="4445" height="8890" data-unit-id="F11" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13827 6897.73)" width="4445" height="8890" data-unit-id="F10" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13699.7 6257.55)" width="4445" height="8890" data-unit-id="F9" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13572.5 5617.37)" width="4445" height="8890" data-unit-id="F8" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15361.7 7923.66)" width="4445" height="8890" data-unit-id="F5" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15234.5 7283.48)" width="4445" height="8890" data-unit-id="F4" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15107.3 6643.3)" width="4445" height="8890" data-unit-id="F3" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14980.1 6003.12)" width="4445" height="8890" data-unit-id="F2" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14852.9 5362.94)" width="4445" height="8890" data-unit-id="F1" />
+            
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12289 9203.1)" width="4445" height="8890" data-unit-id="H7" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10817.8 8497.26)" width="4445" height="8890" data-unit-id="H13" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10690.6 7857.08)" width="4445" height="8890" data-unit-id="H12" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10563.4 7216.9)" width="4445" height="8890" data-unit-id="H11" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10436.2 6576.72)" width="4445" height="8890" data-unit-id="H10" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10309 5936.54)" width="4445" height="8890" data-unit-id="H9" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10181.8 5296.36)" width="4445" height="8890" data-unit-id="H8" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12161.8 8562.92)" width="4445" height="8890" data-unit-id="H6" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12034.6 7922.74)" width="4445" height="8890" data-unit-id="H5" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11907.4 7282.56)" width="4445" height="8890" data-unit-id="H4" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11780.2 6642.38)" width="4445" height="8890" data-unit-id="H3" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11652.9 6002.2)" width="4445" height="8890" data-unit-id="H2" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11525.7 5362.02)" width="4445" height="8890" data-unit-id="H1" />
+            
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 3751.47 10046)" width="4445" height="8890" data-unit-id="J20" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4348.84 10309)" width="4445" height="8890" data-unit-id="J19" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4946.21 10572)" width="4445" height="8890" data-unit-id="J18" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6738.33 11360.9)" width="4445" height="8890" data-unit-id="J15" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7335.7 11623.9)" width="4445" height="8890" data-unit-id="J14" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7933.07 11886.9)" width="4445" height="8890" data-unit-id="J13" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8530.44 12149.9)" width="4445" height="8890" data-unit-id="J12" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9127.81 12412.9)" width="4445" height="8890" data-unit-id="J11" />
+            
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9725.18 12675.9)" width="4445" height="8890" data-unit-id="I1" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 10322.6 12938.9)" width="4445" height="8890" data-unit-id="I2" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 10919.9 13201.8)" width="4445" height="8890" data-unit-id="I3" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 11517.3 13464.8)" width="4445" height="8890" data-unit-id="I4" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 12114.7 13727.8)" width="4445" height="8890" data-unit-id="I5" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 12712 13990.8)" width="4445" height="8890" data-unit-id="I6" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 13309.4 14253.8)" width="4445" height="8890" data-unit-id="I7" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 13906.8 14516.8)" width="4445" height="8890" data-unit-id="I8" />
+            
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5543.58 10835)" width="4445" height="8890" data-unit-id="J17" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6140.95 11098)" width="4445" height="8890" data-unit-id="J16" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4632.22 8042.22)" width="4445" height="8890" data-unit-id="J9" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5229.6 8305.21)" width="4445" height="8890" data-unit-id="J8" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5826.97 8568.19)" width="4445" height="8890" data-unit-id="J7" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6424.34 8831.18)" width="4445" height="8890" data-unit-id="J6" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7021.71 9094.16)" width="4445" height="8890" data-unit-id="J5" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7619.08 9357.15)" width="4445" height="8890" data-unit-id="J4" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8216.45 9620.13)" width="4445" height="8890" data-unit-id="J3" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8813.82 9883.12)" width="4445" height="8890" data-unit-id="J2" />
+            <rect transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9411.19 10146.1)" width="4445" height="8890" data-unit-id="J1" />
+            <rect transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 8136.54 5028.81)" width="4445" height="8890" data-unit-id="J10" />
+
+            <path class="fil2 str0" d="M20906.54 9041.02l2566.6 -510.02m640.2 -127.22l2560.71 -508.86" />
+            <path class="fil2 str0" d="M9867.44 10347.36l1.07 -0.21 631.43 -125.48 -631.43 125.48 -1.07 0.21zm10875.38 -2161.1l2560.72 -508.85m640.18 -127.21l2560.72 -508.85" />
+            <line class="fil2 str0" x1="27947.01" y1="10952.07" x2="26758.46" y2="4970.88" />
+            <path class="fil2 str0" d="M24750.25 11608.95l-636.92 -3205.18m-169.61 -853.57l-382 -1922.32" />
+            <g>
+              <path class="fil3" d="M22438.99 16722l-1526.56 -7682.16 1526.56 7682.16zm-1696.17 -8535.74l-509.85 -2565.73 2560.71 -508.87 509.86 2565.75 -2560.72 508.85z" />
+            </g>
+            <path class="fil2 str0" d="M19237.77 17356.46l-1526.55 -7682.16m-169.3 -851.97l-637.14 -3206.28" />
+            <path class="fil2 str0" d="M27189.37 10488.18l-515.32 -2593.26m-169.61 -853.57l-509.85 -2565.74" />
+            <path class="fil2 str0" d="M23988.47 11124.25l-515.32 -2593.26m-169.61 -853.58l-509.85 -2565.74" />
+            <line class="fil2 str0" x1="21733.84" y1="16522.26" x2="20272.25" y2="9167.05" />
+            <line class="fil2 str0" x1="18597.59" y1="17483.67" x2="17071.35" y2="9803.12" />
+            <path class="fil2 str0" d="M15273.81 14152.53l-763.28 -3841.08m-169.51 -853.05l-763.47 -3842.03" />
+            <line class="fil2 str0" x1="14633.63" y1="14279.74" x2="14441.29" y2="13311.8" />
+            <path class="fil2 str0" d="M11527.31 12042.95l-3.05 -15.33m-574.5 -2891.12l-892.12 -4489.44" />
+            <path class="fil2 str0" d="M10798.05 11721.9l-3.04 -15.33m-295.07 -1484.9l-1082.48 -5447.39" />
+            <path class="fil2 str0" d="M21733.84 16522.26l-4.75 -2.09m-2912.27 -1282.09l-4.76 -2.1m-3641.52 -1603.13l-3.35 -1.48m-725.9 -319.57l-10784.57 -4747.77" />
+            <path class="fil2 str0" d="M22256.03 15801.29l-6.72 -2.96m-722.53 -318.09l-4.76 -2.09m-2912.27 -1282.09l-4.75 -2.1m-724.5 -318.95l-3.35 -1.47m-2913.67 -1282.71l-3.36 -1.48" />
+            <line class="fil2 str0" x1="9867.44" y1="10347.36" x2="9411.19" y2="10146.1" />
+            <line class="fil2 str0" x1="10945.04" y1="9137.44" x2="12416.22" y2="9843.28" />
+            <circle style="fill:#A8CF45" transform="matrix(0.106697 -0.0212022 0.0212022 0.106697 13330.9 11321.1)" r="4762.5" />
+            <polygon class="str1" style="fill:#6B809B" points="27630.41,3527.45 26758.47,4970.88 27947.01,10952.07 27310.53,11100.18 26674.05,7894.92 24113.74,8408.14 24750.25,11608.94 24103.32,11733.06 23467.25,8532.16 20906.53,9041.01 22629.48,17743.52 22048.75,18128.8 20272.26,9167.06 17711.22,9674.29 19237.77,17356.45 18597.59,17483.67 17068.31,9803.18 14507.59,10312.04 15273.81,14152.53 14633.63,14279.74 14441.28,13311.8 3680.07,8588.3 4034.85,7779.24 9868.5,10347.14 10499.95,10221.67 9417.46,4774.27 10057.64,4647.07 10945.05,9137.45 12416.22,9843.28 13696.58,9588.86 12806.1,5107.6 13504.88,5107.8 13577.55,5616.36 14335.81,9458.45 16896.53,8949.6 16133.25,5108.52 16849.13,5197.62 16904.77,5616.04 17533.82,8818.34 20094.54,8309.49 19585.69,5748.77 20232.97,5620.53 20742.81,8186.27 23303.54,7677.41 22793.68,5111.66 23363.87,4749.6 23943.72,7550.2 26493.7,7041.64 25884.18,4319.21 26239.19,3656.91 26585.05,2731.37 " />
+          <circle class="str1" style="fill:#5CA47A" cx="13003.06" cy="11264.92" r="715.25" />
+         </g>
+        </svg>
         </div>
-        <div class="overlay" id="overlay"></div>
-      </div>
 
-      <div class="legend">
-        <div style="font-weight:600">Petunjuk:</div>
-        <div class="legend-item"><div class="legend-dot"></div> Klik marker untuk edit/hapus</div>
-        <div class="legend-item">Seret gambar untuk geser area</div>
-        <div class="legend-item">Gunakan zoom untuk perbesar/perkecil</div>
-      </div>
+        <div class="loading-overlay" id="loader">
+          <div class="spinner"></div>
+          <span>Memuat siteplan...</span>
+        </div>
 
-      <div style="margin-top:12px;padding:10px;background:#f0f0f0;border-radius:4px;font-size:12px">
-        <strong>Daftar Marker:</strong>
-        <div id="markerList" style="margin-top:6px"></div>
+        <div class="info-box" id="infoBox">
+          <div class="info-title">Unit Terpilih</div>
+          <div class="info-detail" id="infoText">Kavling: -</div>
+          <div style="margin-top:10px; font-size:12px; color:#888;">Klik lagi untuk membatalkan pilihan.</div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    const MARKER_KEY = 'siteplans_maros_markers';
-    const SITEPLAN_IMAGE = 'images/sunrise_city_maros.png';
+    // --- ZOOM & PAN LOGIC ---
+    const SVG_WIDTH = 29700;
+    const SVG_HEIGHT = 21000;
+    let scale = 1; // akan di-set otomatis via fitToScreen()
+    let panning = false;
+    let pointX = 0;
+    let pointY = 0;
+    let startX = 0;
+    let startY = 0;
+    const contentWrap = document.getElementById("contentWrap");
+    const viewer = document.getElementById("viewer");
+    const infoBox = document.getElementById("infoBox");
+    const infoText = document.getElementById("infoText");
+    const loader = document.getElementById("loader");
+
+    function setTransform() {
+      contentWrap.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+    }
+
+    function fitToScreen() {
+      const w = viewer.clientWidth;
+      const h = viewer.clientHeight;
+      if (!w || !h) return;
+      const padding = 0.92; // sedikit ruang di sekeliling
+      scale = Math.min(w / SVG_WIDTH, h / SVG_HEIGHT) * padding;
+      const scaledW = SVG_WIDTH * scale;
+      const scaledH = SVG_HEIGHT * scale;
+      pointX = (w - scaledW) / 2;
+      pointY = (h - scaledH) / 2;
+      setTransform();
+    }
+
+    // Mouse Events for Panning
+    viewer.addEventListener("mousedown", (e) => {
+      panning = true;
+      startX = e.clientX - pointX;
+      startY = e.clientY - pointY;
+      viewer.style.cursor = "grabbing";
+    });
+
+    viewer.addEventListener("mouseup", () => {
+      panning = false;
+      viewer.style.cursor = "grab";
+    });
+
+    viewer.addEventListener("mousemove", (e) => {
+      if (!panning) return;
+      e.preventDefault();
+      pointX = e.clientX - startX;
+      pointY = e.clientY - startY;
+      setTransform();
+    });
+
+    // Touch Events for Mobile Panning
+    viewer.addEventListener("touchstart", (e) => {
+      if(e.touches.length === 1) {
+        panning = true;
+        startX = e.touches[0].clientX - pointX;
+        startY = e.touches[0].clientY - pointY;
+      }
+    });
     
-    let markers = [];
-    let isAddMarkerMode = false;
-    let scale = 1;
-    let offsetX = 0;
-    let offsetY = 0;
-    let dragging = false;
-    let dragStart = {x: 0, y: 0};
-
-    const imgwrap = document.getElementById('imgwrap');
-    const siteImg = document.getElementById('siteImg');
-    const overlay = document.getElementById('overlay');
-    const zoomRange = document.getElementById('zoomRange');
-    const zoomLabel = document.getElementById('zoomLabel');
-
-    // Load markers from localStorage
-    function loadMarkers() {
-      markers = JSON.parse(localStorage.getItem(MARKER_KEY) || '[]');
-    }
-
-    // Save markers to localStorage
-    function saveMarkers() {
-      localStorage.setItem(MARKER_KEY, JSON.stringify(markers));
-    }
-
-    // Initialize image and set up viewer
-    siteImg.src = SITEPLAN_IMAGE;
-    siteImg.onload = () => {
-      scale = 1;
-      offsetX = 0;
-      offsetY = 0;
-      zoomRange.value = 1;
-      updateTransform();
-    };
-
-    // Zoom control
-    zoomRange.addEventListener('input', (e) => {
-      scale = parseFloat(e.target.value);
-      zoomLabel.textContent = Math.round(scale * 100) + '%';
-      updateTransform();
+    viewer.addEventListener("touchmove", (e) => {
+      if(panning && e.touches.length === 1) {
+        pointX = e.touches[0].clientX - startX;
+        pointY = e.touches[0].clientY - startY;
+        setTransform();
+      }
     });
 
-    // Pan/drag
-    imgwrap.addEventListener('mousedown', (e) => {
-      if (isAddMarkerMode) return;
-      dragging = true;
-      imgwrap.classList.add('dragging');
-      dragStart = { x: e.clientX - offsetX, y: e.clientY - offsetY };
+    viewer.addEventListener("touchend", () => {
+      panning = false;
     });
 
-    window.addEventListener('mouseup', () => {
-      dragging = false;
-      imgwrap.classList.remove('dragging');
-    });
-
-    window.addEventListener('mousemove', (e) => {
-      if (!dragging) return;
-      offsetX = e.clientX - dragStart.x;
-      offsetY = e.clientY - dragStart.y;
-      updateTransform();
-    });
-
-    function updateTransform() {
-      imgwrap.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-      renderMarkers();
-    }
-
-    // Add marker button toggle
-    document.getElementById('addMarkerBtn').addEventListener('click', () => {
-      isAddMarkerMode = !isAddMarkerMode;
-      document.getElementById('modeLabel').textContent = isAddMarkerMode ? 'Mode: TAMBAH MARKER' : 'Mode: Lihat';
-      document.getElementById('addMarkerBtn').textContent = isAddMarkerMode ? '✓ Batal Tambah' : '+ Tambah Marker';
-      if (isAddMarkerMode) document.getElementById('addMarkerBtn').style.background = '#e74c3c';
-      else document.getElementById('addMarkerBtn').style.background = '#3498db';
-    });
-
-    // Click to add marker
-    document.getElementById('viewer').addEventListener('click', (e) => {
-      if (!isAddMarkerMode) return;
-      const rect = imgwrap.getBoundingClientRect();
-      const imgW = siteImg.naturalWidth;
-      const imgH = siteImg.naturalHeight;
-      if (!imgW || !imgH) return;
+    // Wheel Zoom
+    viewer.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const rect = viewer.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const xs = (mouseX - pointX) / scale;
+      const ys = (mouseY - pointY) / scale;
+      const delta = -e.deltaY;
       
-      const clickX = (e.clientX - rect.left) / scale;
-      const clickY = (e.clientY - rect.top) / scale;
-      if (clickX < 0 || clickY < 0 || clickX > imgW || clickY > imgH) {
-        alert('Klik di dalam gambar siteplan');
-        return;
-      }
+      const zoomFactor = delta > 0 ? 1.08 : 1 / 1.08;
+      scale *= zoomFactor;
+      
+      // Limit zoom
+      scale = Math.min(Math.max(scale, 0.08), 6);
 
-      const xPct = clickX / imgW;
-      const yPct = clickY / imgH;
-      const label = prompt('Label marker (mis: Blok A, Rumah 1):');
-      if (label === null) return;
+      pointX = mouseX - xs * scale;
+      pointY = mouseY - ys * scale;
+      setTransform();
+    }, { passive: false });
 
-      markers.push({ id: Date.now(), x: xPct, y: yPct, label: label.trim() || ('Marker ' + (markers.length + 1)) });
-      saveMarkers();
-      renderMarkers();
-      updateMarkerList();
-      isAddMarkerMode = false;
-      document.getElementById('modeLabel').textContent = 'Mode: Lihat';
-      document.getElementById('addMarkerBtn').textContent = '+ Tambah Marker';
-      document.getElementById('addMarkerBtn').style.background = '#3498db';
+    function resetView() {
+      fitToScreen();
+      deselectAll();
+    }
+
+    // --- SELECTION LOGIC ---
+    const lots = document.querySelectorAll("svg [data-unit-id]");
+    let selectedLot = null;
+
+    lots.forEach(lot => {
+      lot.addEventListener("click", (e) => {
+        // Mencegah klik terdeteksi saat sedang drag (pan)
+        if (Math.abs(e.clientX - (startX + pointX)) > 5 || Math.abs(e.clientY - (startY + pointY)) > 5) {
+           return; 
+        }
+        
+        e.stopPropagation();
+        const unitId = lot.getAttribute("data-unit-id");
+        
+        // Toggle selection
+        if (selectedLot === lot) {
+          deselectAll();
+        } else {
+          deselectAll();
+          lot.classList.add("selected");
+          selectedLot = lot;
+          showInfo(unitId);
+        }
+      });
     });
 
-    function renderMarkers() {
-      overlay.innerHTML = '';
-      const imgW = siteImg.naturalWidth;
-      const imgH = siteImg.naturalHeight;
-      if (!imgW || !imgH) return;
+    // Klik area kosong untuk deselect
+    viewer.addEventListener("click", (e) => {
+       // Pastikan bukan drag
+       if (!panning && (e.target === viewer || e.target.tagName === 'svg')) {
+         deselectAll();
+       }
+    });
 
-      markers.forEach((m, idx) => {
-        const el = document.createElement('div');
-        el.className = 'marker';
-        el.title = m.label;
-        el.textContent = (idx + 1);
-        const left = offsetX + (m.x * imgW * scale);
-        const top = offsetY + (m.y * imgH * scale);
-        el.style.left = left + 'px';
-        el.style.top = top + 'px';
-        el.onclick = (ev) => { ev.stopPropagation(); editMarker(m.id); };
-        overlay.appendChild(el);
+    function deselectAll() {
+      lots.forEach(l => l.classList.remove("selected"));
+      selectedLot = null;
+      infoBox.classList.remove("active");
+    }
+
+    function showInfo(id) {
+      infoText.innerHTML = `
+        <strong>Kavling ${id}</strong><br>
+        Status: Tersedia<br>
+        <div style="margin-top:4px; font-size:11px; color:#666">Klik tombol Hubungi Marketing untuk booking.</div>
+      `;
+      infoBox.classList.add("active");
+    }
+
+    // Initialize View
+    // Menengahkan gambar di awal
+    window.onload = () => {
+      // Tunggu sejenak agar layout stabil, lalu fitToScreen dan fade-in konten
+      requestAnimationFrame(() => {
+        fitToScreen();
+        contentWrap.classList.add("ready");
+        if (loader) loader.style.display = "none";
       });
-    }
+    };
+    window.addEventListener("resize", fitToScreen);
 
-    function editMarker(id) {
-      const m = markers.find(x => x.id === id);
-      if (!m) return;
-      const newLabel = prompt('Ubah label marker:', m.label);
-      if (newLabel === null) return;
-      m.label = newLabel.trim() || m.label;
-      if (confirm('Hapus marker ini?')) {
-        markers = markers.filter(x => x.id !== id);
-      }
-      saveMarkers();
-      renderMarkers();
-      updateMarkerList();
-    }
-
-    function updateMarkerList() {
-      const list = document.getElementById('markerList');
-      if (!markers.length) { list.innerHTML = '<div class="small">Belum ada marker</div>'; return; }
-      list.innerHTML = markers.map((m, idx) => `<div class="small">• ${idx + 1}. ${m.label}</div>`).join('');
-    }
-
-    // Initialize
-    loadMarkers();
-    renderMarkers();
-    updateMarkerList();
   </script>
 </body>
 </html>
