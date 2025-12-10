@@ -3,74 +3,173 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Proyek Nusantara</title>
+  <title>Proyek Nusantara - Nusantara Land Development</title>
 
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
 
   <style>
     :root{
-      /* Warna Emas sesuai gambar */
+      /* Warna utama */
       --gold-bg: rgba(204, 164, 59, 0.9); 
       --gold-hover: rgba(224, 184, 79, 1);
       --text-white: #ffffff;
       --pill-bg: #ffffff;
       --pill-text: #b8860b; /* Warna teks emas gelap untuk dalam tag */
+      --bg-main: #050608;
     }
 
-    *{box-sizing:border-box}
+    *{
+      box-sizing:border-box;
+      margin: 0;
+      padding: 0;
+    }
     
     body{
-      margin:0;
-      font-family: 'Poppins', sans-serif; /* Font modern */
-      background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
-        url("images/Gemini_Generated_Image_qvhdeuqvhdeuqvhd.png") center/cover fixed no-repeat;
-      
+      font-family: 'Poppins', sans-serif;
+      background: radial-gradient(circle at top, #1a1a20 0, #050608 45%, #000000 100%);
       color: var(--text-white);
       min-height:100vh;
       display:flex;
       flex-direction: column;
-      justify-content: flex-start;
-      padding: 40px 5%;
+      padding: 24px 5%;
       overflow-x: hidden;
     }
 
-    /* Container Kartu Dashboard */
+    /* Badge INTERNAL di pojok kanan atas */
+    .internal-badge {
+      position: fixed;
+      top: 14px;
+      right: 18px;
+      background: rgba(255,255,255,0.15);
+      color: #ffe4a3;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,0.3);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      z-index: 2000;
+      pointer-events: none;
+    }
+
+    /* ===== HERO (foto + judul) ===== */
+
+    .hero {
+      position: relative;
+      width: 100%;
+      max-width: 1300px;
+      margin: 40px auto 40px auto;
+      height: 70vh;
+      min-height: 420px;
+      border-radius: 24px;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      padding: 40px 48px;
+      background:
+        linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.65)),
+        url("images/Gemini_Generated_Image_qvhdeuqvhdeuqvhd.png") center/cover no-repeat;
+      box-shadow: 0 28px 60px rgba(0,0,0,0.55);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 600px;
+    }
+
+    .hero-title {
+      font-size: clamp(30px, 5vw, 56px);
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.8);
+    }
+
+    .hero-subtitle {
+      font-size: clamp(20px, 3.6vw, 32px);
+      font-family: 'Great Vibes', cursive;
+      margin-bottom: 18px;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.8);
+    }
+
+    .hero-tagline {
+      font-size: 14px;
+      max-width: 360px;
+      line-height: 1.5;
+      opacity: 0.95;
+    }
+
+    /* ===== PANEL BAWAH: DASHBOARD CARDS ===== */
+
     .bottom-panel {
       width: 100%;
-      max-width: 1400px;
-      margin: 0 auto 32px;
-      margin-top: auto; /* Dorong konten ke bawah */
+      max-width: 1300px;
+      margin: 0 auto 32px auto;
+    }
+
+    .section-title {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: #d6d6d6;
+      margin-bottom: 10px;
+      opacity: 0.75;
+    }
+
+    .section-heading {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 22px;
     }
 
     .cards-container {
       display: grid;
-      /* Grid otomatis: menyesuaikan jumlah kolom */
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 20px;
     }
 
     /* KARTU MENU */
     .role-card {
-      background: rgba(255,255,255,0.12);
-      border-radius: 20px; /* Sudut membulat besar */
+      background: rgba(255,255,255,0.10);
+      border-radius: 20px;
       padding: 25px 20px;
       text-decoration: none;
       color: white;
-      transition: transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+      transition: transform 0.25s ease, background-color 0.25s ease, border-color 0.25s ease;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-      backdrop-filter: blur(6px); /* Efek kaca buram */
-      border: 1px solid rgba(255,255,255,0.25);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.35);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.18);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .role-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 55%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
 
     .role-card:hover {
-      transform: translateY(-8px);
-      background: rgba(255,255,255,0.18);
-      border-color: rgba(255,255,255,0.4);
+      transform: translateY(-6px);
+      background: rgba(255,255,255,0.16);
+      border-color: rgba(255,255,255,0.38);
+    }
+
+    .role-card:hover::before {
+      opacity: 1;
     }
 
     /* Tag Pil Putih */
@@ -96,52 +195,92 @@
 
     .role-desc {
       font-size: 13px;
-      line-height: 1.4;
+      line-height: 1.5;
       margin: 0;
       opacity: 0.95;
       font-weight: 400;
     }
 
-    .internal-badge {
-      position: fixed;
-      top: 14px;
-      right: 18px;
-      background: rgba(255,255,255,0.15);
-      color: #ffe4a3;
-      padding: 6px 14px;
-      border-radius: 50px;
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      border: 1px solid rgba(255,255,255,0.3);
-      backdrop-filter: blur(6px);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
-      z-index: 2000;
-      pointer-events: none;
+    /* FOOTNOTE KECIL */
+    .footer-note {
+      margin-top: 16px;
+      font-size: 11px;
+      color: #a8a8a8;
+      opacity: 0.8;
     }
 
-    /* RESPONSIVE UNTUK HP */
+    /* ===== RESPONSIVE HP ===== */
     @media (max-width: 768px) {
       body {
-        padding: 30px 20px;
-        justify-content: center; /* Di HP konten lebih ke tengah */
-        gap: 40px;
+        padding: 18px 16px 26px 16px;
       }
-      
+
+      .hero {
+        margin-top: 52px;
+        height: 46vh;
+        min-height: 320px;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px 18px;
+        border-radius: 18px;
+        background:
+          linear-gradient(rgba(0,0,0,0.15), rgba(0,0,0,0.7)),
+          url("images/Gemini_Generated_Image_qvhdeuqvhdeuqvhd.png") center/cover no-repeat;
+      }
+
+      .hero-content {
+        max-width: 100%;
+      }
+
+      .hero-tagline {
+        margin: 0 auto;
+        font-size: 13px;
+      }
+
       .bottom-panel {
-        margin-bottom: 0;
+        margin-top: 24px;   /* jangan auto, biar tidak jatuh ke bawah banget */
       }
-      
+
       .cards-container {
         grid-template-columns: 1fr; /* 1 kolom ke bawah di HP */
+        gap: 16px;
+      }
+
+      .role-card {
+        padding: 18px 16px;
+      }
+    }
+
+    /* Sedikit ruang ekstra di layar sangat lebar */
+    @media (min-width: 1400px) {
+      body {
+        padding-left: 8%;
+        padding-right: 8%;
       }
     }
   </style>
 </head>
 <body>
   <div class="internal-badge">Internal</div>
-  <div class="bottom-panel">
+
+  <!-- HERO SECTION -->
+  <header class="hero">
+    <div class="hero-content">
+      <h1 class="hero-title">Nusantara Land Development</h1>
+      <p class="hero-subtitle">Real Estate Indonesia</p>
+      <p class="hero-tagline">
+        Dashboard terintegrasi untuk operasional lapangan, keuangan, pemasaran, dan SDM
+        di seluruh proyek hunian Nusantara Land.
+      </p>
+    </div>
+  </header>
+
+  <!-- DASHBOARD KARTU -->
+  <main class="bottom-panel">
+    <div class="section-title">Dashboard</div>
+    <div class="section-heading">Pilih area kerja</div>
+
     <div class="cards-container">
       <a class="role-card" href="dashboard_operasional.html">
         <span class="role-tag">Operasional</span>
@@ -175,7 +314,10 @@
         </p>
       </a>
     </div>
-  </div>
 
+    <div class="footer-note">
+      Nusantara Land Development &mdash; Panel internal. Tidak untuk distribusi publik.
+    </div>
+  </main>
 </body>
 </html>
