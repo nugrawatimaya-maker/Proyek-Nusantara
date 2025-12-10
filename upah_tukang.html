@@ -61,16 +61,33 @@
     main {
       flex: 1;
       padding: 20px;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
       gap: 20px;
+      align-items: start;
+      height: calc(100vh - 120px);
+    }
+    .panels-header {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+      margin: 0 0 4px;
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 14px;
     }
     .sitepanel {
-      flex: 1.1;
       border-radius: 12px;
       border: 1px solid var(--border);
       overflow: hidden;
       box-shadow: 0 10px 30px rgba(15,23,42,0.12);
       background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 100%;
+      min-height: 0;
     }
     .sitepanel iframe {
       width: 100%;
@@ -80,8 +97,42 @@
     }
     .siteplan-wrapper {
       width: 100%;
+      flex: 1;
       overflow: auto;
       background: #fff;
+    }
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px 4px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .legend .title {
+      font-weight: 700;
+      font-size: 13px;
+      color: #0f172a;
+      margin-right: 6px;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #475569;
+      padding: 4px 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+    .legend-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6);
     }
     .siteplan-wrapper svg {
       width: 100%;
@@ -90,7 +141,7 @@
     }
     /* ===== INTERACTIVE LOTS (SAFE + UNIVERSAL) ===== */
 .siteplan-wrapper svg [data-unit-id]{
-  fill: #ffffff !important;
+  fill: var(--lot-fill, #ffffff);
   stroke: #0f172a !important;
   stroke-width: 1 !important;
   cursor: pointer;
@@ -140,7 +191,6 @@
 }
 
     .detailpanel {
-      flex: 0.9;
       background: #fff;
       border-radius: 14px;
       box-shadow: 0 15px 35px rgba(15,23,42,0.15);
@@ -149,6 +199,9 @@
       flex-direction: column;
       gap: 16px;
       border: 1px solid var(--border);
+      max-height: 100%;
+      min-height: 0;
+      overflow: hidden;
     }
     .lot-info {
       font-size: 14px;
@@ -224,6 +277,10 @@
     }
     .table-wrapper {
       overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 260px);
+      flex: 1;
+      min-height: 0;
     }
     table {
       width: 100%;
@@ -263,11 +320,27 @@
       display: flex;
       gap: 6px;
       align-items: center;
+      position: relative;
     }
     .date-actions input {
       width: 120px;
       padding: 6px 8px;
       font-size: 12px;
+    }
+    .date-actions .native-date-input {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 120px;
+      height: 32px;
+      opacity: 0;
+      pointer-events: none;
+      border: none;
+    }
+    .date-picker-btn {
+      border: 1px solid #d4d6dd;
+      background: #f8fafc;
+      color: #0f172a;
     }
     .date-actions button {
       border: none;
@@ -314,7 +387,19 @@
     </div>
   </header>
   <main>
+    <div class="panels-header">
+      <span>Siteplan</span>
+      <span>Rincian Upah Tukang</span>
+    </div>
     <section class="sitepanel">
+      <div class="legend">
+        <span class="title">Legenda Progres</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#ffffff;"></span>0-10%</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#f97316;"></span>11-30%</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#86efac;"></span>31-60%</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#15803d;"></span>61-90%</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>91-100%</span>
+      </div>
 <div class="siteplan-wrapper" id="siteplanStandalone">
 <svg xml:space="preserve" width="297mm" height="210mm" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd" viewBox="0 0 29700 21000">
  <defs>
@@ -629,6 +714,7 @@
       }
     ];
 
+    const GOOGLE_SCRIPT_URL = window.PN_UPAH_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwlBHrduAIgPZZrPMYAiEwaFUJOrGws1IbIzw09jXt9sdDNafaAzRS3RT2AWxVTop_oIQ/exec";
     const PROGRESS_STORAGE_KEY = "upah_tukang_progress_data";
     const PROGRESS_DATA = loadProgressData();
     const ROW_STATE_KEY = "upah_tukang_row_state";
@@ -703,6 +789,7 @@
       const hasSelection = Boolean(lastPayload.lotId && lastPayload.lotId !== "-");
       if (!hasSelection) {
         showPlaceholder();
+        applyLotColors();
         return;
       }
       const lotKey = getLotKey(lastPayload.lotId);
@@ -727,7 +814,9 @@
       `;
       tableBody.innerHTML = html;
       attachApplyHandlers();
+      attachDatePickerHandlers();
       renderFooter(totals);
+      applyLotColors();
     }
 
     function buildRows(sections, lotKey) {
@@ -755,7 +844,18 @@
               <td class="weight-cell">${row.weight}%</td>
               <td>
                 <div class="date-actions">
-                  <input type="date" data-row="${rowKey}" value="${state.date || ""}">
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="dd/mm/yyyy"
+                    data-row-display="${rowKey}"
+                    value="${formatInputDateValue(state.date)}">
+                  <input
+                    type="date"
+                    class="native-date-input"
+                    data-row-hidden="${rowKey}"
+                    value="${normalizeDateInput(state.date)}">
+                  <button type="button" class="date-picker-btn" data-row="${rowKey}">📅</button>
                   <button type="button" class="apply-row" data-row="${rowKey}" data-lot="${lotKey}">Apply</button>
                 </div>
                 <div class="date-info">${state.date ? formatDate(state.date) : "Belum ditetapkan"}</div>
@@ -790,6 +890,53 @@
       return Number(value || 0).toLocaleString("id-ID");
     }
 
+    function getLotProgressPercent(lotKey) {
+      const lotState = rowState[lotKey] || {};
+      let total = 0;
+      Object.keys(lotState).forEach(rowKey => {
+        const state = lotState[rowKey];
+        if (state?.date) {
+          const found = findRowByKey(TEMPLATE, rowKey);
+          const weight = Number(found?.row?.weight) || 0;
+          total += weight;
+        }
+      });
+      return Math.min(total, 100);
+    }
+
+    function getLotColorByProgress(percent) {
+      if (percent >= 91) return "#ef4444"; // merah
+      if (percent >= 61) return "#15803d"; // hijau tua
+      if (percent >= 31) return "#86efac"; // hijau muda
+      if (percent >= 11) return "#f97316"; // orange
+      return "#ffffff"; // putih
+    }
+
+    function applyLotColors() {
+      lotElements.forEach(el => {
+        const lotKey = getLotKey(el.dataset.unitId || "-");
+        const progressPercent = getLotProgressPercent(lotKey);
+        const color = getLotColorByProgress(progressPercent);
+        el.style.setProperty("--lot-fill", color);
+        el.style.fill = color;
+      });
+    }
+
+    function buildPayload(lotKey, rowKey, tanggal, keterangan, tipe) {
+      const sections = ensureLotProgress(lotKey);
+      const target = findRowByKey(sections, rowKey);
+      const rowData = target?.row;
+      return {
+        kavling: lotKey,
+        pekerjaan: rowData?.name || rowKey,
+        bobot: rowData ? `${rowData.weight}%` : "",
+        tanggal,
+        nilai: rowData?.amount || 0,
+        keterangan,
+        tipe
+      };
+    }
+
     function extractPercent(text) {
       if (!text) return null;
       const num = parseFloat(String(text).replace(/[^0-9.,]/g, "").replace(",", "."));
@@ -811,6 +958,62 @@
         month: "long",
         year: "numeric"
       });
+    }
+
+    function normalizeDateInput(raw) {
+      const val = (raw || "").trim();
+      if (!val) return "";
+      const cleaned = val.replace(/[.\-]/g, "/").replace(/\s+/g, "");
+      const isoPattern = /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/;
+      const dmyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/;
+      let year, month, day;
+      if (isoPattern.test(cleaned)) {
+        [, year, month, day] = cleaned.match(isoPattern);
+      } else if (dmyPattern.test(cleaned)) {
+        [, day, month, year] = cleaned.match(dmyPattern);
+        if (year.length === 2) year = `20${year}`;
+      } else {
+        return "";
+      }
+      const y = Number(year);
+      const m = Number(month);
+      const d = Number(day);
+      if (!y || !m || !d || m > 12 || d > 31) return "";
+      const iso = `${y.toString().padStart(4, "0")}-${m.toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`;
+      const date = new Date(iso);
+      return isNaN(date) ? "" : iso;
+    }
+
+    function formatInputDateValue(value) {
+      const iso = normalizeDateInput(value);
+      if (!iso) return value || "";
+      const [y, m, d] = iso.split("-");
+      return `${d}/${m}/${y}`;
+    }
+
+    async function kirimKeBackend(payload) {
+      if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("PASTE_URL_WEB_APP_ANDA_DISINI")) {
+        console.warn("GOOGLE_SCRIPT_URL belum diisi. Lewati kirim ke Apps Script.");
+        return;
+      }
+      const formData = new FormData();
+      formData.append("target_sheet", "Laporan_Upah_Tukang");
+      formData.append("kavling", payload.kavling || "");
+      formData.append("pekerjaan", payload.pekerjaan || "");
+      formData.append("bobot_persen", payload.bobot || "");
+      formData.append("tanggal_cair", payload.tanggal || "");
+      formData.append("nilai_pencairan", payload.nilai || "");
+      formData.append("keterangan", payload.keterangan || "");
+      formData.append("tipe_update", payload.tipe || "");
+      formData.append("waktu_input", new Date().toLocaleString("id-ID"));
+      try {
+        const response = await fetch(GOOGLE_SCRIPT_URL, { method: "POST", body: formData });
+        const text = await response.text();
+        console.log("Server Response:", text);
+      } catch (err) {
+        console.error("Gagal kirim ke Apps Script:", err);
+        alert("Gagal kirim ke Google Sheets. Cek koneksi/URL.");
+      }
     }
 
     function getLotKey(rawId) {
@@ -898,13 +1101,16 @@
       }
       const currentState = rowState[currentLotKey][rowKey] || {};
       if (type === "tanggal") {
-        if (!editDateInput.value) {
+        const normalized = normalizeDateInput(editDateInput.value);
+        if (!normalized) {
           alert("Isi tanggal pencairan baru.");
           return;
         }
-        currentState.date = editDateInput.value;
+        currentState.date = normalized;
         rowState[currentLotKey][rowKey] = currentState;
         persistRowState();
+        const payload = buildPayload(currentLotKey, rowKey, normalized, "Pencairan via Edit", "Edit Tanggal");
+        kirimKeBackend(payload);
       } else if (type === "nilai") {
         const amount = Number(editAmountInput.value);
         if (!amount || amount <= 0) {
@@ -932,6 +1138,9 @@
         rowState[currentLotKey][rowKey] = currentState;
         persistProgressData();
         persistRowState();
+        const payload = buildPayload(currentLotKey, rowKey, currentState.date || "", noteText || "Update nilai", "Edit Nilai");
+        payload.nilai = amount;
+        kirimKeBackend(payload);
       }
       hideEditPanel();
       resetEditForm();
@@ -959,17 +1168,50 @@
         btn.addEventListener("click", () => {
           const rowKey = btn.dataset.row;
           const lotKey = btn.dataset.lot;
-          const input = document.querySelector(`input[data-row="${rowKey}"]`);
-          if (!input || !input.value) {
-            alert("Isi tanggal pencairan terlebih dahulu.");
+          const input = document.querySelector(`input[data-row-display="${rowKey}"]`);
+          const rawValue = input?.value || "";
+          const normalized = normalizeDateInput(rawValue);
+          if (!normalized) {
+            alert("Isi tanggal pencairan dengan format dd/mm/yyyy atau yyyy-mm-dd.");
+            input?.focus();
             return;
           }
           if (!rowState[lotKey]) {
             rowState[lotKey] = {};
           }
-          rowState[lotKey][rowKey] = { date: input.value };
+          rowState[lotKey][rowKey] = { date: normalized };
           persistRowState();
           renderDetail(lastPayload);
+          const payload = buildPayload(lotKey, rowKey, normalized, "Pencairan via Apply", "Apply Tanggal");
+          kirimKeBackend(payload);
+        });
+      });
+    }
+
+    function attachDatePickerHandlers() {
+      document.querySelectorAll(".date-picker-btn").forEach(btn => {
+        const rowKey = btn.dataset.row;
+        const hiddenInput = document.querySelector(`input[data-row-hidden="${rowKey}"]`);
+        const displayInput = document.querySelector(`input[data-row-display="${rowKey}"]`);
+        btn.addEventListener("click", () => {
+          if (hiddenInput?.showPicker) {
+            hiddenInput.showPicker();
+          } else {
+            hiddenInput?.click();
+          }
+        });
+        hiddenInput?.addEventListener("change", () => {
+          const normalized = normalizeDateInput(hiddenInput.value);
+          if (normalized && displayInput) {
+            displayInput.value = formatInputDateValue(normalized);
+          }
+        });
+        displayInput?.addEventListener("blur", () => {
+          const normalized = normalizeDateInput(displayInput.value);
+          if (normalized && hiddenInput) {
+            hiddenInput.value = normalized;
+            displayInput.value = formatInputDateValue(normalized);
+          }
         });
       });
     }

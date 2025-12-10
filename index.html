@@ -3,365 +3,179 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Proyek Nusantara - Portal</title>
+  <title>Proyek Nusantara</title>
 
-  <!-- Pakai style.css kalau kamu mau konsisten global -->
-  <!-- <link rel="stylesheet" href="style.css"> -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
 
   <style>
     :root{
-      --bg:#f4f6f9;
-      --card:#ffffff;
-      --text:#0f172a;
-      --muted:#64748b;
-      --border:#e5e7eb;
-      --accent:#2563eb;
-      --accent-2:#16a34a;
+      /* Warna Emas sesuai gambar */
+      --gold-bg: rgba(204, 164, 59, 0.9); 
+      --gold-hover: rgba(224, 184, 79, 1);
+      --text-white: #ffffff;
+      --pill-bg: #ffffff;
+      --pill-text: #b8860b; /* Warna teks emas gelap untuk dalam tag */
     }
 
     *{box-sizing:border-box}
+    
     body{
       margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
-      color:var(--text);
+      font-family: 'Poppins', sans-serif; /* Font modern */
+      background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)),
+        url("images/Gemini_Generated_Image_qvhdeuqvhdeuqvhd.png") center/cover fixed no-repeat;
+      
+      color: var(--text-white);
       min-height:100vh;
       display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 40px 5%;
+      overflow-x: hidden;
     }
 
-    .shell{
-      width:min(980px, 100%);
+    /* Container Kartu Dashboard */
+    .bottom-panel {
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto 32px;
+      margin-top: auto; /* Dorong konten ke bawah */
     }
 
-    .header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-      margin-bottom:18px;
-    }
-    .title{
-      font-size:28px;
-      font-weight:800;
-      letter-spacing:.2px;
-      margin:0;
-    }
-    .subtitle{
-      margin:6px 0 0;
-      color:var(--muted);
-      font-size:14px;
+    .cards-container {
+      display: grid;
+      /* Grid otomatis: menyesuaikan jumlah kolom */
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+      gap: 20px;
     }
 
-    .badge{
-      background:#0f172a;
-      color:white;
-      padding:6px 10px;
-      border-radius:999px;
-      font-size:11px;
-      font-weight:600;
+    /* KARTU MENU */
+    .role-card {
+      background: rgba(255,255,255,0.12);
+      border-radius: 20px; /* Sudut membulat besar */
+      padding: 25px 20px;
+      text-decoration: none;
+      color: white;
+      transition: transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      backdrop-filter: blur(6px); /* Efek kaca buram */
+      border: 1px solid rgba(255,255,255,0.25);
     }
 
-    .panel{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.06);
-      padding:28px;
+    .role-card:hover {
+      transform: translateY(-8px);
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(255,255,255,0.4);
     }
 
-    .roles{
-      display:grid;
-      grid-template-columns: repeat(4, minmax(180px, 1fr));
-      gap:14px;
+    /* Tag Pil Putih */
+    .role-tag {
+      align-self: flex-start;
+      background: var(--pill-bg);
+      color: var(--pill-text);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 50px;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
     }
 
-    .role-card{
-      border:1px solid var(--border);
-      border-radius:14px;
-      padding:18px;
-      text-decoration:none;
-      color:inherit;
-      background: #fff;
-      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      min-height:140px;
-    }
-    .role-card:hover{
-      transform: translateY(-2px);
-      border-color:#dbeafe;
-      box-shadow: 0 8px 18px rgba(0,0,0,.08);
+    .role-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 0;
+      line-height: 1.2;
     }
 
-    .role-tag{
-      align-self:flex-start;
-      font-size:11px;
-      font-weight:600;
-      padding:4px 8px;
-      border-radius:999px;
-      background:#eef2ff;
-      color:#3730a3;
+    .role-desc {
+      font-size: 13px;
+      line-height: 1.4;
+      margin: 0;
+      opacity: 0.95;
+      font-weight: 400;
     }
 
-    .role-title{
-      font-size:18px;
-      font-weight:800;
-      margin:0;
-    }
-    .role-desc{
-      margin:0;
-      font-size:12.5px;
-      color:var(--muted);
-      line-height:1.4;
-    }
-
-    .actions{
-      display:flex;
-      gap:8px;
-      margin-top:18px;
-      flex-wrap:wrap;
-    }
-
-    .btn{
-      appearance:none;
-      border:1px solid var(--border);
-      background:#fff;
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:10px;
-      font-size:12px;
-      font-weight:600;
-      cursor:pointer;
-      text-decoration:none;
-      transition: .15s ease;
-    }
-    .btn:hover{border-color:#cbd5e1; box-shadow:0 4px 10px rgba(0,0,0,.06)}
-    .btn.primary{
-      background:var(--accent);
-      border-color:var(--accent);
-      color:white;
-    }
-    .btn.primary:hover{filter:brightness(.98)}
-    .btn.success{
-      background:var(--accent-2);
-      border-color:var(--accent-2);
-      color:white;
+    .internal-badge {
+      position: fixed;
+      top: 14px;
+      right: 18px;
+      background: rgba(255,255,255,0.15);
+      color: #ffe4a3;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,0.3);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      z-index: 2000;
+      pointer-events: none;
     }
 
-    .note{
-      margin-top:14px;
-      font-size:11.5px;
-      color:var(--muted);
-    }
-
-    /* Modal login */
-    .auth-modal{
-      position:fixed;
-      inset:0;
-      background:rgba(15,23,42,.25);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
-      z-index:20;
-    }
-    .auth-modal.active{display:flex;}
-    .auth-card{
-      background:white;
-      border-radius:14px;
-      border:1px solid var(--border);
-      box-shadow:0 16px 40px rgba(0,0,0,.12);
-      width:min(420px, 100%);
-      padding:22px;
-    }
-    .auth-title{
-      margin:0 0 4px;
-      font-size:20px;
-      font-weight:800;
-    }
-    .auth-sub{
-      margin:0 0 14px;
-      font-size:13px;
-      color:var(--muted);
-    }
-    .auth-field{
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      margin-bottom:12px;
-    }
-    .auth-label{
-      font-size:13px;
-      color:var(--muted);
-      font-weight:600;
-    }
-    .auth-input{
-      border:1px solid var(--border);
-      border-radius:10px;
-      padding:10px 12px;
-      font-size:14px;
-    }
-    .auth-actions{
-      display:flex;
-      gap:10px;
-      justify-content:flex-end;
-      margin-top:4px;
-    }
-
-    @media (max-width: 980px){
-      .roles{grid-template-columns: repeat(2, minmax(180px, 1fr));}
-    }
-    @media (max-width: 520px){
-      .roles{grid-template-columns: 1fr;}
-      .header{flex-direction:column; align-items:flex-start}
+    /* RESPONSIVE UNTUK HP */
+    @media (max-width: 768px) {
+      body {
+        padding: 30px 20px;
+        justify-content: center; /* Di HP konten lebih ke tengah */
+        gap: 40px;
+      }
+      
+      .bottom-panel {
+        margin-bottom: 0;
+      }
+      
+      .cards-container {
+        grid-template-columns: 1fr; /* 1 kolom ke bawah di HP */
+      }
     }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <div class="header">
-      <div>
-        <h1 class="title">Portal Proyek Nusantara</h1>
-        <p class="subtitle">Pilih peran untuk masuk ke dashboard masing-masing.</p>
-      </div>
-      <span class="badge">Internal</span>
-    </div>
+  <div class="internal-badge">Internal</div>
+  <div class="bottom-panel">
+    <div class="cards-container">
+      <a class="role-card" href="dashboard_operasional.html">
+        <span class="role-tag">Operasional</span>
+        <h3 class="role-title">Dashboard Operasional</h3>
+        <p class="role-desc">
+          Siteplan, progress & pencairan, PO, perencanaan, dan kontrol lapangan.
+        </p>
+      </a>
 
-    <div class="panel">
-      <div class="roles">
-        <a class="role-card" href="dashboard_operasional.html" data-role-login="operasional">
-          <span class="role-tag">Operasional</span>
-          <h3 class="role-title">Dashboard Operasional</h3>
-          <p class="role-desc">
-            Kelola Siteplan, progress & pencairan, PO, perencanaan, dan kontrol lapangan.
-          </p>
-        </a>
+      <a class="role-card" href="dashboard_finance.html">
+        <span class="role-tag">Finance</span>
+        <h3 class="role-title">Dashboard Finance</h3>
+        <p class="role-desc">
+          Input transaksi, tagihan vendor, cashflow dan laporan keuangan.
+        </p>
+      </a>
 
-        <a class="role-card" href="dashboard_finance.html" data-role-login="finance">
-          <span class="role-tag">Finance</span>
-          <h3 class="role-title">Dashboard Finance</h3>
-          <p class="role-desc">
-            Input transaksi, tagihan vendor, monitoring cashflow dan laporan keuangan internal.
-          </p>
-        </a>
+      <a class="role-card" href="dashboard_marketing.html">
+        <span class="role-tag">Marketing</span>
+        <h3 class="role-title">Dashboard Marketing</h3>
+        <p class="role-desc">
+          Status penjualan, booking/sold, dan visual siteplan pemasaran.
+        </p>
+      </a>
 
-        <a class="role-card" href="dashboard_marketing.html" data-role-login="marketing">
-          <span class="role-tag">Marketing</span>
-          <h3 class="role-title">Dashboard Marketing</h3>
-          <p class="role-desc">
-            Status penjualan, booking/sold, dan visual siteplan versi pemasaran.
-          </p>
-        </a>
-
-        <!-- Kalau belum ada file dashboard_direktur.html, sementara arahkan ke finance/operasional -->
-        <a class="role-card" href="dashboard_finance.html" data-role-login="direktur">
-          <span class="role-tag">Direktur</span>
-          <h3 class="role-title">Dashboard Direktur</h3>
-          <p class="role-desc">
-            Ringkasan progress proyek, penjualan, biaya dan keputusan strategis.
-          </p>
-        </a>
-      </div>
-
-      <div class="actions">
-        <a class="btn primary" href="upah_tukang.html">Kelola Siteplan (langsung)</a>
-        <a class="btn" href="purchase_order.html">Terbitkan PO</a>
-        <a class="btn" href="input_transaksi.html">Input Transaksi</a>
-        <a class="btn success" href="siteplan_marketing.html">Siteplan Marketing</a>
-      </div>
-
-      <div class="note">
-        Catatan: Jika ada menu yang belum kamu buat filenya, tombolnya bisa kamu ganti belakangan.
-        Yang penting struktur pintu masuknya sudah rapi.
-      </div>
+      <a class="role-card" href="dashboard_hr.html">
+        <span class="role-tag">HR</span>
+        <h3 class="role-title">Dashboard Human Resources</h3>
+        <p class="role-desc">
+          Rekrutmen, data karyawan, dan administrasi SDM.
+        </p>
+      </a>
     </div>
   </div>
 
-  <div class="auth-modal" id="authModal">
-    <div class="auth-card">
-      <h3 class="auth-title">Masuk</h3>
-      <p class="auth-sub">Masukkan password untuk role <strong id="authRoleName">-</strong></p>
-      <form id="authForm">
-        <div class="auth-field">
-          <label class="auth-label" for="authPassword">Password</label>
-          <input class="auth-input" type="password" id="authPassword" placeholder="••••••••" required />
-        </div>
-        <div class="auth-actions">
-          <button type="button" class="btn" id="authCancel">Batal</button>
-          <button type="submit" class="btn primary">Masuk</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <script src="auth.js"></script>
-  <script>
-    (function () {
-      const roleConfig = {
-        operasional: { label: "Operasional", password: "op123", target: "dashboard_operasional.html" },
-        finance: { label: "Finance", password: "fin123", target: "dashboard_finance.html" },
-        marketing: { label: "Marketing", password: "mkt123", target: "dashboard_marketing.html" },
-        direktur: { label: "Direktur", password: "dir123", target: "dashboard_finance.html" },
-      };
-
-      const modal = document.getElementById("authModal");
-      const roleName = document.getElementById("authRoleName");
-      const passwordInput = document.getElementById("authPassword");
-      const cancelBtn = document.getElementById("authCancel");
-      const form = document.getElementById("authForm");
-      let currentRole = null;
-
-      function openModal(role) {
-        currentRole = role;
-        roleName.textContent = roleConfig[role].label;
-        modal.classList.add("active");
-        passwordInput.value = "";
-        passwordInput.focus();
-      }
-
-      function closeModal() {
-        modal.classList.remove("active");
-        currentRole = null;
-      }
-
-      document.querySelectorAll("[data-role-login]").forEach((link) => {
-        link.addEventListener("click", (e) => {
-          e.preventDefault();
-          const role = link.dataset.roleLogin;
-          if (!roleConfig[role]) {
-            alert("Role tidak dikenali.");
-            return;
-          }
-          openModal(role);
-        });
-      });
-
-      cancelBtn.addEventListener("click", closeModal);
-
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        if (!currentRole || !roleConfig[currentRole]) {
-          alert("Role tidak dikenali.");
-          return;
-        }
-        const expected = roleConfig[currentRole].password;
-        if (passwordInput.value !== expected) {
-          alert("Password salah. Coba lagi.");
-          passwordInput.focus();
-          return;
-        }
-        PNAuth.setAuth(currentRole);
-        window.location.href = roleConfig[currentRole].target;
-      });
-
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") closeModal();
-      });
-    })();
-  </script>
 </body>
 </html>
