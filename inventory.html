@@ -31,7 +31,7 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       position: sticky;
       top: 0;
-      z-index: 20;
+      z-index: 50; /* Z-index header tinggi */
     }
     header h1 { margin: 0; font-size: 18px; color: var(--primary); }
     header .nav-btn {
@@ -71,6 +71,23 @@
       border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
       font-size: 14px; box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2);
     }
+    .cart-btn {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--primary);
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .cart-btn:hover {
+      background: #e2e8f0;
+    }
     .inv-tabs {
       display: flex;
       gap: 8px;
@@ -107,7 +124,10 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     .inventory-card h3 { margin: 0 0 10px 0; font-size: 16px; }
-    .inventory-card .form-group { margin-bottom: 12px; position: relative; } /* Added relative for balloon positioning */
+    
+    /* MODIFIKASI FORM GROUP UNTUK DROPDOWN */
+    .inventory-card .form-group { margin-bottom: 12px; position: relative; }
+    
     .label-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     .inventory-card label { font-size: 13px; color: #475569; font-weight: 600; }
     .inventory-card input,
@@ -123,38 +143,99 @@
     .unit-row select { flex: 1; padding: 9px; border-radius: 8px; border: 1px solid #dfe4ea; background: #fff; font-size: 14px; }
     .unit-note { font-size: 12px; color: #0f172a; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin: -4px 0 10px 0; }
     .unit-note strong { color: var(--primary); }
+    .po-process {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .po-list-box, .po-detail-box {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      padding: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .po-list-box h4, .po-detail-box h4 { margin: 0 0 8px; }
+    .po-list {
+      max-height: 240px;
+      overflow-y: auto;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .po-list li {
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      background: #f8fafc;
+    }
+    .po-list li:hover { background: #e2e8f0; }
+    .po-detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    .po-detail-table th, .po-detail-table td {
+      border: 1px solid #e2e8f0;
+      padding: 8px;
+      font-size: 13px;
+    }
+    .po-detail-table th { background: #f8fafc; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th { text-align: left; padding: 12px 15px; background: #f8fafc; color: #64748b; font-size: 13px; font-weight: 600; border-bottom: 2px solid var(--border); }
     td { padding: 14px 15px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text); }
     tr:last-child td { border-bottom: none; }
     
-    /* STYLE BARU: TOMBOL KECIL */
     .add-material-btn {
-      width: 22px; /* Diperkecil dari 26px */
-      height: 22px; /* Diperkecil dari 26px */
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0; background: var(--accent); color: #fff;
+      border: none; border-radius: 6px; font-weight: 800; cursor: pointer;
+      font-size: 14px; line-height: 1; transition: background 0.2s;
+    }
+    .add-material-btn:hover { background: #2980b9; }
+
+    /* --- STYLE BARU: CUSTOM DROPDOWN (PENGGANTI DATALIST) --- */
+    .custom-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 0 0 8px 8px;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 100; /* Di atas elemen lain tapi di bawah modal */
+      list-style: none;
       padding: 0;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-weight: 800;
+      margin: 0;
+      display: none; /* Hidden default */
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    .custom-dropdown.show { display: block; }
+    .custom-dropdown li {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f1f5f9;
       cursor: pointer;
       font-size: 14px;
-      line-height: 1;
-      transition: background 0.2s;
+      color: var(--text);
     }
-    .add-material-btn:hover {
-      background: #2980b9;
+    .custom-dropdown li:hover {
+      background-color: #f0f9ff;
+      color: var(--accent);
     }
+    /* Scrollbar halus untuk dropdown */
+    .custom-dropdown::-webkit-scrollbar { width: 6px; }
+    .custom-dropdown::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
 
-    /* STYLE BARU: BALON PESAN */
     .validation-balloon {
       display: none;
       position: absolute;
-      top: 100%;
+      top: 100%; /* Default di bawah input */
       left: 0;
       width: 100%;
       background-color: #fef2f2;
@@ -168,11 +249,13 @@
       z-index: 10;
       line-height: 1.4;
     }
+    /* Jika Dropdown muncul, Balon turun sedikit biar ga ketutup (opsional, logic JS mengatur display salah satu) */
+    
     .validation-balloon::before {
       content: '';
       position: absolute;
       top: -6px;
-      right: 15px; /* Panah menunjuk ke arah kanan (dekat tombol +) */
+      right: 15px;
       width: 12px;
       height: 12px;
       background-color: #fef2f2;
@@ -275,8 +358,11 @@
                 <label>Nama Barang</label>
                 <button type="button" class="add-material-btn" id="orderAddBtn" title="Tambah Material Baru" onclick="openModalMaterial('orderItem')">+</button>
               </div>
-              <input type="text" id="orderItem" list="itemMasterList" required placeholder="Contoh: Semen">
               
+              <input type="text" id="orderItem" autocomplete="off" required placeholder="Contoh: Semen">
+              
+              <ul id="orderItemDropdown" class="custom-dropdown"></ul>
+
               <div id="orderItemBalloon" class="validation-balloon">
                 Nama material tidak ditemukan.<br>Klik tombol <strong>+</strong> di atas untuk tambah nama material.
               </div>
@@ -292,34 +378,41 @@
               <input type="number" id="orderQty" min="1" required placeholder="0">
             </div>
             <div class="form-group">
-              <label>Vendor</label>
-              <input type="text" id="orderVendor" placeholder="Nama vendor">
+              <label>Daftar Blok</label>
+              <input type="text" id="orderBlock" placeholder="Contoh: Blok A1 / Kavling 12">
             </div>
             <div class="form-group">
-              <label>Estimasi Tiba</label>
-              <input type="date" id="orderEta">
+              <label>Pengorder</label>
+              <select id="orderRequester">
+                <option value="">Pilih pengorder</option>
+                <option value="Eka">Eka</option>
+                <option value="Didin">Didin</option>
+                <option value="Indra">Indra</option>
+                <option value="Nadia">Nadia</option>
+              </select>
             </div>
-            <button type="submit" class="btn-tambah">Simpan Order</button>
+            <button type="submit" class="cart-btn" title="Tambah ke Keranjang">🛒</button>
           </form>
         </div>
 
         <div class="table-header" style="margin-top:10px;">
           <h3>Daftar Order</h3>
         </div>
-        <datalist id="itemMasterList"></datalist>
         <table>
           <thead>
             <tr>
               <th>No</th>
               <th>Barang</th>
+              <th>Blok</th>
               <th>Jumlah</th>
-              <th>Vendor</th>
-              <th>ETA</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody id="orderTable"></tbody>
         </table>
+        <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+          <button type="button" class="btn-tambah" style="background:#2563eb;" onclick="sendOrdersToPO()">Kirim ke Purchase Order</button>
+        </div>
       </section>
 
       <section id="receivePanel" class="inv-panel hidden">
@@ -337,7 +430,10 @@
                 <label>Nama Barang</label>
                 <button type="button" class="add-material-btn" id="receiveAddBtn" title="Tambah Material Baru" onclick="openModalMaterial('receiveItem')">+</button>
               </div>
-              <input type="text" id="receiveItem" list="itemMasterList" required placeholder="Semen">
+              
+              <input type="text" id="receiveItem" autocomplete="off" required placeholder="Semen">
+
+              <ul id="receiveItemDropdown" class="custom-dropdown"></ul>
 
               <div id="receiveItemBalloon" class="validation-balloon">
                 Nama material tidak ditemukan.<br>Klik tombol <strong>+</strong> di atas untuk tambah nama material.
@@ -359,6 +455,30 @@
             </div>
             <button type="submit" class="btn-tambah">Catat Penerimaan</button>
           </form>
+        </div>
+
+        <div class="po-process">
+          <div class="po-list-box">
+            <h4>PO Berproses</h4>
+            <ul class="po-list" id="poList"></ul>
+          </div>
+          <div class="po-detail-box">
+            <h4>Detail PO</h4>
+            <div id="poDetailPlaceholder" class="muted" style="font-size:13px;">Pilih PO untuk melihat detail.</div>
+            <div id="poDetailContent" style="display:none;">
+              <table class="po-detail-table" id="poDetailTable">
+                <thead>
+                  <tr>
+                    <th>Barang</th>
+                    <th>Qty</th>
+                    <th>Harga</th>
+                    <th>Checklist</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -429,9 +549,14 @@
     const ORDER_KEY = 'inventoryOrders';
     const STOCK_KEY = 'inventoryStock';
     const ITEM_SOURCE_URL = window.PN_INVENTORY_ITEMS_URL || "";
+    const PO_KEY = 'purchaseOrders';
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby35BUkEx44e226aMxqdQqHGR-44jYysKje3x-LKmv581Tv41C6Hshqq8LTIhVOW40B/exec";
     const MATERIAL_KEY = 'master_material_local';
     const UNIT_OPTIONS = ["Batang","Biji","Dos","Ember","Filsh","Gulung","Kaleng","Kg","Kubik","Lembar","Liter","Meter","Pickup","Pcs","Roll","Sak","Set","Truk","Unit"].sort((a,b)=>a.localeCompare(b));
     let currentMaterialInputId = null;
+    
+    // Variabel Global untuk menyimpan daftar material
+    let allMaterials = []; 
 
     function getData(key) {
       const data = localStorage.getItem(key);
@@ -506,17 +631,21 @@
       receiveOrderRef.innerHTML = '<option value="">-- Pilih order --</option>';
       if (orders.length === 0) {
         table.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:14px; color:#94a3b8;">Belum ada order barang</td></tr>';
+        localStorage.removeItem('PO_DRAFT_FROM_INVENTORY');
         return;
       }
+      localStorage.setItem('PO_DRAFT_FROM_INVENTORY', JSON.stringify(orders));
       orders.forEach((o, idx) => {
         table.innerHTML += `
           <tr>
             <td data-label="No">${idx + 1}</td>
             <td data-label="Barang">${o.item}</td>
+            <td data-label="Blok">${o.block || '-'}</td>
             <td data-label="Jumlah">${o.qty} ${o.unit || ''}</td>
-            <td data-label="Vendor">${o.vendor || '-'}</td>
-            <td data-label="ETA">${o.eta || '-'}</td>
-            <td data-label="Status">${o.status || 'Menunggu'}</td>
+            <td data-label="Pengorder">${o.requester || '-'}</td>
+            <td data-label="Status">
+              <button type="button" class="add-material-btn" title="Hapus" onclick="removeOrder(${o.id})">🗑️</button>
+            </td>
           </tr>
         `;
         receiveOrderRef.innerHTML += `<option value="${o.id}">${o.item} (${o.qty})</option>`;
@@ -545,17 +674,99 @@
       e.preventDefault();
       const item = document.getElementById('orderItem').value.trim();
       const qty = Number(document.getElementById('orderQty').value);
-      const vendor = document.getElementById('orderVendor').value.trim();
-      const eta = document.getElementById('orderEta').value;
+      const block = document.getElementById('orderBlock').value.trim();
+      const requester = document.getElementById('orderRequester').value.trim();
       if (!item || !qty) return;
       const unit = document.getElementById('orderUnitSelect')?.value || findUnitByName(item);
       const orders = getData(ORDER_KEY);
-      orders.push({ id: Date.now(), item, qty, unit, vendor, eta, status: 'Menunggu' });
+      orders.push({ id: Date.now(), item, qty, unit, block, requester, status: 'Menunggu' });
       saveData(ORDER_KEY, orders);
       document.getElementById('orderForm').reset();
       const orderUnitSelect = document.getElementById('orderUnitSelect');
       if (orderUnitSelect) orderUnitSelect.value = '';
       updateUnitLabel('orderItem', '');
+      renderOrders();
+    }
+
+    function renderPOListForReceive() {
+      const listEl = document.getElementById('poList');
+      if (!listEl) return;
+      const poDetailContent = document.getElementById('poDetailContent');
+      const poDetailPlaceholder = document.getElementById('poDetailPlaceholder');
+      const poTableBody = document.querySelector('#poDetailTable tbody');
+      listEl.innerHTML = '';
+      const pos = getData(PO_KEY).filter(po => po.status !== 'Selesai');
+      if (!pos.length) {
+        listEl.innerHTML = '<li class="muted" style="padding:8px; text-align:center;">Belum ada PO berproses</li>';
+        if (poDetailContent) poDetailContent.style.display = 'none';
+        if (poDetailPlaceholder) poDetailPlaceholder.style.display = 'block';
+        return;
+      }
+      pos.forEach(po => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${po.id || 'PO'}</strong><br><span style="font-size:12px;color:#64748b;">${po.vendor || '-'} | ${po.project || '-'}</span>`;
+        li.addEventListener('click', () => {
+          if (poDetailPlaceholder) poDetailPlaceholder.style.display = 'none';
+          if (poDetailContent) poDetailContent.style.display = 'block';
+          if (poTableBody) {
+            poTableBody.innerHTML = (po.items || []).map(item => `
+              <tr>
+                <td>${item.material}</td>
+                <td class="num">${item.qty} ${item.unit || ''}</td>
+                <td class="num">Rp ${formatNumber(item.price || 0)}</td>
+                <td style="text-align:center;"><input type="checkbox"></td>
+              </tr>
+            `).join('');
+          }
+        });
+        listEl.appendChild(li);
+      });
+    }
+
+    async function sendOrdersToPO() {
+      const orders = getData(ORDER_KEY);
+      if (!orders.length) {
+        alert("Tidak ada order untuk dikirim.");
+        return;
+      }
+
+      const batchId = "BATCH-" + Date.now();
+      const payload = {
+        batchId,
+        createdAt: new Date().toISOString(),
+        requester: orders[0]?.requester || "Gudang",
+        items: orders
+      };
+
+      try {
+        const formPayload = new URLSearchParams();
+        formPayload.append("action", "inventory_bulk");
+        formPayload.append("orders", JSON.stringify(orders));
+        formPayload.append("batchId", batchId);
+        formPayload.append("requester", payload.requester);
+
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: formPayload
+        });
+        const data = await res.json();
+
+        if (data.result === "success") {
+          alert(`Order terkirim ke Purchase (${data.inserted} baris).`);
+          saveData(ORDER_KEY, []);
+          renderOrders();
+        } else {
+          alert("Gagal kirim: " + (data.message || "Tidak diketahui"));
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Terjadi error saat kirim order ke server.");
+      }
+    }
+
+    function removeOrder(id) {
+      const orders = getData(ORDER_KEY).filter(o => o.id !== id);
+      saveData(ORDER_KEY, orders);
       renderOrders();
     }
     function receiveGoods(e) {
@@ -597,9 +808,11 @@
       master.forEach(m => m.name && set.add(m.name));
       return Array.from(set);
     }
+    
+    // --- UPDATED FETCH LOGIC (No datalist needed) ---
     async function fetchItemMaster() {
       if (!ITEM_SOURCE_URL) {
-        renderItemDatalist(collectItemNames());
+        allMaterials = collectItemNames(); // Simpan ke variable global
         updateUnitLabel('orderItem', document.getElementById('orderItem')?.value || '');
         updateUnitLabel('receiveItem', document.getElementById('receiveItem')?.value || '');
         return;
@@ -611,22 +824,97 @@
         const normalized = normalizeSheetItems(list);
         const merged = mergeMasterMaterials(normalized);
         const names = merged.map(i => i.name).filter(Boolean);
-        renderItemDatalist(names.length ? names : collectItemNames());
+        
+        // Simpan ke variable global
+        allMaterials = names.length ? Array.from(new Set(names)).sort((a,b)=>a.localeCompare(b)) : collectItemNames();
+        
         updateUnitLabel('orderItem', document.getElementById('orderItem')?.value || '');
         updateUnitLabel('receiveItem', document.getElementById('receiveItem')?.value || '');
       } catch (err) {
         console.error("Gagal ambil master item", err);
-        renderItemDatalist(collectItemNames());
+        allMaterials = collectItemNames();
         updateUnitLabel('orderItem', document.getElementById('orderItem')?.value || '');
         updateUnitLabel('receiveItem', document.getElementById('receiveItem')?.value || '');
       }
     }
-    function renderItemDatalist(items) {
-      const listEl = document.getElementById('itemMasterList');
-      if (!listEl) return;
-      const uniq = Array.from(new Set(items || [])).sort((a,b)=>a.localeCompare(b));
-      listEl.innerHTML = uniq.map(n => `<option value="${n}"></option>`).join("");
+    
+    // --- NEW DROPDOWN LOGIC ---
+    function renderDropdown(inputId, listId, filterText = "") {
+      const listEl = document.getElementById(listId);
+      if(!listEl) return;
+      
+      const lowerFilter = filterText.toLowerCase();
+      // Filter list
+      const matches = allMaterials.filter(item => item.toLowerCase().includes(lowerFilter));
+      
+      listEl.innerHTML = "";
+      
+      // Jika tidak ada input, jangan tampilkan apa-apa (atau tampilkan semua jika diinginkan)
+      // Disini kita tampilkan jika ada match
+      if (matches.length === 0) {
+        listEl.classList.remove('show');
+        return;
+      }
+
+      // Limit dropdown items supaya tidak terlalu panjang (opsional, misal 50)
+      const limitMatches = matches.slice(0, 50);
+
+      limitMatches.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        li.onmousedown = function(e) {
+          e.preventDefault(); // Mencegah input kehilangan fokus terlalu cepat
+          const input = document.getElementById(inputId);
+          input.value = item;
+          listEl.classList.remove('show');
+          
+          // Trigger logic validasi manual
+          handleItemInput({ target: input });
+        };
+        listEl.appendChild(li);
+      });
+      
+      listEl.classList.add('show');
     }
+
+    // Fungsi Validasi Balon & Update Label (Dimodifikasi)
+    function handleItemInput(event) {
+      const input = event.target;
+      const value = (input.value || '').trim().toLowerCase();
+      
+      // Update Dropdown List Realtime
+      const dropdownId = input.id === 'orderItem' ? 'orderItemDropdown' : 'receiveItemDropdown';
+      if(document.activeElement === input) {
+        renderDropdown(input.id, dropdownId, input.value);
+      }
+
+      // Validasi Balloon (Cek dari array allMaterials)
+      const hasMatch = allMaterials.some(m => m.toLowerCase() === value);
+      
+      // Tampilkan balon jika ada text tapi tidak ada match di database
+      toggleHelper(input.id, value && !hasMatch);
+      
+      updateUnitLabel(input.id, input.value || '');
+    }
+    
+    function toggleHelper(inputId, show) {
+      const balloonId = inputId === 'orderItem' ? 'orderItemBalloon' : 'receiveItemBalloon';
+      const el = document.getElementById(balloonId);
+      const dropdownId = inputId === 'orderItem' ? 'orderItemDropdown' : 'receiveItemDropdown';
+      const dropdownEl = document.getElementById(dropdownId);
+      
+      if (el) {
+        // Jika dropdown sedang muncul, sembunyikan balon agar tidak tumpang tindih
+        // Atau biarkan muncul tapi dropdown menimpanya (karena z-index dropdown lebih tinggi)
+        if(show && dropdownEl && dropdownEl.classList.contains('show') && dropdownEl.children.length > 0) {
+           // Opsional: Sembunyikan balon jika dropdown muncul, user pilih dulu
+           el.style.display = 'none'; 
+        } else {
+           el.style.display = show ? 'block' : 'none';
+        }
+      }
+    }
+
     function buildItemEndpoint(action) {
       if (!ITEM_SOURCE_URL) return "";
       try {
@@ -653,26 +941,6 @@
       } catch (err) {
         console.warn("Gagal sinkron ke spreadsheet", err);
       }
-    }
-    
-    // FUNGSI BARU UNTUK TOGGLE BALON VALIDASI
-    function toggleHelper(inputId, show) {
-      const balloonId = inputId === 'orderItem' ? 'orderItemBalloon' : 'receiveItemBalloon';
-      const el = document.getElementById(balloonId);
-      if (el) el.style.display = show ? 'block' : 'none';
-    }
-
-    function handleItemInput(event) {
-      const input = event.target;
-      const value = (input.value || '').trim().toLowerCase();
-      const listEl = document.getElementById('itemMasterList');
-      if (!listEl) return;
-      
-      const hasMatch = Array.from(listEl.options || []).some(opt => (opt.value || '').toLowerCase() === value);
-      
-      // Jika input ada isinya tapi tidak cocok, tampilkan balon
-      toggleHelper(input.id, value && !hasMatch);
-      updateUnitLabel(input.id, input.value || '');
     }
     
     function updateUnitLabel(inputId, value) {
@@ -723,6 +991,30 @@
       });
     }
 
+    // EVENT LISTENER TAMBAHAN UNTUK DROPDOWN
+    function setupDropdownListeners(inputId, listId) {
+      const input = document.getElementById(inputId);
+      const list = document.getElementById(listId);
+      
+      if (!input || !list) return;
+
+      // Saat input diketik
+      input.addEventListener('input', handleItemInput);
+      input.addEventListener('change', handleItemInput);
+      
+      // Saat input difokus (Tampilkan dropdown full atau filtered)
+      input.addEventListener('focus', function() {
+        renderDropdown(inputId, listId, input.value);
+      });
+
+      // Klik di luar untuk menutup
+      document.addEventListener('click', function(e) {
+        if (e.target !== input && e.target !== list) {
+          list.classList.remove('show');
+        }
+      });
+    }
+
     // INIT
     window.onload = function() {
       renderOrders();
@@ -731,13 +1023,12 @@
       populateUnitSelect('receiveUnitSelect');
       fetchItemMaster();
       setupTabs();
-      ['orderItem','receiveItem'].forEach(id => {
-        const input = document.getElementById(id);
-        if (input) {
-          input.addEventListener('input', handleItemInput);
-          input.addEventListener('change', handleItemInput);
-        }
-      });
+      renderPOListForReceive();
+      
+      // SETUP LISTENER BARU
+      setupDropdownListeners('orderItem', 'orderItemDropdown');
+      setupDropdownListeners('receiveItem', 'receiveItemDropdown');
+
       ['orderUnitSelect','receiveUnitSelect'].forEach(id => {
         const sel = document.getElementById(id);
         if (sel) {
@@ -770,7 +1061,11 @@
           }
           saveMasterMaterials(master);
           syncNewMaterialToSheet(name, unit);
-          renderItemDatalist(collectItemNames());
+          
+          // Re-fetch untuk update list global
+          allMaterials.push(name);
+          allMaterials = Array.from(new Set(allMaterials)).sort();
+
           if (currentMaterialInputId) {
             const input = document.getElementById(currentMaterialInputId);
             if (input) input.value = name;

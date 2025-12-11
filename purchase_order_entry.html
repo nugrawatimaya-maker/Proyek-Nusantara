@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Draft Purchase Order</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
   <style>
     :root{
       --bg:#f4f6fa;
@@ -12,6 +14,9 @@
       --text:#0f172a;
       --muted:#5f6b7c;
       --primary:#2563eb;
+      --success:#10b981;
+      --danger:#ef4444;
+      --warning:#f59e0b;
     }
     *{box-sizing:border-box;}
     body{
@@ -20,341 +25,931 @@
       background:var(--bg);
       color:var(--text);
     }
+    
+    /* HEADER & NOTIFICATION */
     header{
-      padding:28px;
+      padding:20px 28px;
       background:var(--card);
       box-shadow:0 4px 20px rgba(15,23,42,0.08);
       display:flex;
       justify-content:space-between;
-      align-items:flex-start;
-      gap:16px;
-    }
-    header h1{margin:0;font-size:24px;}
-    header p{margin:6px 0 0;color:var(--muted);}
-    .back-btn{
-      border:none;
-      border-radius:999px;
-      padding:10px 18px;
-      font-weight:600;
-      background:#e7eaf5;
-      color:var(--text);
-      cursor:pointer;
-    }
-    main{
-      max-width:960px;
-      margin:30px auto 60px;
-      padding:0 24px 40px;
-    }
-    .card{
-      background:var(--card);
-      border-radius:16px;
-      padding:24px;
-      box-shadow:0 10px 30px rgba(15,23,42,0.08);
-      border:1px solid var(--border);
-    }
-    .card h2{
-      margin:0 0 16px;
-      font-size:20px;
-    }
-    label{
-      display:block;
-      font-weight:600;
-      font-size:13px;
-      margin-bottom:6px;
-      color:var(--text);
-    }
-    select{
-      width:100%;
-      padding:12px 14px;
-      border-radius:10px;
-      border:1px solid var(--border);
-      font-size:14px;
-      background:#fff;
-      margin-bottom:18px;
-    }
-    .helper{
-      font-size:13px;
-      color:var(--muted);
-      margin-top:-12px;
-      margin-bottom:18px;
-    }
-    input[type="text"],
-    input[type="number"]{
-      width:100%;
-      padding:12px 14px;
-      border-radius:10px;
-      border:1px solid var(--border);
-      font-size:14px;
-      margin-bottom:18px;
-      background:#fff;
-    }
-    .material-field{
-      position:relative;
-    }
-    .material-suggestions{
-      position:absolute;
-      top:calc(100% - 10px);
-      left:0;
-      width:100%;
-      list-style:none;
-      margin:0;
-      padding:0;
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius:12px;
-      box-shadow:0 12px 30px rgba(15,23,42,0.12);
-      max-height:220px;
-      overflow:auto;
-      z-index:10;
-    }
-    .material-suggestions li{
-      padding:10px 14px;
-      cursor:pointer;
-      border-bottom:1px solid #f1f5f9;
-    }
-    .material-suggestions li:last-child{
-      border-bottom:none;
-    }
-    .material-suggestions li:hover{
-      background:#eff6ff;
-    }
-    .price-row{
-      display:flex;
-      gap:12px;
       align-items:center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    .price-row input{
-      flex:1;
-      margin-bottom:0;
+    .header-left h1{margin:0;font-size:22px;}
+    .header-left p{margin:4px 0 0;color:var(--muted); font-size: 13px;}
+    .header-right { display: flex; align-items: center; gap: 15px; }
+
+    .notif-wrapper { position: relative; cursor: pointer; margin-right: 10px; }
+    .bell-icon { font-size: 24px; color: var(--text); }
+    .badge {
+      position: absolute; top: -5px; right: -5px;
+      background: var(--danger); color: white;
+      font-size: 11px; font-weight: bold;
+      height: 18px; width: 18px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; border: 2px solid #fff;
     }
-    .price-update-btn{
-      border:none;
-      border-radius:10px;
-      padding:10px 14px;
-      font-weight:600;
-      background:#fde68a;
-      color:#92400e;
-      cursor:pointer;
-      white-space:nowrap;
+    .notif-dropdown {
+      position: absolute; top: 140%; right: 0; width: 350px;
+      background: white; border: 1px solid var(--border);
+      border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      display: none; flex-direction: column; overflow: hidden; z-index: 1000;
     }
+    .notif-dropdown.show { display: flex; }
+    .notif-header {
+      padding: 12px 16px; background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600; font-size: 13px; color: var(--muted);
+      display: flex; justify-content: space-between;
+    }
+    .notif-list { max-height: 350px; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+    .notif-item {
+      padding: 12px 16px; border-bottom: 1px solid #f1f5f9;
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; transition: background 0.2s;
+    }
+    .notif-item:hover { background: #f8fafc; }
+    .notif-content { flex: 1; }
+    .req-title { font-weight: 700; font-size: 14px; margin-bottom: 2px; color: var(--primary); }
+    .req-meta { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+    .req-user { font-size: 11px; color: #64748b; font-style: italic; display: block; margin-top: 2px; }
+    .accept-btn {
+      background: var(--success); color: white; border: none;
+      padding: 6px 12px; border-radius: 6px; font-size: 12px;
+      font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .accept-btn:hover { background: #059669; }
+    .back-btn{
+      border:none; border-radius:8px; padding:8px 16px;
+      font-weight:600; background:#e7eaf5; color:var(--text);
+      cursor:pointer; font-size: 13px;
+    }
+
+    /* MAIN LAYOUT */
+    main{ max-width:900px; margin:30px auto 60px; padding:0 20px; }
+
+    /* QUEUE SECTION */
+    .queue-section {
+      background: #fff7ed; border: 1px solid #fed7aa;
+      border-radius: 12px; padding: 16px; margin-bottom: 20px;
+      display: none;
+    }
+    .queue-section.show { display: block; }
+    .queue-header {
+      font-size: 14px; font-weight: 700; color: #9a3412; margin-bottom: 10px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .queue-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .queue-item {
+      background: white; border: 1px solid #fed7aa; padding: 10px;
+      border-radius: 8px; cursor: pointer; transition: transform 0.1s;
+    }
+    .queue-item:hover { border-color: #f97316; transform: translateY(-2px); }
+    .queue-item strong { display: block; font-size: 13px; color: #333; }
+    .queue-item span { font-size: 11px; color: #666; }
+
+    /* FORM CARD */
+    .card{
+      background:var(--card); border-radius:16px; padding:24px;
+      box-shadow:0 10px 30px rgba(15,23,42,0.08); border:1px solid var(--border);
+    }
+    .card h2{ margin:0 0 20px; font-size:18px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+    
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .full-width { grid-column: 1 / -1; }
+
+    label{ display:block; font-weight:600; font-size:13px; margin-bottom:6px; color:var(--text); }
+    select, input[type="text"], input[type="number"], input[type="date"] {
+      width:100%; padding:10px 12px; border-radius:8px;
+      border:1px solid var(--border); font-size:14px; background:#fff;
+    }
+    select:focus, input:focus { outline: none; border-color: var(--primary); }
+    
+    .helper{ font-size:12px; color:var(--muted); margin-top:4px; margin-bottom:16px; }
+    
+    .vendor-info-box {
+      background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534;
+      padding: 12px; border-radius: 8px; margin-bottom: 18px; font-size: 13px; display: none; 
+    }
+    .vendor-info-box strong { display: block; margin-bottom: 4px; }
+
+    /* TABLE STYLES */
+    .items-table {
+      width: 100%; border-collapse: collapse; margin-top: 10px;
+    }
+    .items-table th {
+      text-align: left; padding: 10px; background: #f1f5f9;
+      font-size: 13px; color: #475569; border-bottom: 2px solid var(--border);
+    }
+    .items-table td {
+      padding: 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top;
+    }
+    .items-table input, .items-table select {
+      padding: 8px; font-size: 13px; border: 1px solid #e2e8f0; width: 100%;
+    }
+    .items-table .row-total {
+      font-weight: bold; text-align: right; padding-top: 10px; display: block; font-family: monospace;
+    }
+    .btn-remove {
+      background: #fee2e2; color: #ef4444; border: none; width: 30px; height: 30px;
+      border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;
+    }
+    .btn-remove:hover { background: #fecaca; }
+    
+    .btn-add-row {
+      background: #eff6ff; color: var(--primary); border: 1px dashed var(--primary);
+      width: 100%; padding: 10px; border-radius: 8px; margin-top: 10px;
+      font-weight: 600; cursor: pointer; font-size: 13px;
+    }
+    .btn-add-row:hover { background: #dbeafe; }
+
+    .grand-total-row {
+      background: #f8fafc; font-size: 16px; font-weight: 800; color: var(--text);
+    }
+
+    /* Suggestion Box */
+    .td-relative { position: relative; }
+    .row-suggestions {
+      position: absolute; top: 40px; left: 0; width: 100%;
+      background: white; border: 1px solid var(--border); border-radius: 6px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 50;
+      max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0;
+      display: none;
+    }
+    .row-suggestions.show { display: block; }
+    .row-suggestions li {
+      padding: 8px 10px; font-size: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9;
+    }
+    .row-suggestions li:hover { background: #eff6ff; }
+
+    .save-btn {
+      width: 100%; padding: 14px; background: var(--primary); color: white;
+      border: none; border-radius: 8px; font-weight: bold; font-size: 15px;
+      cursor: pointer; margin-top: 25px; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+    }
+    .save-btn:hover { background: #1d4ed8; }
+
+    /* --- CSS TEMPLATE PDF (OFF-SCREEN RENDERING) --- */
+    #po-template-container {
+      position: absolute;
+      left: -9999px; 
+      top: 0;
+      width: 210mm; /* Lebar A4 */
+      z-index: -1;
+    }
+    
+    #po-template {
+      background: white;
+      width: 100%;
+      padding: 15mm 20mm;
+      color: #000;
+      font-family: "Arial", sans-serif;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    
+    /* --- UPDATE CSS KHUSUS KOP SURAT BARU --- */
+    .po-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: flex-start;
+      margin-bottom: 20px; 
+      border-bottom: 3px solid #c5a059;
+      padding-bottom: 10px;
+    }
+    
+    .company-info { 
+      font-family: "Arial", sans-serif; 
+      color: #333; 
+    }
+
+    .logo-placeholder {
+      width: 150px;
+      margin-bottom: 8px;
+    }
+    .logo-text {
+      font-size: 28px;
+      font-weight: 800;
+      color: #c5a059;
+      line-height: 1;
+    }
+    .logo-sub {
+      font-size: 14px;
+      color: #c5a059;
+      font-weight: 700;
+    }
+
+    .company-name {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      margin-top: 5px;
+      color: #000;
+    }
+    .hq-title {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .address-line {
+      font-size: 11px;
+      margin-bottom: 1px;
+      color: #000;
+    }
+    
+    .po-meta {
+      text-align: right;
+      margin-top: 10px;
+    }
+    .po-meta table { float: right; }
+    .po-meta td { 
+      padding: 2px 5px; 
+      font-size: 12px; 
+      font-weight: 600; 
+    }
+    
+    .vendor-section { margin-bottom: 25px; }
+    .vendor-box { border: 1px solid #000; padding: 10px; width: 50%; border-radius: 4px; }
+    
+    .po-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+    .po-table th { 
+      border: 1px solid #000; padding: 8px; background: #eee; 
+      font-weight: 700; text-align: center; font-size: 11px;
+    }
+    .po-table td { border: 1px solid #000; padding: 8px; font-size: 11px; }
+    .po-table td.num { text-align: right; white-space: nowrap; }
+    .po-table td.center { text-align: center; }
+    
+    .po-footer-grid { display: flex; justify-content: space-between; gap: 20px; margin-top: 10px; }
+    .delivery-info table { width: 100%; border-collapse: collapse; }
+    .delivery-info td { padding: 4px 0; font-size: 11px; vertical-align: top; }
+    
+    .signature-section { text-align: center; margin-top: 20px; width: 200px; }
+    .sig-space { height: 70px; }
+    .sig-name { font-weight: 700; text-decoration: underline; }
   </style>
 </head>
 <body>
   <header>
-    <div>
+    <div class="header-left">
       <h1>Draft Purchase Order</h1>
-      <p>Isi data utama dokumen PO sebelum menambahkan detail item.</p>
+      <p>Buat PO baru atau proses permintaan dari Inventory</p>
     </div>
-    <button class="back-btn" onclick="window.location.href='purchase_order.html'">Kembali</button>
+    <div class="header-right">
+      <div class="notif-wrapper" onclick="toggleNotif()">
+        <span class="bell-icon">🔔</span>
+        <div id="notifBadge" class="badge" style="display:none;">0</div>
+        
+        <div id="notifDropdown" class="notif-dropdown">
+          <div class="notif-header">
+            <span>Permintaan Masuk</span>
+            <span style="font-size:11px; font-weight:normal; cursor:pointer;" onclick="toggleNotif()">Tutup</span>
+          </div>
+          <ul id="notifList" class="notif-list"></ul>
+        </div>
+      </div>
+      <button class="back-btn" onclick="window.location.href='dashboard_operasional.html'">Kembali</button>
+    </div>
   </header>
+
   <main>
+    <div id="queueSection" class="queue-section">
+      <div class="queue-header">
+        <span>📋 Daftar Antrian PO (Klik untuk tambah ke tabel)</span>
+        <span id="queueCount" class="badge" style="position:static; background:#f97316;">0</span>
+      </div>
+      <div id="queueList" class="queue-list"></div>
+    </div>
+
     <section class="card">
-      <h2>Entry Data PO</h2>
-      <label for="projectSelect">PO untuk Proyek</label>
-      <select id="projectSelect">
-        <option value="">Pilih proyek</option>
-        <option value="Sunrise City Pinrang">Sunrise City Pinrang</option>
-        <option value="Sunrise City Maros">Sunrise City Maros</option>
-        <option value="Sunrise City Parepare">Sunrise City Parepare</option>
-        <option value="Kost Sunrise Banta Bantaeng">Kost Sunrise Banta Bantaeng</option>
-        <option value="Kost Sunrise Faisal">Kost Sunrise Faisal</option>
-      </select>
+      <h2>Formulir Purchase Order</h2>
+      
+      <div class="form-grid">
+        <div class="full-width">
+          <label for="projectSelect">PO untuk Proyek</label>
+          <select id="projectSelect">
+            <option value="">-- Pilih proyek --</option>
+            <option value="Sunrise City Pinrang">Sunrise City Pinrang</option>
+            <option value="Sunrise City Maros">Sunrise City Maros</option>
+            <option value="Sunrise City Parepare">Sunrise City Parepare</option>
+            <option value="Kost Sunrise Banta Bantaeng">Kost Sunrise Banta Bantaeng</option>
+            <option value="Kost Sunrise Faisal">Kost Sunrise Faisal</option>
+          </select>
+        </div>
 
-      <label for="vendorSelect">Kepada Vendor</label>
-      <select id="vendorSelect">
-        <option value="">Memuat data vendor…</option>
-      </select>
-      <div class="helper">Daftar vendor diambil dari modul Input Tagihan Vendor pada dashboard finance.</div>
+        <div class="full-width">
+          <label for="vendorSelect">Kepada Vendor</label>
+          <select id="vendorSelect" onchange="handleVendorChange()">
+            <option value="">-- Memuat data vendor --</option>
+          </select>
+          <div class="helper">Data vendor diambil dari database finance.</div>
+          
+          <div id="vendorInfoBox" class="vendor-info-box">
+            <strong>📋 Informasi Vendor:</strong>
+            <span id="vendorTopDisplay">TOP: -</span><br>
+            <span id="vendorMatDisplay">Spesialis: -</span>
+          </div>
+        </div>
 
-      <label for="materialInput">Nama Material</label>
-      <div class="material-field">
-        <input type="text" id="materialInput" placeholder="Ketik nama material" oninput="handleMaterialPredict()" autocomplete="off" />
-        <ul class="material-suggestions hidden" id="materialSuggestions"></ul>
+        <div class="full-width">
+          <label>Tanggal PO</label>
+          <input type="date" id="poDate">
+        </div>
       </div>
-      <div class="helper">Sistem akan memprediksi material yang pernah digunakan.</div>
 
-      <label for="qtyInput">Jumlah Item</label>
-      <input type="number" id="qtyInput" min="1" placeholder="Masukkan jumlah item" oninput="recalculateTotal()" />
-
-      <label for="unitSelect">Satuan</label>
-      <select id="unitSelect">
-        <option value="">Pilih satuan</option>
-      </select>
-      <div class="helper">Satuan akan terisi otomatis jika material sudah pernah tersimpan.</div>
-
-      <label for="priceInput">Harga Satuan (Rp)</label>
-      <div class="price-row">
-        <input type="number" id="priceInput" min="0" placeholder="Harga per satuan" oninput="recalculateTotal()" />
-        <button type="button" class="price-update-btn" onclick="togglePriceOverride()">Perubahan Harga</button>
+      <div style="margin-top: 20px;">
+        <label>Rincian Barang</label>
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width: 35%;">Nama Barang</th>
+              <th style="width: 15%;">Jumlah</th>
+              <th style="width: 15%;">Satuan</th>
+              <th style="width: 20%;">Harga (@)</th>
+              <th style="width: 15%; text-align:right;">Jumlah (Rp)</th>
+              <th style="width: 5%;"></th>
+            </tr>
+          </thead>
+          <tbody id="poItemsBody">
+            </tbody>
+          <tfoot>
+            <tr class="grand-total-row">
+              <td colspan="4" style="text-align: right; padding-right: 15px;">TOTAL KESELURUHAN</td>
+              <td style="text-align: right;" id="grandTotalDisplay">Rp 0</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+        <button type="button" class="btn-add-row" onclick="addTableRow()">+ Tambah Baris Barang</button>
       </div>
-      <div class="helper">Harga akan otomatis terisi dari database jika tersedia.</div>
 
-      <label for="totalInput">Total (Rp)</label>
-      <input type="text" id="totalInput" readonly placeholder="Jumlah x Harga" />
+      <button class="save-btn" onclick="savePurchaseOrder()">💾 Simpan Purchase Order & Cetak PDF</button>
     </section>
   </main>
 
+  <div id="po-template-container">
+    <div id="po-template">
+      <div class="po-header">
+        <div class="company-info">
+          <div class="logo-text">NLD<span style="font-size:18px; color:#c5a059;">corp</span></div>
+          
+          <div class="company-name">PT.NUSANTARA LAND DEVELOPMENT</div>
+          <div class="hq-title">HQ Delft Apartement</div>
+          <div class="address-line">Jl. Sunset Boulevard Blok 5B/16 Citra Land City, Centre Point Indonesia (CPI)</div>
+          <div class="address-line">Kel. Maccini Sombala Kec. Tamalate, Makassar, 90224 Indonesia</div>
+          <div class="address-line"><strong>Telp : 0411- 6004251</strong></div>
+        </div>
+
+        <div class="po-meta">
+          <table>
+            <tr><td>Nomor</td><td>:</td><td id="printPoNumber">014/PO/NLD/VIII/2025</td></tr>
+            <tr><td>Tanggal</td><td>:</td><td id="printPoDate">5 Desember 2025</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="vendor-section">
+        <div style="margin-bottom:5px;">Kepada Yth,</div>
+        <div class="vendor-box">
+          <strong id="printVendorName" style="font-size:14px;">Nama Vendor</strong>
+        </div>
+      </div>
+
+      <table class="po-table-print">
+        <thead>
+          <tr>
+            <th style="width:5%">No</th>
+            <th>Uraian</th>
+            <th style="width:10%">Qty</th>
+            <th style="width:10%">Satuan</th>
+            <th style="width:20%">Harga</th>
+            <th style="width:20%">Total</th>
+          </tr>
+        </thead>
+        <tbody id="printItemsBody">
+          </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="5" style="text-align:right; font-weight:bold; padding-right:10px;">Total</td>
+            <td class="num" style="font-weight:bold;" id="printGrandTotal">Rp 0</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="po-footer-grid">
+        <div class="delivery-info">
+          <table>
+            <tr>
+              <td width="110">Alamat Pengiriman</td>
+              <td width="10">:</td>
+              <td>
+                <strong id="printProjectName">Proyek</strong><br>
+                </td>
+            </tr>
+            <tr>
+              <td>Pembayaran</td>
+              <td>:</td>
+              <td id="printPaymentTerms">TOP 60 Hari</td>
+            </tr>
+            <tr>
+              <td>JT Pembayaran</td>
+              <td>:</td>
+              <td id="printDueDate">3 Februari 2026</td>
+            </tr>
+            <tr>
+              <td>PIC Penerima</td>
+              <td>:</td>
+              <td>Bagian Gudang / Logistik</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="signature-section">
+          <div>Hormat Kami</div>
+          <div style="margin-bottom:10px;"><strong>PT. Nusantara Land Development</strong></div>
+          <div class="sig-space"></div>
+          <div class="sig-name">Tri Wijaya</div>
+          <div>Direktur</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // --- KONFIGURASI URL ---
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby35BUkEx44e226aMxqdQqHGR-44jYysKje3x-LKmv581Tv41C6Hshqq8LTIhVOW40B/exec";
+    
+    // --- STORAGE KEYS ---
     const VENDOR_KEY = "master_vendor_local";
     const MATERIAL_KEY = "master_material_local";
-    const INVENTORY_ORDER_KEY = "inventoryOrders";
-    const INVENTORY_STOCK_KEY = "inventoryStock";
+    const INVENTORY_ORDER_KEY = "inventoryOrders"; 
+    const PO_KEY = "purchaseOrders";
+    
+    let globalVendorData = [];
+    const UNIT_OPTIONS = ["Batang","Biji","Dos","Ember","Filsh","Gulung","Kaleng","Kg","Kubik","Lembar","Liter","Meter","Pickup","Pcs","Roll","Sak","Set","Truk","Unit"];
 
     function safeLoadArray(key){
       try{
         const raw = localStorage.getItem(key);
         return raw ? JSON.parse(raw) : [];
-      }catch(err){
-        console.warn("Gagal membaca data", key, err);
-        return [];
+      }catch(err){ return []; }
+    }
+
+    // --- 1. NOTIFIKASI & ANTRIAN ---
+    let REQUEST_CACHE = [];
+    let BATCH_CACHE = {};
+
+    async function loadOrderRequests() {
+      const badge = document.getElementById('notifBadge');
+      const list  = document.getElementById('notifList');
+      const rawDraft = localStorage.getItem('PO_DRAFT_FROM_INVENTORY');
+      let batches = [];
+      if (rawDraft) {
+        try {
+          const draftObj = JSON.parse(rawDraft);
+          batches = [draftObj];
+        } catch (e) {
+          console.warn("Gagal parse draft lokal PO:", e);
+        }
+      }
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL + "?action=get_po_requests");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        
+        const json = await res.json();
+        const rows = (json && json.data) || [];
+
+        let batchesFromSheet = [];
+        if (rows.length) {
+          // Kelompokkan per batchId kalau ada
+          const byBatch = rows.reduce((acc, r) => {
+            const bid = r.batchId || "BATCH-" + (r.rowIndex || r.requestId || Date.now());
+            if (!acc[bid]) acc[bid] = [];
+            acc[bid].push(r);
+            return acc;
+          }, {});
+          batchesFromSheet = Object.entries(byBatch).map(([batchId, items]) => ({
+            batchId,
+            requester: items[0]?.requester || "Gudang",
+            items: items.map(it => ({
+              id: it.requestId || it.rowIndex || Date.now(),
+              item: it.item,
+              qty: it.qty,
+              unit: it.unit,
+              vendor: it.vendor
+            }))
+          }));
+        }
+
+        if (batches.length === 0 && batchesFromSheet.length) {
+          batches = batchesFromSheet;
+        }
+
+        const pending = batches.map(b => ({
+          id: b.batchId,
+          title: `Request dari ${b.requester || 'Gudang'}`,
+          info: `${(b.items || []).length} item material`,
+          requester: b.requester || 'Gudang'
+        }));
+
+        if (pending.length > 0) {
+          badge.style.display = "flex";
+          badge.textContent   = pending.length;
+          list.innerHTML = pending.map(b => `
+            <li class="notif-item">
+              <div class="notif-content">
+                <div class="req-title">${b.title}</div>
+                <div class="req-meta">${b.info}</div>
+                <span class="req-user">👤 ${b.requester}</span>
+              </div>
+              <button class="accept-btn" onclick="acceptBatch('${b.id}')">Terima</button>
+            </li>
+          `).join('');
+        } else {
+          badge.style.display = "none";
+          list.innerHTML = '<li class="notif-item" style="justify-content:center; color:#94a3b8;">Tidak ada permintaan baru</li>';
+        }
+
+      } catch (err) {
+        console.error("Gagal memuat permintaan:", err);
+        badge.style.display = "none";
+        list.innerHTML = '<li class="notif-item" style="justify-content:center; color:#ef4444;">Gagal memuat permintaan.</li>';
       }
     }
 
-    function loadMaterials(){
-      return safeLoadArray(MATERIAL_KEY);
-    }
+    function toggleNotif() { document.getElementById('notifDropdown').classList.toggle('show'); }
 
-    function collectInventoryMaterials(){
+    function acceptRequest(id) {
       const orders = safeLoadArray(INVENTORY_ORDER_KEY);
-      const stock = safeLoadArray(INVENTORY_STOCK_KEY);
-      const combined = [];
-      orders.forEach(o => {
-        if(o.item){
-          combined.push({ name:o.item, unit:o.unit || o.satuan || "" });
-        }
-      });
-      stock.forEach(s => {
-        if(s.item){
-          combined.push({ name:s.item, unit:s.unit || s.satuan || "" });
-        }
-      });
-      return combined;
+      const targetIndex = orders.findIndex(o => String(o.id) === String(id));
+      if (targetIndex !== -1) {
+        orders[targetIndex].status = 'Accepted';
+        localStorage.setItem(INVENTORY_ORDER_KEY, JSON.stringify(orders));
+        loadOrderRequests();
+      }
+      if (event) event.stopPropagation();
     }
 
+    function loadAcceptedQueue() {
+      const orders   = safeLoadArray(INVENTORY_ORDER_KEY);
+      const accepted = orders.filter(o => o.status === 'Accepted');
+      const section  = document.getElementById('queueSection');
+      const list     = document.getElementById('queueList');
+      const count    = document.getElementById('queueCount');
+
+      if (accepted.length > 0) {
+        section.classList.add('show');
+        count.textContent = accepted.length;
+        list.innerHTML = accepted.map(item => `
+          <div class="queue-item" onclick="processQueueItem('${item.id}')">
+            <strong>${item.item}</strong>
+            <span>Qty: ${item.qty} ${item.unit || ''}</span><br>
+            <span style="color:#f97316;">klik tambah ke tabel</span>
+          </div>
+        `).join('');
+      } else {
+        section.classList.remove('show');
+      }
+    }
+
+    function processBatch(batchId) {
+      const items = BATCH_CACHE[batchId] || [];
+      if (!items.length) return;
+
+      items.forEach(it => {
+        addTableRow(it.item, it.qty, it.unit, 0, it.id);
+      });
+
+      // auto vendor pakai item pertama jika ada
+      const first = items[0];
+      const vendorSelect = document.getElementById('vendorSelect');
+      if (first && first.vendor && vendorSelect && !vendorSelect.value) {
+        const exists = Array.from(vendorSelect.options).find(opt => opt.value.toLowerCase().includes(first.vendor.toLowerCase()));
+        if (exists) {
+          vendorSelect.value = exists.value;
+          if (typeof handleVendorChange === "function") handleVendorChange();
+        }
+      }
+
+      delete BATCH_CACHE[batchId];
+      loadAcceptedQueue();
+    }
+
+    function acceptBatch(batchId) {
+      const raw = localStorage.getItem('PO_DRAFT_FROM_INVENTORY');
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.batchId !== batchId) return;
+
+      BATCH_CACHE[batchId] = draft.items || [];
+
+      const section = document.getElementById('queueSection');
+      const list = document.getElementById('queueList');
+      const count = document.getElementById('queueCount');
+
+      section.classList.add('show');
+      count.textContent = Object.keys(BATCH_CACHE).length;
+      list.innerHTML = Object.entries(BATCH_CACHE).map(([id, items]) => `
+        <div class="queue-item" onclick="processBatch('${id}')">
+          <strong>${items[0]?.item || 'PO Batch'}</strong>
+          <span>${items.length} item material</span><br>
+          <span style="color:#f97316;">klik tambah semua ke tabel</span>
+        </div>
+      `).join('');
+
+      document.getElementById('notifDropdown').classList.remove('show');
+    }
+
+    // --- 2. LOGIKA TABEL BARANG ---
+    function addTableRow(materialName = "", qty = 1, unit = "", price = 0, refId = "") {
+      const tbody = document.getElementById("poItemsBody");
+      const rowId = "row-" + Date.now() + Math.random().toString(16).slice(2);
+      
+      const tr = document.createElement("tr");
+      tr.id = rowId;
+      tr.innerHTML = `
+        <td class="td-relative">
+          <input type="text" name="material[]" class="mat-input" value="${materialName}" placeholder="Nama Barang" autocomplete="off" oninput="handleRowPredict(this)">
+          <input type="hidden" name="refId[]" value="${refId}">
+          <ul class="row-suggestions"></ul>
+        </td>
+        <td>
+          <input type="number" name="qty[]" value="${qty}" min="1" oninput="calcRowTotal(this)">
+        </td>
+        <td>
+          <select name="unit[]" class="unit-select">
+            <option value="">Pilih</option>
+            ${UNIT_OPTIONS.map(u => `<option value="${u}" ${u === unit ? 'selected' : ''}>${u}</option>`).join('')}
+          </select>
+        </td>
+        <td>
+          <input type="number" name="price[]" value="${price}" min="0" placeholder="0" oninput="calcRowTotal(this)">
+        </td>
+        <td>
+          <span class="row-total">Rp ${formatMoney(qty * price)}</span>
+          <input type="hidden" name="total[]" value="${qty * price}">
+        </td>
+        <td style="text-align:center;">
+          <button type="button" class="btn-remove" onclick="removeRow('${rowId}')">&times;</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+      calcGrandTotal();
+    }
+
+    function removeRow(rowId) {
+      document.getElementById(rowId).remove();
+      calcGrandTotal();
+    }
+
+    function calcRowTotal(input) {
+      const row = input.closest("tr");
+      const qty = parseFloat(row.querySelector('input[name="qty[]"]').value) || 0;
+      const price = parseFloat(row.querySelector('input[name="price[]"]').value) || 0;
+      const total = qty * price;
+      
+      row.querySelector('span.row-total').textContent = "Rp " + formatMoney(total);
+      row.querySelector('input[name="total[]"]').value = total;
+      calcGrandTotal();
+    }
+
+    function calcGrandTotal() {
+      let grandTotal = 0;
+      document.querySelectorAll('input[name="total[]"]').forEach(inp => {
+        grandTotal += parseFloat(inp.value) || 0;
+      });
+      document.getElementById("grandTotalDisplay").textContent = "Rp " + formatMoney(grandTotal);
+    }
+
+    function formatMoney(amount) {
+      return amount.toLocaleString("id-ID");
+    }
+
+    // --- 3. MATERIAL SUGGESTION PER ROW ---
+    function loadMaterials(){ return safeLoadArray(MATERIAL_KEY); }
     function getAllMaterials(){
       const map = new Map();
-      loadMaterials().forEach(m => {
-        const key = (m.name||"").toLowerCase();
-        if(!key) return;
-        map.set(key, m);
-      });
-      collectInventoryMaterials().forEach(m => {
-        const key = (m.name||"").toLowerCase();
-        if(!key) return;
-        const existing = map.get(key) || { name:m.name };
-        if(!existing.unit && m.unit) existing.unit = m.unit;
-        map.set(key, existing);
-      });
+      loadMaterials().forEach(m => { if(m.name) map.set(m.name.toLowerCase(), m); });
       return Array.from(map.values());
     }
-
-    function findMaterialByName(name){
-      const mats = getAllMaterials();
-      const lower = name.trim().toLowerCase();
-      return mats.find(m => (m.name||"").toLowerCase() === lower);
-    }
-
-    function loadVendorsFromFinance(){
-      try{
-        const raw = localStorage.getItem(VENDOR_KEY);
-        return raw ? JSON.parse(raw) : [];
-      }catch(err){
-        console.warn("Gagal mengambil data vendor", err);
-        return [];
-      }
-    }
-
-    function populateVendorDropdown(){
-      const select = document.getElementById("vendorSelect");
-      const vendors = loadVendorsFromFinance();
-      if(!vendors.length){
-        select.innerHTML = '<option value="">Belum ada data vendor, input dari modul finance.</option>';
-        return;
-      }
-      select.innerHTML = '<option value="">Pilih vendor</option>' +
-        vendors.map(v => `<option value="${v.name}">${v.name} (${v.material} - TOP ${v.top})</option>`).join("");
-    }
-
-    function populateUnitOptions(){
-      const select = document.getElementById("unitSelect");
-      const commonUnits = ["pcs","sak","m","m2","m3","kg","liter","set","roll","batang","unit"];
-      select.innerHTML = '<option value="">Pilih satuan</option>' +
-        commonUnits.map(u => `<option value="${u}">${u.toUpperCase()}</option>`).join("");
-    }
-
-    function applyMaterialData(material){
-      const unitSelect = document.getElementById("unitSelect");
-      const priceInput = document.getElementById("priceInput");
-      if(!material) return;
-      if(material.unit){
-        unitSelect.value = material.unit;
-      }
-      if(material.price){
-        priceInput.value = material.price;
-        recalculateTotal();
-      }
-    }
-
-    function handleMaterialPredict(){
-      const input = document.getElementById("materialInput");
-      const list = document.getElementById("materialSuggestions");
+    
+    function handleRowPredict(input) {
+      const ul = input.nextElementSibling.nextElementSibling; 
       const query = input.value.trim().toLowerCase();
-      const materials = getAllMaterials();
+      
+      if(!query){ ul.classList.remove("show"); return; }
 
-      if(!query){
-        list.classList.add("hidden");
-        list.innerHTML = "";
+      const allMats = getAllMaterials();
+      const matches = allMats.filter(m => m.name.toLowerCase().includes(query));
+
+      if(!matches.length){ ul.classList.remove("show"); return; }
+
+      ul.innerHTML = matches.map(m => `<li onclick="applyRowSuggestion(this, '${m.name}', '${m.unit}', ${m.price || 0})">${m.name}</li>`).join("");
+      ul.classList.add("show");
+    }
+
+    function applyRowSuggestion(li, name, unit, price) {
+      const row = li.closest("tr");
+      row.querySelector('input[name="material[]"]').value = name;
+      
+      if(unit) {
+        const unitSel = row.querySelector('select[name="unit[]"]');
+        if (!UNIT_OPTIONS.includes(unit)) {
+             const opt = document.createElement("option"); opt.value = unit; opt.text = unit;
+             unitSel.add(opt);
+        }
+        unitSel.value = unit;
+      }
+      if(price > 0) {
+        row.querySelector('input[name="price[]"]').value = price;
+        calcRowTotal(row.querySelector('input[name="price[]"]'));
+      }
+      li.parentElement.classList.remove("show");
+    }
+
+    // --- VENDOR LOGIC ---
+    async function populateVendorDropdown(){
+      const select = document.getElementById("vendorSelect");
+      try {
+        const response = await fetch(APPS_SCRIPT_URL + "?action=get_vendors");
+        if (!response.ok) throw new Error("Gagal koneksi");
+        const data = await response.json();
+        globalVendorData = Array.isArray(data) ? data : [];
+        localStorage.setItem(VENDOR_KEY, JSON.stringify(globalVendorData));
+        renderVendorOptions(globalVendorData);
+      } catch (err) {
+        const offlineData = safeLoadArray(VENDOR_KEY);
+        if (offlineData.length > 0) {
+          globalVendorData = offlineData;
+          renderVendorOptions(offlineData);
+        } else { select.innerHTML = '<option value="">❌ Gagal muat data</option>'; }
+      }
+    }
+
+    function renderVendorOptions(vendors) {
+      const select = document.getElementById("vendorSelect");
+      if(!vendors || !vendors.length){ select.innerHTML = '<option value="">Data kosong</option>'; return; }
+      vendors.sort((a,b) => (a.name || "").localeCompare(b.name || ""));
+      select.innerHTML = '<option value="">-- Pilih Vendor --</option>' + vendors.map(v => `<option value="${v.name}">${v.name}</option>`).join("");
+    }
+
+    function handleVendorChange() {
+      const name = document.getElementById("vendorSelect").value;
+      const info = document.getElementById("vendorInfoBox");
+      if (!name) { info.style.display = 'none'; return; }
+      const v = globalVendorData.find(v => v.name === name);
+      if (v) {
+        document.getElementById("vendorTopDisplay").textContent = `TOP: ${v.top || 'Cash'}`;
+        document.getElementById("vendorMatDisplay").textContent = `Spesialis: ${v.material || '-'}`;
+        info.style.display = 'block';
+      }
+    }
+
+    // --- SAVE PO & PDF GENERATION ---
+    async function savePurchaseOrder() {
+      const project = document.getElementById('projectSelect').value;
+      const vendorName = document.getElementById('vendorSelect').value;
+      const dateVal = document.getElementById('poDate').value;
+      const rows = document.querySelectorAll("#poItemsBody tr");
+      
+      if(!project || !vendorName || !dateVal || rows.length === 0) {
+        alert("Harap lengkapi Proyek, Vendor, Tanggal, dan minimal 1 Barang!");
         return;
       }
 
-      const matches = materials.filter(m => (m.name||"").toLowerCase().includes(query));
-      if(!matches.length){
-        list.classList.add("hidden");
-        list.innerHTML = "";
-        return;
-      }
+      // Collect Items
+      const items = [];
+      let grandTotal = 0;
 
-      list.innerHTML = matches.map(m => `<li data-name="${m.name}">${m.name}</li>`).join("");
-      list.classList.remove("hidden");
-      list.querySelectorAll("li").forEach(item => {
-        item.addEventListener("click", () => {
-          input.value = item.dataset.name;
-          list.classList.add("hidden");
-          list.innerHTML = "";
-          const material = findMaterialByName(item.dataset.name);
-          applyMaterialData(material);
-        });
+      rows.forEach((row, index) => {
+        const material = row.querySelector('input[name="material[]"]').value;
+        const qty = parseFloat(row.querySelector('input[name="qty[]"]').value) || 0;
+        const unit = row.querySelector('select[name="unit[]"]').value;
+        const price = parseFloat(row.querySelector('input[name="price[]"]').value) || 0;
+        const refId = row.querySelector('input[name="refId[]"]').value;
+        const total = qty * price;
+
+        if(material && qty > 0) {
+          items.push({ no: index+1, material, qty, unit, price, total, refId });
+          grandTotal += total;
+        }
       });
-    }
 
-    function togglePriceOverride(){
-      const priceInput = document.getElementById("priceInput");
-      priceInput.disabled = !priceInput.disabled;
-      if(!priceInput.disabled){
-        priceInput.focus();
+      if(items.length === 0) {
+        alert("Pastikan detail barang terisi dengan benar (Nama & Qty).");
+        return;
+      }
+
+      // Create PO Number
+      const dateObj = new Date(dateVal);
+      const monthRomawi = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+      const poNumber = `0${Math.floor(Math.random()*100) + 10}/PO/NLD/${monthRomawi[dateObj.getMonth()]}/${dateObj.getFullYear()}`;
+
+      // Calc Due Date
+      const vendorData = globalVendorData.find(v => v.name === vendorName);
+      let topDays = 0;
+      if (vendorData && vendorData.top) {
+        const num = parseInt(vendorData.top.replace(/\D/g,'')); 
+        if(!isNaN(num)) topDays = num;
+      }
+      const dueDateObj = new Date(dateObj);
+      dueDateObj.setDate(dateObj.getDate() + topDays);
+      const optionsDate = { day: 'numeric', month: 'long', year: 'numeric' };
+      const dueDateStr = dueDateObj.toLocaleDateString('id-ID', optionsDate);
+      const dateStr = dateObj.toLocaleDateString('id-ID', optionsDate);
+
+      // --- POPULATE PDF TEMPLATE ---
+      document.getElementById('printPoNumber').innerText = poNumber;
+      document.getElementById('printPoDate').innerText = dateStr;
+      document.getElementById('printVendorName').innerText = vendorName;
+      document.getElementById('printProjectName').innerText = project;
+      document.getElementById('printPaymentTerms').innerText = vendorData ? (vendorData.top || "Cash") : "Cash";
+      document.getElementById('printDueDate').innerText = dueDateStr;
+      document.getElementById('printGrandTotal').innerText = "Rp " + formatMoney(grandTotal);
+
+      const printBody = document.getElementById('printItemsBody');
+      printBody.innerHTML = items.map(item => `
+        <tr>
+          <td class="center">${item.no}</td>
+          <td>${item.material}</td>
+          <td class="center">${item.qty}</td>
+          <td class="center">${item.unit}</td>
+          <td class="num">Rp ${formatMoney(item.price)}</td>
+          <td class="num">Rp ${formatMoney(item.total)}</td>
+        </tr>
+      `).join('');
+
+      // --- SIMPAN DATA (LOCAL) ---
+      const newPO = {
+        id: poNumber,
+        date: dateVal,
+        project: project,
+        vendor: vendorName,
+        items: items,
+        grandTotal: grandTotal,
+        status: "Draft",
+        pdfGenerated: true
+      };
+
+      const poList = safeLoadArray(PO_KEY);
+      poList.push(newPO);
+      localStorage.setItem(PO_KEY, JSON.stringify(poList));
+
+      // Update Inventory
+      const invOrders = safeLoadArray(INVENTORY_ORDER_KEY);
+      items.forEach(item => {
+        if(item.refId) {
+          const target = invOrders.find(o => o.id == item.refId);
+          if(target) {
+            target.status = "PO Created";
+            target.poRef = poNumber;
+          }
+        }
+      });
+      localStorage.setItem(INVENTORY_ORDER_KEY, JSON.stringify(invOrders));
+
+      // --- GENERATE PDF FROM OFF-SCREEN ---
+      const element = document.getElementById('po-template');
+      
+      const opt = {
+        margin:       [5, 5, 10, 5],
+        filename:     `PO_${vendorName}_${dateVal}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      try {
+        await html2pdf().set(opt).from(element).save();
+        alert("PO Berhasil Disimpan dan PDF sedang diunduh!");
+        
+        setTimeout(() => {
+           window.location.href = 'purchase_order.html'; 
+        }, 3000);
+        
+      } catch (err) {
+        console.error(err);
+        alert("Gagal membuat PDF, namun data tersimpan.");
       }
     }
 
-    function recalculateTotal(){
-      const qty = Number(document.getElementById("qtyInput").value || 0);
-      const price = Number(document.getElementById("priceInput").value || 0);
-      const total = qty * price;
-      const totalField = document.getElementById("totalInput");
-      totalField.value = total ? "Rp " + total.toLocaleString("id-ID") : "";
-    }
-
-    document.addEventListener("DOMContentLoaded", populateVendorDropdown);
-    document.addEventListener("DOMContentLoaded", populateUnitOptions);
+    // --- INIT ---
     document.addEventListener("DOMContentLoaded", () => {
-      // isi otomatis jika material sudah ada di inventory/dashboard
-      const materialInput = document.getElementById("materialInput");
-      materialInput.addEventListener("change", () => {
-        const material = findMaterialByName(materialInput.value);
-        applyMaterialData(material);
+      populateVendorDropdown();
+      loadOrderRequests();
+      document.getElementById('poDate').valueAsDate = new Date();
+      addTableRow(); // Baris kosong pertama
+
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.notif-wrapper')) document.getElementById('notifDropdown').classList.remove('show');
+        if (!e.target.closest('.td-relative')) document.querySelectorAll('.row-suggestions').forEach(ul => ul.classList.remove('show'));
       });
     });
-    document.getElementById("qtyInput").addEventListener("input", recalculateTotal);
-    document.getElementById("priceInput").addEventListener("input", recalculateTotal);
   </script>
 </body>
 </html>
