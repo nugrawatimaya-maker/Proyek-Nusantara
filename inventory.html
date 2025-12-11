@@ -71,6 +71,28 @@
       border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
       font-size: 14px; box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2);
     }
+    .inv-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .inv-tab-btn {
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .inv-tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 4px 10px rgba(52,152,219,0.25);
+    }
+    .inv-panel.hidden { display: none; }
     .inventory-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -85,7 +107,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     .inventory-card h3 { margin: 0 0 10px 0; font-size: 16px; }
-    .inventory-card .form-group { margin-bottom: 12px; }
+    .inventory-card .form-group { margin-bottom: 12px; position: relative; } /* Added relative for balloon positioning */
     .label-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     .inventory-card label { font-size: 13px; color: #475569; font-weight: 600; }
     .inventory-card input,
@@ -105,18 +127,60 @@
     th { text-align: left; padding: 12px 15px; background: #f8fafc; color: #64748b; font-size: 13px; font-weight: 600; border-bottom: 2px solid var(--border); }
     td { padding: 14px 15px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text); }
     tr:last-child td { border-bottom: none; }
-    .inline-helper { font-size: 12px; color: #64748b; margin-top: -6px; margin-bottom: 8px; }
-    .inline-helper button { background: transparent; border: none; color: var(--accent); font-weight: 700; cursor: pointer; padding: 0; }
+    
+    /* STYLE BARU: TOMBOL KECIL */
     .add-material-btn {
-      padding: 8px 12px;
+      width: 22px; /* Diperkecil dari 26px */
+      height: 22px; /* Diperkecil dari 26px */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
       background: var(--accent);
       color: #fff;
       border: none;
-      border-radius: 8px;
-      font-weight: 700;
+      border-radius: 6px;
+      font-weight: 800;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 14px;
+      line-height: 1;
+      transition: background 0.2s;
     }
+    .add-material-btn:hover {
+      background: #2980b9;
+    }
+
+    /* STYLE BARU: BALON PESAN */
+    .validation-balloon {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-top: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      z-index: 10;
+      line-height: 1.4;
+    }
+    .validation-balloon::before {
+      content: '';
+      position: absolute;
+      top: -6px;
+      right: 15px; /* Panah menunjuk ke arah kanan (dekat tombol +) */
+      width: 12px;
+      height: 12px;
+      background-color: #fef2f2;
+      border-left: 1px solid #fecaca;
+      border-top: 1px solid #fecaca;
+      transform: rotate(45deg);
+    }
+
     .modal {
       display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
       background-color: rgba(0,0,0,0.5); backdrop-filter: blur(3px); align-items: center; justify-content: center;
@@ -194,26 +258,35 @@
   <main>
     <div class="table-section">
       <div class="table-header">
-        <h2>📦 Order & Penerimaan</h2>
+        <h2>📦 Inventory</h2>
       </div>
-      <div class="inventory-grid">
+      <div class="inv-tabs">
+        <button class="inv-tab-btn active" data-target="orderPanel">Order Barang</button>
+        <button class="inv-tab-btn" data-target="receivePanel">Terima Barang</button>
+        <button class="inv-tab-btn" data-target="stockPanel">Stok Barang</button>
+      </div>
+
+      <section id="orderPanel" class="inv-panel">
         <div class="inventory-card">
           <h3>Order Barang</h3>
           <form id="orderForm">
             <div class="form-group">
               <div class="label-row">
                 <label>Nama Barang</label>
-                <button type="button" class="add-material-btn" id="orderAddBtn" onclick="openModalMaterial('orderItem')">Tambah</button>
+                <button type="button" class="add-material-btn" id="orderAddBtn" title="Tambah Material Baru" onclick="openModalMaterial('orderItem')">+</button>
               </div>
               <input type="text" id="orderItem" list="itemMasterList" required placeholder="Contoh: Semen">
+              
+              <div id="orderItemBalloon" class="validation-balloon">
+                Nama material tidak ditemukan.<br>Klik tombol <strong>+</strong> di atas untuk tambah nama material.
+              </div>
+
             </div>
             <div class="unit-row">
               <select id="orderUnitSelect"></select>
             </div>
             <div class="unit-note">Satuan: <strong id="orderItemUnit">-</strong> (otomatis dari database, bisa dipilih)</div>
-            <div class="inline-helper" id="orderItemHelper" style="display:none;">
-              Tidak ada di daftar? <button type="button" onclick="openModalMaterial('orderItem')">Tambah nama material</button>
-            </div>
+            
             <div class="form-group">
               <label>Jumlah</label>
               <input type="number" id="orderQty" min="1" required placeholder="0">
@@ -229,6 +302,27 @@
             <button type="submit" class="btn-tambah">Simpan Order</button>
           </form>
         </div>
+
+        <div class="table-header" style="margin-top:10px;">
+          <h3>Daftar Order</h3>
+        </div>
+        <datalist id="itemMasterList"></datalist>
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Barang</th>
+              <th>Jumlah</th>
+              <th>Vendor</th>
+              <th>ETA</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="orderTable"></tbody>
+        </table>
+      </section>
+
+      <section id="receivePanel" class="inv-panel hidden">
         <div class="inventory-card">
           <h3>Terima Barang</h3>
           <form id="receiveForm">
@@ -241,17 +335,20 @@
             <div class="form-group">
               <div class="label-row">
                 <label>Nama Barang</label>
-                <button type="button" class="add-material-btn" id="receiveAddBtn" onclick="openModalMaterial('receiveItem')">Tambah</button>
+                <button type="button" class="add-material-btn" id="receiveAddBtn" title="Tambah Material Baru" onclick="openModalMaterial('receiveItem')">+</button>
               </div>
               <input type="text" id="receiveItem" list="itemMasterList" required placeholder="Semen">
+
+              <div id="receiveItemBalloon" class="validation-balloon">
+                Nama material tidak ditemukan.<br>Klik tombol <strong>+</strong> di atas untuk tambah nama material.
+              </div>
+
             </div>
             <div class="unit-row">
               <select id="receiveUnitSelect"></select>
             </div>
             <div class="unit-note">Satuan: <strong id="receiveItemUnit">-</strong> (otomatis dari database, bisa dipilih)</div>
-            <div class="inline-helper" id="receiveItemHelper" style="display:none;">
-              Tidak ada di daftar? <button type="button" onclick="openModalMaterial('receiveItem')">Tambah nama material</button>
-            </div>
+            
             <div class="form-group">
               <label>Jumlah Diterima</label>
               <input type="number" id="receiveQty" min="1" required>
@@ -263,40 +360,24 @@
             <button type="submit" class="btn-tambah">Catat Penerimaan</button>
           </form>
         </div>
-      </div>
+      </section>
 
-      <div class="table-header" style="margin-top:10px;">
-        <h3>Daftar Order</h3>
-      </div>
-      <datalist id="itemMasterList"></datalist>
-      <table>
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Barang</th>
-            <th>Jumlah</th>
-            <th>Vendor</th>
-            <th>ETA</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="orderTable"></tbody>
-      </table>
-
-      <div class="table-header" style="margin-top:20px;">
-        <h3>Stok Barang</h3>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>No</th>
-            <th>Barang</th>
-            <th>Jumlah</th>
-            <th>Pembaruan Terakhir</th>
-          </tr>
-        </thead>
-        <tbody id="stockTable"></tbody>
-      </table>
+      <section id="stockPanel" class="inv-panel hidden">
+        <div class="table-header" style="margin-top:10px;">
+          <h3>Stok Barang</h3>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Barang</th>
+              <th>Jumlah</th>
+              <th>Pembaruan Terakhir</th>
+            </tr>
+          </thead>
+          <tbody id="stockTable"></tbody>
+        </table>
+      </section>
     </div>
   </main>
 
@@ -573,37 +654,27 @@
         console.warn("Gagal sinkron ke spreadsheet", err);
       }
     }
-    function addMaterialFromInput(inputId) {
-      const input = document.getElementById(inputId);
-      const val = (input.value || '').trim();
-      if (!val) return;
-      const unitSelectId = inputId === 'orderItem' ? 'orderUnitSelect' : 'receiveUnitSelect';
-      const unitVal = document.getElementById(unitSelectId)?.value || '';
-      const master = loadMasterMaterials();
-      const exists = master.some(m => (m.name || '').toLowerCase() === val.toLowerCase());
-      if (!exists) {
-        master.push({ name: val, unit: unitVal });
-        saveMasterMaterials(master);
-        syncNewMaterialToSheet(val, unitVal);
-      }
-      renderItemDatalist(collectItemNames());
-      toggleHelper(inputId, false);
-      updateUnitLabel(inputId, val);
-    }
+    
+    // FUNGSI BARU UNTUK TOGGLE BALON VALIDASI
     function toggleHelper(inputId, show) {
-      const helperId = inputId === 'orderItem' ? 'orderItemHelper' : 'receiveItemHelper';
-      const el = document.getElementById(helperId);
+      const balloonId = inputId === 'orderItem' ? 'orderItemBalloon' : 'receiveItemBalloon';
+      const el = document.getElementById(balloonId);
       if (el) el.style.display = show ? 'block' : 'none';
     }
+
     function handleItemInput(event) {
       const input = event.target;
       const value = (input.value || '').trim().toLowerCase();
       const listEl = document.getElementById('itemMasterList');
       if (!listEl) return;
+      
       const hasMatch = Array.from(listEl.options || []).some(opt => (opt.value || '').toLowerCase() === value);
+      
+      // Jika input ada isinya tapi tidak cocok, tampilkan balon
       toggleHelper(input.id, value && !hasMatch);
       updateUnitLabel(input.id, input.value || '');
     }
+    
     function updateUnitLabel(inputId, value) {
       const unit = findUnitByName(value);
       const unitId = inputId === 'orderItem' ? 'orderItemUnit' : 'receiveItemUnit';
@@ -633,6 +704,25 @@
       currentMaterialInputId = null;
     }
 
+    function setupTabs() {
+      const buttons = document.querySelectorAll('.inv-tab-btn');
+      const panels = {
+        orderPanel: document.getElementById('orderPanel'),
+        receivePanel: document.getElementById('receivePanel'),
+        stockPanel: document.getElementById('stockPanel')
+      };
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const target = btn.dataset.target;
+          Object.keys(panels).forEach(key => {
+            if (panels[key]) panels[key].classList.toggle('hidden', key !== target);
+          });
+        });
+      });
+    }
+
     // INIT
     window.onload = function() {
       renderOrders();
@@ -640,6 +730,7 @@
       populateUnitSelect('orderUnitSelect');
       populateUnitSelect('receiveUnitSelect');
       fetchItemMaster();
+      setupTabs();
       ['orderItem','receiveItem'].forEach(id => {
         const input = document.getElementById(id);
         if (input) {
@@ -687,6 +778,8 @@
             const select = document.getElementById(selectId);
             if (select) select.value = UNIT_OPTIONS.find(u => u.toLowerCase() === unit.toLowerCase()) || unit;
             updateUnitLabel(currentMaterialInputId, name);
+            // Sembunyikan balon jika sukses tambah
+            toggleHelper(currentMaterialInputId, false);
           }
           closeModalMaterial();
         });
