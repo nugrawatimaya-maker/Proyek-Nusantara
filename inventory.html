@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Inventory - PT. Nusantara Land</title>
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --accent: #3498db;
+      --success: #27ae60;
+      --danger: #e74c3c;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --text: #333;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+    header {
+      background: var(--card);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    header h1 { margin: 0; font-size: 18px; color: var(--primary); }
+    header .nav-btn {
+      background: var(--accent);
+      border: none;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    main {
+      padding: 20px;
+      max-width: 1100px;
+      margin: 0 auto 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .table-section {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+      border: 1px solid var(--border);
+    }
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 10px;
+    }
+    .table-header h2 { margin: 0; font-size: 18px; color: var(--primary); }
+    .btn-tambah {
+      background: var(--success); color: white; border: none; padding: 10px 18px;
+      border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+      font-size: 14px; box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2);
+    }
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .inventory-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .inventory-card h3 { margin: 0 0 10px 0; font-size: 16px; }
+    .inventory-card .form-group { margin-bottom: 12px; }
+    .label-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .inventory-card label { font-size: 13px; color: #475569; font-weight: 600; }
+    .inventory-card input,
+    .inventory-card select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #dfe4ea;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .inventory-card button { width: 100%; margin-top: 6px; }
+    .unit-row { display: flex; gap: 8px; align-items: center; margin: 6px 0 4px; }
+    .unit-row select { flex: 1; padding: 9px; border-radius: 8px; border: 1px solid #dfe4ea; background: #fff; font-size: 14px; }
+    .unit-note { font-size: 12px; color: #0f172a; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin: -4px 0 10px 0; }
+    .unit-note strong { color: var(--primary); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { text-align: left; padding: 12px 15px; background: #f8fafc; color: #64748b; font-size: 13px; font-weight: 600; border-bottom: 2px solid var(--border); }
+    td { padding: 14px 15px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    .inline-helper { font-size: 12px; color: #64748b; margin-top: -6px; margin-bottom: 8px; }
+    .inline-helper button { background: transparent; border: none; color: var(--accent); font-weight: 700; cursor: pointer; padding: 0; }
+    .add-material-btn {
+      padding: 8px 12px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .modal {
+      display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.5); backdrop-filter: blur(3px); align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.3s ease;
+    }
+    .modal.show { display: flex; opacity: 1; }
+    .modal-content {
+      background: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1); transform: translateY(20px); transition: transform 0.3s ease;
+    }
+    .modal.show .modal-content { transform: translateY(0); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-header h2 { margin: 0; font-size: 20px; }
+    .close-btn { background: none; border: none; font-size: 28px; cursor: pointer; color: #94a3b8; }
+    .form-group label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #64748b; }
+    .form-group input,
+    .form-group select {
+      width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 15px; background: #f8fafc;
+    }
+    .form-group input:focus,
+    .form-group select:focus { outline: 2px solid var(--accent); background: white; border-color: transparent; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 25px; }
+    .btn-save { flex: 2; background: var(--primary); color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    .btn-cancel { flex: 1; background: transparent; border: 1px solid var(--border); color: #64748b; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    @media (max-width: 768px) {
+      main { padding: 16px; }
+      .table-header { flex-direction: column; align-items: flex-start; }
+      table, thead, tbody, th, td, tr { display: block; }
+      thead tr { position: absolute; top: -9999px; left: -9999px; }
+      tbody tr {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        padding: 10px;
+      }
+      td {
+        border: none;
+        border-bottom: 1px solid #f1f5f9;
+        position: relative;
+        padding-left: 40%;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        text-align: right;
+      }
+      td:last-child { border-bottom: none; }
+      td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        width: 35%;
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 700;
+        color: #64748b;
+        font-size: 13px;
+      }
+      .btn-tambah { width: 100%; justify-content: center; }
+    }
+  </style>
+  <script>
+    window.PN_INVENTORY_ITEMS_URL = "https://script.google.com/macros/s/AKfycby35BUkEx44e226aMxqdQqHGR-44jYysKje3x-LKmv581Tv41C6Hshqq8LTIhVOW40B/exec?action=get_items";
+  </script>
+</head>
+<body>
+  <header>
+    <h1>Inventory</h1>
+    <button class="nav-btn" onclick="window.location.href='dashboard_operasional.html'">Kembali ke Dashboard</button>
+  </header>
+
+  <main>
+    <div class="table-section">
+      <div class="table-header">
+        <h2>📦 Order & Penerimaan</h2>
+      </div>
+      <div class="inventory-grid">
+        <div class="inventory-card">
+          <h3>Order Barang</h3>
+          <form id="orderForm">
+            <div class="form-group">
+              <div class="label-row">
+                <label>Nama Barang</label>
+                <button type="button" class="add-material-btn" id="orderAddBtn" onclick="openModalMaterial('orderItem')">Tambah</button>
+              </div>
+              <input type="text" id="orderItem" list="itemMasterList" required placeholder="Contoh: Semen">
+            </div>
+            <div class="unit-row">
+              <select id="orderUnitSelect"></select>
+            </div>
+            <div class="unit-note">Satuan: <strong id="orderItemUnit">-</strong> (otomatis dari database, bisa dipilih)</div>
+            <div class="inline-helper" id="orderItemHelper" style="display:none;">
+              Tidak ada di daftar? <button type="button" onclick="openModalMaterial('orderItem')">Tambah nama material</button>
+            </div>
+            <div class="form-group">
+              <label>Jumlah</label>
+              <input type="number" id="orderQty" min="1" required placeholder="0">
+            </div>
+            <div class="form-group">
+              <label>Vendor</label>
+              <input type="text" id="orderVendor" placeholder="Nama vendor">
+            </div>
+            <div class="form-group">
+              <label>Estimasi Tiba</label>
+              <input type="date" id="orderEta">
+            </div>
+            <button type="submit" class="btn-tambah">Simpan Order</button>
+          </form>
+        </div>
+        <div class="inventory-card">
+          <h3>Terima Barang</h3>
+          <form id="receiveForm">
+            <div class="form-group">
+              <label>Referensi Order (opsional)</label>
+              <select id="receiveOrderRef">
+                <option value="">-- Pilih order --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <div class="label-row">
+                <label>Nama Barang</label>
+                <button type="button" class="add-material-btn" id="receiveAddBtn" onclick="openModalMaterial('receiveItem')">Tambah</button>
+              </div>
+              <input type="text" id="receiveItem" list="itemMasterList" required placeholder="Semen">
+            </div>
+            <div class="unit-row">
+              <select id="receiveUnitSelect"></select>
+            </div>
+            <div class="unit-note">Satuan: <strong id="receiveItemUnit">-</strong> (otomatis dari database, bisa dipilih)</div>
+            <div class="inline-helper" id="receiveItemHelper" style="display:none;">
+              Tidak ada di daftar? <button type="button" onclick="openModalMaterial('receiveItem')">Tambah nama material</button>
+            </div>
+            <div class="form-group">
+              <label>Jumlah Diterima</label>
+              <input type="number" id="receiveQty" min="1" required>
+            </div>
+            <div class="form-group">
+              <label>Tanggal Terima</label>
+              <input type="date" id="receiveDate">
+            </div>
+            <button type="submit" class="btn-tambah">Catat Penerimaan</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="table-header" style="margin-top:10px;">
+        <h3>Daftar Order</h3>
+      </div>
+      <datalist id="itemMasterList"></datalist>
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Barang</th>
+            <th>Jumlah</th>
+            <th>Vendor</th>
+            <th>ETA</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="orderTable"></tbody>
+      </table>
+
+      <div class="table-header" style="margin-top:20px;">
+        <h3>Stok Barang</h3>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Barang</th>
+            <th>Jumlah</th>
+            <th>Pembaruan Terakhir</th>
+          </tr>
+        </thead>
+        <tbody id="stockTable"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <div id="modalMaterial" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Tambah Material Baru</h2>
+        <button class="close-btn" onclick="closeModalMaterial()">&times;</button>
+      </div>
+      <form id="formMaterialBaru">
+        <div class="form-group">
+          <label>Nama Material</label>
+          <input type="text" id="newMaterialNameInput" required placeholder="Contoh: Semen Tiga Roda">
+        </div>
+        <div class="form-group">
+          <label>Satuan</label>
+          <select id="newMaterialUnitInput" required>
+            <option value="">-- Pilih Satuan --</option>
+            <option value="Batang">Batang</option>
+            <option value="Biji">Biji</option>
+            <option value="Dos">Dos</option>
+            <option value="Ember">Ember</option>
+            <option value="Filsh">Filsh</option>
+            <option value="Gulung">Gulung</option>
+            <option value="Kaleng">Kaleng</option>
+            <option value="Kg">Kg</option>
+            <option value="Kubik">Kubik</option>
+            <option value="Lembar">Lembar</option>
+            <option value="Liter">Liter</option>
+            <option value="Meter">Meter</option>
+            <option value="Pcs">Pcs</option>
+            <option value="Pickup">Pickup</option>
+            <option value="Roll">Roll</option>
+            <option value="Sak">Sak</option>
+            <option value="Set">Set</option>
+            <option value="Truk">Truk</option>
+            <option value="Unit">Unit</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeModalMaterial()">Batal</button>
+          <button type="submit" class="btn-save" style="background:var(--success);">Simpan ke Database</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const ORDER_KEY = 'inventoryOrders';
+    const STOCK_KEY = 'inventoryStock';
+    const ITEM_SOURCE_URL = window.PN_INVENTORY_ITEMS_URL || "";
+    const MATERIAL_KEY = 'master_material_local';
+    const UNIT_OPTIONS = ["Batang","Biji","Dos","Ember","Filsh","Gulung","Kaleng","Kg","Kubik","Lembar","Liter","Meter","Pickup","Pcs","Roll","Sak","Set","Truk","Unit"].sort((a,b)=>a.localeCompare(b));
+    let currentMaterialInputId = null;
+
+    function getData(key) {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    }
+    function saveData(key, data) {
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+    function loadMasterMaterials() {
+      try {
+        const raw = localStorage.getItem(MATERIAL_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (err) {
+        console.warn("Gagal baca master material", err);
+        return [];
+      }
+    }
+    function saveMasterMaterials(list) {
+      localStorage.setItem(MATERIAL_KEY, JSON.stringify(list));
+    }
+    function populateUnitSelect(selectId) {
+      const el = document.getElementById(selectId);
+      if (!el) return;
+      el.innerHTML = '<option value="">Pilih satuan</option>' + UNIT_OPTIONS.map(u => `<option value="${u}">${u}</option>`).join('');
+    }
+    function normalizeSheetItems(list) {
+      return (list || []).map(i => {
+        if (typeof i === "string") return { name: i, unit: "" };
+        const name = i.nama || i.name || i.item || "";
+        const unit = i.satuan || i.unit || i.uom || "";
+        return { name, unit };
+      }).filter(i => i.name);
+    }
+    function mergeMasterMaterials(sheetItems) {
+      const map = new Map();
+      loadMasterMaterials().forEach(m => {
+        const key = (m.name || "").toLowerCase();
+        if (!key) return;
+        map.set(key, m);
+      });
+      (sheetItems || []).forEach(m => {
+        const key = (m.name || "").toLowerCase();
+        if (!key) return;
+        const existing = map.get(key) || { name: m.name };
+        if (m.unit && !existing.unit) existing.unit = m.unit;
+        map.set(key, existing);
+      });
+      const merged = Array.from(map.values());
+      saveMasterMaterials(merged);
+      return merged;
+    }
+    function findMasterMaterial(name) {
+      const lower = (name || '').trim().toLowerCase();
+      if (!lower) return null;
+      return loadMasterMaterials().find(m => (m.name || '').toLowerCase() === lower);
+    }
+    function findUnitByName(name) {
+      const material = findMasterMaterial(name);
+      if (material && material.unit) return material.unit;
+      const orders = getData(ORDER_KEY);
+      const orderMatch = orders.find(o => (o.item || '').toLowerCase() === (name || '').toLowerCase());
+      if (orderMatch && orderMatch.unit) return orderMatch.unit;
+      const stock = getData(STOCK_KEY);
+      const stockMatch = stock.find(s => (s.item || '').toLowerCase() === (name || '').toLowerCase());
+      return (stockMatch && stockMatch.unit) ? stockMatch.unit : "";
+    }
+    function renderOrders() {
+      const orders = getData(ORDER_KEY);
+      const table = document.getElementById('orderTable');
+      const receiveOrderRef = document.getElementById('receiveOrderRef');
+      table.innerHTML = '';
+      receiveOrderRef.innerHTML = '<option value="">-- Pilih order --</option>';
+      if (orders.length === 0) {
+        table.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:14px; color:#94a3b8;">Belum ada order barang</td></tr>';
+        return;
+      }
+      orders.forEach((o, idx) => {
+        table.innerHTML += `
+          <tr>
+            <td data-label="No">${idx + 1}</td>
+            <td data-label="Barang">${o.item}</td>
+            <td data-label="Jumlah">${o.qty} ${o.unit || ''}</td>
+            <td data-label="Vendor">${o.vendor || '-'}</td>
+            <td data-label="ETA">${o.eta || '-'}</td>
+            <td data-label="Status">${o.status || 'Menunggu'}</td>
+          </tr>
+        `;
+        receiveOrderRef.innerHTML += `<option value="${o.id}">${o.item} (${o.qty})</option>`;
+      });
+    }
+    function renderStock() {
+      const stock = getData(STOCK_KEY);
+      const table = document.getElementById('stockTable');
+      table.innerHTML = '';
+      if (stock.length === 0) {
+        table.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:14px; color:#94a3b8;">Belum ada stok tercatat</td></tr>';
+        return;
+      }
+      stock.forEach((s, idx) => {
+        table.innerHTML += `
+          <tr>
+            <td data-label="No">${idx + 1}</td>
+            <td data-label="Barang">${s.item}</td>
+            <td data-label="Jumlah">${s.qty} ${s.unit || ''}</td>
+            <td data-label="Update">${s.updated || '-'}</td>
+          </tr>
+        `;
+      });
+    }
+    function addOrder(e) {
+      e.preventDefault();
+      const item = document.getElementById('orderItem').value.trim();
+      const qty = Number(document.getElementById('orderQty').value);
+      const vendor = document.getElementById('orderVendor').value.trim();
+      const eta = document.getElementById('orderEta').value;
+      if (!item || !qty) return;
+      const unit = document.getElementById('orderUnitSelect')?.value || findUnitByName(item);
+      const orders = getData(ORDER_KEY);
+      orders.push({ id: Date.now(), item, qty, unit, vendor, eta, status: 'Menunggu' });
+      saveData(ORDER_KEY, orders);
+      document.getElementById('orderForm').reset();
+      const orderUnitSelect = document.getElementById('orderUnitSelect');
+      if (orderUnitSelect) orderUnitSelect.value = '';
+      updateUnitLabel('orderItem', '');
+      renderOrders();
+    }
+    function receiveGoods(e) {
+      e.preventDefault();
+      const ref = document.getElementById('receiveOrderRef').value;
+      const item = document.getElementById('receiveItem').value.trim();
+      const qty = Number(document.getElementById('receiveQty').value);
+      const date = document.getElementById('receiveDate').value || new Date().toISOString().split('T')[0];
+      if (!item || !qty) return;
+      const unit = document.getElementById('receiveUnitSelect')?.value || findUnitByName(item);
+      const stock = getData(STOCK_KEY);
+      const existing = stock.find(s => s.item.toLowerCase() === item.toLowerCase());
+      if (existing) {
+        existing.qty = Number(existing.qty || 0) + qty;
+        existing.updated = date;
+        if (!existing.unit && unit) existing.unit = unit;
+      } else {
+        stock.push({ item, qty, unit, updated: date });
+      }
+      saveData(STOCK_KEY, stock);
+      if (ref) {
+        const orders = getData(ORDER_KEY).map(o => o.id == ref ? { ...o, status: 'Diterima' } : o);
+        saveData(ORDER_KEY, orders);
+      }
+      document.getElementById('receiveForm').reset();
+      const receiveUnitSelect = document.getElementById('receiveUnitSelect');
+      if (receiveUnitSelect) receiveUnitSelect.value = '';
+      updateUnitLabel('receiveItem', '');
+      renderStock();
+      renderOrders();
+    }
+    function collectItemNames() {
+      const orders = getData(ORDER_KEY);
+      const stock = getData(STOCK_KEY);
+      const master = loadMasterMaterials();
+      const set = new Set();
+      orders.forEach(o => o.item && set.add(o.item));
+      stock.forEach(s => s.item && set.add(s.item));
+      master.forEach(m => m.name && set.add(m.name));
+      return Array.from(set);
+    }
+    async function fetchItemMaster() {
+      if (!ITEM_SOURCE_URL) {
+        renderItemDatalist(collectItemNames());
+        updateUnitLabel('orderItem', document.getElementById('orderItem')?.value || '');
+        updateUnitLabel('receiveItem', document.getElementById('receiveItem')?.value || '');
+        return;
+      }
+      try {
+        const res = await fetch(ITEM_SOURCE_URL);
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.data || []);
+        const normalized = normalizeSheetItems(list);
+        const merged = mergeMasterMaterials(normalized);
+        const names = merged.map(i => i.name).filter(Boolean);
+        renderItemDatalist(names.length ? names : collectItemNames());
+        updateUnitLabel('orderItem', document.getElementById('orderItem')?.value || '');
+        updateUnitLabel('receiveItem', document.getElementById('receiveItem')?.value || '');
+      } catch (err) {
+        console.error("Gagal ambil master item", err);
+        renderItemDatalist(collectItemNames());
+        updateUnitLabel('orderItem', document.getElementById('orderItem')?.value || '');
+        updateUnitLabel('receiveItem', document.getElementById('receiveItem')?.value || '');
+      }
+    }
+    function renderItemDatalist(items) {
+      const listEl = document.getElementById('itemMasterList');
+      if (!listEl) return;
+      const uniq = Array.from(new Set(items || [])).sort((a,b)=>a.localeCompare(b));
+      listEl.innerHTML = uniq.map(n => `<option value="${n}"></option>`).join("");
+    }
+    function buildItemEndpoint(action) {
+      if (!ITEM_SOURCE_URL) return "";
+      try {
+        const url = new URL(ITEM_SOURCE_URL);
+        url.searchParams.set("action", action);
+        return url.toString();
+      } catch (err) {
+        console.warn("Gagal siapkan endpoint item", err);
+        return ITEM_SOURCE_URL;
+      }
+    }
+    async function syncNewMaterialToSheet(name, unit) {
+      if (!ITEM_SOURCE_URL) return;
+      const endpoint = buildItemEndpoint("add_item");
+      if (!endpoint || !name) return;
+      try {
+        await fetch(endpoint, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ name: name, unit: unit || "" })
+        });
+        console.log("Request tambah item terkirim: " + name);
+      } catch (err) {
+        console.warn("Gagal sinkron ke spreadsheet", err);
+      }
+    }
+    function addMaterialFromInput(inputId) {
+      const input = document.getElementById(inputId);
+      const val = (input.value || '').trim();
+      if (!val) return;
+      const unitSelectId = inputId === 'orderItem' ? 'orderUnitSelect' : 'receiveUnitSelect';
+      const unitVal = document.getElementById(unitSelectId)?.value || '';
+      const master = loadMasterMaterials();
+      const exists = master.some(m => (m.name || '').toLowerCase() === val.toLowerCase());
+      if (!exists) {
+        master.push({ name: val, unit: unitVal });
+        saveMasterMaterials(master);
+        syncNewMaterialToSheet(val, unitVal);
+      }
+      renderItemDatalist(collectItemNames());
+      toggleHelper(inputId, false);
+      updateUnitLabel(inputId, val);
+    }
+    function toggleHelper(inputId, show) {
+      const helperId = inputId === 'orderItem' ? 'orderItemHelper' : 'receiveItemHelper';
+      const el = document.getElementById(helperId);
+      if (el) el.style.display = show ? 'block' : 'none';
+    }
+    function handleItemInput(event) {
+      const input = event.target;
+      const value = (input.value || '').trim().toLowerCase();
+      const listEl = document.getElementById('itemMasterList');
+      if (!listEl) return;
+      const hasMatch = Array.from(listEl.options || []).some(opt => (opt.value || '').toLowerCase() === value);
+      toggleHelper(input.id, value && !hasMatch);
+      updateUnitLabel(input.id, input.value || '');
+    }
+    function updateUnitLabel(inputId, value) {
+      const unit = findUnitByName(value);
+      const unitId = inputId === 'orderItem' ? 'orderItemUnit' : 'receiveItemUnit';
+      const target = document.getElementById(unitId);
+      if (target) target.textContent = unit || '-';
+      const selectId = inputId === 'orderItem' ? 'orderUnitSelect' : 'receiveUnitSelect';
+      const select = document.getElementById(selectId);
+      if (select) {
+        const match = UNIT_OPTIONS.find(u => u.toLowerCase() === (unit || '').toLowerCase());
+        select.value = match || '';
+      }
+    }
+    function openModalMaterial(inputId) {
+      currentMaterialInputId = inputId;
+      populateUnitSelect('newMaterialUnitInput');
+      const nameInput = document.getElementById('newMaterialNameInput');
+      const sourceInput = document.getElementById(inputId);
+      if (nameInput && sourceInput) nameInput.value = sourceInput.value || '';
+      const existingUnit = findUnitByName(sourceInput?.value) || '';
+      const unitSelect = document.getElementById('newMaterialUnitInput');
+      if (unitSelect) unitSelect.value = UNIT_OPTIONS.find(u => u.toLowerCase() === (existingUnit || '').toLowerCase()) || '';
+      document.getElementById('modalMaterial').classList.add('show');
+    }
+    function closeModalMaterial() {
+      document.getElementById('modalMaterial').classList.remove('show');
+      document.getElementById('formMaterialBaru').reset();
+      currentMaterialInputId = null;
+    }
+
+    // INIT
+    window.onload = function() {
+      renderOrders();
+      renderStock();
+      populateUnitSelect('orderUnitSelect');
+      populateUnitSelect('receiveUnitSelect');
+      fetchItemMaster();
+      ['orderItem','receiveItem'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+          input.addEventListener('input', handleItemInput);
+          input.addEventListener('change', handleItemInput);
+        }
+      });
+      ['orderUnitSelect','receiveUnitSelect'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel) {
+          sel.addEventListener('change', () => {
+            const relatedInput = id === 'orderUnitSelect' ? 'orderItem' : 'receiveItem';
+            const selectedUnit = sel.value;
+            const labelId = relatedInput === 'orderItem' ? 'orderItemUnit' : 'receiveItemUnit';
+            const lbl = document.getElementById(labelId);
+            if (lbl) lbl.textContent = selectedUnit || '-';
+          });
+        }
+      });
+      const orderFormEl = document.getElementById('orderForm');
+      if (orderFormEl) orderFormEl.addEventListener('submit', addOrder);
+      const receiveFormEl = document.getElementById('receiveForm');
+      if (receiveFormEl) receiveFormEl.addEventListener('submit', receiveGoods);
+      const formMaterialBaru = document.getElementById('formMaterialBaru');
+      if (formMaterialBaru) {
+        formMaterialBaru.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const name = document.getElementById('newMaterialNameInput').value.trim();
+          const unit = document.getElementById('newMaterialUnitInput').value;
+          if (!name || !unit) return;
+          const master = loadMasterMaterials();
+          const idx = master.findIndex(m => (m.name || '').toLowerCase() === name.toLowerCase());
+          if (idx >= 0) {
+            master[idx].unit = unit;
+          } else {
+            master.push({ name, unit });
+          }
+          saveMasterMaterials(master);
+          syncNewMaterialToSheet(name, unit);
+          renderItemDatalist(collectItemNames());
+          if (currentMaterialInputId) {
+            const input = document.getElementById(currentMaterialInputId);
+            if (input) input.value = name;
+            const selectId = currentMaterialInputId === 'orderItem' ? 'orderUnitSelect' : 'receiveUnitSelect';
+            const select = document.getElementById(selectId);
+            if (select) select.value = UNIT_OPTIONS.find(u => u.toLowerCase() === unit.toLowerCase()) || unit;
+            updateUnitLabel(currentMaterialInputId, name);
+          }
+          closeModalMaterial();
+        });
+      }
+    };
+  </script>
+</body>
+</html>

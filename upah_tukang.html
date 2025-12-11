@@ -375,6 +375,120 @@
       margin-top: 2px;
     }
 
+    /* CSS BARU UNTUK KOLOM KIRI & TOTAL CARD */
+    .left-column {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-height: 0; /* Penting untuk scroll */
+    }
+
+    .summary-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(15,23,42,0.12);
+      border: 1px solid var(--border);
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .summary-card h3 {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .summary-card .total-amount {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--accent);
+      font-family: "Roboto Mono", monospace;
+      margin-bottom: 4px;
+    }
+
+    .summary-card .total-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Update Grid agar Layout tidak rusak */
+    .detailpanel {
+      height: 100%;
+    }
+
+    /* CSS UNTUK LAPORAN HARIAN (MENU BAWAH) */
+    .daily-report-section {
+      grid-column: 1 / -1;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 -5px 20px rgba(15,23,42,0.05);
+      border: 1px solid var(--border);
+      margin-top: 10px;
+    }
+
+    .daily-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 15px;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 15px;
+    }
+
+    .daily-title h3 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--text);
+    }
+    .daily-title p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .daily-filter {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .daily-filter input {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: inherit;
+      color: var(--text);
+    }
+
+    .daily-table th {
+      background-color: #f8fafc;
+      color: #64748b;
+    }
+    
+    .daily-table-wrapper {
+        max-height: 400px;
+    }
+
+    /* Responsive untuk HP: Stack header */
+    @media (max-width: 768px) {
+      .daily-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .daily-filter {
+        width: 100%;
+      }
+      .daily-filter input {
+        flex: 1;
+      }
+    }
+
     /* ===== RESPONSIVE UNTUK HP ===== */
     @media (max-width: 768px) {
       main {
@@ -416,16 +530,17 @@
       <span>Siteplan</span>
       <span>Rincian Upah Tukang</span>
     </div>
-    <section class="sitepanel">
-      <div class="legend">
-        <span class="title">Legenda Progres</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#ffffff;"></span>0-10%</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#f97316;"></span>11-30%</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#86efac;"></span>31-60%</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#15803d;"></span>61-90%</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>91-100%</span>
-      </div>
-<div class="siteplan-wrapper" id="siteplanStandalone">
+    <div class="left-column">
+      <section class="sitepanel">
+        <div class="legend">
+          <span class="title">Legenda Progres</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#ffffff;"></span>0-10%</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#f97316;"></span>11-30%</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#86efac;"></span>31-60%</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#15803d;"></span>61-90%</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>91-100%</span>
+        </div>
+        <div class="siteplan-wrapper" id="siteplanStandalone">
 <svg xml:space="preserve" width="297mm" height="210mm" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd" viewBox="0 0 29700 21000">
  <defs>
   <style type="text/css">
@@ -604,9 +719,17 @@
   <polygon class="fil5 str1" points="27630.41,3527.45 26758.47,4970.88 27947.01,10952.07 27310.53,11100.18 26674.05,7894.92 24113.74,8408.14 24750.25,11608.94 24103.32,11733.06 23467.25,8532.16 20906.53,9041.01 22629.48,17743.52 22048.75,18128.8 20272.26,9167.06 17711.22,9674.29 19237.77,17356.45 18597.59,17483.67 17068.31,9803.18 14507.59,10312.04 15273.81,14152.53 14633.63,14279.74 14441.28,13311.8 3680.07,8588.3 4034.85,7779.24 9868.5,10347.14 10499.95,10221.67 9417.46,4774.27 10057.64,4647.07 10945.05,9137.45 12416.22,9843.28 13696.58,9588.86 12806.1,5107.6 13504.88,5107.8 13577.55,5616.36 14335.81,9458.45 16896.53,8949.6 16133.25,5108.52 16849.13,5197.62 16904.77,5616.04 17533.82,8818.34 20094.54,8309.49 19585.69,5748.77 20232.97,5620.53 20742.81,8186.27 23303.54,7677.41 22793.68,5111.66 23363.87,4749.6 23943.72,7550.2 26493.7,7041.64 25884.18,4319.21 26239.19,3656.91 26585.05,2731.37 " />
   <circle class="fil6 str1" cx="13003.06" cy="11264.92" r="715.25" />
  </g>
-</svg>
-</div>
-</section>
+        </svg>
+        </div>
+      </section>
+
+      <section class="summary-card">
+        <h3>Total Realisasi Pembayaran</h3>
+        <div class="total-amount" id="grandTotalDisplay">Rp 0</div>
+        <div class="total-label">Akumulasi pencairan seluruh blok</div>
+      </section>
+    </div>
+
     <section class="detailpanel">
       <div class="lot-panel">
         <h2 style="margin:0 0 6px;">Rincian Pekerjaan</h2>
@@ -661,6 +784,41 @@
             <tr><td colspan="5" class="placeholder">Belum ada data yang dipilih.</td></tr>
           </tbody>
           <tfoot id="progressTableFooter"></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="daily-report-section">
+      <div class="daily-header">
+        <div class="daily-title">
+          <h3>📅 Laporan Pencairan Harian</h3>
+          <p>Lihat rincian pekerjaan yang dicairkan pada tanggal tertentu.</p>
+        </div>
+        <div class="daily-filter">
+          <label>Pilih Tanggal:</label>
+          <input type="date" id="dailyDateFilter">
+        </div>
+      </div>
+
+      <div class="table-wrapper daily-table-wrapper">
+        <table class="daily-table">
+          <thead>
+            <tr>
+              <th style="width:50px;">No</th>
+              <th>Kavling / Blok</th>
+              <th>Pekerjaan</th>
+              <th style="text-align:right;">Nilai Cair</th>
+            </tr>
+          </thead>
+          <tbody id="dailyTableBody">
+            <tr><td colspan="4" class="placeholder">Silakan pilih tanggal untuk melihat laporan.</td></tr>
+          </tbody>
+          <tfoot>
+            <tr class="grand-total">
+              <td colspan="3" style="text-align:right; padding-right:20px;">TOTAL HARI INI</td>
+              <td class="amount" id="dailyTotalDisplay">Rp 0</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </section>
@@ -842,6 +1000,7 @@
       attachDatePickerHandlers();
       renderFooter(totals);
       applyLotColors();
+      updateGlobalTotal();
     }
 
     function buildRows(sections, lotKey) {
@@ -1170,6 +1329,7 @@
         payload.nilai = amount;
         kirimKeBackend(payload);
       }
+      updateGlobalTotal();
       hideEditPanel();
       resetEditForm();
       renderDetail(lastPayload);
@@ -1209,6 +1369,7 @@
           }
           rowState[lotKey][rowKey] = { date: normalized };
           persistRowState();
+          updateGlobalTotal();
           renderDetail(lastPayload);
           const payload = buildPayload(lotKey, rowKey, normalized, "Pencairan via Apply", "Apply Tanggal");
           kirimKeBackend(payload);
@@ -1260,6 +1421,81 @@
         progress: el.dataset.progress ? `${el.dataset.progress}%` : "-"
       };
       renderDetail(payload);
+    }
+
+    // --- FUNGSI BARU: HITUNG TOTAL GLOBAL ---
+    function updateGlobalTotal() {
+      let total = 0;
+      Object.keys(rowState).forEach(lotKey => {
+        const lotData = rowState[lotKey];
+        const sections = ensureLotProgress(lotKey);
+        Object.keys(lotData || {}).forEach(rowKey => {
+          if (lotData[rowKey].date) {
+            const target = findRowByKey(sections, rowKey);
+            if (target && target.row) {
+              total += target.row.amount;
+            }
+          }
+        });
+      });
+      const displayEl = document.getElementById("grandTotalDisplay");
+      if (displayEl) displayEl.innerText = "Rp " + formatNumber(total);
+    }
+
+    // --- FUNGSI LAPORAN HARIAN ---
+    const dailyDateFilter = document.getElementById("dailyDateFilter");
+    const dailyTableBody = document.getElementById("dailyTableBody");
+    const dailyTotalDisplay = document.getElementById("dailyTotalDisplay");
+
+    function renderDailyReport(targetDate) {
+      if (!targetDate) {
+        dailyTableBody.innerHTML = `<tr><td colspan="4" class="placeholder">Pilih tanggal terlebih dahulu.</td></tr>`;
+        dailyTotalDisplay.innerText = "Rp 0";
+        return;
+      }
+
+      let html = "";
+      let totalDaily = 0;
+      let count = 1;
+
+      Object.keys(rowState).forEach(lotKey => {
+        const lotData = rowState[lotKey];
+        const sections = ensureLotProgress(lotKey);
+        Object.keys(lotData || {}).forEach(rowKey => {
+          const item = lotData[rowKey];
+          if (item.date === targetDate) {
+             const target = findRowByKey(sections, rowKey);
+             if (target && target.row) {
+               const amount = target.row.amount;
+               totalDaily += amount;
+               html += `
+                <tr>
+                  <td style="text-align:center;">${count++}</td>
+                  <td style="font-weight:600; color:var(--text);">${lotKey === "_global" ? "Umum" : lotKey}</td>
+                  <td>${target.row.name}</td>
+                  <td style="text-align:right; font-family:'Roboto Mono';">Rp ${formatNumber(amount)}</td>
+                </tr>
+               `;
+             }
+          }
+        });
+      });
+
+      if (html === "") {
+        html = `<tr><td colspan="4" class="placeholder" style="padding:20px;">Tidak ada pencairan dana pada tanggal ${formatDate(targetDate)}.</td></tr>`;
+      }
+
+      dailyTableBody.innerHTML = html;
+      dailyTotalDisplay.innerText = "Rp " + formatNumber(totalDaily);
+    }
+
+    if (dailyDateFilter) {
+      dailyDateFilter.addEventListener("change", (e) => {
+        renderDailyReport(e.target.value);
+      });
+      const today = new Date().toISOString().split('T')[0];
+      dailyDateFilter.value = today;
+      // setTimeout(() => renderDailyReport(today), 1000);
     }
 
     // ==========================================
@@ -1342,12 +1578,14 @@
         persistRowState();
         persistProgressData();
         applyLotColors();
+        updateGlobalTotal();
         
         if (currentLotKey) {
              const element = document.querySelector(`[data-unit-id="${currentLotKey}"]`);
              if(element) handleLotClick(element);
         }
         console.log("Sinkronisasi Selesai! Data tanggal sudah diperbaiki.");
+        updateGlobalTotal();
 
       } catch (error) {
         console.error("Gagal menarik data:", error);
@@ -1356,6 +1594,7 @@
 
     window.addEventListener("DOMContentLoaded", () => {
       renderDetail(lastPayload);
+      updateGlobalTotal();
       loadDataFromSheet();
     });
 
