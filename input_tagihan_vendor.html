@@ -220,6 +220,45 @@
       flex-wrap: wrap;
       margin-top: 16px;
     }
+    .combo {
+      position: relative;
+      width: 100%;
+    }
+    .combo input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #d4d6dd;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+    }
+    .combo input:focus {
+      border-color: #94a3b8;
+    }
+    .combo-list {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: 50;
+      display: none;
+    }
+    .combo-item {
+      padding: 10px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .combo-item:hover,
+    .combo-item.active {
+      background: #f1f5f9;
+    }
     @media (max-width: 1023px) {
       .page-section {
         grid-template-columns: 1fr;
@@ -416,9 +455,117 @@
     const jatuhTempoInput = document.getElementById("jatuhTempo");
     const vendorMaterialHidden = document.getElementById("vendorMaterialHidden");
     const vendorTopHidden = document.getElementById("vendorTopHidden");
+    let akunMaster = [];
     document.getElementById("tanggal").addEventListener("change", updateDueDate);
     vendorSelect.addEventListener("change", updateDueDate);
     vendorSelect.addEventListener("change", syncHiddenVendor);
+
+    function buildAkunLabel(a) {
+      if (!a) return "";
+      if (a.kode && a.nama) return `${a.kode} - ${a.nama}`;
+      return a.nama || a.kode || "";
+    }
+
+    function isPendapatan(a) {
+      const kode = (a.kode || "").toString();
+      const kat = (a.kategori || "").toLowerCase();
+      return kode.startsWith("4") || kat.includes("pendapat");
+    }
+
+    function isBeban(a) {
+      const kode = (a.kode || "").toString();
+      const kat = (a.kategori || "").toLowerCase();
+      return kode.startsWith("5") || kat.includes("beban") || kat.includes("biaya");
+    }
+
+    // sumber options tergantung jenis
+    function getOptionsForKasMasuk() {
+      return akunMaster.filter(isPendapatan);
+    }
+    function getOptionsForKasKeluar() {
+      return akunMaster.filter(isBeban);
+    }
+
+    // util render dropdown
+    function renderComboList(listEl, items, keyword, onPick) {
+      const q = (keyword || "").toLowerCase().trim();
+      const filtered = !q
+        ? items
+        : items.filter(a => buildAkunLabel(a).toLowerCase().includes(q));
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="combo-item" style="cursor:default;color:#94a3b8;">Tidak ada hasil</div>`;
+        return;
+      }
+
+      listEl.innerHTML = filtered
+        .slice(0, 80)
+        .map((a, idx) => {
+          const label = buildAkunLabel(a);
+          return `<div class="combo-item" role="option" data-idx="${idx}">${label}</div>`;
+        })
+        .join("");
+
+      // click pick
+      listEl.querySelectorAll(".combo-item").forEach((el) => {
+        el.addEventListener("click", () => {
+          const label = el.textContent;
+          onPick(label);
+        });
+      });
+    }
+
+    // init combobox
+    function initCombo(inputEl, listEl, getItemsFn) {
+      let itemsCache = [];
+
+      function open() {
+        listEl.style.display = "block";
+        inputEl.setAttribute("aria-expanded", "true");
+      }
+      function close() {
+        listEl.style.display = "none";
+        inputEl.setAttribute("aria-expanded", "false");
+      }
+
+      function refresh(keyword = "") {
+        itemsCache = getItemsFn() || [];
+        renderComboList(listEl, itemsCache, keyword, (label) => {
+          inputEl.value = label;
+          close();
+
+          // opsional: auto tampilkan detail kas masuk bila perlu
+          if (inputEl.id === "kasMasukSumber") {
+            const kasMasukDetail = document.getElementById("kasMasukDetail");
+            if (kasMasukDetail) kasMasukDetail.style.display = "block";
+          }
+        });
+      }
+
+      inputEl.addEventListener("focus", () => {
+        refresh(inputEl.value);
+        open();
+      });
+
+      inputEl.addEventListener("input", () => {
+        refresh(inputEl.value);
+        open();
+      });
+
+      // klik di luar => tutup
+      document.addEventListener("click", (e) => {
+        const wrap = inputEl.closest(".combo");
+        if (wrap && !wrap.contains(e.target)) close();
+      });
+
+      // keyboard basic
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") close();
+      });
+
+      // expose refresh
+      return { refresh, open, close };
+    }
 
     function getScriptUrl() {
       return localStorage.getItem(CONFIG_URL_KEY) || window.PN_VENDOR_SCRIPT_URL || "";

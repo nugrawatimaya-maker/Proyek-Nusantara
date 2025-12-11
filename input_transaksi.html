@@ -364,6 +364,37 @@
     .akun-status.info { background: #e0f2fe; color: #075985; }
     .akun-status.error { background: #fee2e2; color: #991b1b; }
     .akun-status.success { background: #dcfce7; color: #166534; }
+
+    /* Combobox dropdown */
+    .combo {
+      position: relative;
+      width: 100%;
+    }
+    .combo input {
+      width: 100%;
+    }
+    .combo-list {
+      position: absolute;
+      z-index: 10;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+      max-height: 220px;
+      overflow: auto;
+      display: none;
+      padding: 6px 0;
+    }
+    .combo-option {
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .combo-option:hover {
+      background: #f8fafc;
+    }
   </style>
 </head>
 <body>
@@ -395,16 +426,19 @@
 
           <div id="kasMasukFields" style="display:none;">
             <label for="kasMasukSumber">Kas Masuk dari</label>
-            <input
-              type="text"
-              id="kasMasukSumber"
-              name="kasMasukSumber"
-              list="listSumberKas"
-              placeholder="Ketik nama akun (contoh: Penjualan...)"
-              autocomplete="off"
-              style="width:100%;"
-            />
-            <datalist id="listSumberKas"></datalist>
+            <div class="combo">
+              <input
+                type="text"
+                id="kasMasukSumber"
+                name="kasMasukSumber"
+                placeholder="Ketik nama akun..."
+                autocomplete="off"
+                role="combobox"
+                aria-expanded="false"
+                aria-controls="kasMasukSumberList"
+              />
+              <div class="combo-list" id="kasMasukSumberList" role="listbox"></div>
+            </div>
             <div id="kasMasukStatus" class="rekening-status info" style="display:none;"></div>
           </div>
 
@@ -429,15 +463,19 @@
 
           <div id="kasKeluarFields" style="display:none;">
           <label for="kasKeluarAkun">Kas Keluar ke</label>
-          <input
-            type="text"
-            id="kasKeluarAkun"
-            name="kasKeluarAkun"
-            list="listSumberKas"
-            placeholder="Ketik akun biaya/tujuan (contoh: Gaji...)"
-            autocomplete="off"
-            style="width:100%;"
-          />
+          <div class="combo">
+            <input
+              type="text"
+              id="kasKeluarAkun"
+              name="kasKeluarAkun"
+              placeholder="Ketik akun biaya/tujuan..."
+              autocomplete="off"
+              role="combobox"
+              aria-expanded="false"
+              aria-controls="kasKeluarAkunList"
+            />
+            <div class="combo-list" id="kasKeluarAkunList" role="listbox"></div>
+          </div>
 
           <label for="kasKeluarBank">Transfer dari rekening</label>
           <select id="kasKeluarBank" name="kasKeluarBank">
@@ -657,6 +695,7 @@
     const kasMasukFields = document.getElementById("kasMasukFields");
     const kasMasukDetail = document.getElementById("kasMasukDetail");
     const kasMasukSumber = document.getElementById("kasMasukSumber");
+    const kasMasukSumberList = document.getElementById("kasMasukSumberList");
     const kasMasukJumlah = document.getElementById("kasMasukJumlah");
     const kasMasukBank = document.getElementById("kasMasukBank");
     const kasMasukBukti = document.getElementById("kasMasukBukti"); // INPUT FILE
@@ -666,6 +705,7 @@
     // Elemen Kas Keluar
     const kasKeluarFields = document.getElementById("kasKeluarFields");
     const kasKeluarAkun = document.getElementById("kasKeluarAkun");
+    const kasKeluarAkunList = document.getElementById("kasKeluarAkunList");
     const kasKeluarBank = document.getElementById("kasKeluarBank");
     const kasKeluarJumlah = document.getElementById("kasKeluarJumlah");
     const kasKeluarBukti = document.getElementById("kasKeluarBukti"); // INPUT FILE
@@ -679,7 +719,55 @@
     // Data Master
     let akunMaster = [];
 
+    function renderComboOptions(listEl, filterText = "") {
+      if (!listEl) return;
+      const term = (filterText || "").toLowerCase();
+      listEl.innerHTML = "";
+      akunMaster
+        .filter(a => {
+          const value = a.kode ? `${a.kode} - ${a.nama}` : a.nama;
+          return !term || value.toLowerCase().includes(term);
+        })
+        .slice(0, 30)
+        .forEach(a => {
+          const val = a.kode ? `${a.kode} - ${a.nama}` : a.nama;
+          const option = document.createElement("div");
+          option.className = "combo-option";
+          option.setAttribute("role", "option");
+          option.dataset.value = val;
+          option.textContent = val;
+          listEl.appendChild(option);
+        });
+    }
+
+    function attachCombo(inputEl, listEl) {
+      if (!inputEl || !listEl) return;
+      const showList = () => {
+        renderComboOptions(listEl, inputEl.value);
+        listEl.style.display = "block";
+        inputEl.setAttribute("aria-expanded", "true");
+      };
+      const hideList = () => {
+        setTimeout(() => {
+          listEl.style.display = "none";
+          inputEl.setAttribute("aria-expanded", "false");
+        }, 120);
+      };
+      inputEl.addEventListener("focus", showList);
+      inputEl.addEventListener("input", showList);
+      inputEl.addEventListener("blur", hideList);
+      listEl.addEventListener("mousedown", (e) => {
+        const option = e.target.closest(".combo-option");
+        if (option) {
+          inputEl.value = option.dataset.value || option.textContent;
+          hideList();
+        }
+      });
+    }
+
     // --- 1. INISIALISASI ---
+    attachCombo(kasMasukSumber, kasMasukSumberList);
+    attachCombo(kasKeluarAkun, kasKeluarAkunList);
     document.getElementById("tanggal").valueAsDate = new Date();
     fetchMasterData(); // Ambil data dropdown
 
@@ -834,13 +922,8 @@
     }
 
     function renderDropdowns() {
-      const datalist = document.getElementById("listSumberKas");
-      datalist.innerHTML = "";
-      akunMaster.forEach(a => {
-        let opt = document.createElement("option");
-        opt.value = a.kode ? `${a.kode} - ${a.nama}` : a.nama;
-        datalist.appendChild(opt);
-      });
+      renderComboOptions(kasMasukSumberList, kasMasukSumber.value);
+      renderComboOptions(kasKeluarAkunList, kasKeluarAkun.value);
 
       const banks = akunMaster.filter(a => a.kode.startsWith("11") || a.kategori.toLowerCase().includes("harta"));
       let bankHtml = '<option value="">-- Pilih Rekening --</option>';
