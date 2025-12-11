@@ -12,6 +12,8 @@
       --hover: #ffeaa7;
       --stroke: #2c3e50;
       --lot-base: #ffffff;
+      --svg-w: 29700;
+      --svg-h: 21000;
     }
     body {
       font-family: "Segoe UI", Arial, sans-serif;
@@ -86,6 +88,8 @@
       transition: transform 0.1s ease-out, opacity 0.3s ease;
       will-change: transform;
       opacity: 0; /* fade in setelah siap */
+      width: calc(var(--svg-w) * 1px);
+      height: calc(var(--svg-h) * 1px);
     }
     .content-wrap.ready { opacity: 1; }
 
@@ -93,10 +97,13 @@
     svg {
       display: block;
       width: 100%;
-      height: auto;
+      height: 100%;
       image-rendering: optimizeSpeed !important;
-      /* Memastikan garis tidak terlalu tebal saat di zoom out, opsional */
-      vector-effect: non-scaling-stroke; 
+    }
+    .content-wrap svg {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
 
     /* Reset semua path/rect di dalam SVG agar putih */
@@ -189,6 +196,12 @@
     }
     .lot-tooltip.visible {
       opacity: 1;
+    }
+
+    @media (max-width: 768px){
+      .page{ padding: 10px; }
+      .header h1{ font-size: 16px; }
+      .viewer{ min-height: 320px; }
     }
 
   </style>
@@ -484,18 +497,30 @@
       contentWrap.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
     }
 
-    function fitToScreen() {
+    function fitToScreen(mode = "width") {
       const w = viewer.clientWidth;
       const h = viewer.clientHeight;
       if (!w || !h) return;
+
       const usableW = Math.max(0, w - VIEWER_PADDING * 2);
       const usableH = Math.max(0, h - VIEWER_PADDING * 2);
-      const baseScale = Math.min(usableW / SVG_WIDTH, usableH / SVG_HEIGHT);
-      scale = baseScale * 0.95; // beri ruang ekstra agar lega seperti contoh
+
+      const scaleW = usableW / SVG_WIDTH;
+      const scaleH = usableH / SVG_HEIGHT;
+
+      let baseScale;
+      if (mode === "width") baseScale = scaleW;
+      else if (mode === "height") baseScale = scaleH;
+      else baseScale = Math.min(scaleW, scaleH);
+
+      scale = baseScale; // no extra 0.95 biar bener-bener fit lebar
+
       const scaledW = SVG_WIDTH * scale;
       const scaledH = SVG_HEIGHT * scale;
+
       pointX = (w - scaledW) / 2;
       pointY = (h - scaledH) / 2;
+
       setTransform();
     }
 
@@ -563,7 +588,7 @@
     }, { passive: false });
 
     function resetView() {
-      fitToScreen();
+      fitToScreen("width");
       deselectAll();
     }
 
@@ -639,16 +664,25 @@
 
     // Initialize View
     // Menengahkan gambar di awal
-    window.onload = () => {
-      // Tunggu sejenak agar layout stabil, lalu fitToScreen dan fade-in konten
+    window.addEventListener("load", () => {
+      // set ukuran pasti contentWrap via CSS var (optional, tapi bagus)
+      document.documentElement.style.setProperty("--svg-w", SVG_WIDTH);
+      document.documentElement.style.setProperty("--svg-h", SVG_HEIGHT);
+
+      // tunggu 1 frame + micro delay biar layout HP stabil
       requestAnimationFrame(() => {
-        applyPalette(paletteSelect?.value || "default");
-        fitToScreen();
-        contentWrap.classList.add("ready");
-        if (loader) loader.style.display = "none";
+        setTimeout(() => {
+          applyPalette(paletteSelect?.value || "default");
+          fitToScreen("width");
+          contentWrap.classList.add("ready");
+          if (loader) loader.style.display = "none";
+        }, 0);
       });
-    };
-    window.addEventListener("resize", fitToScreen);
+    });
+    window.addEventListener("resize", () => fitToScreen("width"));
+    window.addEventListener("orientationchange", () => {
+      setTimeout(() => fitToScreen("width"), 150);
+    });
     paletteSelect?.addEventListener("change", () => applyPalette(paletteSelect.value));
 
   </script>
