@@ -197,19 +197,59 @@
   <script>
     const VENDOR_KEY = "master_vendor_local";
     const MATERIAL_KEY = "master_material_local";
+    const INVENTORY_ORDER_KEY = "inventoryOrders";
+    const INVENTORY_STOCK_KEY = "inventoryStock";
 
-    function loadMaterials(){
+    function safeLoadArray(key){
       try{
-        const raw = localStorage.getItem(MATERIAL_KEY);
+        const raw = localStorage.getItem(key);
         return raw ? JSON.parse(raw) : [];
       }catch(err){
-        console.warn("Gagal load material", err);
+        console.warn("Gagal membaca data", key, err);
         return [];
       }
     }
 
+    function loadMaterials(){
+      return safeLoadArray(MATERIAL_KEY);
+    }
+
+    function collectInventoryMaterials(){
+      const orders = safeLoadArray(INVENTORY_ORDER_KEY);
+      const stock = safeLoadArray(INVENTORY_STOCK_KEY);
+      const combined = [];
+      orders.forEach(o => {
+        if(o.item){
+          combined.push({ name:o.item, unit:o.unit || o.satuan || "" });
+        }
+      });
+      stock.forEach(s => {
+        if(s.item){
+          combined.push({ name:s.item, unit:s.unit || s.satuan || "" });
+        }
+      });
+      return combined;
+    }
+
+    function getAllMaterials(){
+      const map = new Map();
+      loadMaterials().forEach(m => {
+        const key = (m.name||"").toLowerCase();
+        if(!key) return;
+        map.set(key, m);
+      });
+      collectInventoryMaterials().forEach(m => {
+        const key = (m.name||"").toLowerCase();
+        if(!key) return;
+        const existing = map.get(key) || { name:m.name };
+        if(!existing.unit && m.unit) existing.unit = m.unit;
+        map.set(key, existing);
+      });
+      return Array.from(map.values());
+    }
+
     function findMaterialByName(name){
-      const mats = loadMaterials();
+      const mats = getAllMaterials();
       const lower = name.trim().toLowerCase();
       return mats.find(m => (m.name||"").toLowerCase() === lower);
     }
@@ -259,7 +299,7 @@
       const input = document.getElementById("materialInput");
       const list = document.getElementById("materialSuggestions");
       const query = input.value.trim().toLowerCase();
-      const materials = loadMaterials();
+      const materials = getAllMaterials();
 
       if(!query){
         list.classList.add("hidden");
@@ -305,6 +345,14 @@
 
     document.addEventListener("DOMContentLoaded", populateVendorDropdown);
     document.addEventListener("DOMContentLoaded", populateUnitOptions);
+    document.addEventListener("DOMContentLoaded", () => {
+      // isi otomatis jika material sudah ada di inventory/dashboard
+      const materialInput = document.getElementById("materialInput");
+      materialInput.addEventListener("change", () => {
+        const material = findMaterialByName(materialInput.value);
+        applyMaterialData(material);
+      });
+    });
     document.getElementById("qtyInput").addEventListener("input", recalculateTotal);
     document.getElementById("priceInput").addEventListener("input", recalculateTotal);
   </script>
