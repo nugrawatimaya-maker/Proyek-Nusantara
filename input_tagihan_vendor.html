@@ -2,886 +2,224 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Input Tagihan Vendor</title>
-  <script>
-    // Set di runtime: window.PN_VENDOR_SCRIPT_URL = "https://script.google.com/macros/s/xxxx/exec";
-    // Opsional kalau mau buka spreadsheet: window.PN_VENDOR_SHEET_ID = "spreadsheetId";
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Input Tagihan & Vendor</title>
   <style>
-    :root {
-      --bg: #f4f6f9;
-      --card: #ffffff;
-      --border: #e2e8f0;
-      --text: #0f172a;
-      --muted: #64748b;
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
-    }
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
-    .page-header {
-      padding: 28px 24px 12px;
-      background: #fff;
-      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 16px;
-    }
-    .page-header h1 {
-      margin: 0;
-      font-size: 24px;
-    }
-    .page-header p {
-      margin: 6px 0 0;
-      color: var(--muted);
-    }
-    .nav-actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .home-btn {
-      border: none;
-      border-radius: 999px;
-      padding: 10px 20px;
-      font-weight: 600;
-      background: linear-gradient(135deg, #0ea5e9, #0284c7);
-      color: #fff;
-      cursor: pointer;
-      box-shadow: 0 10px 18px rgba(2, 132, 199, 0.25);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .home-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 14px 24px rgba(2, 132, 199, 0.28);
-    }
-    .back-btn {
-      border: none;
-      border-radius: 999px;
-      padding: 10px 20px;
-      font-weight: 600;
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: #fff;
-      cursor: pointer;
-      box-shadow: 0 10px 18px rgba(239, 68, 68, 0.25);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .back-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 14px 24px rgba(239, 68, 68, 0.28);
-    }
-    .wrap {
-      width: 100%;
-      max-width: 100%;
-      margin: 0;
-      padding: 0;
-    }
-    .action-bar {
-      display: flex;
-      justify-content: flex-start;
-      gap: 12px;
-      margin-bottom: 0;
-    }
-    .floating-action {
-      background: transparent;
-    }
-    .card {
-      background: var(--card);
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-      padding: 24px;
-    }
-    h1, h2 {
-      margin: 0;
-      font-size: 22px;
-      color: var(--text);
-    }
-    p {
-      color: var(--muted);
-      margin: 6px 0 16px;
-    }
-    label {
-      display: block;
-      font-weight: 600;
-      font-size: 13px;
-      margin: 14px 0 6px;
-    }
-    input, select {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      font-size: 14px;
-      background: #fff;
-    }
-    input[type="file"] {
-      padding: 10px;
-      background: #f8fafc;
-    }
-    button {
-      border: none;
-      border-radius: 999px;
-      padding: 11px 24px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      cursor: pointer;
-      margin-top: 18px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
-    }
-    th, td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-      text-align: left;
-    }
-    th {
-      background: #f1f5f9;
-      color: var(--text);
-    }
-    .muted {
-      color: var(--muted);
-      font-size: 13px;
-    }
-    .btn {
-      border: none;
-      border-radius: 999px;
-      padding: 9px 20px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      color: #fff;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    }
-    dialog {
-      border: none;
-      border-radius: 14px;
-      padding: 24px;
-      width: 360px;
-      max-width: calc(100% - 32px);
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.3);
-    }
-    dialog::backdrop {
-      background: rgba(15, 23, 42, 0.45);
-    }
-    .dialog-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 18px;
-      justify-content: flex-end;
-    }
-    .btn-outline {
-      border: 1px solid var(--border);
-      background: #fff;
-      color: var(--text);
-    }
-    .status {
-      margin-top: 12px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 13px;
-      display: none;
-    }
-    .status.show { display: block; }
-    .status.success { background:#ecfdf3; color:#15803d; border:1px solid #bbf7d0; }
-    .status.error { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
-    .status.info { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
-    .page-section {
-      max-width: 1200px;
-      margin: 24px auto 48px;
-      padding: 0 24px;
-      display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-      gap: 24px;
-      align-items: start;
-    }
-    .stack {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-    .side-panel h2 { margin: 0 0 8px; }
-    .side-panel p { margin: 0 0 12px; }
-    .actions-row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-top: 16px;
-    }
-    .combo {
-      position: relative;
-      width: 100%;
-    }
-    .combo input {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid #d4d6dd;
-      font-size: 14px;
-      outline: none;
-      background: #fff;
-    }
-    .combo input:focus {
-      border-color: #94a3b8;
-    }
-    .combo-list {
-      position: absolute;
-      top: calc(100% + 6px);
-      left: 0;
-      right: 0;
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-      max-height: 240px;
-      overflow-y: auto;
-      z-index: 50;
-      display: none;
-    }
-    .combo-item {
-      padding: 10px 12px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .combo-item:hover,
-    .combo-item.active {
-      background: #f1f5f9;
-    }
-    @media (max-width: 1023px) {
-      .page-section {
-        grid-template-columns: 1fr;
-        padding: 0 16px;
-      }
-    }
-    @media (max-width: 767px) {
-      .page-header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 20px 18px 10px;
-      }
-      .nav-actions {
-        width: 100%;
-        justify-content: flex-start;
-        flex-wrap: wrap;
-      }
-      .action-bar {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .page-section { margin: 16px auto 32px; }
-      .card { padding: 18px; }
-      .actions-row { flex-direction: column; gap: 8px; align-items: stretch; }
-      button { width: 100%; }
-    }
+    :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; }
+    body { margin: 0; font-family: sans-serif; background: var(--bg); color: var(--text); padding-bottom: 80px; }
+    
+    .header { background: #fff; padding: 16px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .header h2 { margin: 0; font-size: 18px; color: var(--primary); }
+
+    .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+    .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+    label { display: block; font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 6px; margin-top: 12px; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; box-sizing: border-box; background: #fff; }
+    input:focus, select:focus { outline: 2px solid var(--primary); border-color: var(--primary); }
+    
+    .btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+    .btn-secondary { background: #e2e8f0; color: #334155; margin-top: 0; margin-bottom: 10px; }
+    
+    /* Modal */
+    dialog { border: none; border-radius: 12px; padding: 20px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+    dialog::backdrop { background: rgba(0,0,0,0.5); }
+    
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 50px; opacity: 0; transition: 0.3s; pointer-events: none; }
+    .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
-  <header class="page-header">
-    <div>
-      <h1>Input Tagihan Vendor</h1>
-      <p>Isi data tagihan vendor berikut untuk pencatatan keuangan internal.</p>
+
+  <div class="header">
+    <h2>Aplikasi Tagihan</h2>
+  </div>
+
+  <div class="container">
+    <button class="btn btn-secondary" onclick="openVendorModal()">+ Tambah Vendor Baru</button>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Input Tagihan</h3>
+      <form id="tagihanForm" method="POST" target="hidden_iframe" enctype="multipart/form-data">
+        
+        <label>Tanggal Nota</label>
+        <input type="date" id="tanggal" name="tanggal" required />
+
+        <label>Pilih Vendor</label>
+        <select id="vendorSelect" name="vendor" required>
+          <option value="">-- Loading Vendor... --</option>
+        </select>
+
+        <input type="hidden" name="action" value="simpan_tagihan">
+        <input type="hidden" id="hiddenMaterial" name="material">
+        <input type="hidden" id="hiddenTop" name="top">
+
+        <label>Jatuh Tempo (Otomatis)</label>
+        <input type="text" id="jatuhTempo" name="jatuhTempo" readonly style="background:#f1f5f9" />
+
+        <label>Total Rupiah</label>
+        <input type="number" name="total" placeholder="Contoh: 1500000" required />
+
+        <label>Foto Nota</label>
+        <input type="file" name="bukti" accept="image/*,.pdf" required />
+
+        <button type="submit" class="btn">Kirim Data</button>
+      </form>
     </div>
-    <div class="nav-actions">
-      <button class="home-btn" type="button" onclick="window.location.href='index.html'">Home</button>
-      <button class="back-btn" type="button" onclick="window.history.back()">Kembali</button>
-    </div>
-  </header>
-  <div class="page-section">
-    <div class="stack">
-      <div class="action-bar floating-action">
-        <button class="btn" id="btnVendor">+ Tambah Data Vendor</button>
-        <button class="btn" id="btnSettings" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">Pengaturan</button>
-      </div>
-
-      <div class="card">
-        <form id="tagihanForm" method="POST" target="hidden_iframe" enctype="multipart/form-data">
-          <div style="display:flex; gap:12px; flex-wrap:wrap;">
-            <div style="flex:1; min-width:160px;">
-              <label for="tanggal">Tanggal Nota</label>
-              <input type="date" id="tanggal" name="tanggal" style="width:20ch;" required />
-            </div>
-            <div style="flex:1; min-width:200px;">
-              <label for="jatuhTempo">Tanggal Jatuh Tempo</label>
-              <input type="text" id="jatuhTempo" name="jatuhTempo" readonly placeholder="Otomatis dari TOP" />
-            </div>
-          </div>
-
-          <label for="vendor">Nama Toko/Vendor</label>
-          <select id="vendor" name="vendor" required>
-            <option value="">Pilih vendor</option>
-          </select>
-
-          <label for="total">Total Harga (Rp)</label>
-          <input type="number" id="total" name="total" min="0" step="1000" placeholder="cth: 6500000" required />
-
-          <label for="bukti">Upload Foto Nota</label>
-          <input type="file" id="bukti" name="bukti" accept="image/*,.pdf" required />
-
-          <input type="hidden" id="vendorMaterialHidden" name="material" />
-          <input type="hidden" id="vendorTopHidden" name="top" />
-          <input type="hidden" name="action" value="simpan_tagihan" />
-
-          <button type="submit">Simpan Tagihan</button>
-          <div id="statusBox" class="status" aria-live="polite"></div>
-        </form>
-        <iframe name="hidden_iframe" style="display:none;"></iframe>
-      </div>
-
-      <div class="card">
-        <h2>Daftar Tagihan Tersimpan</h2>
-        <p class="muted">Data dikirim ke Apps Script (spreadsheet) dan disalin ke browser (localStorage) untuk pratinjau.</p>
-
-        <table id="tableTagihan" style="display:none;">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Tanggal Nota</th>
-              <th>Jatuh Tempo</th>
-              <th>Nama Toko/Vendor</th>
-              <th>Total Harga</th>
-              <th>Foto Nota</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <div id="emptyState" class="muted">Belum ada tagihan yang disimpan.</div>
-      </div>
-    </div>
-
-    <aside class="stack side-panel">
-      <div class="card">
-        <h2>Tarik Data</h2>
-        <p>Filter rentang tanggal, vendor, dan jatuh tempo.</p>
-        <form id="filterForm">
-          <label for="filterMulai">Mulai tanggal</label>
-          <input id="filterMulai" name="mulai" type="date" />
-
-          <label for="filterSampai">Sampai tanggal</label>
-          <input id="filterSampai" name="sampai" type="date" />
-
-          <label for="filterVendor">Nama Vendor</label>
-          <select id="filterVendor" name="filterVendor">
-            <option value="">Semua vendor</option>
-          </select>
-
-          <label for="filterJatuhTempo">Tanggal Jatuh Tempo</label>
-          <input id="filterJatuhTempo" name="filterJatuhTempo" type="date" />
-
-          <div class="actions-row">
-            <button type="submit" style="background:linear-gradient(135deg,#16a34a,#15803d);">Terapkan Filter</button>
-            <button type="button" id="btnExcel" style="background:linear-gradient(135deg,#10b981,#059669);">Download Excel</button>
-            <button type="button" id="filterSheetBtn" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">Buka Spreadsheet</button>
-          </div>
-          <div id="filterStatus" class="status info" aria-live="polite" style="display:none;"></div>
-        </form>
-      </div>
-    </aside>
   </div>
 
   <dialog id="vendorDialog">
-    <form method="dialog" id="vendorForm">
-      <h2>Tambah Data Vendor</h2>
-      <label for="vendorName">Nama Vendor</label>
-      <input type="text" id="vendorName" placeholder="Misal: PT Maju Jaya" required />
+    <form method="dialog">
+      <h3 style="margin-top:0">Vendor Baru</h3>
+      
+      <label>Nama Vendor</label>
+      <input type="text" id="newVendorName" placeholder="PT..." />
 
-      <label for="vendorMaterial">Jenis Material Konstruksi</label>
-      <input type="text" id="vendorMaterial" placeholder="Misal: Semen, Baja, Pasir" required />
+      <label>Material</label>
+      <input type="text" id="newVendorMat" placeholder="Pasir, Semen..." />
 
-      <label for="vendorTop">TOP (Termin Pembayaran)</label>
-      <input type="text" id="vendorTop" placeholder="Misal: 30 hari" required />
+      <label>TOP (Termin)</label>
+      <select id="newVendorTop"></select>
 
-      <div class="dialog-actions">
-        <button class="btn-outline" type="button" id="cancelVendor">Batal</button>
-        <button class="btn" type="submit">Simpan</button>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('vendorDialog').close()">Batal</button>
+        <button type="button" class="btn" onclick="simpanVendor()">Simpan</button>
       </div>
     </form>
   </dialog>
 
-  <dialog id="configDialog">
-    <form method="dialog" id="configForm">
-      <h2>Pengaturan Spreadsheet</h2>
-      <label for="configScriptUrl">Apps Script URL</label>
-      <input type="url" id="configScriptUrl" placeholder="https://script.google.com/macros/s/..." />
-
-      <label for="configSheetId">ID Spreadsheet</label>
-      <input type="text" id="configSheetId" placeholder="1abcDEF..." />
-
-      <div class="dialog-actions">
-        <button class="btn-outline" type="button" id="cancelConfig">Batal</button>
-        <button class="btn" type="submit">Simpan</button>
-      </div>
-    </form>
-  </dialog>
+  <div id="toast" class="toast">Pesan...</div>
+  
+  <iframe name="hidden_iframe" style="display:none;"></iframe>
 
   <script>
-    const STORAGE_KEY = "tagihan_vendor_local";
-    const VENDOR_KEY = "master_vendor_local";
-    const CONFIG_URL_KEY = "pn_vendor_script_url";
-    const CONFIG_SHEET_KEY = "pn_vendor_sheet_id";
+    // ==========================================
+    // PASTE URL APPS SCRIPT ANDA DI BAWAH INI !!
+    // ==========================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby35BUkEx44e226aMxqdQqHGR-44jYysKje3x-LKmv581Tv41C6Hshqq8LTIhVOW40B/exec"; 
+    // Contoh: "https://script.google.com/macros/s/AKfycbx.../exec"
 
-    const form = document.getElementById("tagihanForm");
-    const table = document.getElementById("tableTagihan");
-    const tbody = table.querySelector("tbody");
-    const emptyState = document.getElementById("emptyState");
-    const statusBox = document.getElementById("statusBox");
-    const filterForm = document.getElementById("filterForm");
-    const filterMulai = document.getElementById("filterMulai");
-    const filterSampai = document.getElementById("filterSampai");
-    const filterVendor = document.getElementById("filterVendor");
-    const filterJatuhTempo = document.getElementById("filterJatuhTempo");
-    const filterStatus = document.getElementById("filterStatus");
-    const filterSheetBtn = document.getElementById("filterSheetBtn");
-    const btnExcel = document.getElementById("btnExcel");
-    const configDialog = document.getElementById("configDialog");
-    const configForm = document.getElementById("configForm");
-    const configScriptUrl = document.getElementById("configScriptUrl");
-    const configSheetId = document.getElementById("configSheetId");
-    const cancelConfig = document.getElementById("cancelConfig");
-    const btnSettings = document.getElementById("btnSettings");
+    const LOCAL_VENDOR_KEY = "master_vendor_v2";
+    const vendorSelect = document.getElementById("vendorSelect");
+    const topSelect = document.getElementById("newVendorTop");
 
-    const vendorSelect = document.getElementById("vendor");
-    const jatuhTempoInput = document.getElementById("jatuhTempo");
-    const vendorMaterialHidden = document.getElementById("vendorMaterialHidden");
-    const vendorTopHidden = document.getElementById("vendorTopHidden");
-    let akunMaster = [];
-    document.getElementById("tanggal").addEventListener("change", updateDueDate);
-    vendorSelect.addEventListener("change", updateDueDate);
-    vendorSelect.addEventListener("change", syncHiddenVendor);
-
-    function buildAkunLabel(a) {
-      if (!a) return "";
-      if (a.kode && a.nama) return `${a.kode} - ${a.nama}`;
-      return a.nama || a.kode || "";
-    }
-
-    function isPendapatan(a) {
-      const kode = (a.kode || "").toString();
-      const kat = (a.kategori || "").toLowerCase();
-      return kode.startsWith("4") || kat.includes("pendapat");
-    }
-
-    function isBeban(a) {
-      const kode = (a.kode || "").toString();
-      const kat = (a.kategori || "").toLowerCase();
-      return kode.startsWith("5") || kat.includes("beban") || kat.includes("biaya");
-    }
-
-    // sumber options tergantung jenis
-    function getOptionsForKasMasuk() {
-      return akunMaster.filter(isPendapatan);
-    }
-    function getOptionsForKasKeluar() {
-      return akunMaster.filter(isBeban);
-    }
-
-    // util render dropdown
-    function renderComboList(listEl, items, keyword, onPick) {
-      const q = (keyword || "").toLowerCase().trim();
-      const filtered = !q
-        ? items
-        : items.filter(a => buildAkunLabel(a).toLowerCase().includes(q));
-
-      if (filtered.length === 0) {
-        listEl.innerHTML = `<div class="combo-item" style="cursor:default;color:#94a3b8;">Tidak ada hasil</div>`;
-        return;
+    // 1. INIT SAAT LOAD
+    window.onload = function() {
+      if(SCRIPT_URL.includes("GANTI_DENGAN")) {
+        alert("PERHATIAN: Anda belum mengganti SCRIPT_URL di dalam kode HTML!");
       }
 
-      listEl.innerHTML = filtered
-        .slice(0, 80)
-        .map((a, idx) => {
-          const label = buildAkunLabel(a);
-          return `<div class="combo-item" role="option" data-idx="${idx}">${label}</div>`;
-        })
-        .join("");
-
-      // click pick
-      listEl.querySelectorAll(".combo-item").forEach((el) => {
-        el.addEventListener("click", () => {
-          const label = el.textContent;
-          onPick(label);
-        });
-      });
-    }
-
-    // init combobox
-    function initCombo(inputEl, listEl, getItemsFn) {
-      let itemsCache = [];
-
-      function open() {
-        listEl.style.display = "block";
-        inputEl.setAttribute("aria-expanded", "true");
+      // Isi Dropdown TOP 15-120
+      for(let i=15; i<=120; i++){
+        let opt = document.createElement("option");
+        opt.value = i + " hari";
+        opt.textContent = i + " hari";
+        topSelect.appendChild(opt);
       }
-      function close() {
-        listEl.style.display = "none";
-        inputEl.setAttribute("aria-expanded", "false");
-      }
+      
+      loadVendorsToSelect();
+      document.getElementById("tagihanForm").action = SCRIPT_URL;
+    };
 
-      function refresh(keyword = "") {
-        itemsCache = getItemsFn() || [];
-        renderComboList(listEl, itemsCache, keyword, (label) => {
-          inputEl.value = label;
-          close();
-
-          // opsional: auto tampilkan detail kas masuk bila perlu
-          if (inputEl.id === "kasMasukSumber") {
-            const kasMasukDetail = document.getElementById("kasMasukDetail");
-            if (kasMasukDetail) kasMasukDetail.style.display = "block";
-          }
-        });
-      }
-
-      inputEl.addEventListener("focus", () => {
-        refresh(inputEl.value);
-        open();
-      });
-
-      inputEl.addEventListener("input", () => {
-        refresh(inputEl.value);
-        open();
-      });
-
-      // klik di luar => tutup
-      document.addEventListener("click", (e) => {
-        const wrap = inputEl.closest(".combo");
-        if (wrap && !wrap.contains(e.target)) close();
-      });
-
-      // keyboard basic
-      inputEl.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") close();
-      });
-
-      // expose refresh
-      return { refresh, open, close };
-    }
-
-    function getScriptUrl() {
-      return localStorage.getItem(CONFIG_URL_KEY) || window.PN_VENDOR_SCRIPT_URL || "";
-    }
-
-    function getSheetId() {
-      return localStorage.getItem(CONFIG_SHEET_KEY) || window.PN_VENDOR_SHEET_ID || "";
-    }
-
-    function setStatus(type, message) {
-      statusBox.className = `status ${type} show`;
-      statusBox.textContent = message;
-    }
-
-    function setFilterStatus(type, message) {
-      filterStatus.className = `status ${type} show`;
-      filterStatus.textContent = message;
-      filterStatus.style.display = "block";
-    }
-
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      const tanggal = document.getElementById("tanggal").value;
-      const vendor = vendorSelect.value;
-      const total = document.getElementById("total").value;
-      const buktiInput = document.getElementById("bukti");
-      const buktiFile = buktiInput.files[0];
-
-      if (!tanggal || !vendor || !total || !buktiFile) {
-        alert("Lengkapi semua field sebelum menyimpan.");
-        return;
-      }
-
-      syncHiddenVendor();
-
-      const scriptUrl = getScriptUrl();
-      if (!scriptUrl) {
-        setStatus("error", "URL Apps Script belum diatur. Isi lewat tombol Pengaturan atau set window.PN_VENDOR_SCRIPT_URL.");
+    // 2. LOAD VENDORS DARI LOCALSTORAGE
+    function loadVendorsToSelect() {
+      let vendors = JSON.parse(localStorage.getItem(LOCAL_VENDOR_KEY) || "[]");
+      
+      if(vendors.length === 0) {
+        vendorSelect.innerHTML = "<option value=''>-- Belum ada vendor --</option>";
       } else {
-        setStatus("info", "Mengirim ke Apps Script...");
-        form.action = scriptUrl;
-        form.method = "POST";
-        form.target = "hidden_iframe";
-        form.submit();
-        setStatus("success", "Dikirim ke spreadsheet. Cek spreadsheet untuk memastikan tersimpan.");
-      }
-
-      const reader = new FileReader();
-      reader.onload = function (evt) {
-        const data = loadData();
-        data.push({
-          id: Date.now(),
-          tanggal,
-          vendorName: vendor,
-          material: vendorMaterialHidden.value,
-          top: vendorTopHidden.value,
-          total: Number(total),
-          jatuhTempo: jatuhTempoInput.value,
-          buktiNama: buktiFile.name,
-          buktiLink: evt.target.result
+        vendorSelect.innerHTML = "<option value=''>-- Pilih Vendor --</option>";
+        vendors.forEach(v => {
+          // Kita simpan info lengkap di atribut data
+          let opt = document.createElement("option");
+          opt.value = v.name;
+          opt.textContent = v.name;
+          opt.dataset.material = v.material;
+          opt.dataset.top = v.top;
+          vendorSelect.appendChild(opt);
         });
-        saveData(data);
-        form.reset();
-        renderTable();
-      };
-      reader.readAsDataURL(buktiFile);
+      }
+    }
+
+    // 3. LOGIKA JATUH TEMPO
+    vendorSelect.addEventListener("change", function() {
+      let opt = vendorSelect.options[vendorSelect.selectedIndex];
+      if(opt && opt.dataset.top) {
+        // Isi hidden input untuk dikirim ke spreadsheet
+        document.getElementById("hiddenMaterial").value = opt.dataset.material;
+        document.getElementById("hiddenTop").value = opt.dataset.top;
+
+        // Hitung Tanggal
+        let tgl = document.getElementById("tanggal").value;
+        if(tgl) hitungJatuhTempo(tgl, opt.dataset.top);
+      }
     });
 
-    function loadData() {
-      try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-      } catch {
-        return [];
-      }
-    }
-
-    function saveData(data) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
-
-    function renderTable() {
-      const data = loadData();
-      if (!data.length) {
-        table.style.display = "none";
-        emptyState.style.display = "block";
-        return;
-      }
-
-      table.style.display = "table";
-      emptyState.style.display = "none";
-
-      tbody.innerHTML = data.map((item, idx) => `
-        <tr>
-          <td>${idx + 1}</td>
-          <td>${formatDate(item.tanggal)}</td>
-          <td>${item.jatuhTempo ? formatDate(item.jatuhTempo) : "-"}</td>
-          <td>${item.vendorName}</td>
-          <td>${formatRupiah(item.total)}</td>
-          <td><a href="${item.buktiLink}" target="_blank" rel="noopener">${item.buktiNama}</a></td>
-        </tr>
-      `).join("");
-    }
-
-    function formatDate(value) {
-      try {
-        return new Date(value).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
-      } catch {
-        return value;
-      }
-    }
-
-    const vendorDialog = document.getElementById("vendorDialog");
-    const vendorForm = document.getElementById("vendorForm");
-    document.getElementById("btnVendor").addEventListener("click", () => {
-      vendorForm.reset();
-      vendorDialog.showModal();
-    });
-    document.getElementById("cancelVendor").addEventListener("click", () => vendorDialog.close());
-    vendorForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const name = document.getElementById("vendorName").value.trim();
-      const material = document.getElementById("vendorMaterial").value.trim();
-      const top = document.getElementById("vendorTop").value.trim();
-      if (!name || !material || !top) {
-        alert("Lengkapi semua kolom vendor.");
-        return;
-      }
-
-      const vendors = loadVendors();
-      const days = parseInt(top.match(/\d+/)?.[0], 10);
-      vendors.push({
-        id: Date.now(),
-        name,
-        material,
-        top,
-        days: isNaN(days) ? null : days
-      });
-      saveVendors(vendors);
-      populateVendorOptions();
-      sendVendorToScript({ name, material, top });
-      alert("Vendor tersimpan.");
-      vendorDialog.close();
+    document.getElementById("tanggal").addEventListener("change", function() {
+      let opt = vendorSelect.options[vendorSelect.selectedIndex];
+      if(opt && opt.dataset.top) hitungJatuhTempo(this.value, opt.dataset.top);
     });
 
-    function loadVendors() {
-      try {
-        return JSON.parse(localStorage.getItem(VENDOR_KEY)) || [];
-      } catch {
-        return [];
-      }
+    function hitungJatuhTempo(tglStr, topStr) {
+      let days = parseInt(topStr);
+      let d = new Date(tglStr);
+      d.setDate(d.getDate() + days);
+      document.getElementById("jatuhTempo").value = d.toISOString().split("T")[0];
     }
 
-    function saveVendors(data) {
-      localStorage.setItem(VENDOR_KEY, JSON.stringify(data));
+    // 4. SIMPAN VENDOR BARU
+    function openVendorModal() {
+      document.getElementById("vendorDialog").showModal();
     }
 
-    function populateVendorOptions() {
-      const current = vendorSelect.value;
-      const vendors = loadVendors();
-      if (!vendors.length) {
-        vendorSelect.innerHTML = '<option value="">Belum ada vendor. Tambahkan terlebih dahulu.</option>';
-        populateFilterVendor();
-        return;
+    function simpanVendor() {
+      let name = document.getElementById("newVendorName").value.trim();
+      let mat = document.getElementById("newVendorMat").value;
+      let top = document.getElementById("newVendorTop").value;
+
+      if(!name) return alert("Nama vendor wajib diisi");
+
+      // Cek Duplikat Lokal
+      let vendors = JSON.parse(localStorage.getItem(LOCAL_VENDOR_KEY) || "[]");
+      if(vendors.some(v => v.name.toLowerCase() === name.toLowerCase())) {
+        return alert("Nama vendor sudah ada!");
       }
-      vendorSelect.innerHTML = '<option value="">Pilih vendor</option>' + vendors.map(v => `<option value="${v.name}" data-top="${v.top}" data-material="${v.material}">${v.name} (${v.material}, TOP ${v.top})</option>`).join("");
-      if (current) vendorSelect.value = current;
-      updateDueDate();
-      syncHiddenVendor();
-      populateFilterVendor();
+
+      // 1. Simpan Lokal
+      vendors.push({name: name, material: mat, top: top});
+      localStorage.setItem(LOCAL_VENDOR_KEY, JSON.stringify(vendors));
+      
+      // 2. Kirim ke Server (Background)
+      let formData = new FormData();
+      formData.append("action", "simpan_vendor");
+      formData.append("vendorName", name);
+      formData.append("vendorMaterial", mat);
+      formData.append("vendorTop", top);
+      fetch(SCRIPT_URL, { method: "POST", body: formData, mode: "no-cors" });
+
+      // 3. Reset UI
+      loadVendorsToSelect();
+      document.getElementById("vendorDialog").close();
+      document.getElementById("newVendorName").value = "";
+      showToast("Vendor berhasil ditambahkan!");
     }
 
-    function populateFilterVendor() {
-      const vendors = loadVendors();
-      filterVendor.innerHTML = '<option value="">Semua vendor</option>' + vendors.map(v => `<option value="${v.name}">${v.name}</option>`).join("");
-    }
-
-    function formatRupiah(nominal) {
-      const num = Number(nominal || 0);
-      return "Rp " + num.toLocaleString("id-ID");
-    }
-
-    function updateDueDate() {
-      const tanggal = document.getElementById("tanggal").value;
-      const topText = vendorSelect.selectedOptions[0]?.dataset.top || "";
-      if (!tanggal || !topText) {
-        jatuhTempoInput.value = "";
-        return;
-      }
-      const days = parseInt(topText.match(/\d+/)?.[0], 10);
-      if (isNaN(days)) {
-        jatuhTempoInput.value = "";
-        return;
-      }
-      const due = new Date(tanggal);
-      due.setDate(due.getDate() + days);
-      jatuhTempoInput.value = due.toISOString().split("T")[0];
-    }
-
-    filterForm?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const mulai = filterMulai.value;
-      const sampai = filterSampai.value;
-      const jatuh = filterJatuhTempo.value;
-      if (mulai && sampai && new Date(mulai) > new Date(sampai)) {
-        setFilterStatus("error", "Rentang tanggal tidak valid. Pastikan tanggal awal tidak melebihi tanggal akhir.");
-        return;
-      }
-      const vendor = filterVendor.value || "Semua";
-      setFilterStatus(
-        "info",
-        `Filter diterapkan: ${mulai || "awal"} sampai ${sampai || "sekarang"}, vendor ${vendor}, jatuh tempo ${jatuh || "semua"}.`
-      );
-    });
-
-    filterSheetBtn?.addEventListener("click", () => {
-      const sheetId = getSheetId();
-      if (!sheetId || sheetId.startsWith("<")) {
-        alert("Set dulu ID spreadsheet di Pengaturan atau window.PN_VENDOR_SHEET_ID.");
-        return;
-      }
-      const sheetUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
-      window.open(sheetUrl, "_blank");
-    });
-
-    // --- Script Download Excel ---
-    btnExcel?.addEventListener("click", () => {
-      const scriptUrl = getScriptUrl();
-      if (!scriptUrl) {
-        alert("URL Script belum diatur.");
-        return;
-      }
-
-      // Ambil nilai filter
-      const mulai = filterMulai.value;
-      const sampai = filterSampai.value;
-      const vendor = filterVendor.value;
-
-      // Tampilkan status loading
-      filterStatus.className = "status info show";
-      filterStatus.textContent = "Sedang memproses file Excel...";
-      filterStatus.style.display = "block";
-
-      // Susun URL: action=excel
-      const excelUrl = `${scriptUrl}?action=excel&mulai=${encodeURIComponent(mulai)}&sampai=${encodeURIComponent(sampai)}&vendor=${encodeURIComponent(vendor)}`;
-
-      // Buka URL (browser akan otomatis download file .csv/.xlsx sesuai Apps Script)
-      window.open(excelUrl, "_blank");
-
-      // Reset pesan
+    // 5. HANDLING SUBMIT TAGIHAN
+    document.getElementById("tagihanForm").addEventListener("submit", function() {
+      showToast("Sedang mengirim data...");
       setTimeout(() => {
-        filterStatus.textContent = "File Excel berhasil diproses. Cek folder download Anda.";
-      }, 3000);
+        this.reset();
+        showToast("Data Terkirim! Cek Spreadsheet.");
+        document.getElementById("jatuhTempo").value = "";
+      }, 2000);
     });
 
-    function syncHiddenVendor() {
-      const opt = vendorSelect.selectedOptions[0];
-      vendorMaterialHidden.value = opt?.dataset.material || "";
-      vendorTopHidden.value = opt?.dataset.top || "";
+    function showToast(msg) {
+      let t = document.getElementById("toast");
+      t.innerText = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 3000);
     }
-
-    function sendVendorToScript({ name, material, top }) {
-      const scriptUrl = getScriptUrl();
-      if (!scriptUrl) {
-        console.warn("Script URL belum diatur, vendor tidak dikirim ke spreadsheet.");
-        return;
-      }
-      // Kirim via form tersembunyi supaya kompatibel dengan Apps Script
-      const tempForm = document.createElement("form");
-      tempForm.style.display = "none";
-      tempForm.action = scriptUrl;
-      tempForm.method = "POST";
-      tempForm.target = "hidden_iframe";
-
-      const add = (k, v) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = k;
-        input.value = v || "";
-        tempForm.appendChild(input);
-      };
-
-      // Tambahan action agar Apps Script tahu ini form vendor
-      add("action", "simpan_vendor");
-      add("vendorName", name);
-      add("vendorMaterial", material);
-      add("vendorTop", top);
-
-      document.body.appendChild(tempForm);
-      tempForm.submit();
-      setTimeout(() => tempForm.remove(), 1000);
-    }
-
-    btnSettings?.addEventListener("click", () => {
-      configScriptUrl.value = getScriptUrl();
-      configSheetId.value = getSheetId();
-      configDialog.showModal();
-    });
-
-    cancelConfig?.addEventListener("click", () => configDialog.close());
-
-    configForm?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const url = configScriptUrl.value.trim();
-      const sheetId = configSheetId.value.trim();
-      if (url) localStorage.setItem(CONFIG_URL_KEY, url);
-      if (sheetId) localStorage.setItem(CONFIG_SHEET_KEY, sheetId);
-      if (!url && !sheetId) {
-        alert("Isi salah satu atau kedua pengaturan sebelum menyimpan.");
-        return;
-      }
-      configDialog.close();
-      setStatus("success", "Pengaturan disimpan. Form akan memakai Apps Script/Spreadsheet baru.");
-    });
-
-    populateVendorOptions();
-    renderTable();
   </script>
 </body>
 </html>
