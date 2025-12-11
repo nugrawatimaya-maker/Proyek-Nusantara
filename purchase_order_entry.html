@@ -499,81 +499,60 @@
       }catch(err){ return []; }
     }
 
-    // --- 1. NOTIFIKASI & ANTRIAN ---
-    let REQUEST_CACHE = [];
-    let BATCH_CACHE = {};
-
+    // --- 1. NOTIFIKASI & ANTRIAN (per item) ---
     async function loadOrderRequests() {
       const badge = document.getElementById('notifBadge');
       const list  = document.getElementById('notifList');
-      const rawDraft = localStorage.getItem('PO_DRAFT_FROM_INVENTORY');
-      let batches = [];
-      if (rawDraft) {
-        try {
-          const draftObj = JSON.parse(rawDraft);
-          batches = [draftObj];
-        } catch (e) {
-          console.warn("Gagal parse draft lokal PO:", e);
-        }
-      }
 
       try {
         const res = await fetch(APPS_SCRIPT_URL + "?action=get_po_requests");
         if (!res.ok) throw new Error("HTTP " + res.status);
-        
+
         const json = await res.json();
         const rows = (json && json.data) || [];
 
-        let batchesFromSheet = [];
-        if (rows.length) {
-          // Kelompokkan per batchId kalau ada
-          const byBatch = rows.reduce((acc, r) => {
-            const bid = r.batchId || "BATCH-" + (r.rowIndex || r.requestId || Date.now());
-            if (!acc[bid]) acc[bid] = [];
-            acc[bid].push(r);
-            return acc;
-          }, {});
-          batchesFromSheet = Object.entries(byBatch).map(([batchId, items]) => ({
-            batchId,
-            requester: items[0]?.requester || "Gudang",
-            items: items.map(it => ({
-              id: it.requestId || it.rowIndex || Date.now(),
-              item: it.item,
-              qty: it.qty,
-              unit: it.unit,
-              vendor: it.vendor
-            }))
-          }));
-        }
+        // Simpan status lama supaya Accepted tidak hilang
+        const localOrders = safeLoadArray(INVENTORY_ORDER_KEY);
+        const statusMap = new Map(localOrders.map(o => [String(o.id), o.status || 'Menunggu']));
 
-        if (batches.length === 0 && batchesFromSheet.length) {
-          batches = batchesFromSheet;
-        }
+        const orders = rows.map(r => {
+          const id = r.requestId || r.rowIndex || (r.item + '-' + r.timestamp);
+          return {
+            id:        id,
+            item:      r.item,
+            qty:       r.qty,
+            unit:      r.unit,
+            vendor:    r.vendor,
+            requester: r.requester || 'Gudang',
+            status:    statusMap.get(String(id)) || 'Menunggu'
+          };
+        });
 
-        const pending = batches.map(b => ({
-          id: b.batchId,
-          title: `Request dari ${b.requester || 'Gudang'}`,
-          info: `${(b.items || []).length} item material`,
-          requester: b.requester || 'Gudang'
-        }));
+        localStorage.setItem(INVENTORY_ORDER_KEY, JSON.stringify(orders));
+
+        const pending = orders.filter(o => o.status === 'Menunggu');
 
         if (pending.length > 0) {
           badge.style.display = "flex";
           badge.textContent   = pending.length;
-          list.innerHTML = pending.map(b => `
+          list.innerHTML = pending.map(o => `
             <li class="notif-item">
               <div class="notif-content">
-                <div class="req-title">${b.title}</div>
-                <div class="req-meta">${b.info}</div>
-                <span class="req-user">👤 ${b.requester}</span>
+                <div class="req-title">${o.item}</div>
+                <div class="req-meta">
+                  Qty: ${o.qty} ${o.unit || ''} | Vendor: ${o.vendor || '-'}
+                </div>
+                <span class="req-user">👤 ${o.requester}</span>
               </div>
-              <button class="accept-btn" onclick="acceptBatch('${b.id}')">Terima</button>
+              <button class="accept-btn" onclick="acceptRequest('${o.id}')">Terima</button>
             </li>
           `).join('');
         } else {
           badge.style.display = "none";
           list.innerHTML = '<li class="notif-item" style="justify-content:center; color:#94a3b8;">Tidak ada permintaan baru</li>';
         }
+
+        loadAcceptedQueue();
 
       } catch (err) {
         console.error("Gagal memuat permintaan:", err);
@@ -582,17 +561,19 @@
       }
     }
 
-    function toggleNotif() { document.getElementById('notifDropdown').classList.toggle('show'); }
+    function toggleNotif() {
+      document.getElementById('notifDropdown').classList.toggle('show');
+    }
 
     function acceptRequest(id) {
       const orders = safeLoadArray(INVENTORY_ORDER_KEY);
-      const targetIndex = orders.findIndex(o => String(o.id) === String(id));
-      if (targetIndex !== -1) {
-        orders[targetIndex].status = 'Accepted';
+      const idx = orders.findIndex(o => String(o.id) === String(id));
+      if (idx !== -1) {
+        orders[idx].status = 'Accepted';
         localStorage.setItem(INVENTORY_ORDER_KEY, JSON.stringify(orders));
         loadOrderRequests();
       }
-      if (event) event.stopPropagation();
+      if (window.event) window.event.stopPropagation();
     }
 
     function loadAcceptedQueue() {
@@ -605,64 +586,37 @@
       if (accepted.length > 0) {
         section.classList.add('show');
         count.textContent = accepted.length;
-        list.innerHTML = accepted.map(item => `
-          <div class="queue-item" onclick="processQueueItem('${item.id}')">
-            <strong>${item.item}</strong>
-            <span>Qty: ${item.qty} ${item.unit || ''}</span><br>
+        list.innerHTML = accepted.map(o => `
+          <div class="queue-item" onclick="processQueueItem('${o.id}')">
+            <strong>${o.item}</strong>
+            <span>Qty: ${o.qty} ${o.unit || ''}</span><br>
             <span style="color:#f97316;">klik tambah ke tabel</span>
           </div>
         `).join('');
       } else {
         section.classList.remove('show');
+        list.innerHTML = '';
       }
     }
 
-    function processBatch(batchId) {
-      const items = BATCH_CACHE[batchId] || [];
-      if (!items.length) return;
+    function processQueueItem(id) {
+      const orders = safeLoadArray(INVENTORY_ORDER_KEY);
+      const o = orders.find(x => String(x.id) === String(id));
+      if (!o) return;
 
-      items.forEach(it => {
-        addTableRow(it.item, it.qty, it.unit, 0, it.id);
-      });
+      addTableRow(o.item, o.qty, o.unit, 0, o.id);
 
-      // auto vendor pakai item pertama jika ada
-      const first = items[0];
-      const vendorSelect = document.getElementById('vendorSelect');
-      if (first && first.vendor && vendorSelect && !vendorSelect.value) {
-        const exists = Array.from(vendorSelect.options).find(opt => opt.value.toLowerCase().includes(first.vendor.toLowerCase()));
-        if (exists) {
-          vendorSelect.value = exists.value;
-          if (typeof handleVendorChange === "function") handleVendorChange();
+      if (o.vendor) {
+        const vendorSelect = document.getElementById('vendorSelect');
+        if (vendorSelect && !vendorSelect.value) {
+          const opt = Array.from(vendorSelect.options)
+            .find(op => op.value.toLowerCase().includes(o.vendor.toLowerCase()));
+          if (opt) {
+            vendorSelect.value = opt.value;
+            if (typeof handleVendorChange === "function") handleVendorChange();
+          }
         }
       }
-
-      delete BATCH_CACHE[batchId];
-      loadAcceptedQueue();
-    }
-
-    function acceptBatch(batchId) {
-      const raw = localStorage.getItem('PO_DRAFT_FROM_INVENTORY');
-      if (!raw) return;
-      const draft = JSON.parse(raw);
-      if (draft.batchId !== batchId) return;
-
-      BATCH_CACHE[batchId] = draft.items || [];
-
-      const section = document.getElementById('queueSection');
-      const list = document.getElementById('queueList');
-      const count = document.getElementById('queueCount');
-
-      section.classList.add('show');
-      count.textContent = Object.keys(BATCH_CACHE).length;
-      list.innerHTML = Object.entries(BATCH_CACHE).map(([id, items]) => `
-        <div class="queue-item" onclick="processBatch('${id}')">
-          <strong>${items[0]?.item || 'PO Batch'}</strong>
-          <span>${items.length} item material</span><br>
-          <span style="color:#f97316;">klik tambah semua ke tabel</span>
-        </div>
-      `).join('');
-
-      document.getElementById('notifDropdown').classList.remove('show');
     }
 
     // --- 2. LOGIKA TABEL BARANG ---
