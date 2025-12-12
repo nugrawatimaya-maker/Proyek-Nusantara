@@ -291,6 +291,77 @@
     .signature-section { text-align: center; margin-top: 20px; width: 200px; }
     .sig-space { height: 70px; }
     .sig-name { font-weight: 700; text-decoration: underline; }
+
+    /* MODAL REQUEST LIST */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: none; align-items: center; justify-content: center; z-index: 2000;
+      padding: 16px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      width: 100%; max-width: 700px; background: #fff; border-radius: 14px;
+      box-shadow: 0 20px 45px rgba(15,23,42,0.2); overflow: hidden; border:1px solid var(--border);
+      display: flex; flex-direction: column;
+    }
+    .modal-header, .modal-footer {
+      padding: 14px 16px; background: #f8fafc; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    }
+    .modal-footer { border-top: 1px solid var(--border); border-bottom: none; }
+    .modal-body { padding: 14px 16px; max-height: 420px; overflow: auto; }
+    .close-modal {
+      border: none; background: none; font-size: 22px; cursor: pointer; color: #475569;
+    }
+    .batch-info { font-size: 13px; color: #475569; margin-bottom: 10px; }
+    .checklist-table { width: 100%; border-collapse: collapse; }
+    .checklist-table th, .checklist-table td {
+      border-bottom: 1px solid #e2e8f0; padding: 10px; font-size: 13px; text-align: left;
+    }
+    .checklist-table th { background: #f8fafc; font-weight: 700; color: #334155; }
+    .checklist-table input[type="checkbox"] { width: 16px; height: 16px; }
+    .btn-cancel, .btn-import {
+      border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer;
+    }
+    .btn-cancel { background: #e2e8f0; color: #475569; }
+    .btn-import { background: var(--primary); color: white; box-shadow: 0 6px 18px rgba(37,99,235,0.2); }
+
+    /* CSS MODAL & CHECKLIST (overlay style) */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5); z-index: 2000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: white; width: 90%; max-width: 600px; border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; display: flex; flex-direction: column;
+      max-height: 80vh;
+    }
+    .modal-header {
+      padding: 15px 20px; border-bottom: 1px solid #e2e8f0; display: flex;
+      justify-content: space-between; align-items: center; background: #f8fafc;
+    }
+    .modal-header h3 { margin: 0; font-size: 16px; color: #1e293b; }
+    .close-modal { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; }
+    .modal-body { padding: 0; overflow-y: auto; flex: 1; }
+
+    .batch-info { padding: 10px 20px; background: #fff7ed; color: #c2410c; font-size: 12px; font-weight: bold; border-bottom: 1px solid #fed7aa; }
+
+    .checklist-table { width: 100%; border-collapse: collapse; }
+    .checklist-table th { background: #f1f5f9; padding: 10px; text-align: left; font-size: 12px; position: sticky; top: 0; }
+    .checklist-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    .checklist-table tr:hover { background: #f8fafc; }
+
+    .modal-footer { padding: 15px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; }
+    .btn-import { background: #2563eb; color: white; border: none; padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    .btn-import:hover { background: #1d4ed8; }
+    .btn-cancel { background: white; border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
+    /* Modifikasi Notifikasi Item agar ada tombol Lihat */
+    .notif-action-btn {
+      margin-left: 10px; background: #3b82f6; color: white; border: none;
+      padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -300,6 +371,7 @@
       <p>Buat PO baru atau proses permintaan dari Inventory</p>
     </div>
     <div class="header-right">
+      <button id="btnOpenBatchModal" class="back-btn" style="display:none; background:#2563eb; color:white;" onclick="openRequestModal()">📥 Permintaan Batch</button>
       <div class="notif-wrapper" onclick="toggleNotif()">
         <span class="bell-icon">🔔</span>
         <div id="notifBadge" class="badge" style="display:none;">0</div>
@@ -390,6 +462,37 @@
       <button class="save-btn" onclick="savePurchaseOrder()">💾 Simpan Purchase Order & Cetak PDF</button>
     </section>
   </main>
+
+  <div id="modalRequestList" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>📋 Daftar Permintaan Barang</h3>
+        <button class="close-modal" onclick="closeRequestModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="batch-info">
+          <span id="batchIdDisplay">#REQ-000</span> &bull; 
+          <span id="batchDateDisplay">...</span>
+        </div>
+        <table class="checklist-table">
+          <thead>
+            <tr>
+              <th width="30"><input type="checkbox" onchange="toggleAllCheck(this)"></th>
+              <th>Barang</th>
+              <th>Qty</th>
+              <th>Vendor Pref.</th>
+            </tr>
+          </thead>
+          <tbody id="requestChecklistBody">
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeRequestModal()">Tutup</button>
+        <button class="btn-import" onclick="importCheckedItems()">📥 Masukkan ke Draft PO</button>
+      </div>
+    </div>
+  </div>
 
   <div id="po-template-container">
     <div id="po-template">
@@ -488,8 +591,11 @@
     const MATERIAL_KEY = "master_material_local";
     const INVENTORY_ORDER_KEY = "inventoryOrders"; 
     const PO_KEY = "purchaseOrders";
+    const REQUEST_BATCH_KEY = "po_request_batches";
     
     let globalVendorData = [];
+    let currentRequestBatch = null;
+    let currentBatchItems = [];
     const UNIT_OPTIONS = ["Batang","Biji","Dos","Ember","Filsh","Gulung","Kaleng","Kg","Kubik","Lembar","Liter","Meter","Pickup","Pcs","Roll","Sak","Set","Truk","Unit"];
 
     function safeLoadArray(key){
@@ -499,81 +605,45 @@
       }catch(err){ return []; }
     }
 
-    // --- 1. NOTIFIKASI & ANTRIAN (per item) ---
-    async function loadOrderRequests() {
+    // --- 1. NOTIFIKASI & ANTRIAN (per batch) ---
+    function loadOrderRequests() {
       const badge = document.getElementById('notifBadge');
       const list  = document.getElementById('notifList');
+      const btn   = document.getElementById('btnOpenBatchModal');
+      
+      const batches = safeLoadArray(REQUEST_BATCH_KEY).filter(b => b.status === 'Unread');
 
-      try {
-        const res = await fetch(APPS_SCRIPT_URL + "?action=get_po_requests");
-        if (!res.ok) throw new Error("HTTP " + res.status);
-
-        const json = await res.json();
-        const rows = (json && json.data) || [];
-
-        // Simpan status lama supaya Accepted tidak hilang
-        const localOrders = safeLoadArray(INVENTORY_ORDER_KEY);
-        const statusMap = new Map(localOrders.map(o => [String(o.id), o.status || 'Menunggu']));
-
-        const orders = rows.map(r => {
-          const id = r.requestId || r.rowIndex || (r.item + '-' + r.timestamp);
-          return {
-            id:        id,
-            item:      r.item,
-            qty:       r.qty,
-            unit:      r.unit,
-            vendor:    r.vendor,
-            requester: r.requester || 'Gudang',
-            status:    statusMap.get(String(id)) || 'Menunggu'
-          };
-        });
-
-        localStorage.setItem(INVENTORY_ORDER_KEY, JSON.stringify(orders));
-
-        const pending = orders.filter(o => o.status === 'Menunggu');
-
-        if (pending.length > 0) {
+      if (batches.length > 0) {
+        if (badge) {
           badge.style.display = "flex";
-          badge.textContent   = pending.length;
-          list.innerHTML = pending.map(o => `
-            <li class="notif-item">
-              <div class="notif-content">
-                <div class="req-title">${o.item}</div>
-                <div class="req-meta">
-                  Qty: ${o.qty} ${o.unit || ''} | Vendor: ${o.vendor || '-'}
-                </div>
-                <span class="req-user">👤 ${o.requester}</span>
-              </div>
-              <button class="accept-btn" onclick="acceptRequest('${o.id}')">Terima</button>
-            </li>
-          `).join('');
-        } else {
-          badge.style.display = "none";
-          list.innerHTML = '<li class="notif-item" style="justify-content:center; color:#94a3b8;">Tidak ada permintaan baru</li>';
+          badge.textContent   = batches.length;
         }
-
-        loadAcceptedQueue();
-
-      } catch (err) {
-        console.error("Gagal memuat permintaan:", err);
-        badge.style.display = "none";
-        list.innerHTML = '<li class="notif-item" style="justify-content:center; color:#ef4444;">Gagal memuat permintaan.</li>';
+        if (btn) {
+          btn.style.display = 'inline-flex';
+          btn.textContent = `📥 Permintaan Batch (${batches.length})`;
+        }
+        
+        list.innerHTML = batches.map(batch => `
+          <li class="notif-item">
+            <div class="notif-content">
+              <div class="req-title">Permintaan Barang</div>
+              <div class="req-meta">
+                ID: ${batch.id} | ${batch.itemCount} Item
+              </div>
+              <span class="req-user">🕒 ${new Date(batch.date).toLocaleDateString()}</span>
+            </div>
+            <button class="notif-action-btn" onclick="openRequestModal('${batch.id}')">Lihat Order</button>
+          </li>
+        `).join('');
+      } else {
+        if (badge) badge.style.display = "none";
+        if (btn) btn.style.display = 'none';
+        list.innerHTML = '<li class="notif-item" style="justify-content:center; color:#94a3b8;">Tidak ada permintaan baru</li>';
       }
     }
 
     function toggleNotif() {
       document.getElementById('notifDropdown').classList.toggle('show');
-    }
-
-    function acceptRequest(id) {
-      const orders = safeLoadArray(INVENTORY_ORDER_KEY);
-      const idx = orders.findIndex(o => String(o.id) === String(id));
-      if (idx !== -1) {
-        orders[idx].status = 'Accepted';
-        localStorage.setItem(INVENTORY_ORDER_KEY, JSON.stringify(orders));
-        loadOrderRequests();
-      }
-      if (window.event) window.event.stopPropagation();
     }
 
     function loadAcceptedQueue() {
@@ -617,6 +687,86 @@
           }
         }
       }
+    }
+
+    // --- BATCH REQUEST MODAL (per batch dari gudang) ---
+    function loadRequestBatches() {
+      const batches = safeLoadArray(REQUEST_BATCH_KEY).filter(b => b.status === 'Unread');
+      const btn = document.getElementById('btnOpenBatchModal');
+      if (!btn) return;
+      if (batches.length === 0) {
+        btn.style.display = 'none';
+      } else {
+        btn.style.display = 'inline-flex';
+        btn.textContent = `📥 Permintaan Batch (${batches.length})`;
+      }
+    }
+
+    function openRequestModal(batchId) {
+      const batches = safeLoadArray(REQUEST_BATCH_KEY).filter(b => b.status === 'Unread');
+      const batch = batchId ? batches.find(b => b.id === batchId) : batches[0];
+      if (!batch) { alert("Tidak ada batch permintaan."); return; }
+
+      currentBatchItems = batch.items || [];
+      
+      document.getElementById('batchIdDisplay').textContent = batch.id || '-';
+      document.getElementById('batchDateDisplay').textContent = new Date(batch.date).toLocaleString();
+
+      const tbody = document.getElementById('requestChecklistBody');
+      tbody.innerHTML = currentBatchItems.map((item, index) => `
+        <tr>
+          <td>
+            <input type="checkbox" class="req-checkbox" value="${index}" checked>
+          </td>
+          <td><strong>${item.item}</strong></td>
+          <td>${item.qty} ${item.unit || ''}</td>
+          <td style="color:#64748b; font-size:11px;">${item.vendor || '-'}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('modalRequestList').classList.add('show');
+      document.getElementById('notifDropdown').classList.remove('show');
+    }
+
+    function closeRequestModal() {
+      document.getElementById('modalRequestList').classList.remove('show');
+      currentBatchItems = [];
+    }
+
+    function toggleAllCheck(source) {
+      document.querySelectorAll('.req-checkbox').forEach(cb => cb.checked = source.checked);
+    }
+
+    function importCheckedItems() {
+      const checkboxes = document.querySelectorAll('.req-checkbox:checked');
+      if (checkboxes.length === 0) {
+        alert("Pilih minimal satu barang untuk dimasukkan.");
+        return;
+      }
+
+      checkboxes.forEach(cb => {
+        const idx = parseInt(cb.value, 10);
+        const item = currentBatchItems[idx];
+        if (item) {
+          addTableRow(item.item, item.qty, item.unit, 0, item.id);
+        }
+      });
+
+      const batchId = document.getElementById('batchIdDisplay').textContent;
+      markBatchAsRead(batchId);
+
+      closeRequestModal();
+      loadOrderRequests();
+      loadAcceptedQueue();
+    }
+
+    function markBatchAsRead(batchId) {
+      const batches = safeLoadArray(REQUEST_BATCH_KEY);
+      const updated = batches.map(b => {
+        if (b.id === batchId) b.status = 'Processed';
+        return b;
+      });
+      localStorage.setItem(REQUEST_BATCH_KEY, JSON.stringify(updated));
     }
 
     // --- 2. LOGIKA TABEL BARANG ---
@@ -896,6 +1046,7 @@
     document.addEventListener("DOMContentLoaded", () => {
       populateVendorDropdown();
       loadOrderRequests();
+      loadRequestBatches();
       document.getElementById('poDate').valueAsDate = new Date();
       addTableRow(); // Baris kosong pertama
 

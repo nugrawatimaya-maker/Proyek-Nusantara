@@ -145,7 +145,7 @@
 <body>
   <header>
     <h1>Inventory Management</h1>
-    <button class="nav-btn" onclick="window.history.back()">Kembali</button>
+    <button class="nav-btn" type="button" onclick="goBack()">Kembali</button>
   </header>
 
   <main>
@@ -168,25 +168,32 @@
             <ul id="orderItemDropdown" class="custom-dropdown"></ul>
             <div id="orderItemBalloon" class="validation-balloon">Nama material belum terdaftar. Klik tombol <strong>+</strong> untuk menambah.</div>
           </div>
+          
           <div class="form-group">
             <label>Satuan</label>
             <select id="orderUnitSelect"></select>
           </div>
+          
           <div class="form-group">
             <label>Jumlah</label>
             <input type="number" id="orderQty" min="1" required placeholder="0">
           </div>
+
           <div class="form-group">
-            <label>Vendor</label>
-            <select id="orderVendor"><option value="">-- Pilih Vendor --</option></select>
+            <label>Nama Pengorder</label>
+            <select id="orderRequester" required>
+              <option value="">-- Pilih Nama --</option>
+              </select>
           </div>
+          
           <button type="submit" class="btn-tambah" style="width:100%;">Simpan Order</button>
         </form>
       </div>
+
       <div class="inventory-card">
         <h3>Daftar Order (Draft)</h3>
         <table class="std-table">
-          <thead><tr><th>Barang</th><th>Qty</th><th>Vendor</th><th>Aksi</th></tr></thead>
+          <thead><tr><th>Barang</th><th>Qty</th><th>Pengorder</th><th>Aksi</th></tr></thead>
           <tbody id="orderTable"></tbody>
         </table>
         <div style="text-align:right; margin-top:10px;">
@@ -288,12 +295,14 @@
     const HISTORY_KEY = 'inventoryHistory';
     const PO_KEY = 'purchaseOrders';
     const MATERIAL_KEY = 'master_material_local';
-    const VENDOR_KEY = 'master_vendor_local';
     
-    // TEMPEL URL BARU ANDA DI SINI
+    // TEMPEL URL ANDA DI SINI
     const ITEM_SOURCE_URL = "https://script.google.com/macros/s/AKfycby35BUkEx44e226aMxqdQqHGR-44jYysKje3x-LKmv581Tv41C6Hshqq8LTIhVOW40B/exec";
     
     const UNIT_OPTIONS = ["Batang","Biji","Dos","Ember","Filsh","Gulung","Kaleng","Kg","Kubik","Lembar","Liter","Meter","Pickup","Pcs","Roll","Sak","Set","Truk","Unit"].sort();
+    
+    // DAFTAR PENGORDER
+    const REQUESTER_OPTIONS = ["Eka", "Indra", "Didin", "Nadia"];
 
     let allMaterials = [];
     let activePO = null;
@@ -304,18 +313,33 @@
     function saveData(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
     function loadMasterMaterials() { return getData(MATERIAL_KEY); }
     function saveMasterMaterials(list) { saveData(MATERIAL_KEY, list); }
+    function goBack() {
+      if (document.referrer) {
+        window.history.back();
+      } else {
+        window.location.href = 'dashboard_operasional.html';
+      }
+    }
 
     // --- INIT ---
     window.onload = function() {
-      // Setup Satuan
-      const sel = document.getElementById('orderUnitSelect');
-      sel.innerHTML = UNIT_OPTIONS.map(u => `<option value="${u}">${u}</option>`).join('');
-      document.getElementById('newMaterialUnitInput').innerHTML = sel.innerHTML;
+      // 1. Setup Satuan
+      const selUnit = document.getElementById('orderUnitSelect');
+      selUnit.innerHTML = UNIT_OPTIONS.map(u => `<option value="${u}">${u}</option>`).join('');
+      document.getElementById('newMaterialUnitInput').innerHTML = selUnit.innerHTML;
 
-      // Setup Dropdown
+      // 2. Setup Dropdown Pengorder (PENGGANTI VENDOR)
+      const selReq = document.getElementById('orderRequester');
+      // Pastikan elemen ditemukan sebelum diisi
+      if(selReq) {
+        selReq.innerHTML = '<option value="">-- Pilih Nama --</option>' + 
+          REQUESTER_OPTIONS.map(n => `<option value="${n}">${n}</option>`).join('');
+      }
+
+      // 3. Setup Dropdown Pencarian Barang
       setupDropdown('orderItem', 'orderItemDropdown');
       
-      // Ambil data
+      // 4. Load Data
       console.log("Mulai aplikasi...");
       fetchDataMaster();
       renderOrders();
@@ -334,66 +358,40 @@
     });
 
     // ==========================================
-    // 1. FETCH DATA (DENGAN LOG ERROR LENGKAP)
+    // 1. FETCH DATA
     // ==========================================
     async function fetchDataMaster() {
       const input = document.getElementById('orderItem');
       input.placeholder = "Menghubungkan ke Google Sheet...";
       
-      // 1. Load data lokal dulu (fallback)
+      // Load data lokal dulu (fallback)
       allMaterials = collectItemNames(); 
-      renderVendorOptions(getData(VENDOR_KEY));
 
       if (!ITEM_SOURCE_URL) return;
 
-      console.log("Sedang mencoba fetch ke URL:", ITEM_SOURCE_URL);
-
       try {
-        // Tambahkan timestamp biar tidak dicache browser
         const response = await fetch(ITEM_SOURCE_URL + "?t=" + new Date().getTime());
-        
-        console.log("Status Response:", response.status);
-
-        // Cek apakah outputnya JSON atau HTML error
         const contentType = response.headers.get("content-type");
+        
         if (contentType && contentType.indexOf("application/json") === -1) {
-            console.error("Error: Google mengembalikan HTML, bukan JSON. Cek izin akses 'Anyone' di deployment.");
             input.placeholder = "Error: Izin Akses Script Ditolak.";
-            // Kita coba parse text-nya untuk melihat pesan error Google
-            const text = await response.text();
-            console.log("Isi Response (HTML):", text.substring(0, 100) + "..."); 
             return;
         }
 
         const data = await response.json();
-        console.log("Data berhasil diterima:", data);
-
-        // Normalisasi Data (Handle berbagai struktur JSON)
         let list = [];
-        if (Array.isArray(data)) {
-            list = data;
-        } else if (data.data && Array.isArray(data.data)) {
-            list = data.data;
-        } else {
-            console.warn("Format JSON tidak dikenali:", data);
-        }
+        if (Array.isArray(data)) { list = data; } 
+        else if (data.data && Array.isArray(data.data)) { list = data.data; }
 
-        // Ambil nama barang dari berbagai kemungkinan nama kolom
         const names = list.map(i => i.nama || i.name || i.item || i.Material || i.Nama || i.Name).filter(Boolean);
         
         if (names.length > 0) {
-          // Gabung dengan lokal & urutkan
           const currentLocal = collectItemNames();
           allMaterials = Array.from(new Set([...currentLocal, ...names])).sort();
-          
-          console.log("Total Barang:", allMaterials.length);
           input.placeholder = "Cari nama barang (" + allMaterials.length + " item)...";
-          alert("Data berhasil dimuat! Total: " + allMaterials.length + " barang.");
         } else {
-          console.warn("Data JSON kosong atau nama kolom salah.");
           input.placeholder = "Data kosong/kolom tidak sesuai.";
         }
-
       } catch (err) {
         console.error("GAGAL FETCH:", err);
         input.placeholder = "Gagal koneksi. Cek Console.";
@@ -402,22 +400,9 @@
 
     function collectItemNames() {
       const master = loadMasterMaterials();
-      // Data dummy fallback jika kosong melompong
       const dummy = ["Semen", "Pasir", "Batu Bata", "Cat Tembok", "Paku 5cm", "Paku 7cm", "Kayu Balok"];
       const localNames = master.map(m => m.name);
       return Array.from(new Set([...dummy, ...localNames])).sort();
-    }
-
-    function renderVendorOptions(vendors) {
-      const sel = document.getElementById('orderVendor');
-      sel.innerHTML = '<option value="">-- Pilih Vendor --</option>';
-      if(vendors && vendors.length) {
-        vendors.forEach(v => {
-          const opt = document.createElement('option');
-          opt.value = v.name; opt.textContent = v.name;
-          sel.appendChild(opt);
-        });
-      }
     }
 
     // ==========================================
@@ -465,36 +450,94 @@
     function openModalMaterial() { document.getElementById('modalMaterial').classList.add('show'); }
     function closeModalMaterial() { document.getElementById('modalMaterial').classList.remove('show'); }
     
-    document.getElementById('formMaterialBaru').addEventListener('submit', (e) => {
+    document.getElementById('formMaterialBaru').addEventListener('submit', async (e) => {
       e.preventDefault();
+      
+      const btnSimpan = e.target.querySelector('button[type="submit"]');
+      const originalText = btnSimpan.innerText;
+      
       const name = document.getElementById('newMaterialNameInput').value.trim();
       const unit = document.getElementById('newMaterialUnitInput').value;
-      if(name && unit) {
+      
+      if(!name || !unit) {
+        alert("Nama dan Satuan harus diisi!");
+        return;
+      }
+
+      btnSimpan.innerText = "Menyimpan...";
+      btnSimpan.disabled = true;
+
+      try {
         const master = loadMasterMaterials();
         if(!master.some(m => m.name.toLowerCase() === name.toLowerCase())){
-             master.push({name, unit}); saveMasterMaterials(master);
-             allMaterials.push(name); allMaterials.sort();
-             alert("Tersimpan di browser!");
+             master.push({name, unit}); 
+             saveMasterMaterials(master);
+             allMaterials.push(name); 
+             allMaterials.sort();
         }
+
         document.getElementById('orderItem').value = name;
         document.getElementById('orderUnitSelect').value = unit;
         validateInput(document.getElementById('orderItem'));
+
+        if (ITEM_SOURCE_URL) {
+          await fetch(ITEM_SOURCE_URL, {
+            method: 'POST',
+            mode: 'no-cors', 
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              action: 'add_material',
+              name: name,
+              unit: unit
+            })
+          });
+          
+          alert(`Berhasil! "${name}" tersimpan di Browser & Spreadsheet.`);
+        } else {
+          alert(`Tersimpan di Browser saja (URL Script belum diset).`);
+        }
+
         closeModalMaterial();
+        document.getElementById('newMaterialNameInput').value = '';
+
+      } catch (err) {
+        console.error("Gagal simpan ke database:", err);
+        alert("Gagal menyimpan ke Spreadsheet, tapi tersimpan di lokal.");
+      } finally {
+        btnSimpan.innerText = originalText;
+        btnSimpan.disabled = false;
       }
     });
 
-    // Order Logic
+    // ==========================================
+    // 3. LOGIC ORDER (SUDAH FIX PENGORDER)
+    // ==========================================
     document.getElementById('orderForm').addEventListener('submit', (e) => {
       e.preventDefault();
+      
+      const itemVal = document.getElementById('orderItem').value;
+      const qtyVal = document.getElementById('orderQty').value;
+      const unitVal = document.getElementById('orderUnitSelect').value;
+      const reqVal = document.getElementById('orderRequester').value;
+
+      if(!itemVal || !qtyVal || !reqVal) {
+        alert("Mohon lengkapi: Nama Barang, Jumlah, dan Nama Pengorder.");
+        return;
+      }
+
       const orders = getData(ORDER_KEY);
       orders.push({
         id: Date.now(),
-        item: document.getElementById('orderItem').value,
-        qty: document.getElementById('orderQty').value,
-        unit: document.getElementById('orderUnitSelect').value,
-        vendor: document.getElementById('orderVendor').value,
+        item: itemVal,
+        qty: qtyVal,
+        unit: unitVal,
+        requester: reqVal, // SIMPAN NAMA PENGORDER
+        vendor: null,      // VENDOR NULL
         status: 'Menunggu'
       });
+      
       saveData(ORDER_KEY, orders);
       e.target.reset();
       renderOrders();
@@ -503,18 +546,64 @@
     function renderOrders() {
       const orders = getData(ORDER_KEY).filter(o => o.status === 'Menunggu');
       const tbody = document.getElementById('orderTable');
-      if(!orders.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Kosong</td></tr>'; return; }
+      
+      if(!orders.length) { 
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#999;">Draft Kosong</td></tr>'; 
+        return; 
+      }
+      
       tbody.innerHTML = orders.map(o => `
         <tr>
-          <td>${o.item}</td><td>${o.qty} ${o.unit||''}</td><td>${o.vendor||'-'}</td>
-          <td><button onclick="deleteOrder(${o.id})" style="color:red;border:none;cursor:pointer;">Hapus</button></td>
+          <td>${o.item}</td>
+          <td>${o.qty} ${o.unit||''}</td>
+          <td><span style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${o.requester || '-'}</span></td>
+          <td><button onclick="deleteOrder(${o.id})" style="color:red;border:none;cursor:pointer;background:none;">&times; Hapus</button></td>
         </tr>
       `).join('');
     }
-    function deleteOrder(id) { saveData(ORDER_KEY, getData(ORDER_KEY).filter(o => o.id !== id)); renderOrders(); }
-    function sendOrdersToPO() { alert("Terkirim (Simulasi)"); }
 
-    // Placeholder functions untuk tab lain agar tidak error
+    function deleteOrder(id) { saveData(ORDER_KEY, getData(ORDER_KEY).filter(o => o.id !== id)); renderOrders(); }
+    
+    function sendOrdersToPO() {
+      const allOrders = getData(ORDER_KEY);
+      const pendingItems = allOrders.filter(o => o.status === 'Menunggu');
+
+      if (pendingItems.length === 0) {
+        alert("Tidak ada item yang perlu dikirim (Draft kosong).");
+        return;
+      }
+
+      const senderName = pendingItems[0].requester || "Gudang";
+      const batchId = 'REQ-' + Date.now();
+      
+      // Bungkus dalam Batch untuk Notifikasi
+      const requestBatch = {
+        id: batchId,
+        date: new Date().toISOString(),
+        sender: senderName,
+        itemCount: pendingItems.length,
+        items: pendingItems,
+        status: 'Unread'
+      };
+
+      const batches = getData('po_request_batches') || [];
+      batches.push(requestBatch);
+      saveData('po_request_batches', batches);
+
+      // Update status item jadi Requested
+      const updatedOrders = allOrders.map(o => {
+        if (o.status === 'Menunggu') {
+          return { ...o, status: 'Requested', batchRef: batchId };
+        }
+        return o;
+      });
+      saveData(ORDER_KEY, updatedOrders);
+
+      renderOrders();
+      alert(`Berhasil mengirim ${pendingItems.length} item ke Bagian Pembelian!`);
+    }
+
+    // Placeholder functions (agar tidak error)
     function renderPOList() {}
     function renderStockSidebar() {}
 </script>
