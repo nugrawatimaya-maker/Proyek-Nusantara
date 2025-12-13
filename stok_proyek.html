@@ -10,8 +10,9 @@
     .tabel-excel th { background-color: #f3f4f6; border: 1px solid #d1d5db; padding: 10px; font-size: 13px; }
     .tabel-excel td { border: 1px solid #e5e7eb; padding: 8px 10px; font-size: 14px; }
     .tabel-excel tr:hover { background-color: #f9fafb; }
-    /* Efek hover untuk tombol edit */
-    .btn-edit { opacity: 0.3; transition: opacity 0.2s; cursor: pointer; }
+    
+    /* Tombol edit muncul saat baris di-hover */
+    .btn-edit { opacity: 0; transition: opacity 0.2s; cursor: pointer; }
     tr:hover .btn-edit { opacity: 1; }
   </style>
 </head>
@@ -33,6 +34,9 @@
       <button onclick="bukaModal('OPNAME')" class="bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
         <i class="fas fa-check-double"></i> Opname
       </button>
+      <a href="dashboard_operasional.html" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
+        <i class="fas fa-arrow-left"></i> Dashboard
+      </a>
     </div>
   </div>
 
@@ -46,13 +50,14 @@
         <thead>
           <tr>
             <th class="w-10 text-center">No</th>
-            <th>Nama Material (Klik ✏️ untuk Edit)</th>
+            <th>Nama Material</th>
             <th class="w-32 text-center">Satuan</th>
             <th class="w-40 text-right bg-blue-50">Sisa Stok</th>
             <th class="w-32 text-center">Status</th>
+            <th class="w-20 text-center">Aksi</th>
           </tr>
         </thead>
-        <tbody id="bodyStok"><tr><td colspan="5" class="text-center p-4">Memuat data...</td></tr></tbody>
+        <tbody id="bodyStok"><tr><td colspan="6" class="text-center p-4">Memuat data...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -115,23 +120,27 @@
     </div>
   </div>
 
-  <div id="modalEditNama" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
+  <div id="modalEditItem" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
     <div class="bg-white p-6 rounded shadow-xl w-full max-w-sm">
-      <h2 class="text-lg font-bold mb-4 text-blue-800 border-b pb-2">✏️ Edit Nama Material</h2>
+      <h2 class="text-lg font-bold mb-4 text-blue-800 border-b pb-2">✏️ Edit Data Material</h2>
       
       <input type="hidden" id="editId">
       
-      <div class="mb-4">
-        <label class="block text-xs font-bold text-gray-500 mb-1">Nama Lama</label>
-        <div id="namaLamaDisplay" class="text-gray-400 text-sm italic mb-2"></div>
+      <div class="mb-4 space-y-3">
+        <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Nama Barang</label>
+            <input type="text" id="inputNamaBaru" class="w-full border p-2 rounded font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
 
-        <label class="block text-xs font-bold text-gray-800 mb-1">Nama Baru</label>
-        <input type="text" id="inputNamaBaru" class="w-full border p-3 rounded font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none">
+        <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Satuan</label>
+            <input type="text" id="inputSatuanBaru" class="w-full border p-2 rounded font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Cth: Pcs, Unit, Kg">
+        </div>
       </div>
 
-      <div class="flex justify-end gap-2">
-        <button onclick="document.getElementById('modalEditNama').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-bold text-sm">Batal</button>
-        <button onclick="simpanPerubahanNama()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold text-sm">Simpan Perubahan</button>
+      <div class="flex justify-end gap-2 mt-6">
+        <button onclick="document.getElementById('modalEditItem').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-bold text-sm">Batal</button>
+        <button onclick="simpanPerubahanMaster()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold text-sm">Simpan</button>
       </div>
     </div>
   </div>
@@ -164,15 +173,15 @@
         tbody.innerHTML += `
           <tr class="hover:bg-gray-50 group">
             <td class="text-center text-gray-500">${index + 1}</td>
-            <td class="font-bold flex items-center gap-3">
-               ${item.nama_barang}
-               <button onclick="bukaModalEdit(${item.id}, '${item.nama_barang}')" class="btn-edit text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-100" title="Edit Nama">
-                 <i class="fas fa-pencil-alt text-xs"></i>
-               </button>
-            </td>
+            <td class="font-bold text-gray-700">${item.nama_barang}</td>
             <td class="text-center">${item.satuan}</td>
             <td class="text-right font-bold text-blue-800 bg-blue-50">${item.total_stok}</td>
             <td class="text-center">${status}</td>
+            <td class="text-center">
+               <button onclick="bukaModalEdit(${item.id}, '${item.nama_barang}', '${item.satuan}')" class="btn-edit text-blue-500 hover:text-blue-700 p-2 rounded hover:bg-blue-100" title="Edit Nama & Satuan">
+                 <i class="fas fa-pencil-alt"></i>
+               </button>
+            </td>
           </tr>
         `;
         
@@ -185,34 +194,41 @@
       });
     }
 
-    // --- LOGIKA EDIT NAMA (BARU) ---
-    function bukaModalEdit(id, namaLama) {
-      document.getElementById("modalEditNama").classList.remove("hidden");
+    // --- LOGIKA EDIT MASTER (NAMA & SATUAN) ---
+    function bukaModalEdit(id, namaLama, satuanLama) {
+      document.getElementById("modalEditItem").classList.remove("hidden");
+      
+      // Isi form dengan data lama
       document.getElementById("editId").value = id;
-      document.getElementById("namaLamaDisplay").innerText = namaLama;
-      document.getElementById("inputNamaBaru").value = namaLama; // Pre-fill
+      document.getElementById("inputNamaBaru").value = namaLama;
+      document.getElementById("inputSatuanBaru").value = satuanLama;
+      
       document.getElementById("inputNamaBaru").focus();
     }
 
-    async function simpanPerubahanNama() {
+    async function simpanPerubahanMaster() {
       const id = document.getElementById("editId").value;
       const namaBaru = document.getElementById("inputNamaBaru").value;
+      const satuanBaru = document.getElementById("inputSatuanBaru").value;
 
-      if(!namaBaru.trim()) { alert("Nama tidak boleh kosong!"); return; }
+      if(!namaBaru.trim() || !satuanBaru.trim()) { alert("Nama dan Satuan tidak boleh kosong!"); return; }
 
-      if(!confirm("Yakin ingin mengubah nama material ini?")) return;
+      if(!confirm("Simpan perubahan data material ini?")) return;
 
       const { error } = await client
         .from('master_stok')
-        .update({ nama_barang: namaBaru })
+        .update({ 
+            nama_barang: namaBaru,
+            satuan: satuanBaru 
+        })
         .eq('id', id);
 
       if (error) {
         alert("Gagal update: " + error.message);
       } else {
-        alert("✅ Nama material berhasil diperbarui!");
-        document.getElementById("modalEditNama").classList.add("hidden");
-        loadAllData(); // Refresh tabel agar nama berubah
+        alert("✅ Data material berhasil diperbarui!");
+        document.getElementById("modalEditItem").classList.add("hidden");
+        loadAllData(); // Refresh tabel
       }
     }
     // -------------------------------
