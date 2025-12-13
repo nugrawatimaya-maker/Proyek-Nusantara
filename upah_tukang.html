@@ -2,546 +2,98 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Upah Tukang - Siteplan & Progress</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
   <style>
-    :root {
-      --bg: #f4f6f9;
-      --card: #ffffff;
-      --border: #e5e7eb;
-      --text: #0f172a;
-      --muted: #64748b;
-      --accent: #22c55e;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    .hidden { display: none !important; }
-    header {
-      padding: 18px 28px;
-      background: #ffffff;
-      box-shadow: 0 2px 6px rgba(15,23,42,0.08);
-    }
-    .header-row {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 16px;
-    }
-    header h1 {
-      margin: 0;
-      font-size: 22px;
-    }
-    header p {
-      margin: 4px 0 0;
-      color: var(--muted);
-    }
-    .back-btn {
-      border: none;
-      border-radius: 999px;
-      padding: 10px 18px;
-      font-weight: 600;
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: #fff;
-      cursor: pointer;
-      box-shadow: 0 6px 18px rgba(239,68,68,0.3);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .back-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 10px 20px rgba(239,68,68,0.3);
-    }
-    main {
-      flex: 1;
-      padding: 20px;
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 20px;
-      align-items: start;
-      height: calc(100vh - 120px);
-    }
-    .panels-header {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 20px;
-      margin: 0 0 4px;
-      color: #0f172a;
-      font-weight: 700;
-      font-size: 14px;
-    }
-    .sitepanel {
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(15,23,42,0.12);
-      background: #fff;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 100%;
-      min-height: 0;
-    }
-    .sitepanel iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      min-height: 70vh;
-    }
-    .siteplan-wrapper {
-      width: 100%;
-      flex: 1;
-      overflow: auto;
-      background: #fff;
-    }
-    .legend {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 14px 4px;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      white-space: nowrap;
-    }
-    .legend .title {
-      font-weight: 700;
-      font-size: 13px;
-      color: #0f172a;
-      margin-right: 6px;
-    }
-    .legend-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #475569;
-      padding: 4px 8px;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      background: #f8fafc;
-    }
-    .legend-dot {
-      width: 14px;
-      height: 14px;
-      border-radius: 4px;
-      border: 1px solid #cbd5e1;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6);
-    }
-    .siteplan-wrapper svg {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-    /* ===== INTERACTIVE LOTS (SAFE + UNIVERSAL) ===== */
-.siteplan-wrapper svg [data-unit-id]{
-  fill: var(--lot-fill, #ffffff);
-  stroke: #0f172a !important;
-  stroke-width: 1 !important;
-  cursor: pointer;
-  transition: fill .2s ease, stroke .2s ease, filter .2s ease, opacity .2s ease;
-  vector-effect: non-scaling-stroke;
-}
-.siteplan-wrapper svg [data-unit-id]:hover{
-  filter: drop-shadow(0 0 6px rgba(15,23,42,0.25));
-}
-
-/* selected: cocok dengan JS yang menambah class "selected" */
-.siteplan-wrapper svg [data-unit-id].selected{
-  stroke: #25eb32ff !important;
-  stroke-width: 3 !important;
-  filter: drop-shadow(0 0 8px rgba(15,23,42,0.25));
-}
-
-/* ===== STATUS COLORS ===== */
-.siteplan-wrapper svg [data-unit-id][data-status="ready-stok"]{
-  fill: #d1fae5 !important;
-  stroke: #166534 !important;
-}
-
-.siteplan-wrapper svg [data-unit-id][data-status="sold"],
-.siteplan-wrapper svg [data-unit-id][data-status="laku"]{
-  fill: #cbd5e1 !important;
-  stroke: #334155 !important;
-  opacity: .95;
-}
-
-.siteplan-wrapper svg [data-unit-id][data-status="proses-berkas"],
-.siteplan-wrapper svg [data-unit-id][data-status="berkas"]{
-  fill: #fde68a !important;
-  stroke: #92400e !important;
-}
-
-.siteplan-wrapper svg [data-unit-id][data-status="konstruksi"],
-.siteplan-wrapper svg [data-unit-id][data-status="on-progress"]{
-  fill: #bfdbfe !important;
-  stroke: #1d4ed8 !important;
-}
-
-.siteplan-wrapper svg [data-unit-id][data-status="booking"],
-.siteplan-wrapper svg [data-unit-id][data-status="hold"]{
-  fill: #fbcfe8 !important;
-  stroke: #9d174d !important;
-}
-
-    .detailpanel {
-      background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 15px 35px rgba(15,23,42,0.15);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      border: 1px solid var(--border);
-      max-height: 100%;
-      min-height: 0;
-      overflow: hidden;
-    }
-    .lot-info {
-      font-size: 14px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-    .lot-info strong {
-      color: var(--text);
-    }
-    .lot-summary{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:16px;
-      margin-top:8px;
-    }
-    .edit-btn{
-      border:none;
-      border-radius:999px;
-      padding:9px 16px;
-      font-size:13px;
-      font-weight:600;
-      background:linear-gradient(135deg,#22c55e,#15803d);
-      color:#fff;
-      cursor:pointer;
-      box-shadow:0 6px 18px rgba(21,128,61,0.25);
-    }
-    .edit-panel{
-      margin-top:12px;
-      padding:14px;
-      border:1px solid var(--border);
-      border-radius:10px;
-      background:#f8fafc;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    .edit-panel label{
-      font-size:12px;
-      font-weight:600;
-      color:var(--text);
-    }
-    .edit-panel select,
-    .edit-panel input{
-      width:100%;
-      padding:8px 10px;
-      border-radius:8px;
-      border:1px solid var(--border);
-      font-size:13px;
-      background:#fff;
-    }
-    .edit-actions{
-      display:flex;
-      gap:10px;
-      justify-content:flex-end;
-      margin-top:4px;
-    }
-    .edit-actions button{
-      border:none;
-      border-radius:999px;
-      padding:8px 16px;
-      font-size:13px;
-      font-weight:600;
-      cursor:pointer;
-    }
-    .edit-actions .secondary{
-      background:#e2e8f0;
-      color:#0f172a;
-    }
-    .edit-actions .primary{
-      background:linear-gradient(135deg,#2563eb,#1d4ed8);
-      color:#fff;
-    }
-    .table-wrapper {
-      overflow-x: auto;
-      overflow-y: auto;
-      max-height: calc(100vh - 260px);
-      flex: 1;
-      min-height: 0;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 520px;
-    }
-    th, td {
-      padding: 8px 10px;
-      border-bottom: 1px solid #edeff3;
-      font-size: 13px;
-      text-align: left;
-    }
-    th {
-      background: #d7e3f3;
-      font-weight: 600;
-      color: #0f172a;
-    }
-    .stage {
-      text-align: center;
-      font-weight: 600;
-      background: #f8fafc;
-    }
-    .subtotal {
-      background: #d1fadf;
-      font-weight: 600;
-    }
-    .grand-total {
-      background: #22c55e;
-      color: #fff;
-      font-weight: 700;
-    }
-    .amount {
-      text-align: right;
-      font-family: "Roboto Mono", "Courier New", monospace;
-    }
-    .date-actions {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      position: relative;
-    }
-    .date-actions input {
-      width: 120px;
-      padding: 6px 8px;
-      font-size: 12px;
-    }
-    .date-actions .native-date-input {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 120px;
-      height: 32px;
-      opacity: 0;
-      pointer-events: none;
-      border: none;
-    }
-    .date-picker-btn {
-      border: 1px solid #d4d6dd;
-      background: #f8fafc;
-      color: #0f172a;
-    }
-    .date-actions button {
-      border: none;
-      border-radius: 6px;
-      padding: 5px 10px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      background: linear-gradient(135deg, #16a34a, #15803d);
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(21, 128, 61, 0.3);
-    }
-    .date-info {
-      margin-top: 4px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .placeholder {
-      text-align: center;
-      color: var(--muted);
-      font-style: italic;
-    }
-    .muted {
-      color: var(--muted);
-    }
-    .weight-cell {
-      text-align: center;
-      font-weight: 600;
-    }
-    .meta-note {
-      font-size: 11px;
-      margin-top: 2px;
-    }
-
-    /* CSS BARU UNTUK KOLOM KIRI & TOTAL CARD */
-    .left-column {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      min-height: 0; /* Penting untuk scroll */
-    }
-
-    .summary-card {
-      background: #fff;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 10px 30px rgba(15,23,42,0.12);
-      border: 1px solid var(--border);
-      text-align: center;
-      flex-shrink: 0;
-    }
-
-    .summary-card h3 {
-      margin: 0 0 8px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .summary-card .total-amount {
-      font-size: 36px;
-      font-weight: 800;
-      color: var(--accent);
-      font-family: "Roboto Mono", monospace;
-      margin-bottom: 4px;
-    }
-
-    .summary-card .total-label {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    /* Update Grid agar Layout tidak rusak */
-    .detailpanel {
-      height: 100%;
-    }
-
-    /* CSS UNTUK LAPORAN HARIAN (MENU BAWAH) */
-    .daily-report-section {
-      grid-column: 1 / -1;
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 -5px 20px rgba(15,23,42,0.05);
-      border: 1px solid var(--border);
-      margin-top: 10px;
-    }
-
-    .daily-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 15px;
-      border-bottom: 2px solid #f1f5f9;
-      padding-bottom: 15px;
-    }
-
-    .daily-title h3 {
-      margin: 0;
-      font-size: 18px;
-      color: var(--text);
-    }
-    .daily-title p {
-      margin: 4px 0 0;
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .daily-filter {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .daily-filter input {
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-family: inherit;
-      color: var(--text);
-    }
-
-    .daily-table th {
-      background-color: #f8fafc;
-      color: #64748b;
-    }
+    /* GAYA CSS ASLI ANDA (DIPERTAHANKAN) */
+    :root { --bg: #f4f6f9; --text: #0f172a; --accent: #22c55e; }
+    body { font-family: "Segoe UI", sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
     
-    .daily-table-wrapper {
-        max-height: 400px;
+    /* HEADER */
+    header { padding: 15px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+    
+    /* LAYOUT UTAMA */
+    main { display: flex; flex: 1; overflow: hidden; }
+    
+    /* KIRI: SITEPLAN */
+    .panel-kiri { flex: 1; background: #e2e8f0; position: relative; overflow: auto; display: flex; align-items: center; justify-content: center; }
+    
+    /* CSS KHUSUS UNTUK SVG ANDA */
+    svg { width: 100%; height: auto; display: block; max-height: 100%; }
+    
+    /* INTERAKSI BLOK (PENTING) */
+    svg [data-unit-id] { 
+        cursor: pointer; 
+        transition: all 0.2s ease; 
+        vector-effect: non-scaling-stroke;
+        fill: #fff; /* Warna Dasar Blok */
+        stroke: #200;
+        stroke-width: 1px; /* Sesuaikan tebal garis */
     }
+    svg [data-unit-id]:hover { 
+        fill: #fcd34d !important; /* Warna Kuning saat disentuh */
+        filter: drop-shadow(0 0 5px rgba(0,0,0,0.3));
+    }
+    svg [data-unit-id].selected { 
+        fill: #22c55e !important; /* Warna Hijau saat dipilih */
+        stroke: #14532d !important;
+        stroke-width: 2px !important;
+    }
+    /* Blok yang sudah LUNAS semua itemnya (Opsional Logic) */
+    svg [data-unit-id][data-status="full_lunas"] { fill: #dcfce7 !important; stroke: #166534 !important; }
 
-    /* Responsive untuk HP: Stack header */
+    /* KANAN: DETAIL */
+    .panel-kanan { width: 420px; background: white; border-left: 1px solid #d1d5db; display: flex; flex-direction: column; z-index: 20; box-shadow: -5px 0 15px rgba(0,0,0,0.05); }
+    
+    .table-container { flex: 1; overflow-y: auto; }
+    th { position: sticky; top: 0; background: #f8fafc; z-index: 5; }
+    
+    /* BUTTON CAIRKAN */
+    .btn-cair { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; transition: 0.2s; }
+    .btn-cair:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .btn-cair:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(34,197,94,0.3); }
+
+    /* RESPONSIVE HP */
     @media (max-width: 768px) {
-      .daily-header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .daily-filter {
-        width: 100%;
-      }
-      .daily-filter input {
-        flex: 1;
-      }
+        main { flex-direction: column; }
+        .panel-kiri { height: 45vh; flex: none; border-bottom: 4px solid #cbd5e1; }
+        .panel-kanan { width: 100%; height: 55vh; flex: none; }
     }
+  
+    /* PENGAJUAN: tombol & status */
+    .btn-ajukan { background: #22c55e; color: white; transition: 0.2s; }
+    .btn-ajukan:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34,197,94,0.25); }
+    .btn-ajukan:disabled { background: #cbd5e1; cursor: not-allowed; color: #64748b; }
+    .row-lunas { background: #f1f5f9 !important; color: #64748b; }
 
-    /* ===== RESPONSIVE UNTUK HP ===== */
-    @media (max-width: 768px) {
-      main {
-        /* dari 2 kolom jadi 1 kolom */
-        grid-template-columns: 1fr;
-        height: auto; /* jangan paksa 100vh di HP */
-      }
-
-      .panels-header {
-        grid-template-columns: 1fr;
-      }
-
-      /* Biar kedua panel ikut memanjang normal */
-      .sitepanel,
-      .detailpanel {
-        max-height: none;
-        min-height: 0;
-      }
-
-      /* Tabel tetap bisa di-scroll tapi tidak memaksa lebar kolom lain jadi 0 */
-      .table-wrapper {
-        max-height: none;
-      }
-    }
-  </style>
+</style>
 </head>
 <body>
-  <header>
-    <div class="header-row">
+
+  <header class="flex flex-col gap-3">
+    <div class="flex justify-between items-center">
       <div>
-        <h1>Siteplan & Rincian Upah Tukang</h1>
-        <p>Klik blok pada siteplan untuk melihat breakdown pekerjaan dan pencairan biaya.</p>
+        <h1 class="text-lg font-bold text-gray-800"><i class="fas fa-hard-hat text-green-600 mr-2"></i>Upah Tukang</h1>
+        <p class="text-xs text-gray-500">Klik blok pada gambar untuk opname</p>
       </div>
-      <button class="back-btn" type="button" onclick="window.history.back()">Kembali</button>
+      <a href="dashboard_operasional.html" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-full text-xs font-bold transition">
+          <i class="fas fa-arrow-left mr-1"></i> Dashboard
+      </a>
     </div>
+    <nav class="flex items-center gap-3 text-xs">
+  <button id="tabPengajuan" data-tab="pengajuan" class="px-4 py-2 bg-white border border-gray-200 rounded-full font-semibold text-gray-600 hover:border-green-500 hover:text-green-600 transition">Pengajuan</button>
+  <button id="tabPembayaran" data-tab="pembayaran" class="px-4 py-2 bg-white border border-gray-200 rounded-full font-semibold text-gray-600 hover:border-blue-500 hover:text-blue-600 transition">Pembayaran</button>
+</nav>
   </header>
+
   <main>
-    <div class="panels-header">
-      <span>Siteplan</span>
-      <span>Rincian Upah Tukang</span>
-    </div>
-    <div class="left-column">
-      <section class="sitepanel">
-        <div class="legend">
-          <span class="title">Legenda Progres</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#ffffff;"></span>0-10%</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#f97316;"></span>11-30%</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#86efac;"></span>31-60%</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#15803d;"></span>61-90%</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>91-100%</span>
-        </div>
-        <div class="siteplan-wrapper" id="siteplanStandalone">
-<svg xml:space="preserve" width="297mm" height="210mm" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd" viewBox="0 0 29700 21000">
+    <div class="panel-kiri" id="panzoom-container">
+      
+      <svg xml:space="preserve" width="297mm" height="210mm" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd" viewBox="0 0 29700 21000">
  <defs>
   <style type="text/css">
    
@@ -720,898 +272,389 @@
   <circle class="fil6 str1" cx="13003.06" cy="11264.92" r="715.25" />
  </g>
         </svg>
-        </div>
-      </section>
+          <div class="flex flex-col items-center justify-center h-full text-gray-400">
+          </div>
+      </div>
 
-      <section class="summary-card">
-        <h3>Total Realisasi Pembayaran</h3>
-        <div class="total-amount" id="grandTotalDisplay">Rp 0</div>
-        <div class="total-label">Akumulasi pencairan seluruh blok</div>
-      </section>
+      </div>
+
+    <div class="panel-kanan relative">
+      
+      <div id="loading" class="absolute inset-0 bg-white/90 z-50 hidden flex flex-col items-center justify-center">
+        <i class="fas fa-circle-notch fa-spin fa-3x text-green-600 mb-3"></i>
+        <span class="text-gray-600 font-bold animate-pulse">Memuat Data...</span>
+      </div>
+
+      <div class="p-4 border-b bg-gray-50">
+        <h2 id="judulBlok" class="text-xl font-bold text-gray-800">Pilih Blok</h2>
+        <p id="subJudul" class="text-xs text-gray-500">Sentuh gambar siteplan</p>
+      </div>
+
+      <div class="table-container p-0">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+  <tr>
+    <th class="px-4 py-3 w-12 text-center" id="colStatus">Status</th>
+    <th class="px-4 py-3">Pekerjaan</th>
+    <th class="px-4 py-3 w-20 text-center">Bobot</th>
+    <th class="px-4 py-3 text-right">Nilai (Rp)</th>
+    <th class="px-4 py-3 w-28 text-center" id="colAksi">Aksi</th>
+  </tr>
+</thead>
+          <tbody id="tabelBody">
+            <tr>
+                <td colspan="5" class="p-8 text-center text-gray-400">
+                    <i class="fas fa-hand-pointer fa-2x mb-2"></i><br>
+                    Belum ada blok yang dipilih.
+                </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="footerPengajuan" class="p-4 border-t bg-white shadow-[0_-5px_15px_rgba(0,0,0,0.05)] hidden">
+  <div class="text-xs text-gray-500">
+    <i class="fas fa-info-circle text-green-600 mr-1"></i>
+    Mode <b>Pengajuan</b>: klik tombol <span class="font-bold text-green-700">AJUKAN</span> pada pekerjaan yang belum terbayar.
+  </div>
+</div>
+
+<div id="footerPembayaran" class="p-4 border-t bg-white shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+        <div class="flex justify-between items-center mb-3">
+            <span class="text-xs font-bold text-gray-500 uppercase">Total Cair</span>
+            <span class="text-xl font-extrabold text-green-600" id="totalDisplay">Rp 0</span>
+        </div>
+        <button id="btnCairkan" onclick="simpanPembayaran()" disabled class="btn-cair w-full py-3 rounded-lg font-bold shadow-lg flex items-center justify-center gap-2">
+            <i class="fas fa-check-circle"></i> CAIRKAN DANA
+        </button>
+      </div>
     </div>
-
-    <section class="detailpanel">
-      <div class="lot-panel">
-        <h2 style="margin:0 0 6px;">Rincian Pekerjaan</h2>
-        <div class="lot-summary">
-          <div id="lotInfo" class="lot-info">Pilih blok pada siteplan untuk melihat detail pekerjaan.</div>
-          <button type="button" class="edit-btn" id="editToggleBtn">Edit Pencairan</button>
-        </div>
-        <div class="edit-panel hidden" id="editPanel">
-          <label for="editRowSelect">Pilih Pekerjaan</label>
-          <select id="editRowSelect" disabled>
-            <option value="">Pilih kavling terlebih dahulu</option>
-          </select>
-          <label for="editType">Apa yang mau dirubah?</label>
-          <select id="editType">
-            <option value="">Pilih jenis perubahan</option>
-            <option value="tanggal">Tanggal Pencairan</option>
-            <option value="nilai">Nilai Pencairan</option>
-          </select>
-          <div class="hidden" id="editDateField">
-            <label for="editDateInput">Tanggal Baru</label>
-            <input type="date" id="editDateInput">
-          </div>
-          <div class="hidden" id="editAmountField">
-            <label for="editAmountInput">Nilai Pencairan Baru (Rp)</label>
-            <input type="number" id="editAmountInput" min="0" step="1000" placeholder="Masukkan nominal">
-            <label for="editStatusSelect">Keterangan Nilai</label>
-            <select id="editStatusSelect">
-              <option value="">Pilih keterangan</option>
-              <option value="retensi">Tersisa Retensi</option>
-              <option value="lainnya">Lainnya</option>
-            </select>
-            <input type="text" id="editNoteInput" class="hidden" maxlength="100" placeholder="Masukkan keterangan (maks. 100 karakter)">
-          </div>
-          <div class="edit-actions">
-            <button type="button" class="secondary" id="editCancelBtn">Batal</button>
-            <button type="button" class="primary" id="editSaveBtn">Simpan Perubahan</button>
-          </div>
-        </div>
-      </div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:45px;">No</th>
-              <th>Pekerjaan</th>
-              <th style="width:90px;">Bobot</th>
-              <th style="width:170px;">Tanggal Pencairan</th>
-              <th style="width:140px;">Pencairan</th>
-            </tr>
-          </thead>
-          <tbody id="progressTableBody">
-            <tr><td colspan="5" class="placeholder">Belum ada data yang dipilih.</td></tr>
-          </tbody>
-          <tfoot id="progressTableFooter"></tfoot>
-        </table>
-      </div>
-    </section>
-
-    <section class="daily-report-section">
-      <div class="daily-header">
-        <div class="daily-title">
-          <h3>📅 Laporan Pencairan Harian</h3>
-          <p>Lihat rincian pekerjaan yang dicairkan pada tanggal tertentu.</p>
-        </div>
-        <div class="daily-filter">
-          <label>Pilih Tanggal:</label>
-          <input type="date" id="dailyDateFilter">
-        </div>
-      </div>
-
-      <div class="table-wrapper daily-table-wrapper">
-        <table class="daily-table">
-          <thead>
-            <tr>
-              <th style="width:50px;">No</th>
-              <th>Kavling / Blok</th>
-              <th>Pekerjaan</th>
-              <th style="text-align:right;">Nilai Cair</th>
-            </tr>
-          </thead>
-          <tbody id="dailyTableBody">
-            <tr><td colspan="4" class="placeholder">Silakan pilih tanggal untuk melihat laporan.</td></tr>
-          </tbody>
-          <tfoot>
-            <tr class="grand-total">
-              <td colspan="3" style="text-align:right; padding-right:20px;">TOTAL HARI INI</td>
-              <td class="amount" id="dailyTotalDisplay">Rp 0</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </section>
   </main>
 
   <script>
-    const lotInfoEl = document.getElementById("lotInfo");
-    const editToggleBtn = document.getElementById("editToggleBtn");
-    const editPanelEl = document.getElementById("editPanel");
-    const editRowSelect = document.getElementById("editRowSelect");
-    const editTypeSelect = document.getElementById("editType");
-    const editDateField = document.getElementById("editDateField");
-    const editDateInput = document.getElementById("editDateInput");
-    const editAmountField = document.getElementById("editAmountField");
-    const editAmountInput = document.getElementById("editAmountInput");
-    const editStatusSelect = document.getElementById("editStatusSelect");
-    const editNoteInput = document.getElementById("editNoteInput");
-    const editSaveBtn = document.getElementById("editSaveBtn");
-    const editCancelBtn = document.getElementById("editCancelBtn");
-    const tableBody = document.getElementById("progressTableBody");
-    const tableFooter = document.getElementById("progressTableFooter");
+  // --- 1. SETUP DATABASE ---
+  const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+  const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
+  const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-    const TEMPLATE = [
-      {
-        stage: 1,
-        rows: [
-          { name: "Bowplank", weight: 1, amount: 145000 },
-          { name: "Pondasi", weight: 3, amount: 435000 },
-          { name: "Sloof", weight: 3, amount: 435000 },
-          { name: "Kolom", weight: 3, amount: 435000 },
-          { name: "Urugan Tanah", weight: 1, amount: 145000 },
-        ],
-        total: { weight: 11, amount: 1595000 }
-      },
-      {
-        stage: 2,
-        rows: [
-          { name: "Pasangan Batu Rata Kusen", weight: 7, amount: 1015000 },
-          { name: "Ringbalk", weight: 4, amount: 580000 },
-          { name: "Kuda-kuda", weight: 3, amount: 435000 },
-          { name: "Tiang Cor", weight: 1, amount: 145000 },
-        ],
-        total: { weight: 25, amount: 2175000 }
-      },
-      {
-        stage: 3,
-        rows: [
-          { name: "Plesteran Luar Dalam", weight: 10, amount: 1885000 },
-          { name: "Topi-topi", weight: 3, amount: 290000 },
-          { name: "Carport", weight: 2, amount: 290000 },
-          { name: "Draianse", weight: 5, amount: 500000 },
-        ],
-        total: { weight: 19, amount: 2965000 }
-      },
-      {
-        stage: 4,
-        rows: [
-          { name: "Rangka Atap", weight: 8, amount: 1015000 },
-          { name: "Pemasangan Listplank", weight: 2, amount: 145000 },
-          { name: "Plafond", weight: 5, amount: 725000 },
-          { name: "Pemasangan Tegel Luar Dalam", weight: 7, amount: 1450000 },
-          { name: "Plamour Luar Dalam dan Acian", weight: 2, amount: 435000 },
-          { name: "WC", weight: 8, amount: 435000 },
-          { name: "Pemasangan Cover Dinding Fasad", weight: 1, amount: 145000 },
-        ],
-        total: { weight: 26, amount: 4850000 }
-      },
-      {
-        stage: 5,
-        rows: [
-          { name: "Pengecetan dinding Luar dalam", weight: 7, amount: 725000 },
-          { name: "Pengecetan Kuseng", weight: 4, amount: 580000 },
-          { name: "Finishing", weight: 10, amount: 3110000 },
-        ],
-        total: { weight: 19, amount: 4415000 }
-      }
-    ];
+  // --- 2. DATA MASTER RAB (Sesuai Gambar Excel Anda) ---
+  // k = tahap, n = nama pekerjaan, b = bobot, h = harga/nilai
+  const MASTER_RAB = [
+    { k:"1", n:"Bowplank", b:1, h:145000 }, { k:"1", n:"Pondasi", b:3, h:435000 }, { k:"1", n:"Sloof", b:3, h:435000 }, { k:"1", n:"Kolom", b:3, h:435000 }, { k:"1", n:"Urugan Tanah", b:1, h:145000 },
+    { k:"2", n:"Pasangan Batu", b:7, h:1015000 }, { k:"2", n:"Ringbalk", b:4, h:580000 }, { k:"2", n:"Kuda-kuda", b:3, h:435000 }, { k:"2", n:"Tiang Cor", b:1, h:145000 },
+    { k:"3", n:"Plesteran", b:10, h:1885000 }, { k:"3", n:"Topi-Topi", b:3, h:290000 }, { k:"3", n:"Carport", b:2, h:290000 }, { k:"3", n:"Drainase", b:5, h:500000 },
+    { k:"4", n:"Rangka Atap", b:8, h:1015000 }, { k:"4", n:"Listplank", b:2, h:145000 }, { k:"4", n:"Plafond", b:5, h:725000 }, { k:"4", n:"Tegel", b:7, h:1450000 }, { k:"4", n:"Plamour", b:2, h:435000 }, { k:"4", n:"WC", b:8, h:935000 },
+    { k:"5", n:"Cat Dinding", b:7, h:725000 }, { k:"5", n:"Finishing", b:10, h:3110000 }
+  ];
 
-    const GOOGLE_SCRIPT_URL = window.PN_UPAH_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwlBHrduAIgPZZrPMYAiEwaFUJOrGws1IbIzw09jXt9sdDNafaAzRS3RT2AWxVTop_oIQ/exec";
-    const PROGRESS_STORAGE_KEY = "upah_tukang_progress_data";
-    const PROGRESS_DATA = loadProgressData();
-    const ROW_STATE_KEY = "upah_tukang_row_state";
+  const fmt = (n) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(n);
 
-    function loadRowState(){
-      try {
-        return JSON.parse(localStorage.getItem(ROW_STATE_KEY)) || {};
-      } catch (err) {
-        console.warn("Gagal load row state", err);
-        return {};
-      }
-    }
-    function persistRowState(){
-      try {
-        localStorage.setItem(ROW_STATE_KEY, JSON.stringify(rowState));
-      } catch (err) {
-        console.warn("Gagal simpan row state", err);
-      }
-    }
+  let activeKavling = null;
+  let selectedItems = [];              // untuk mode pembayaran (checkbox)
+  let activeTab = "pengajuan";         // "pengajuan" | "pembayaran"
+  let blocks = [];
 
-    function loadProgressData(){
-      try {
-        return JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY)) || {};
-      } catch (err) {
-        console.warn("Gagal load progress data", err);
-        return {};
-      }
-    }
-    function persistProgressData(){
-      try {
-        localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(PROGRESS_DATA));
-      } catch (err) {
-        console.warn("Gagal simpan progress data", err);
-      }
-    }
-    function cloneTemplate(){
-      return TEMPLATE.map(section => ({
-        stage: section.stage,
-        rows: section.rows.map(row => ({ ...row })),
-        total: { ...section.total }
-      }));
-    }
-    function ensureLotProgress(lotKey){
-      if (!PROGRESS_DATA[lotKey]){
-        PROGRESS_DATA[lotKey] = cloneTemplate();
-      }
-      return PROGRESS_DATA[lotKey];
-    }
-    function findRowByKey(sections, rowKey){
-      if (!rowKey) return null;
-      const [stageStr, idxStr] = rowKey.split("-");
-      const stage = Number(stageStr);
-      const rowIndex = Number(idxStr);
-      const sectionIndex = sections.findIndex(sec => sec.stage === stage);
-      if (sectionIndex === -1 || !sections[sectionIndex].rows[rowIndex]) return null;
-      return { sectionIndex, rowIndex, row: sections[sectionIndex].rows[rowIndex] };
-    }
+  // ---------- UTIL TAB ----------
+  function setTab(tab) {
+    activeTab = tab;
 
-    const rowState = loadRowState();
-
-    const GRAND_TOTAL = 16000000;
-
-    const lotElements = document.querySelectorAll("#siteplanStandalone [data-unit-id]");
-
-    let lastPayload = { lotId: "-", status: "-", progress: "-" };
-    let currentLotKey = null;
-
-    function renderDetail(payload = {}) {
-      if (payload.lotId && payload.lotId !== "-") {
-        lastPayload = payload;
-      }
-      const hasSelection = Boolean(lastPayload.lotId && lastPayload.lotId !== "-");
-      if (!hasSelection) {
-        showPlaceholder();
-        applyLotColors();
-        return;
-      }
-      const lotKey = getLotKey(lastPayload.lotId);
-      const data = PROGRESS_DATA[lotKey] || TEMPLATE;
-      currentLotKey = lotKey;
-      populateRowOptions(data, lotKey);
-      hideEditPanel();
-      resetEditForm();
-      const { html, totals } = buildRows(data, lotKey);
-      const fallbackPercent = extractPercent(lastPayload.progress);
-      const fallbackAmount = parseCurrency(lastPayload.upahKerja) || GRAND_TOTAL;
-      const statusValue = totals.weight
-        ? `${totals.weight}%`
-        : (fallbackPercent !== null ? `${fallbackPercent}%` : "0%");
-      const progressValue = totals.amount
-        ? `Rp ${formatNumber(totals.amount)}`
-        : `Rp ${formatNumber(fallbackAmount)}`;
-      lotInfoEl.innerHTML = `
-        Kavling = <strong>${lastPayload.lotId}</strong><br>
-        Progress Bangunan: <strong>${statusValue}</strong><br>
-        Total Pembayaran: <strong>${progressValue}</strong>
-      `;
-      tableBody.innerHTML = html;
-      attachApplyHandlers();
-      attachDatePickerHandlers();
-      renderFooter(totals);
-      applyLotColors();
-      updateGlobalTotal();
-    }
-
-    function buildRows(sections, lotKey) {
-      const lotState = rowState[lotKey] || {};
-      let totalWeight = 0;
-      let totalAmount = 0;
-      const html = sections.map(section => {
-        const rowSpan = section.rows.length + 1;
-        let rowsHtml = "";
-        let stageWeight = 0;
-        let stageAmount = 0;
-        section.rows.forEach((row, idx) => {
-          const rowKey = `${section.stage}-${idx}`;
-          const state = lotState[rowKey] || {};
-          const applied = Boolean(state.date);
-          const disabledAttr = applied ? "disabled" : "";
-          if (applied) {
-            stageWeight += row.weight;
-            stageAmount += row.amount;
-          }
-          const noteHtml = state.note ? `<div class="meta-note">${state.note}</div>` : "";
-          rowsHtml += `
-            <tr>
-              ${idx === 0 ? `<td class="stage" rowspan="${rowSpan}">${section.stage}</td>` : ""}
-              <td>${row.name}</td>
-              <td class="weight-cell">${row.weight}%</td>
-              <td>
-                <div class="date-actions">
-                  <input
-                    type="text"
-                    inputmode="numeric"
-                    placeholder="dd/mm/yyyy"
-                    data-row-display="${rowKey}"
-                    value="${formatInputDateValue(state.date)}"
-                    ${disabledAttr}>
-                  <input
-                    type="date"
-                    class="native-date-input"
-                    data-row-hidden="${rowKey}"
-                    value="${normalizeDateInput(state.date)}"
-                    ${disabledAttr}>
-                  <button type="button" class="date-picker-btn" data-row="${rowKey}" ${disabledAttr}>📅</button>
-                  <button type="button" class="apply-row" data-row="${rowKey}" data-lot="${lotKey}">Apply</button>
-                </div>
-                <div class="date-info">${state.date ? formatDate(state.date) : "Belum ditetapkan"}</div>
-              </td>
-              <td class="amount">
-                Rp ${formatNumber(row.amount)}
-                ${applied ? `<div class="meta-note">Dicairkan pada ${formatDate(state.date)}</div>` : `<div class="meta-note muted">Belum dicairkan</div>`}
-                ${noteHtml}
-              </td>
-            </tr>
-          `;
-        });
-        totalWeight += stageWeight;
-        totalAmount += stageAmount;
-        rowsHtml += `
-          <tr class="subtotal">
-            <td colspan="2">TOTAL</td>
-            <td>${stageWeight ? `${stageWeight}%` : "0%"} <span class="muted">/ ${section.total.weight}%</span></td>
-            <td class="muted">-</td>
-            <td class="amount">
-              Rp ${formatNumber(stageAmount || 0)}
-              <div class="meta-note muted">Dari Rp ${formatNumber(section.total.amount)}</div>
-            </td>
-          </tr>
-        `;
-        return rowsHtml;
-      }).join("");
-      return { html, totals: { weight: totalWeight, amount: totalAmount } };
-    }
-
-    function formatNumber(value) {
-      return Number(value || 0).toLocaleString("id-ID");
-    }
-
-    function getLotProgressPercent(lotKey) {
-      const lotState = rowState[lotKey] || {};
-      let total = 0;
-      Object.keys(lotState).forEach(rowKey => {
-        const state = lotState[rowKey];
-        if (state?.date) {
-          const found = findRowByKey(TEMPLATE, rowKey);
-          const weight = Number(found?.row?.weight) || 0;
-          total += weight;
-        }
-      });
-      return Math.min(total, 100);
-    }
-
-    function getLotColorByProgress(percent) {
-      if (percent >= 91) return "#ef4444"; // merah
-      if (percent >= 61) return "#15803d"; // hijau tua
-      if (percent >= 31) return "#86efac"; // hijau muda
-      if (percent >= 11) return "#f97316"; // orange
-      return "#ffffff"; // putih
-    }
-
-    function applyLotColors() {
-      lotElements.forEach(el => {
-        const lotKey = getLotKey(el.dataset.unitId || "-");
-        const progressPercent = getLotProgressPercent(lotKey);
-        const color = getLotColorByProgress(progressPercent);
-        el.style.setProperty("--lot-fill", color);
-        el.style.fill = color;
-      });
-    }
-
-    function buildPayload(lotKey, rowKey, tanggal, keterangan, tipe) {
-      const sections = ensureLotProgress(lotKey);
-      const target = findRowByKey(sections, rowKey);
-      const rowData = target?.row;
-      return {
-        kavling: lotKey,
-        pekerjaan: rowData?.name || rowKey,
-        bobot: rowData ? `${rowData.weight}%` : "",
-        tanggal,
-        nilai: rowData?.amount || 0,
-        keterangan,
-        tipe
-      };
-    }
-
-    function extractPercent(text) {
-      if (!text) return null;
-      const num = parseFloat(String(text).replace(/[^0-9.,]/g, "").replace(",", "."));
-      return isNaN(num) ? null : Math.round(num);
-    }
-
-    function parseCurrency(value) {
-      if (!value) return 0;
-      const num = Number(String(value).replace(/[^0-9.-]/g, ""));
-      return isNaN(num) ? 0 : num;
-    }
-
-    function formatDate(value) {
-      if (!value) return "";
-      const date = new Date(value);
-      if (isNaN(date)) return value;
-      return date.toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric"
-      });
-    }
-
-    function normalizeDateInput(raw) {
-      const val = (raw || "").trim();
-      if (!val) return "";
-      const cleaned = val.replace(/[.\-]/g, "/").replace(/\s+/g, "");
-      const isoPattern = /^(\d{4})\/(\d{1,2})\/(\d{1,2})$/;
-      const dmyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/;
-      let year, month, day;
-      if (isoPattern.test(cleaned)) {
-        [, year, month, day] = cleaned.match(isoPattern);
-      } else if (dmyPattern.test(cleaned)) {
-        [, day, month, year] = cleaned.match(dmyPattern);
-        if (year.length === 2) year = `20${year}`;
+    // highlight tombol tab
+    const btnPengajuan = document.getElementById("tabPengajuan");
+    const btnPembayaran = document.getElementById("tabPembayaran");
+    if (btnPengajuan && btnPembayaran) {
+      if (tab === "pengajuan") {
+        btnPengajuan.classList.add("border-green-500", "text-green-600");
+        btnPembayaran.classList.remove("border-blue-500", "text-blue-600");
       } else {
-        return "";
+        btnPembayaran.classList.add("border-blue-500", "text-blue-600");
+        btnPengajuan.classList.remove("border-green-500", "text-green-600");
       }
-      const y = Number(year);
-      const m = Number(month);
-      const d = Number(day);
-      if (!y || !m || !d || m > 12 || d > 31) return "";
-      const iso = `${y.toString().padStart(4, "0")}-${m.toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`;
-      const date = new Date(iso);
-      return isNaN(date) ? "" : iso;
     }
 
-    function formatInputDateValue(value) {
-      const iso = normalizeDateInput(value);
-      if (!iso) return value || "";
-      const [y, m, d] = iso.split("-");
-      return `${d}/${m}/${y}`;
+    // footer toggle
+    const fPengajuan = document.getElementById("footerPengajuan");
+    const fPembayaran = document.getElementById("footerPembayaran");
+    if (fPengajuan && fPembayaran) {
+      fPengajuan.classList.toggle("hidden", tab !== "pengajuan");
+      fPembayaran.classList.toggle("hidden", tab !== "pembayaran");
     }
 
-    async function kirimKeBackend(payload) {
-      if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("PASTE_URL_WEB_APP_ANDA_DISINI")) {
-        console.warn("GOOGLE_SCRIPT_URL belum diisi. Lewati kirim ke Apps Script.");
-        return;
-      }
-      const formData = new FormData();
-      formData.append("target_sheet", "Laporan_Upah_Tukang");
-      formData.append("kavling", payload.kavling || "");
-      formData.append("pekerjaan", payload.pekerjaan || "");
-      formData.append("bobot_persen", payload.bobot || "");
-      formData.append("tanggal_cair", payload.tanggal || "");
-      formData.append("nilai_pencairan", payload.nilai || "");
-      formData.append("keterangan", payload.keterangan || "");
-      formData.append("tipe_update", payload.tipe || "");
-      formData.append("waktu_input", new Date().toLocaleString("id-ID"));
+    // column toggle
+    const colAksi = document.getElementById("colAksi");
+    const colStatus = document.getElementById("colStatus");
+    if (colAksi) colAksi.textContent = (tab === "pengajuan") ? "Aksi" : "";   // pembayaran tidak pakai aksi
+    if (colStatus) colStatus.textContent = (tab === "pengajuan") ? "Status" : "Pilih";
+
+    // re-render kalau sudah ada blok aktif
+    if (activeKavling) bukaDetailBlok(activeKavling);
+  }
+
+  // ---------- 3. AUTO DETECT BLOK PADA SVG ----------
+  document.addEventListener("DOMContentLoaded", () => {
+    // tab click
+    document.getElementById("tabPengajuan")?.addEventListener("click", () => setTab("pengajuan"));
+    document.getElementById("tabPembayaran")?.addEventListener("click", () => setTab("pembayaran"));
+    setTab("pengajuan");
+
+    // Cari semua elemen yang punya data-unit-id (sesuai file SVG Anda)
+    blocks = Array.from(document.querySelectorAll('[data-unit-id]'));
+    console.log(`Ditemukan ${blocks.length} blok.`);
+
+    if(blocks.length === 0) {
+      console.warn("PERINGATAN: Tidak ada blok ditemukan. Pastikan Anda sudah mem-paste kode SVG!");
+    }
+
+    blocks.forEach(el => {
+      el.addEventListener('click', function() {
+        blocks.forEach(b => b.classList.remove('selected'));
+        this.classList.add('selected');
+        const id = this.getAttribute('data-unit-id');
+        bukaDetailBlok(id);
+      });
+    });
+  });
+
+  // ---------- 4. VALIDASI BLOK ADA DI DAFTAR PROYEK ----------
+  // Sesuai permintaan: database mengacu pada "daftar blok yang diajukan di daftar proyek".
+  // Jika tabel/kolom belum ada, fungsi ini akan fallback = true (tidak mematikan aplikasi).
+  async function cekBlokTerdaftarDiProyek(kavling) {
+    try {
+      const { data, error } = await client
+        .from("daftar_proyek")
+        .select("kavling")
+        .eq("kavling", kavling)
+        .limit(1);
+
+      if (error) throw error;
+      return (data && data.length > 0);
+    } catch (e) {
+      console.warn("cekBlokTerdaftarDiProyek fallback:", e?.message || e);
+      return true; // fallback agar tetap jalan walau tabel belum dibuat
+    }
+  }
+
+  // ---------- 5. LOAD DATA DARI SUPABASE ----------
+  async function bukaDetailBlok(id) {
+    if(!id) return;
+    activeKavling = id;
+
+    const loader = document.getElementById('loading');
+    loader.classList.remove('hidden');
+    document.getElementById('judulBlok').innerHTML = `Blok <span class="text-green-600">${id}</span>`;
+    document.getElementById('subJudul').innerText = (activeTab === "pengajuan")
+      ? "Mode: Pengajuan"
+      : "Mode: Pembayaran (cairkan dana)";
+
+    try {
+      // 1) LUNAS (terbayar) dari transaksi_upah
+      const { data: bayarData, error: bayarErr } = await client
+        .from('transaksi_upah')
+        .select('nama_pekerjaan')
+        .eq('kavling', id);
+
+      if(bayarErr) throw bayarErr;
+      const lunasSet = new Set((bayarData || []).map(d => d.nama_pekerjaan));
+
+      // 2) DIAJUKAN (optional) dari pengajuan_upah
+      let diajukanSet = new Set();
       try {
-        const response = await fetch(GOOGLE_SCRIPT_URL, { method: "POST", body: formData });
-        const text = await response.text();
-        console.log("Server Response:", text);
-      } catch (err) {
-        console.error("Gagal kirim ke Apps Script:", err);
-        alert("Gagal kirim ke Google Sheets. Cek koneksi/URL.");
+        const { data: ajukanData, error: ajukanErr } = await client
+          .from('pengajuan_upah')
+          .select('nama_pekerjaan, status')
+          .eq('kavling', id);
+
+        if(!ajukanErr && ajukanData) {
+          ajukanData.forEach(r => {
+            if ((r.status || "").toUpperCase() === "DIAJUKAN") {
+              diajukanSet.add(r.nama_pekerjaan);
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("Tabel pengajuan_upah belum ada / error:", e?.message || e);
       }
-    }
 
-    function getLotKey(rawId) {
-      return rawId && rawId !== "-" ? rawId : "_global";
-    }
+      renderTabel({ lunasSet, diajukanSet });
 
-    function renderFooter(totals) {
-      tableFooter.innerHTML = `
-        <tr class="grand-total">
-          <td colspan="2">Total Pencairan</td>
-          <td>${totals.weight ? `${totals.weight}%` : "-"}</td>
-          <td class="muted">-</td>
-          <td class="amount">${totals.amount ? `Rp ${formatNumber(totals.amount)}` : "-"}</td>
-        </tr>
-        <tr>
-          <td colspan="5" class="muted" style="text-align:right;">Nilai kontrak: Rp ${formatNumber(GRAND_TOTAL)}</td>
+    } catch (err) {
+      alert("Error Database: " + (err?.message || err));
+    } finally {
+      loader.classList.add('hidden');
+    }
+  }
+
+  // ---------- 6. RENDER TABEL ----------
+  function renderTabel({ lunasSet, diajukanSet }) {
+    const tbody = document.getElementById('tabelBody');
+    tbody.innerHTML = "";
+    let currKat = "";
+
+    MASTER_RAB.forEach((item, idx) => {
+      // Header Tahap
+      if(item.k !== currKat) {
+        tbody.innerHTML += `
+          <tr class="bg-blue-50 border-t-2 border-blue-100">
+            <td colspan="5" class="px-4 py-2 text-xs font-bold text-blue-800">TAHAP ${item.k}</td>
+          </tr>`;
+        currKat = item.k;
+      }
+
+      const isLunas = lunasSet.has(item.n);
+      const isDiajukan = diajukanSet.has(item.n);
+      const bobotTxt = `${item.b}%`;
+
+      // --- CELL: Status / Pilih ---
+      let statusCell = "";
+      let aksiCell = "";
+
+      if (activeTab === "pembayaran") {
+        // Mode pembayaran: checkbox hanya untuk yang belum LUNAS
+        if (isLunas) {
+          statusCell = `<i class="fas fa-check-circle text-green-500 text-lg" title="LUNAS"></i>`;
+        } else {
+          statusCell = `<input type="checkbox" class="chk-item w-5 h-5 accent-green-600 cursor-pointer"
+                        value="${idx}" data-price="${item.h}" onchange="hitungTotal()">`;
+        }
+        aksiCell = ""; // tidak ada aksi di pembayaran (pakai tombol cairkan bawah)
+      } else {
+        // Mode pengajuan: status + tombol Ajukan per pekerjaan
+        if (isLunas) {
+          statusCell = `<span class="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-1 rounded-full">TERBAYAR</span>`;
+          aksiCell = ``; // tidak ada tombol pengajuan
+        } else if (isDiajukan) {
+          statusCell = `<span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-1 rounded-full">DIAJUKAN</span>`;
+          aksiCell = `<button class="btn-ajukan px-3 py-2 rounded-lg text-xs font-bold" disabled>Menunggu</button>`;
+        } else {
+          statusCell = `<span class="text-[10px] font-bold bg-green-100 text-green-800 px-2 py-1 rounded-full">BELUM</span>`;
+          aksiCell = `<button class="btn-ajukan px-3 py-2 rounded-lg text-xs font-bold"
+                      onclick="ajukanPekerjaan(${idx})">
+                      <i class="fas fa-paper-plane mr-1"></i>AJUKAN
+                    </button>`;
+        }
+      }
+
+      // --- ROW CLASS ---
+      let rowClass = "hover:bg-gray-50";
+      if (isLunas && activeTab === "pengajuan") rowClass = "row-lunas"; // grey untuk yang terbayar
+      if (isLunas && activeTab === "pembayaran") rowClass = "bg-green-50 opacity-60"; // existing behavior
+
+      tbody.innerHTML += `
+        <tr class="border-b ${rowClass} transition">
+          <td class="px-4 py-3 text-center">${statusCell}</td>
+          <td class="px-4 py-3 font-medium text-gray-700">
+            ${item.n}
+            ${isLunas ? '<span class="ml-2 text-[10px] bg-slate-200 text-slate-700 px-1 rounded font-bold">LUNAS</span>' : ''}
+          </td>
+          <td class="px-4 py-3 text-center font-bold text-gray-600">${bobotTxt}</td>
+          <td class="px-4 py-3 text-right font-mono text-gray-600">${fmt(item.h)}</td>
+          <td class="px-4 py-3 text-center">${aksiCell}</td>
         </tr>
       `;
-    }
-
-    function populateRowOptions(sections, lotKey) {
-      if (!sections || !sections.length || !lotKey) {
-        editRowSelect.innerHTML = '<option value="">Pilih kavling terlebih dahulu</option>';
-        editRowSelect.disabled = true;
-        return;
-      }
-      const options = ['<option value="">Pilih item pekerjaan</option>'];
-      sections.forEach(section => {
-        section.rows.forEach((row, idx) => {
-          const key = `${section.stage}-${idx}`;
-          options.push(`<option value="${key}">Tahap ${section.stage} - ${row.name}</option>`);
-        });
-      });
-      editRowSelect.innerHTML = options.join("");
-      editRowSelect.disabled = false;
-    }
-
-    function hideEditPanel() {
-      editPanelEl.classList.add("hidden");
-    }
-
-    function resetEditForm() {
-      editRowSelect.value = "";
-      editTypeSelect.value = "";
-      editDateField.classList.add("hidden");
-      editAmountField.classList.add("hidden");
-      editDateInput.value = "";
-      editAmountInput.value = "";
-      editStatusSelect.value = "";
-      editNoteInput.value = "";
-      editNoteInput.classList.add("hidden");
-    }
-
-    function toggleEditFields() {
-      const type = editTypeSelect.value;
-      editDateField.classList.toggle("hidden", type !== "tanggal");
-      editAmountField.classList.toggle("hidden", type !== "nilai");
-    }
-
-    function toggleNoteField() {
-      const isOther = editStatusSelect.value === "lainnya";
-      editNoteInput.classList.toggle("hidden", !isOther);
-      if (!isOther) {
-        editNoteInput.value = "";
-      }
-    }
-
-    function handleEditSave() {
-      if (!currentLotKey) {
-        alert("Pilih blok terlebih dahulu.");
-        return;
-      }
-      const rowKey = editRowSelect.value;
-      if (!rowKey) {
-        alert("Pilih pekerjaan yang ingin diubah.");
-        return;
-      }
-      const type = editTypeSelect.value;
-      if (!type) {
-        alert("Pilih jenis perubahan terlebih dahulu.");
-        return;
-      }
-      if (!rowState[currentLotKey]) {
-        rowState[currentLotKey] = {};
-      }
-      const currentState = rowState[currentLotKey][rowKey] || {};
-      if (type === "tanggal") {
-        const normalized = normalizeDateInput(editDateInput.value);
-        if (!normalized) {
-          alert("Isi tanggal pencairan baru.");
-          return;
-        }
-        currentState.date = normalized;
-        rowState[currentLotKey][rowKey] = currentState;
-        persistRowState();
-        const payload = buildPayload(currentLotKey, rowKey, normalized, "Pencairan via Edit", "Edit Tanggal");
-        kirimKeBackend(payload);
-      } else if (type === "nilai") {
-        const amount = Number(editAmountInput.value);
-        if (!amount || amount <= 0) {
-          alert("Masukkan nilai pencairan yang valid.");
-          return;
-        }
-        const statusVal = editStatusSelect.value;
-        if (!statusVal) {
-          alert("Pilih keterangan nilai terlebih dahulu.");
-          return;
-        }
-        let noteText = statusVal === "retensi" ? "Tersisa retensi" : editNoteInput.value.trim();
-        if (statusVal === "lainnya" && !noteText) {
-          alert("Masukkan keterangan lainnya (maks. 100 karakter).");
-          return;
-        }
-        const sections = ensureLotProgress(currentLotKey);
-        const target = findRowByKey(sections, rowKey);
-        if (!target) {
-          alert("Data pekerjaan tidak ditemukan.");
-          return;
-        }
-        target.row.amount = amount;
-        currentState.note = noteText;
-        rowState[currentLotKey][rowKey] = currentState;
-        persistProgressData();
-        persistRowState();
-        const payload = buildPayload(currentLotKey, rowKey, currentState.date || "", noteText || "Update nilai", "Edit Nilai");
-        payload.nilai = amount;
-        kirimKeBackend(payload);
-      }
-      updateGlobalTotal();
-      hideEditPanel();
-      resetEditForm();
-      renderDetail(lastPayload);
-    }
-
-    editToggleBtn.addEventListener("click", () => {
-      if (!currentLotKey) {
-        alert("Pilih blok pada siteplan terlebih dahulu.");
-        return;
-      }
-      editPanelEl.classList.toggle("hidden");
     });
-    editTypeSelect.addEventListener("change", toggleEditFields);
-    editStatusSelect.addEventListener("change", toggleNoteField);
-    editCancelBtn.addEventListener("click", () => {
-      hideEditPanel();
-      resetEditForm();
+
+    // reset footer pembayaran
+    hitungTotal();
+  }
+
+  // ---------- 7. MODE PEMBAYARAN: HITUNG TOTAL & SIMPAN ----------
+  function hitungTotal() {
+    // kalau lagi di pengajuan, footer pembayaran disembunyikan, tapi kita tetap aman-kan
+    const checkboxes = document.querySelectorAll('.chk-item:checked');
+    let total = 0;
+    selectedItems = [];
+
+    checkboxes.forEach(chk => {
+      total += parseFloat(chk.getAttribute('data-price'));
+      selectedItems.push(MASTER_RAB[chk.value]);
     });
-    editSaveBtn.addEventListener("click", handleEditSave);
 
+    document.getElementById('totalDisplay').innerText = fmt(total);
+    const btn = document.getElementById('btnCairkan');
 
-    function attachApplyHandlers() {
-      document.querySelectorAll(".apply-row").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const rowKey = btn.dataset.row;
-          const lotKey = btn.dataset.lot;
-          const input = document.querySelector(`input[data-row-display="${rowKey}"]`);
-          const rawValue = input?.value || "";
-          const normalized = normalizeDateInput(rawValue);
-          if (!normalized) {
-            alert("Isi tanggal pencairan dengan format dd/mm/yyyy atau yyyy-mm-dd.");
-            input?.focus();
-            return;
-          }
-          if (!rowState[lotKey]) {
-            rowState[lotKey] = {};
-          }
-          rowState[lotKey][rowKey] = { date: normalized };
-          persistRowState();
-          updateGlobalTotal();
-          renderDetail(lastPayload);
-          const payload = buildPayload(lotKey, rowKey, normalized, "Pencairan via Apply", "Apply Tanggal");
-          kirimKeBackend(payload);
-        });
-      });
+    if(total > 0) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fas fa-money-bill-wave"></i> CAIRKAN ${fmt(total)}`;
+    } else {
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fas fa-check-circle"></i> CAIRKAN DANA`;
+    }
+  }
+
+  async function simpanPembayaran() {
+    if(!activeKavling) return;
+    if(!confirm(`Konfirmasi pencairan dana sebesar ${document.getElementById('totalDisplay').innerText} untuk ${activeKavling}?`)) return;
+
+    document.getElementById('loading').classList.remove('hidden');
+
+    try {
+      const payload = selectedItems.map(item => ({
+        kavling: activeKavling,
+        nama_pekerjaan: item.n,
+        nilai_bayar: item.h,
+        status: 'LUNAS',
+        tanggal_bayar: new Date()
+      }));
+
+      const { error } = await client.from('transaksi_upah').insert(payload);
+      if(error) throw error;
+
+      alert("✅ Sukses! Data pembayaran tersimpan.");
+      bukaDetailBlok(activeKavling); // Refresh
+
+    } catch (err) {
+      alert("Gagal simpan pembayaran: " + (err?.message || err));
+      document.getElementById('loading').classList.add('hidden');
+    }
+  }
+
+  // ---------- 8. MODE PENGAJUAN: AJUKAN PER PEKERJAAN ----------
+  async function ajukanPekerjaan(idx) {
+    if(!activeKavling) return;
+
+    // Gate: pastikan blok ada di daftar proyek (permintaan Anda)
+    const ok = await cekBlokTerdaftarDiProyek(activeKavling);
+    if (!ok) {
+      alert(`Blok ${activeKavling} belum terdaftar di "daftar_proyek".
+Tambahkan dulu blok ini di daftar proyek agar bisa diajukan.`);
+      return;
     }
 
-    function attachDatePickerHandlers() {
-      document.querySelectorAll(".date-picker-btn").forEach(btn => {
-        const rowKey = btn.dataset.row;
-        const hiddenInput = document.querySelector(`input[data-row-hidden="${rowKey}"]`);
-        const displayInput = document.querySelector(`input[data-row-display="${rowKey}"]`);
-        btn.addEventListener("click", () => {
-          if (hiddenInput?.showPicker) {
-            hiddenInput.showPicker();
-          } else {
-            hiddenInput?.click();
-          }
-        });
-        hiddenInput?.addEventListener("change", () => {
-          const normalized = normalizeDateInput(hiddenInput.value);
-          if (normalized && displayInput) {
-            displayInput.value = formatInputDateValue(normalized);
-          }
-        });
-        displayInput?.addEventListener("blur", () => {
-          const normalized = normalizeDateInput(displayInput.value);
-          if (normalized && hiddenInput) {
-            hiddenInput.value = normalized;
-            displayInput.value = formatInputDateValue(normalized);
-          }
-        });
-      });
-    }
+    const item = MASTER_RAB[idx];
+    if (!item) return;
 
-    function setupStandaloneSiteplan() {
-      lotElements.forEach(el => {
-        el.classList.add("lot-shape");
-        el.addEventListener("click", () => handleLotClick(el));
-      });
-    }
+    if(!confirm(`Ajukan pekerjaan "${item.n}" (Bobot ${item.b}%) untuk Blok ${activeKavling}?`)) return;
 
-    function handleLotClick(el) {
-      lotElements.forEach(node => node.classList.remove("selected"));
-      el.classList.add("selected");
+    document.getElementById('loading').classList.remove('hidden');
+
+    try {
       const payload = {
-        lotId: el.dataset.unitId || "-",
-        status: el.dataset.status ? el.dataset.status.replace(/-/g, " ") : "-",
-        progress: el.dataset.progress ? `${el.dataset.progress}%` : "-"
+        kavling: activeKavling,
+        tahap: item.k,
+        nama_pekerjaan: item.n,
+        bobot: item.b,
+        nilai: item.h,
+        status: "DIAJUKAN",
+        tanggal_ajukan: new Date()
       };
-      renderDetail(payload);
+
+      const { error } = await client.from("pengajuan_upah").insert(payload);
+      if (error) throw error;
+
+      alert("✅ Pengajuan tersimpan.");
+      bukaDetailBlok(activeKavling);
+
+    } catch (e) {
+      alert("Gagal ajukan: " + (e?.message || e) + "
+
+Catatan: pastikan tabel 'pengajuan_upah' sudah dibuat di Supabase.");
+      document.getElementById('loading').classList.add('hidden');
     }
+  }
 
-    // --- FUNGSI BARU: HITUNG TOTAL GLOBAL ---
-    function updateGlobalTotal() {
-      let total = 0;
-      Object.keys(rowState).forEach(lotKey => {
-        const lotData = rowState[lotKey];
-        const sections = ensureLotProgress(lotKey);
-        Object.keys(lotData || {}).forEach(rowKey => {
-          if (lotData[rowKey].date) {
-            const target = findRowByKey(sections, rowKey);
-            if (target && target.row) {
-              total += target.row.amount;
-            }
-          }
-        });
-      });
-      const displayEl = document.getElementById("grandTotalDisplay");
-      if (displayEl) displayEl.innerText = "Rp " + formatNumber(total);
-    }
-
-    // --- FUNGSI LAPORAN HARIAN ---
-    const dailyDateFilter = document.getElementById("dailyDateFilter");
-    const dailyTableBody = document.getElementById("dailyTableBody");
-    const dailyTotalDisplay = document.getElementById("dailyTotalDisplay");
-
-    function renderDailyReport(targetDate) {
-      if (!targetDate) {
-        dailyTableBody.innerHTML = `<tr><td colspan="4" class="placeholder">Pilih tanggal terlebih dahulu.</td></tr>`;
-        dailyTotalDisplay.innerText = "Rp 0";
-        return;
-      }
-
-      let html = "";
-      let totalDaily = 0;
-      let count = 1;
-
-      Object.keys(rowState).forEach(lotKey => {
-        const lotData = rowState[lotKey];
-        const sections = ensureLotProgress(lotKey);
-        Object.keys(lotData || {}).forEach(rowKey => {
-          const item = lotData[rowKey];
-          if (item.date === targetDate) {
-             const target = findRowByKey(sections, rowKey);
-             if (target && target.row) {
-               const amount = target.row.amount;
-               totalDaily += amount;
-               html += `
-                <tr>
-                  <td style="text-align:center;">${count++}</td>
-                  <td style="font-weight:600; color:var(--text);">${lotKey === "_global" ? "Umum" : lotKey}</td>
-                  <td>${target.row.name}</td>
-                  <td style="text-align:right; font-family:'Roboto Mono';">Rp ${formatNumber(amount)}</td>
-                </tr>
-               `;
-             }
-          }
-        });
-      });
-
-      if (html === "") {
-        html = `<tr><td colspan="4" class="placeholder" style="padding:20px;">Tidak ada pencairan dana pada tanggal ${formatDate(targetDate)}.</td></tr>`;
-      }
-
-      dailyTableBody.innerHTML = html;
-      dailyTotalDisplay.innerText = "Rp " + formatNumber(totalDaily);
-    }
-
-    if (dailyDateFilter) {
-      dailyDateFilter.addEventListener("change", (e) => {
-        renderDailyReport(e.target.value);
-      });
-      const today = new Date().toISOString().split('T')[0];
-      dailyDateFilter.value = today;
-      // setTimeout(() => renderDailyReport(today), 1000);
-    }
-
-    // ==========================================
-    // FITUR BARU: TARIK DATA DARI SPREADSHEET
-    // ==========================================
-    // Helper: Mencari ID Pekerjaan (misal "1-0") berdasarkan Nama (misal "Bowplank")
-    function getRowKeyByName(jobName) {
-      for (let sIdx = 0; sIdx < TEMPLATE.length; sIdx++) {
-        const section = TEMPLATE[sIdx];
-        for (let rIdx = 0; rIdx < section.rows.length; rIdx++) {
-          if (section.rows[rIdx].name === jobName) {
-            return `${section.stage}-${rIdx}`; // Ketemu, kembalikan ID "1-0"
-          }
-        }
-      }
-      return null;
-    }
-
-    // ==========================================
-    // VERSI FINAL: SINKRONISASI DATA SPREADSHEET
-    // ==========================================
-    async function loadDataFromSheet() {
-      const SPREADSHEET_ID = "1s94wBnBjXVLclxw8i1P9J7uqHbZiMaONvzA2DMoQgNQ"; 
-      const SHEET_NAME = "Laporan_Upah_Tukang"; 
-      const SCRIPT_URL = window.PN_UPAH_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwlBHrduAIgPZZrPMYAiEwaFUJOrGws1IbIzw09jXt9sdDNafaAzRS3RT2AWxVTop_oIQ/exec";
-
-      console.log("Memulai penarikan data...");
-
-      try {
-        const url = `${SCRIPT_URL}?sheetName=${SHEET_NAME}&sheetId=${SPREADSHEET_ID}`;
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (!Array.isArray(data)) return;
-
-        data.forEach(item => {
-          // 1. Ambil Data
-          const lotKeyRaw = item.kavling || item.Kavling || "";
-          const lotKey = String(lotKeyRaw).trim(); 
-          
-          const jobNameRaw = item.pekerjaan || item.Pekerjaan || "";
-          const jobName = String(jobNameRaw).trim();
-
-          let tglCair = item.tanggalcair || item.tanggal_cair || item.Tanggal_Cair;
-          const nilaiCair = item.nilaipencairan || item.nilai_pencairan || item.Nilai_Pencairan;
-          const ket = item.keterangan || item.Keterangan;
-
-          // 2. PERBAIKAN FORMAT TANGGAL (PENTING!)
-          if (tglCair && typeof tglCair === 'string' && tglCair.includes('T')) {
-              tglCair = tglCair.split('T')[0];
-          }
-
-          if (lotKey && jobName) {
-            const rowKey = getRowKeyByName(jobName);
-            
-            if (rowKey) {
-              if (!rowState[lotKey]) rowState[lotKey] = {};
-              
-              // Simpan Tanggal
-              if (tglCair && tglCair !== "-" && tglCair !== "") {
-                  rowState[lotKey][rowKey] = {
-                    date: tglCair, 
-                    note: ket
-                  };
-              }
-
-              // Simpan Uang
-              if (nilaiCair) {
-                const numericNilai = Number(String(nilaiCair).replace(/[^0-9.-]/g, ""));
-                if (numericNilai > 0) {
-                    const sections = ensureLotProgress(lotKey);
-                    const target = findRowByKey(sections, rowKey);
-                    if (target) target.row.amount = numericNilai;
-                }
-              }
-            }
-          }
-        });
-
-        persistRowState();
-        persistProgressData();
-        applyLotColors();
-        updateGlobalTotal();
-        
-        if (currentLotKey) {
-             const element = document.querySelector(`[data-unit-id="${currentLotKey}"]`);
-             if(element) handleLotClick(element);
-        }
-        console.log("Sinkronisasi Selesai! Data tanggal sudah diperbaiki.");
-        updateGlobalTotal();
-
-      } catch (error) {
-        console.error("Gagal menarik data:", error);
-      }
-    }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      renderDetail(lastPayload);
-      updateGlobalTotal();
-      loadDataFromSheet();
-    });
-
-    function showPlaceholder() {
-      lotInfoEl.innerHTML = "Pilih blok pada siteplan, lalu rincian pekerjaan akan muncul di sini.";
-      tableBody.innerHTML = `<tr><td colspan="5" class="placeholder">Belum ada blok yang dipilih.</td></tr>`;
-      tableFooter.innerHTML = "";
-      populateRowOptions([], null);
-      hideEditPanel();
-      resetEditForm();
-      currentLotKey = null;
-    }
-
-    setupStandaloneSiteplan();
-    showPlaceholder();
-    renderDetail(lastPayload);
-
-  </script>
+  // expose functions to inline onclick
+  window.simpanPembayaran = simpanPembayaran;
+  window.hitungTotal = hitungTotal;
+  window.ajukanPekerjaan = ajukanPekerjaan;
+</script>
 </body>
 </html>

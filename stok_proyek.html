@@ -133,8 +133,30 @@
         </div>
 
         <div>
-            <label class="block text-xs font-bold text-gray-600 mb-1">Satuan</label>
-            <input type="text" id="inputSatuanBaru" class="w-full border p-2 rounded font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Cth: Pcs, Unit, Kg">
+            <label class="block text-xs font-bold text-gray-600 mb-1">Satuan Standar</label>
+            <select id="inputSatuanBaru" class="w-full border p-2 rounded font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                <option value="">-- Pilih Satuan --</option>
+                <option value="Lembar">Lembar</option>
+                <option value="Truk">Truk</option>
+                <option value="Set">Set</option>
+                <option value="Kaleng 5 kg">Kaleng 5 kg</option>
+                <option value="Kg">Kg</option>
+                <option value="M">M</option>
+                <option value="Kubik m3">Kubik m3</option>
+                <option value="Batang">Batang</option>
+                <option value="Box">Box</option>
+                <option value="Kaleng">Kaleng</option>
+                <option value="Biji">Biji</option>
+                <option value="Pcs">Pcs</option>
+                <option value="Roll">Roll</option>
+                <option value="Gulung">Gulung</option>
+                <option value="Flsh">Flsh</option>
+                <option value="Lipat">Lipat</option>
+                <option value="Pickup">Pickup</option>
+                <option value="Meter">Meter</option>
+                <option value="Liter">Liter</option>
+                <option value="Botol">Botol</option>
+            </select>
         </div>
       </div>
 
@@ -201,7 +223,10 @@
       // Isi form dengan data lama
       document.getElementById("editId").value = id;
       document.getElementById("inputNamaBaru").value = namaLama;
-      document.getElementById("inputSatuanBaru").value = satuanLama;
+      
+      // Set dropdown sesuai satuan lama (harus sama persis tulisannya)
+      // Jika satuan lama tidak ada di list, dropdown akan blank (minta dipilih ulang)
+      document.getElementById("inputSatuanBaru").value = satuanLama; 
       
       document.getElementById("inputNamaBaru").focus();
     }
@@ -211,7 +236,8 @@
       const namaBaru = document.getElementById("inputNamaBaru").value;
       const satuanBaru = document.getElementById("inputSatuanBaru").value;
 
-      if(!namaBaru.trim() || !satuanBaru.trim()) { alert("Nama dan Satuan tidak boleh kosong!"); return; }
+      if(!namaBaru.trim()) { alert("Nama tidak boleh kosong!"); return; }
+      if(!satuanBaru) { alert("Wajib pilih Satuan!"); return; }
 
       if(!confirm("Simpan perubahan data material ini?")) return;
 

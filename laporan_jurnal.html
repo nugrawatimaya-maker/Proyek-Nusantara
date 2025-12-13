@@ -10,15 +10,22 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
   <style>
+    /* Class untuk menyembunyikan elemen di layar web, tapi tetap ada di kode */
+    .hidden-on-screen {
+      display: none !important;
+    }
+    
     @media print {
       body { -webkit-print-color-adjust: exact; }
       .no-print { display: none !important; }
+      /* Saat print biasa (Ctrl+P), paksa muncul */
+      .hidden-on-screen { display: block !important; }
     }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans p-6">
 
-  <div class="max-w-5xl mx-auto mb-6 flex flex-col md:flex-row justify-between items-end gap-4 no-print">
+  <div class="max-w-6xl mx-auto mb-6 flex flex-col md:flex-row justify-between items-end gap-4 no-print">
     <div class="flex gap-4 items-end bg-white p-4 rounded shadow">
       <div>
         <label class="block text-xs font-bold text-gray-500 mb-1">Dari Tanggal</label>
@@ -41,11 +48,11 @@
     </div>
   </div>
 
-  <div id="areaLaporan" class="max-w-5xl mx-auto bg-white p-8 shadow-lg min-h-screen">
+  <div id="areaLaporan" class="max-w-6xl mx-auto bg-white p-4 sm:p-8 rounded shadow-sm min-h-screen">
     
-    <div class="flex flex-col items-center text-center border-b-4 border-double border-gray-800 pb-4 mb-6">
+    <div id="kopSurat" class="hidden-on-screen flex flex-col items-center text-center border-b-4 border-double border-gray-800 pb-4 mb-6">
       
-      <img src="logo.png" alt="[ LOGO NLD CORP ]" class="h-24 mb-2 object-contain">
+      <img src="logo.png" alt="[ LOGO NLD CORP ]" class="h-24 mb-2 object-contain" onerror="this.style.display='none'">
       
       <h1 class="text-3xl font-extrabold text-yellow-600 uppercase tracking-widest" style="font-family: serif;">NLD CORP</h1>
       <h2 class="text-lg font-bold text-gray-900 uppercase tracking-wide">PT. NUSANTARA LAND DEVELOPMENT</h2>
@@ -58,28 +65,28 @@
       </div>
     </div>
 
-    <div class="text-center mb-6">
-      <h2 class="text-xl font-bold underline decoration-2 underline-offset-4">JURNAL UMUM</h2>
+    <div class="text-center mb-6 mt-2">
+      <h2 class="text-xl font-bold underline decoration-2 underline-offset-4 text-gray-800">JURNAL UMUM</h2>
       <p class="text-sm text-gray-500 mt-1 italic" id="labelPeriode">Periode: Semua Data</p>
     </div>
 
-    <table class="w-full text-left border border-gray-300">
-      <thead class="bg-gray-100 text-gray-800 uppercase text-xs font-bold">
+    <table class="w-full text-left border border-gray-200">
+      <thead class="bg-gray-100 text-gray-700 uppercase text-xs font-bold">
         <tr>
-          <th class="p-3 border border-gray-300 text-center w-28">Tanggal</th>
-          <th class="p-3 border border-gray-300">Keterangan / Akun</th>
-          <th class="p-3 border border-gray-300 text-right w-36">Debit</th>
-          <th class="p-3 border border-gray-300 text-right w-36">Kredit</th>
+          <th class="p-3 border-b border-gray-300 text-center w-28">Tanggal</th>
+          <th class="p-3 border-b border-gray-300">Keterangan / Akun</th>
+          <th class="p-3 border-b border-gray-300 text-right w-36">Debit</th>
+          <th class="p-3 border-b border-gray-300 text-right w-36">Kredit</th>
         </tr>
       </thead>
-      <tbody id="tabelBody" class="text-sm">
+      <tbody id="tabelBody" class="text-sm text-gray-700">
         <tr><td colspan="4" class="p-6 text-center text-gray-400">Memuat data...</td></tr>
       </tbody>
       <tfoot class="bg-gray-50 font-bold border-t-2 border-gray-300">
         <tr>
-          <td colspan="2" class="p-3 text-right border border-gray-300">TOTAL:</td>
-          <td id="totalDebit" class="p-3 text-right border border-gray-300 text-blue-700">Rp 0</td>
-          <td id="totalKredit" class="p-3 text-right border border-gray-300 text-green-700">Rp 0</td>
+          <td colspan="2" class="p-3 text-right border-gray-200">TOTAL:</td>
+          <td id="totalDebit" class="p-3 text-right border-gray-200 text-blue-700">Rp 0</td>
+          <td id="totalKredit" class="p-3 text-right border-gray-200 text-green-700">Rp 0</td>
         </tr>
       </tfoot>
     </table>
@@ -148,20 +155,19 @@
         sumDebit += row.debit;
         sumKredit += row.kredit;
         
-        // Style untuk Kredit menjorok
-        const indentStyle = row.kredit > 0 ? "pl-10 text-gray-600 italic" : "font-semibold text-gray-800";
+        const indentStyle = row.kredit > 0 ? "pl-10 text-gray-500 italic" : "font-semibold text-gray-800";
         
         const tr = `
           <tr class="border-b border-gray-100 hover:bg-gray-50">
-            <td class="p-2 border-r text-center align-top whitespace-nowrap">${row.tanggal}</td>
+            <td class="p-2 border-r text-center align-top whitespace-nowrap text-gray-600">${row.tanggal}</td>
             <td class="p-2 border-r align-top">
               <div class="${indentStyle}">${row.nama_akun}</div>
               <div class="text-xs text-gray-400 mt-1 ml-1">${row.keterangan || ''}</div>
             </td>
-            <td class="p-2 border-r text-right align-top text-gray-700">
+            <td class="p-2 border-r text-right align-top text-gray-700 font-mono">
               ${row.debit > 0 ? formatRupiah(row.debit) : '-'}
             </td>
-            <td class="p-2 text-right align-top text-gray-700">
+            <td class="p-2 text-right align-top text-gray-700 font-mono">
               ${row.kredit > 0 ? formatRupiah(row.kredit) : '-'}
             </td>
           </tr>
@@ -173,17 +179,28 @@
       document.getElementById("totalKredit").innerText = formatRupiah(sumKredit);
     }
 
-    // --- FUNGSI PDF ---
+    // --- FUNGSI PDF DENGAN KOP OTOMATIS MUNCUL ---
     function downloadPDF() {
       const element = document.getElementById('areaLaporan');
+      const kop = document.getElementById('kopSurat');
+
+      // 1. Munculkan Kop Surat Sebentar
+      kop.classList.remove('hidden-on-screen');
+
+      // 2. Setting PDF
       const opt = {
-        margin:       0.3,
+        margin:       0.3, // Margin halaman (inch)
         filename:     'Jurnal_NLD_Corp.pdf',
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true }, 
         jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
       };
-      html2pdf().set(opt).from(element).save();
+
+      // 3. Generate PDF
+      html2pdf().set(opt).from(element).save().then(() => {
+          // 4. Sembunyikan lagi Kop Surat setelah selesai
+          kop.classList.add('hidden-on-screen');
+      });
     }
 
     // Init Date
