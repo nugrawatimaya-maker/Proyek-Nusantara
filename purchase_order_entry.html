@@ -2,23 +2,21 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Finance - Approval & Cetak PO</title>
+  <title>Finance - Approval & Cetak PO (Batch)</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   
   <style>
     .kertas-po {
-      width: 210mm;
-      min-height: 297mm;
-      padding: 20mm;
-      background: white;
-      margin: 0 auto;
-      color: #000 !important;
-      font-family: 'Times New Roman', Times, serif;
-      position: relative;
+      width: 210mm; min-height: 297mm; padding: 20mm; background: white; margin: 0 auto;
+      color: #000 !important; font-family: 'Times New Roman', Times, serif; position: relative;
     }
     .kertas-po * { border-color: #000 !important; }
+    
+    /* Checkbox Custom */
+    .chk-item { transform: scale(1.5); cursor: pointer; }
   </style>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800 p-6">
@@ -26,100 +24,168 @@
   <div class="max-w-7xl mx-auto mb-6 flex justify-between items-center">
     <div>
       <h1 class="text-2xl font-bold text-blue-800">Finance Approval (PO)</h1>
-      <p class="text-sm text-gray-500">Pilih Vendor dari Database & Terbitkan PO</p>
+      <p class="text-sm text-gray-500">Kelola Penerbitan & Arsip Purchase Order</p>
     </div>
     <div class="space-x-3">
-        <a href="master_vendor.html" class="text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded hover:bg-pink-200">👥 Kelola Vendor</a>
+        <a href="master_vendor.html" class="text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded hover:bg-pink-200"><i class="fas fa-users"></i> Kelola Vendor</a>
         <a href="inventory_req.html" class="text-sm text-blue-600 hover:underline">← Lihat Menu Gudang</a>
     </div>
   </div>
 
-  <div class="max-w-7xl mx-auto bg-white rounded-lg shadow overflow-hidden mb-10">
+  <div class="max-w-7xl mx-auto bg-white rounded-lg shadow overflow-hidden mb-10 border-l-4 border-yellow-400 relative">
+    
+    <div class="p-4 bg-yellow-50 border-b border-yellow-100 flex justify-between items-center sticky top-0 z-10">
+        <h3 class="font-bold text-yellow-800"><i class="fas fa-clock mr-2"></i>Antrian Request (Belum Ada PO)</h3>
+        
+        <button id="btnBatch" onclick="siapkanBatch()" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow font-bold text-sm flex items-center gap-2 animate-bounce">
+            <i class="fas fa-layer-group"></i> Buat 1 PO untuk <span id="countBatch">0</span> Item
+        </button>
+    </div>
+
     <table class="w-full text-left border-collapse">
-      <thead class="bg-blue-50 text-blue-900 uppercase text-xs font-bold">
+      <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold">
         <tr>
+          <th class="p-4 text-center w-10"><input type="checkbox" id="chkAll" class="chk-item" onclick="toggleAll(this)"></th>
           <th class="p-4">Tanggal & Staff</th>
           <th class="p-4">Barang diminta</th>
-          <th class="p-4 w-64">Pilih Vendor (Database)</th> <th class="p-4 w-32">Harga Satuan</th>
-          <th class="p-4 w-40">Jatuh Tempo</th>
-          <th class="p-4 text-center">Aksi</th>
+          <th class="p-4 w-40 text-right">Estimasi Total</th>
         </tr>
       </thead>
       <tbody id="tabelAntrian" class="text-sm divide-y divide-gray-100">
-        <tr><td colspan="6" class="p-6 text-center text-gray-400">Sedang memuat data...</td></tr>
+        <tr><td colspan="4" class="p-6 text-center text-gray-400">Sedang memuat data...</td></tr>
       </tbody>
     </table>
   </div>
 
-  <div id="modalPreview" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex flex-col justify-center items-center p-4">
-    <div class="bg-white p-3 rounded-t-lg w-full max-w-4xl flex justify-between items-center border-b">
-      <h3 class="font-bold text-lg text-gray-800">📄 Review Dokumen PO</h3>
-      <div class="flex gap-2">
-        <button onclick="tutupPreview()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-700 font-bold text-sm">Batal</button>
-        <button onclick="simpanDanCetak()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white font-bold text-sm flex items-center gap-2">
-          <span id="btnText">✅ Konfirmasi & Download PDF</span>
-        </button>
-      </div>
+  <div class="max-w-7xl mx-auto bg-white rounded-lg shadow overflow-hidden mb-10 border-l-4 border-blue-600">
+    <div class="p-4 bg-blue-50 border-b border-blue-100 flex justify-between items-center">
+        <h3 class="font-bold text-blue-800"><i class="fas fa-history mr-2"></i>Riwayat PO Terbit (Arsip)</h3>
+        <button onclick="loadRiwayatPO()" class="text-xs text-blue-600 hover:underline"><i class="fas fa-sync"></i> Refresh</button>
     </div>
-    <div class="bg-gray-500 w-full max-w-4xl overflow-auto h-full p-8 rounded-b-lg flex justify-center">
-      <div id="areaCetak" class="kertas-po shadow-2xl">
+    <table class="w-full text-left border-collapse">
+      <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold">
+        <tr>
+          <th class="p-4">No. PO / Tanggal</th>
+          <th class="p-4">Vendor</th>
+          <th class="p-4">Jumlah Item</th>
+          <th class="p-4 text-right">Grand Total</th>
+          <th class="p-4 text-center">Status</th>
+          <th class="p-4 text-center">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tabelRiwayat" class="text-sm divide-y divide-gray-100">
+        <tr><td colspan="6" class="p-6 text-center text-gray-400">Memuat riwayat...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="modalBatch" class="hidden fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center">
+    <div class="bg-white w-full max-w-4xl p-6 rounded-lg shadow-lg relative max-h-[90vh] overflow-auto">
+        <button onclick="tutupModalBatch()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-xl font-bold">✕</button>
         
-        <div class="flex flex-col items-center text-center border-b-4 border-double border-black pb-4 mb-6">
-          <img src="logo.png" alt="[ LOGO ]" class="h-20 mb-2 object-contain" onerror="this.style.display='none'">
-          <h1 class="text-3xl font-extrabold uppercase tracking-widest" style="font-family: serif;">NLD CORP</h1>
-          <h2 class="text-lg font-bold uppercase tracking-wide">PT. NUSANTARA LAND DEVELOPMENT</h2>
-          <div class="text-xs mt-2 font-medium leading-tight">
-            <p>HQ Delft Apartement, Jl. Sunset Boulevard Blok 5B/16 Citra Land City, CPI Makassar</p>
-            <p>Telp : 0411- 6004251</p>
-          </div>
+        <h2 class="text-xl font-bold text-blue-800 mb-4 border-b pb-2">🏢 Setup PO Batch</h2>
+
+        <div class="mb-6 bg-blue-50 p-4 rounded">
+            <label class="block text-sm font-bold text-blue-800 mb-1">Pilih Vendor untuk PO ini:</label>
+            <select id="batchVendor" class="w-full border p-2 rounded font-bold" onchange="autoIsiTempoBatch(this)">
+                <option value="">-- Pilih Vendor Database --</option>
+            </select>
+            
+            <div class="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                    <label class="text-xs font-bold text-gray-600">Jatuh Tempo</label>
+                    <input type="date" id="batchTempo" class="w-full border p-2 rounded text-sm bg-white">
+                </div>
+                <div class="flex items-end">
+                    <p class="text-xs text-gray-500 italic" id="batchInfoTop">Pilih vendor untuk auto-TOP</p>
+                </div>
+            </div>
         </div>
 
-        <div class="flex justify-between items-start mb-8 border-b border-black pb-4">
-          <div><h2 class="text-2xl font-bold underline">PURCHASE ORDER</h2><p class="text-sm">Surat Pemesanan Barang</p></div>
-          <div class="text-right"><p class="text-xl font-bold" id="printNoPO">PO-XXXX</p><p class="text-sm" id="printTanggal">Tanggal: -</p></div>
-        </div>
-
-        <div class="flex justify-between mb-8 text-sm">
-          <div class="w-1/2 pr-4">
-            <p class="font-bold uppercase text-xs mb-1">Kepada Vendor:</p>
-            <p class="font-bold text-lg" id="printVendor">Nama Vendor</p>
-            <p>Mohon kirimkan barang sesuai rincian berikut.</p>
-          </div>
-          <div class="w-1/2 pl-4 border-l border-black">
-            <p class="font-bold uppercase text-xs mb-1">Jatuh Tempo:</p>
-            <p class="font-bold text-lg" id="printTempo">-</p>
-          </div>
-        </div>
-
-        <table class="w-full text-left border border-black mb-8 text-sm">
-          <thead class="bg-gray-200 uppercase text-xs font-bold">
-            <tr>
-              <th class="p-2 border border-black text-center w-10">No</th>
-              <th class="p-2 border border-black">Deskripsi Barang</th>
-              <th class="p-2 border border-black text-center">Qty</th>
-              <th class="p-2 border border-black text-right">Harga</th>
-              <th class="p-2 border border-black text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="p-2 border border-black text-center">1</td>
-              <td class="p-2 border border-black font-bold" id="printBarang">-</td>
-              <td class="p-2 border border-black text-center" id="printQty">-</td>
-              <td class="p-2 border border-black text-right" id="printHarga">-</td>
-              <td class="p-2 border border-black text-right font-bold" id="printTotal">-</td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr class="bg-gray-100"><td colspan="4" class="p-2 border border-black text-right font-bold uppercase">Grand Total</td><td class="p-2 border border-black text-right font-bold text-lg" id="printGrandTotal">-</td></tr>
-          </tfoot>
+        <h3 class="font-bold text-gray-700 mb-2">Rincian Harga Item:</h3>
+        <table class="w-full text-sm border mb-6">
+            <thead class="bg-gray-100 font-bold">
+                <tr>
+                    <th class="p-2 border">Barang</th>
+                    <th class="p-2 border text-center">Qty</th>
+                    <th class="p-2 border w-40">Harga Satuan (Rp)</th>
+                    <th class="p-2 border w-40 text-right">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody id="bodyBatchInput">
+                </tbody>
+            <tfoot>
+                <tr class="bg-gray-100 font-bold">
+                    <td colspan="3" class="p-2 text-right">GRAND TOTAL:</td>
+                    <td class="p-2 text-right" id="batchGrandTotal">Rp 0</td>
+                </tr>
+            </tfoot>
         </table>
 
-        <div class="flex justify-between mt-16 text-center text-sm">
-          <div class="w-40"><p class="mb-20">Dibuat Oleh,</p><p class="font-bold border-b border-black pb-1" id="printStaff">Finance</p></div>
-          <div class="w-40"><p class="mb-20">Disetujui Oleh,</p><p class="font-bold border-b border-black pb-1">Manager Ops</p></div>
+        <div class="text-right">
+            <button onclick="previewPOBatch()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded font-bold shadow text-lg">
+                <i class="fas fa-file-pdf"></i> Preview & Terbitkan
+            </button>
         </div>
-      </div>
+    </div>
+  </div>
+
+  <div id="modalKertas" class="hidden fixed inset-0 bg-black bg-opacity-90 z-[60] flex justify-center items-center overflow-auto p-4">
+    <div class="flex flex-col items-center w-full">
+        <div id="actionArea" class="bg-white p-3 rounded shadow mb-4 flex gap-3 sticky top-4 z-50"></div>
+
+        <div id="areaCetak" class="kertas-po shadow-2xl">
+            <div class="flex flex-col items-center text-center border-b-4 border-double border-black pb-4 mb-6">
+                <img src="logo.png" alt="[ LOGO ]" class="h-20 mb-2 object-contain" onerror="this.style.display='none'">
+                <h1 class="text-3xl font-extrabold uppercase tracking-widest" style="font-family: serif;">NLD CORP</h1>
+                <h2 class="text-lg font-bold uppercase">PT. NUSANTARA LAND DEVELOPMENT</h2>
+                <div class="text-xs mt-2 font-medium">HQ Delft Apartement, Makassar - Telp: 0411-6004251</div>
+            </div>
+
+            <div class="flex justify-between items-start mb-8 border-b border-black pb-4">
+                <div><h2 class="text-2xl font-bold underline">PURCHASE ORDER</h2><p class="text-sm">Surat Pemesanan Barang</p></div>
+                <div class="text-right"><p class="text-xl font-bold" id="printNoPO">PO-XXXX</p><p class="text-sm" id="printTanggal">-</p></div>
+            </div>
+
+            <div class="flex justify-between mb-8 text-sm">
+                <div class="w-1/2 pr-4">
+                    <p class="font-bold uppercase text-xs mb-1">Kepada Vendor:</p>
+                    <p class="font-bold text-lg" id="printVendor">Nama Vendor</p>
+                    <p>Mohon kirimkan barang sesuai rincian berikut.</p>
+                </div>
+                <div class="w-1/2 pl-4 border-l border-black">
+                    <p class="font-bold uppercase text-xs mb-1">Jatuh Tempo:</p>
+                    <p class="font-bold text-lg" id="printTempo">-</p>
+                </div>
+            </div>
+
+            <table class="w-full text-left border border-black mb-8 text-sm">
+                <thead class="bg-gray-200 font-bold">
+                    <tr>
+                        <th class="p-2 border border-black text-center w-10">No</th>
+                        <th class="p-2 border border-black">Deskripsi Barang</th>
+                        <th class="p-2 border border-black text-center">Qty</th>
+                        <th class="p-2 border border-black text-right">Harga</th>
+                        <th class="p-2 border border-black text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="printTabelBody">
+                    </tbody>
+                <tfoot>
+                    <tr class="bg-gray-100">
+                        <td colspan="4" class="p-2 border border-black text-right font-bold uppercase">Grand Total</td>
+                        <td class="p-2 border border-black text-right font-bold text-lg" id="printGrandTotal">-</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div class="flex justify-between mt-16 text-center text-sm">
+                <div class="w-40"><p class="mb-20">Dibuat Oleh,</p><p class="font-bold border-b border-black pb-1" id="printStaff">Finance</p></div>
+                <div class="w-40"><p class="mb-20">Disetujui Oleh,</p><p class="font-bold border-b border-black pb-1">Manager Ops</p></div>
+            </div>
+        </div>
+        
+        <button onclick="document.getElementById('modalKertas').classList.add('hidden')" class="mt-4 text-white hover:text-red-400 font-bold">Tutup Preview</button>
     </div>
   </div>
 
@@ -129,146 +195,365 @@
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(num);
 
-    let tempPO = {};
-    let listVendor = []; // Menyimpan data vendor dari DB
+    let listVendor = [];
+    let listPending = [];
+    let selectedIds = [];
+    let batchData = []; // Data final untuk disimpan
 
-    // 1. LOAD DATA VENDOR DARI DATABASE
+    // --- INIT ---
+    async function init() {
+        await loadVendors();
+        loadPendingRequests();
+        loadRiwayatPO();
+    }
+    
+    // 1. LOAD VENDOR
     async function loadVendors() {
-      const { data } = await client.from('master_vendor').select('*').order('nama_vendor');
-      if (data) listVendor = data;
+        const { data } = await client.from('master_vendor').select('*').order('nama_vendor');
+        if (data) listVendor = data;
     }
 
-    // 2. LOAD REQUEST + BIKIN DROPDOWN
-    async function loadData() {
-      // Pastikan Vendor diload dulu
-      await loadVendors();
-
+    // 2. LOAD PENDING
+    async function loadPendingRequests() {
       const { data } = await client.from('inventory_req').select('*').eq('status', 'PENDING').order('created_at');
+      listPending = data || [];
       const tbody = document.getElementById("tabelAntrian");
       tbody.innerHTML = "";
 
-      if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-500 font-bold bg-gray-50">✅ Tidak ada permintaan pending.</td></tr>`;
+      if (listPending.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400 italic">Tidak ada permintaan pending.</td></tr>`;
         return;
       }
 
-      data.forEach(item => {
-        // Buat Opsi Dropdown Vendor
-        let optionsHtml = `<option value="">-- Pilih Vendor --</option>`;
-        listVendor.forEach(v => {
-          // Kita simpan TOP di atribut data-top agar mudah dihitung
-          optionsHtml += `<option value="${v.nama_vendor}" data-top="${v.top_hari}">${v.nama_vendor} (TOP: ${v.top_hari} Hari)</option>`;
-        });
-
+      listPending.forEach(item => {
         tbody.innerHTML += `
-          <tr class="hover:bg-blue-50 border-b">
-            <td class="p-4 align-top">
+          <tr class="hover:bg-yellow-50 border-b">
+            <td class="p-4 text-center">
+                <input type="checkbox" class="chk-item" value="${item.id}" onchange="cekCentang()">
+            </td>
+            <td class="p-4">
               <div class="font-bold">${new Date(item.created_at).toLocaleDateString()}</div>
               <div class="text-xs text-gray-500">${item.pengorder}</div>
             </td>
-            <td class="p-4 align-top">
-              <div class="font-bold text-lg">${item.nama_barang}</div>
-              <div class="text-xs bg-yellow-100 px-2 py-1 rounded inline-block">Jml: ${item.jumlah} ${item.satuan}</div>
+            <td class="p-4">
+              <div class="font-bold text-gray-800">${item.nama_barang}</div>
+              <div class="text-xs bg-gray-100 px-2 py-1 rounded inline-block">Jml: ${item.jumlah} ${item.satuan}</div>
             </td>
-            
-            <td class="p-4 align-top">
-              <select id="vendor-${item.id}" class="w-full border p-2 rounded text-sm bg-white focus:ring-2 focus:ring-blue-300" onchange="autoIsiTempo('${item.id}', this)">
-                ${optionsHtml}
-              </select>
-            </td>
-
-            <td class="p-4 align-top"><input type="number" id="harga-${item.id}" placeholder="Rp" class="w-full border p-2 rounded text-sm"></td>
-            
-            <td class="p-4 align-top">
-                <input type="date" id="tempo-${item.id}" class="w-full border p-2 rounded text-sm bg-gray-50">
-                <div id="infoTop-${item.id}" class="text-[10px] text-gray-500 mt-1 italic"></div>
-            </td>
-            
-            <td class="p-4 align-top text-center">
-              <button onclick="bukaPreview('${item.id}', '${item.nama_barang}', '${item.jumlah}', '${item.satuan}', '${item.pengorder}')" 
-                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow text-xs w-full">
-                Review
-              </button>
-            </td>
+            <td class="p-4 text-right text-gray-400 italic text-xs">Belum set harga</td>
           </tr>`;
       });
     }
 
-    // --- FUNGSI BARU: HITUNG JATUH TEMPO OTOMATIS ---
-    function autoIsiTempo(reqId, selectEl) {
-      const selectedOption = selectEl.options[selectEl.selectedIndex];
-      const topHari = parseInt(selectedOption.getAttribute('data-top') || 0);
-      
-      // Hitung tanggal hari ini + TOP
-      const today = new Date();
-      today.setDate(today.getDate() + topHari);
-      
-      // Format ke YYYY-MM-DD untuk input date
-      const tglStr = today.toISOString().split('T')[0];
-      
-      document.getElementById(`tempo-${reqId}`).value = tglStr;
-      
-      // Info teks kecil
-      const infoDiv = document.getElementById(`infoTop-${reqId}`);
-      if(topHari > 0) infoDiv.innerText = `Otomatis set +${topHari} hari (TOP)`;
-      else infoDiv.innerText = "Cash / Tunai";
+    // 3. LOGIKA CHECKBOX BATCH
+    function toggleAll(source) {
+        const checkboxes = document.querySelectorAll('.chk-item');
+        checkboxes.forEach(chk => {
+            if(chk !== source) chk.checked = source.checked;
+        });
+        cekCentang();
     }
 
-    // --- FUNGSI PREVIEW & SIMPAN (Sama seperti sebelumnya) ---
-    function bukaPreview(reqId, namaBarang, jumlah, satuan, pengorder) {
-      const vendor = document.getElementById(`vendor-${reqId}`).value;
-      const hargaSatuan = document.getElementById(`harga-${reqId}`).value;
-      const jatuhTempo = document.getElementById(`tempo-${reqId}`).value;
-
-      if (!vendor || !hargaSatuan || !jatuhTempo) { alert("Data belum lengkap!"); return; }
-
-      const totalHarga = Number(hargaSatuan) * Number(jumlah);
-      const nomorPO = "PO-" + Math.floor(100000 + Math.random() * 900000);
-
-      tempPO = { reqId, nomorPO, vendor, hargaSatuan, totalHarga, jatuhTempo, namaBarang, jumlah, satuan, pengorder };
-
-      document.getElementById('printNoPO').innerText = nomorPO;
-      document.getElementById('printTanggal').innerText = new Date().toLocaleDateString('id-ID');
-      document.getElementById('printVendor').innerText = vendor;
-      document.getElementById('printTempo').innerText = new Date(jatuhTempo).toLocaleDateString('id-ID');
-      document.getElementById('printBarang').innerText = namaBarang;
-      document.getElementById('printQty').innerText = `${jumlah} ${satuan}`;
-      document.getElementById('printHarga').innerText = formatRupiah(hargaSatuan);
-      document.getElementById('printTotal').innerText = formatRupiah(totalHarga);
-      document.getElementById('printGrandTotal').innerText = formatRupiah(totalHarga);
-      document.getElementById('printStaff').innerText = pengorder;
-
-      document.getElementById('modalPreview').classList.remove('hidden');
-      document.getElementById('modalPreview').classList.add('flex');
+    function cekCentang() {
+        const checked = document.querySelectorAll('.chk-item:checked:not(#chkAll)');
+        selectedIds = Array.from(checked).map(c => c.value);
+        
+        const btn = document.getElementById("btnBatch");
+        document.getElementById("countBatch").innerText = selectedIds.length;
+        
+        if (selectedIds.length > 0) btn.classList.remove("hidden");
+        else btn.classList.add("hidden");
     }
 
-    function tutupPreview() {
-      document.getElementById('modalPreview').classList.add('hidden');
-      document.getElementById('modalPreview').classList.remove('flex');
+    // 4. SIAPKAN MODAL BATCH
+    function siapkanBatch() {
+        // Isi Dropdown Vendor
+        const selVendor = document.getElementById("batchVendor");
+        selVendor.innerHTML = '<option value="">-- Pilih Vendor Database --</option>';
+        listVendor.forEach(v => {
+            selVendor.innerHTML += `<option value="${v.nama_vendor}" data-top="${v.top_hari}">${v.nama_vendor} (TOP: ${v.top_hari} Hari)</option>`;
+        });
+
+        // Render Tabel Input Harga
+        const tbody = document.getElementById("bodyBatchInput");
+        tbody.innerHTML = "";
+        
+        // Filter item yang dipilih
+        const selectedItems = listPending.filter(item => selectedIds.includes(String(item.id)));
+        
+        selectedItems.forEach((item, idx) => {
+            tbody.innerHTML += `
+                <tr class="border-b">
+                    <td class="p-2">
+                        <div class="font-bold text-gray-700">${item.nama_barang}</div>
+                        <input type="hidden" id="bid-${idx}" value="${item.id}">
+                        <input type="hidden" id="bnama-${idx}" value="${item.nama_barang}">
+                        <input type="hidden" id="bqty-${idx}" value="${item.jumlah}">
+                        <input type="hidden" id="bsat-${idx}" value="${item.satuan}">
+                        <input type="hidden" id="bstaff-${idx}" value="${item.pengorder}">
+                    </td>
+                    <td class="p-2 text-center text-xs font-bold bg-gray-50">${item.jumlah} ${item.satuan}</td>
+                    <td class="p-2">
+                        <input type="number" id="bharga-${idx}" class="w-full border p-1 rounded text-right" placeholder="0" onkeyup="hitungTotalBatch()">
+                    </td>
+                    <td class="p-2 text-right font-bold" id="bsub-${idx}">Rp 0</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById("modalBatch").classList.remove("hidden");
     }
 
-    async function simpanDanCetak() {
-      const btn = document.getElementById('btnText');
-      btn.innerText = "⏳ Memproses...";
-      
-      const { error } = await client.from('purchase_order').insert([{
-        req_id: tempPO.reqId, nomor_po: tempPO.nomorPO, nama_vendor: tempPO.vendor,
-        harga_satuan: tempPO.hargaSatuan, total_harga: tempPO.totalHarga, jatuh_tempo: tempPO.jatuhTempo, status: 'OPEN'
-      }]);
+    function hitungTotalBatch() {
+        let grandTotal = 0;
+        const count = selectedIds.length;
 
-      if (error) { alert("Error: " + error.message); return; }
-      await client.from('inventory_req').update({ status: 'PO DIBUAT' }).eq('id', tempPO.reqId);
-
-      const element = document.getElementById('areaCetak');
-      await html2pdf().set({ margin:0, filename: `${tempPO.nomorPO}.pdf`, image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2, useCORS:true}, jsPDF:{unit:'mm', format:'a4'} }).from(element).save();
-
-      alert("Sukses!");
-      tutupPreview();
-      loadData();
-      btn.innerText = "✅ Konfirmasi & Download PDF";
+        for(let i=0; i<count; i++) {
+            const qty = Number(document.getElementById(`bqty-${i}`).value);
+            const harga = Number(document.getElementById(`bharga-${i}`).value);
+            const sub = qty * harga;
+            grandTotal += sub;
+            document.getElementById(`bsub-${i}`).innerText = formatRupiah(sub);
+        }
+        document.getElementById("batchGrandTotal").innerText = formatRupiah(grandTotal);
     }
 
-    loadData();
+    function autoIsiTempoBatch(selectEl) {
+        const top = parseInt(selectEl.options[selectEl.selectedIndex].getAttribute('data-top') || 0);
+        const t = new Date(); t.setDate(t.getDate() + top);
+        document.getElementById("batchTempo").value = t.toISOString().split('T')[0];
+        document.getElementById("batchInfoTop").innerText = top > 0 ? `Auto TOP: ${top} Hari` : "Cash / Tunai";
+    }
+
+    function tutupModalBatch() { document.getElementById("modalBatch").classList.add("hidden"); }
+
+    // 5. PREVIEW KERTAS
+    function previewPOBatch() {
+        const vendor = document.getElementById("batchVendor").value;
+        const tempo = document.getElementById("batchTempo").value;
+        if(!vendor || !tempo) { alert("Pilih Vendor & Tanggal dulu!"); return; }
+
+        // Kumpulkan Data
+        batchData = [];
+        const count = selectedIds.length;
+        let grandTotal = 0;
+        const nomorPO = "PO-" + Math.floor(100000 + Math.random() * 900000);
+
+        for(let i=0; i<count; i++) {
+            const harga = Number(document.getElementById(`bharga-${i}`).value);
+            if(harga <= 0) { alert("Harga tidak boleh 0!"); return; }
+            
+            const item = {
+                reqId: document.getElementById(`bid-${i}`).value,
+                nama: document.getElementById(`bnama-${i}`).value,
+                qty: document.getElementById(`bqty-${i}`).value,
+                satuan: document.getElementById(`bsat-${i}`).value,
+                staff: document.getElementById(`bstaff-${i}`).value,
+                harga: harga,
+                total: harga * Number(document.getElementById(`bqty-${i}`).value)
+            };
+            grandTotal += item.total;
+            batchData.push(item);
+        }
+
+        // Render ke Kertas
+        document.getElementById("printNoPO").innerText = nomorPO;
+        document.getElementById("printTanggal").innerText = new Date().toLocaleDateString('id-ID');
+        document.getElementById("printVendor").innerText = vendor;
+        document.getElementById("printTempo").innerText = new Date(tempo).toLocaleDateString('id-ID');
+        document.getElementById("printGrandTotal").innerText = formatRupiah(grandTotal);
+        document.getElementById("printStaff").innerText = "Admin Finance";
+
+        const tbody = document.getElementById("printTabelBody");
+        tbody.innerHTML = "";
+        batchData.forEach((d, i) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td class="p-2 border border-black text-center">${i+1}</td>
+                    <td class="p-2 border border-black font-bold">${d.nama}</td>
+                    <td class="p-2 border border-black text-center">${d.qty} ${d.satuan}</td>
+                    <td class="p-2 border border-black text-right">${formatRupiah(d.harga)}</td>
+                    <td class="p-2 border border-black text-right font-bold">${formatRupiah(d.total)}</td>
+                </tr>
+            `;
+        });
+
+        // Set Tombol Simpan
+        const actionArea = document.getElementById("actionArea");
+        actionArea.innerHTML = `
+            <button onclick="simpanBatchDB('${nomorPO}', '${vendor}', '${tempo}')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-bold shadow">
+                ✅ Terbitkan PO (Batch) & Download
+            </button>
+        `;
+
+        document.getElementById("modalKertas").classList.remove("hidden");
+    }
+
+    // 6. SIMPAN DB (LOOPING INSERT)
+    async function simpanBatchDB(noPO, vendor, tempo) {
+        const btn = document.querySelector("#actionArea button");
+        btn.innerText = "⏳ Menyimpan..."; btn.disabled = true;
+
+        try {
+            // Kita Insert per Item tapi dengan NO PO yang SAMA
+            const payload = batchData.map(d => ({
+                req_id: d.reqId,
+                nomor_po: noPO,
+                nama_vendor: vendor,
+                harga_satuan: d.harga,
+                total_harga: d.total, // Total per baris
+                jatuh_tempo: tempo,
+                status: 'OPEN'
+            }));
+
+            // Insert Batch
+            const { error } = await client.from('purchase_order').insert(payload);
+            if(error) throw error;
+
+            // Update Status Request
+            const reqIds = batchData.map(d => d.reqId);
+            await client.from('inventory_req').update({ status: 'PO DIBUAT' }).in('id', reqIds);
+
+            // Download PDF
+            await downloadPDF(noPO);
+
+            alert("Sukses! Batch PO diterbitkan.");
+            location.reload(); // Refresh total biar bersih
+
+        } catch (e) {
+            alert("Gagal: " + e.message);
+            btn.innerText = "Coba Lagi"; btn.disabled = false;
+        }
+    }
+
+    async function downloadPDF(filename) {
+        const element = document.getElementById('areaCetak');
+        const opt = { margin: 0, filename: `${filename}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4' } };
+        await html2pdf().set(opt).from(element).save();
+    }
+
+    // 7. LOAD RIWAYAT (GROUP BY PO NUMBER)
+    async function loadRiwayatPO() {
+        const { data } = await client.from('purchase_order').select('*').order('created_at', { ascending: false });
+        
+        const tbody = document.getElementById("tabelRiwayat");
+        tbody.innerHTML = "";
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">Belum ada PO.</td></tr>`;
+            return;
+        }
+
+        // Grouping Data by Nomor PO (Agar tidak duplikat baris)
+        const groups = {};
+        data.forEach(row => {
+            if(!groups[row.nomor_po]) {
+                groups[row.nomor_po] = { 
+                    tgl: row.created_at, vendor: row.nama_vendor, tempo: row.jatuh_tempo, 
+                    status: row.status, grandTotal: 0, count: 0, items: [] 
+                };
+            }
+            groups[row.nomor_po].grandTotal += row.total_harga;
+            groups[row.nomor_po].count++;
+            groups[row.nomor_po].items.push(row);
+        });
+
+        Object.keys(groups).forEach(noPO => {
+            const g = groups[noPO];
+            
+            // Tombol Re-Print (Kirim data JSON string)
+            // Karena data items kompleks, kita hanya kirim ID PO nya saja nanti fetch ulang di modal detail (biar simple)
+            // Atau kita rebuild logic render di client side (Disini saya pakai logic simple render ulang dari data yg ada)
+            
+            // Hack: Simpan data items ke attribute element hidden biar bisa diambil saat klik print
+            const jsonItems = JSON.stringify(g.items).replace(/"/g, "&quot;");
+
+            tbody.innerHTML += `
+                <tr class="hover:bg-blue-50 border-b">
+                    <td class="p-4 font-bold text-gray-800">
+                        ${noPO} <br> <span class="text-xs text-gray-500 font-normal">${new Date(g.tgl).toLocaleDateString()}</span>
+                    </td>
+                    <td class="p-4">${g.vendor}</td>
+                    <td class="p-4 text-center"><span class="bg-gray-200 px-2 py-1 rounded text-xs font-bold">${g.count} Item</span></td>
+                    <td class="p-4 text-right font-bold font-mono text-green-700">${formatRupiah(g.grandTotal)}</td>
+                    <td class="p-4 text-center text-xs font-bold">${g.status}</td>
+                    <td class="p-4 text-center">
+                        <button onclick='reprintBatch("${noPO}", ${jsonItems})' class="bg-gray-700 text-white px-3 py-1 rounded text-xs hover:bg-black">
+                            <i class="fas fa-print"></i> PDF
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // Fungsi Cetak Ulang dari Riwayat
+    function reprintBatch(noPO, items) {
+        // Kita pakai fungsi preview yang sama, tapi data disuapi manual
+        const first = items[0];
+        
+        document.getElementById("printNoPO").innerText = noPO;
+        document.getElementById("printTanggal").innerText = new Date(first.created_at).toLocaleDateString();
+        document.getElementById("printVendor").innerText = first.nama_vendor;
+        document.getElementById("printTempo").innerText = new Date(first.jatuh_tempo).toLocaleDateString();
+        
+        let grandTotal = 0;
+        const tbody = document.getElementById("printTabelBody");
+        tbody.innerHTML = "";
+
+        // Kita perlu fetch nama barang (karena di tabel PO gak ada nama barang, adanya req_id)
+        // Agar cepat, kita tampilkan "Item ID: ..." dulu, atau fetch async.
+        // TAPI: Supaya cepat & simple, kita anggap user sudah tau. Atau idealnya join query.
+        // Di code loadRiwayatPO saya belum join inventory_req. Mari kita perbaiki di next update jika perlu.
+        // SEKARANG: Kita tampilkan Generic Item dulu atau fetch on demand.
+        
+        // *FIX CEPAT*: Fetch detail barang saat klik print
+        fetchDetailAndPrint(noPO, items);
+    }
+
+    async function fetchDetailAndPrint(noPO, items) {
+        // Ambil nama barang
+        const reqIds = items.map(i => i.req_id);
+        const { data } = await client.from('inventory_req').select('id, nama_barang, satuan').in('id', reqIds);
+        
+        // Map ID ke Nama
+        const mapNama = {};
+        if(data) data.forEach(d => mapNama[d.id] = d);
+
+        let grandTotal = 0;
+        const tbody = document.getElementById("printTabelBody");
+        tbody.innerHTML = "";
+
+        items.forEach((d, i) => {
+            const info = mapNama[d.req_id] || { nama_barang: 'Item Terhapus', satuan: '' };
+            // Hitung Qty reverse dari total / harga (atau ambil dari req jika ada)
+            // Asumsi: Kita tidak simpan Qty di tabel PO (ini kelemahan struktur simple). 
+            // Kita ambil qty dari total_harga / harga_satuan
+            const qty = d.total_harga / d.harga_satuan;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td class="p-2 border border-black text-center">${i+1}</td>
+                    <td class="p-2 border border-black font-bold">${info.nama_barang}</td>
+                    <td class="p-2 border border-black text-center">${qty} ${info.satuan}</td>
+                    <td class="p-2 border border-black text-right">${formatRupiah(d.harga_satuan)}</td>
+                    <td class="p-2 border border-black text-right font-bold">${formatRupiah(d.total_harga)}</td>
+                </tr>
+            `;
+            grandTotal += d.total_harga;
+        });
+
+        document.getElementById("printGrandTotal").innerText = formatRupiah(grandTotal);
+
+        // Tombol Download
+        document.getElementById("actionArea").innerHTML = `
+            <button onclick="downloadPDF('${noPO}')" class="bg-gray-800 text-white px-6 py-2 rounded font-bold shadow">
+                Download PDF Arsip
+            </button>
+        `;
+        document.getElementById("modalKertas").classList.remove("hidden");
+    }
+
+    init();
   </script>
 </body>
 </html>
