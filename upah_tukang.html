@@ -370,6 +370,7 @@
   window.activeTab = window.activeTab || "pengajuan";
   window.activeKavling = window.activeKavling || null;
   window.selectedItems = window.selectedItems || [];
+  let blocks = [];
 
   const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
   const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
@@ -394,11 +395,35 @@
     document.getElementById("tabPengajuan")?.addEventListener("click", ()=>setTab("pengajuan"));
     document.getElementById("tabPembayaran")?.addEventListener("click", ()=>setTab("pembayaran"));
     setTab("pengajuan");
-    document.querySelectorAll('[data-unit-id]').forEach(el=>{
-      el.addEventListener('click', ()=>{
+
+    const panelKiri = document.querySelector(".panel-kiri");
+    const tooltip = document.createElement("div");
+    tooltip.id = "unitTooltip";
+    tooltip.className =
+      "absolute hidden px-2 py-1 text-xs font-bold rounded-md shadow bg-slate-900 text-white pointer-events-none z-50";
+    panelKiri?.appendChild(tooltip);
+
+    const showTip = (e, text) => {
+      if (!panelKiri) return;
+      tooltip.textContent = text;
+      tooltip.classList.remove("hidden");
+      const rect = panelKiri.getBoundingClientRect();
+      tooltip.style.left = (e.clientX - rect.left + 12) + "px";
+      tooltip.style.top  = (e.clientY - rect.top  + 12) + "px";
+    };
+    const hideTip = () => tooltip.classList.add("hidden");
+
+    blocks = Array.from(document.querySelectorAll('[data-unit-id]'));
+    blocks.forEach(el=>{
+      const id = el.getAttribute("data-unit-id") || "";
+      el.addEventListener("mouseenter", (e)=> showTip(e, id));
+      el.addEventListener("mousemove",  (e)=> showTip(e, id));
+      el.addEventListener("mouseleave", hideTip);
+
+      el.addEventListener("click", ()=>{
         document.querySelectorAll('[data-unit-id]').forEach(b=>b.classList.remove('selected'));
         el.classList.add('selected');
-        bukaDetailBlok(el.getAttribute('data-unit-id'));
+        bukaDetailBlok(id);
       });
     });
   });
@@ -414,82 +439,142 @@
     }
   }
 
-  async function bukaDetailBlok(kavling){
-    if(!kavling) return;
+  async function bukaDetailBlok(kavling) {
+    if (!kavling) return;
+
     window.activeKavling = kavling;
-    document.getElementById('loading')?.classList.remove('hidden');
-    document.getElementById('judulBlok')?.innerHTML = `Blok <span class="text-green-600">${kavling}</span>`;
-    document.getElementById('subJudul')?.innerText = window.activeTab==="pengajuan"? "Mode: Pengajuan" : "Mode: Pembayaran";
-    try{
-      const { data: bayarData, error: bayarErr } = await client.from('transaksi_upah').select('nama_pekerjaan').eq('kavling', kavling);
-      if(bayarErr) throw bayarErr;
-      const lunasSet = new Set((bayarData||[]).map(x=>x.nama_pekerjaan));
-      const diajukanSet = new Set();
-      try{
-        const { data: ajukanData } = await client.from('pengajuan_upah').select('nama_pekerjaan, status').eq('kavling', kavling);
-        (ajukanData||[]).forEach(r=>{ if((r.status||"").toUpperCase()==="DIAJUKAN") diajukanSet.add(r.nama_pekerjaan); });
-      }catch(e){
-        console.warn("pengajuan_upah belum ada:", e?.message||e);
+    window.selectedItems = window.selectedItems || [];
+
+    document.getElementById("judulBlok").textContent = "Blok " + kavling;
+    document.getElementById("subJudul").textContent = "Memuat data...";
+
+    window.canAjukan = true;
+    renderTabel({ lunasSet: new Set(), diajukanSet: new Set() });
+
+    const terdaftar = await cekBlokTerdaftarDiProyek(kavling);
+    window.canAjukan = !!terdaftar;
+
+    if (!terdaftar) {
+      document.getElementById("subJudul").textContent =
+        'Blok belum ada di "daftar_proyek" (tombol ajukan dimatikan).';
+      renderTabel({ lunasSet: new Set(), diajukanSet: new Set() });
+      return;
+    }
+
+    document.getElementById("loading")?.classList.remove("hidden");
+
+    try {
+      const { data: bayarRows, error: bayarErr } = await client
+        .from("pembayaran_upah")
+        .select("nama_pekerjaan")
+        .eq("blok", kavling);
+
+      if (bayarErr) throw bayarErr;
+
+      const lunasSet = new Set((bayarRows || []).map(r => r.nama_pekerjaan));
+
+      let diajukanSet = new Set();
+      try {
+        const { data: ajukanRows, error: ajukanErr } = await client
+          .from("pengajuan_upah")
+          .select("nama_pekerjaan,status")
+          .eq("blok", kavling);
+
+        if (ajukanErr) throw ajukanErr;
+
+        (ajukanRows || []).forEach(r => {
+          if ((r.status || "").toUpperCase() === "DIAJUKAN") diajukanSet.add(r.nama_pekerjaan);
+        });
+      } catch (e) {
+        console.warn("pengajuan_upah belum ada / error:", e?.message || e);
       }
-      renderTabel({lunasSet, diajukanSet});
-    }catch(err){
-      alert("Error Database: " + (err?.message||err));
-    }finally{
-      document.getElementById('loading')?.classList.add('hidden');
+
+      renderTabel({ lunasSet, diajukanSet });
+
+      document.getElementById("subJudul").textContent =
+        `Lunas: ${lunasSet.size}/${MASTER_RAB.length} | Diajukan: ${diajukanSet.size}`;
+
+      const el = document.querySelector(`[data-unit-id="${CSS.escape(kavling)}"]`);
+      if (el) {
+        if (lunasSet.size >= MASTER_RAB.length) el.setAttribute("data-status", "full_lunas");
+        else el.removeAttribute("data-status");
+      }
+    } catch (err) {
+      console.error(err);
+      document.getElementById("subJudul").textContent =
+        "Gagal baca database (menampilkan master bobot saja).";
+    } finally {
+      document.getElementById("loading")?.classList.add("hidden");
     }
   }
 
   function renderTabel({lunasSet, diajukanSet}){
     const tbody = document.getElementById('tabelBody');
     if(!tbody) return;
+    const canAjukan = window.canAjukan !== false;
     tbody.innerHTML = "";
     let curr="";
     MASTER_RAB.forEach((item, idx)=>{
       if(item.k !== curr){
-        tbody.innerHTML += `
-          <tr class="bg-blue-50 border-t-2 border-blue-100">
-            <td colspan="5" class="px-4 py-2 text-xs font-bold text-blue-800">TAHAP ${item.k}</td>
-          </tr>`;
         curr = item.k;
+        tbody.innerHTML += `
+          <tr class="bg-gray-50 border-t">
+            <td colspan="5" class="px-4 py-2 font-bold text-gray-700">Tahap ${curr}</td>
+          </tr>`;
       }
       const isLunas = lunasSet.has(item.n);
       const isDiajukan = diajukanSet.has(item.n);
       let statusCell="", aksiCell="";
       if(window.activeTab==="pengajuan"){
         if(isLunas){
-          statusCell = `<span class="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-1 rounded-full">TERBAYAR</span>`;
+          statusCell = `<span class="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-1 rounded-full">LUNAS</span>`;
         }else if(isDiajukan){
-          statusCell = `<span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-1 rounded-full">DIAJUKAN</span>`;
-          aksiCell = `<button class="btn-ajukan px-3 py-2 rounded-lg text-xs font-bold" disabled>Menunggu</button>`;
+          statusCell = `<span class="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded-full">DIAJUKAN</span>`;
+          aksiCell = `<button class="px-3 py-2 rounded-lg text-xs font-bold bg-slate-200 text-slate-600" disabled>Menunggu</button>`;
         }else{
-          statusCell = `<span class="text-[10px] font-bold bg-green-100 text-green-800 px-2 py-1 rounded-full">BELUM</span>`;
-          aksiCell = `<button class="btn-ajukan px-3 py-2 rounded-lg text-xs font-bold" onclick="ajukanPekerjaan(${idx})"><i class="fas fa-paper-plane mr-1"></i>AJUKAN</button>`;
+          statusCell = `<span class="text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-1 rounded-full">BELUM</span>`;
+          aksiCell = canAjukan
+            ? `<button class="btn-ajukan px-3 py-2 rounded-lg text-xs font-bold" onclick="ajukanPekerjaan(${idx})"><i class="fas fa-paper-plane mr-1"></i>AJUKAN</button>`
+            : `<button class="px-3 py-2 rounded-lg text-xs font-bold bg-slate-200 text-slate-600" disabled>Daftarkan dulu</button>`;
         }
       }else{
-        if(isLunas) statusCell = `<i class="fas fa-check-circle text-green-500 text-lg" title="LUNAS"></i>`;
-        else statusCell = `<input type="checkbox" class="chk-item w-5 h-5 accent-green-600 cursor-pointer" value="${idx}" data-price="${item.h}" onchange="hitungTotal()">`;
+        if(isLunas) statusCell = `<i class="fa-solid fa-circle-check text-green-600 text-lg"></i>`;
+        else{
+          const checked = (window.selectedItems||[]).includes(idx) ? "checked" : "";
+          statusCell = `<input type="checkbox" class="chk-item w-5 h-5 accent-blue-600" data-idx="${idx}" ${checked}>`;
+        }
       }
-      const rowClass = isLunas && window.activeTab==="pengajuan"? "row-lunas" : isLunas && window.activeTab==="pembayaran"? "bg-green-50 opacity-60" : "hover:bg-gray-50";
+      const rowGrey = window.activeTab==="pengajuan" && isLunas ? "row-lunas" : "";
       tbody.innerHTML += `
-        <tr class="border-b ${rowClass} transition">
+        <tr class="border-b ${rowGrey}">
           <td class="px-4 py-3 text-center">${statusCell}</td>
-          <td class="px-4 py-3 font-medium text-gray-700">${item.n}</td>
-          <td class="px-4 py-3 text-center font-bold text-gray-600">${item.b}%</td>
+          <td class="px-4 py-3">${item.n}</td>
+          <td class="px-4 py-3 text-center font-bold">${item.b}%</td>
           <td class="px-4 py-3 text-right font-mono text-gray-600">${fmt(item.h)}</td>
-          <td class="px-4 py-3 text-center">${aksiCell}</td>
+          <td class="px-4 py-3 text-center">${window.activeTab==="pengajuan" ? aksiCell : ""}</td>
         </tr>`;
     });
-    if(window.activeTab==="pembayaran") hitungTotal();
+    if(window.activeTab==="pembayaran"){
+      document.querySelectorAll(".chk-item").forEach(chk=>{
+        chk.addEventListener("change", (e)=>{
+          const i = parseInt(e.target.getAttribute("data-idx"), 10);
+          window.selectedItems = window.selectedItems||[];
+          if(e.target.checked){
+            if(!window.selectedItems.includes(i)) window.selectedItems.push(i);
+          } else {
+            window.selectedItems = window.selectedItems.filter(x=>x!==i);
+          }
+          hitungTotal();
+        });
+      });
+      hitungTotal();
+    }
   }
 
   function hitungTotal(){
-    const chks = document.querySelectorAll('.chk-item:checked');
+    const indexes = window.selectedItems || [];
     let total=0;
-    window.selectedItems = [];
-    chks.forEach(c=>{
-      total += Number(c.getAttribute('data-price')||0);
-      window.selectedItems.push(MASTER_RAB[Number(c.value)]);
-    });
+    indexes.forEach(i=> total += MASTER_RAB[i]?.h || 0);
     const display = document.getElementById('totalDisplay');
     if(display) display.innerText = fmt(total);
     const btn = document.getElementById('btnCairkan');
