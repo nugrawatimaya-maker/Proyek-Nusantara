@@ -11,18 +11,13 @@
   <div class="max-w-5xl mx-auto mb-6 flex justify-between items-center">
     <div>
       <h1 class="text-2xl font-bold text-green-700">Penerimaan Barang (GRN)</h1>
-      <p class="text-sm text-gray-500">Cek fisik barang & Upload Nota Vendor</p>
+      <p class="text-sm text-gray-500">Cek fisik barang, Validasi Harga & Posting Tagihan</p>
     </div>
     <div class="space-x-4 text-sm">
-      <a href="inventory_req.html" class="text-blue-600 hover:underline">Input Request</a>
+      <a href="tagihan_vendor.html" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 font-bold">Lihat Tagihan Vendor</a>
       <span class="text-gray-300">|</span>
       <a href="dashboard_operasional.html" class="text-gray-600 hover:underline">Kembali ke Dashboard</a>
     </div>
-  </div>
-
-  <div id="errorBox" class="max-w-5xl mx-auto mb-4 hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-    <strong class="font-bold">Terjadi Kesalahan!</strong>
-    <span class="block sm:inline" id="errorMsg"></span>
   </div>
 
   <div class="max-w-5xl mx-auto space-y-6" id="containerPO">
@@ -35,25 +30,19 @@
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
+    const formatRupiah = (n) => new Intl.NumberFormat('id-ID', {style: 'currency', currency: 'IDR'}).format(n);
 
-    // --- 1. LOAD PO OPEN (DENGAN SELECT SPESIFIK) ---
+    // 1. LOAD DATA PO
     async function loadOpenPO() {
       try {
-        const container = document.getElementById("containerPO");
-        
-        // PERBAIKAN UTAMA DI SINI:
-        // Kita pakai "!fk_req_id" untuk memaksa sistem lewat jalur yang benar
         const { data, error } = await client
             .from('purchase_order')
-            .select(`
-              *,
-              inventory_req!fk_req_id ( nama_barang, satuan, jumlah, pengorder )
-            `)
+            .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
             .eq('status', 'OPEN')
             .order('created_at', { ascending: false });
 
-        if (error) throw new Error(error.message);
-
+        if (error) throw error;
+        const container = document.getElementById("containerPO");
         container.innerHTML = "";
 
         if (!data || data.length === 0) {
@@ -62,95 +51,117 @@
         }
 
         data.forEach(po => {
-            // Ambil Data Barang dengan aman
-            const req = po.inventory_req; 
-            const namaBarang = req ? req.nama_barang : "[Data Terhapus]";
+            const req = po.inventory_req;
+            const namaBarang = req ? req.nama_barang : "???";
             const jumlahOrder = req ? req.jumlah : 0;
             const satuan = req ? req.satuan : "";
-            
-            const card = document.createElement('div');
-            card.className = "bg-white rounded-lg shadow-md overflow-hidden border-l-4 border-green-500";
-            
-            card.innerHTML = `
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-4">
-                  <div>
-                      <h3 class="text-xl font-bold text-gray-800">${po.nomor_po}</h3>
-                      <p class="text-sm text-gray-500">Vendor: <strong>${po.nama_vendor}</strong></p>
-                  </div>
-                  <div class="text-right">
-                    <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">Jatuh Tempo: ${po.jatuh_tempo}</span>
-                  </div>
-                </div>
+            const hargaPO = po.harga_satuan || 0; 
 
-                <div class="bg-gray-50 p-4 rounded mb-4 border border-gray-200">
-                  <p class="text-xs text-gray-500 uppercase font-bold mb-1">Barang Datang:</p>
-                  <p class="text-lg font-bold text-gray-800">${namaBarang}</p>
-                  <p class="text-sm text-gray-600">Order: ${jumlahOrder} ${satuan}</p>
-                </div>
+            // Hitung estimasi TOP (Selisih jatuh tempo - hari ini)
+            const today = new Date();
+            const dueDate = new Date(po.jatuh_tempo);
+            const diffTime = Math.abs(dueDate - today);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
-                <div class="bg-green-50 p-4 rounded border border-green-100">
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Jumlah Diterima</label>
-                        <input type="number" id="qty-${po.id}" value="${jumlahOrder}" class="w-full border p-2 rounded text-sm font-bold text-green-700">
+            container.innerHTML += `
+            <div class="bg-white rounded-lg shadow-md overflow-hidden border-l-4 border-green-500 mb-6">
+                <div class="p-6">
+                    <div class="flex justify-between mb-4">
+                      <div><h3 class="text-xl font-bold">${po.nomor_po}</h3><p class="text-sm text-gray-500">Vendor: <strong>${po.nama_vendor}</strong></p></div>
+                      <div class="text-right"><span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">Jatuh Tempo: ${po.jatuh_tempo}</span></div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-4 rounded mb-4 border">
+                      <p class="font-bold text-gray-800 text-lg">${namaBarang}</p>
+                      <p class="text-sm text-gray-600">Order: ${jumlahOrder} ${satuan} @ ${formatRupiah(hargaPO)}</p>
+                    </div>
+
+                    <div class="bg-green-50 p-4 rounded border border-green-200">
+                      <h4 class="font-bold text-green-800 mb-3 border-b border-green-200 pb-1">Verifikasi Penerimaan & Nota</h4>
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div>
+                            <label class="text-xs font-bold text-gray-600 block mb-1">Jumlah Fisik</label>
+                            <input type="number" id="qty-${po.id}" value="${jumlahOrder}" class="w-full border p-2 rounded font-bold">
+                          </div>
+                          <div>
+                            <label class="text-xs font-bold text-gray-600 block mb-1">Kondisi</label>
+                            <select id="kondisi-${po.id}" class="w-full border p-2 rounded"><option value="Bagus">✅ Bagus</option><option value="Rusak">❌ Rusak</option></select>
+                          </div>
+                          <div>
+                            <label class="text-xs font-bold text-red-600 block mb-1">Harga Sesuai Nota</label>
+                            <input type="number" id="harga-${po.id}" value="${hargaPO}" class="w-full border-2 border-red-200 p-2 rounded font-bold bg-white text-gray-800 focus:ring-red-500">
+                          </div>
                       </div>
-                      <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Kondisi</label>
-                        <select id="kondisi-${po.id}" class="w-full border p-2 rounded text-sm">
-                            <option value="Bagus">✅ Bagus</option>
-                            <option value="Rusak">❌ Rusak</option>
-                        </select>
+                      <div class="mb-4">
+                        <label class="text-xs font-bold text-green-800 block mb-1">Upload Foto Nota (Wajib)</label>
+                        <input type="file" id="nota-${po.id}" class="w-full bg-white text-sm border p-1 rounded">
                       </div>
-                  </div>
-                  
-                  <div class="mb-4">
-                    <label class="block text-xs font-bold text-green-800 mb-1">Upload Nota (Wajib)</label>
-                    <input type="file" id="nota-${po.id}" class="w-full bg-white text-sm border p-1 rounded">
-                  </div>
-
-                  <button onclick="terimaBarang(${po.id}, '${po.nomor_po}')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow">
-                      Konfirmasi Terima
-                  </button>
+                      <button onclick="prosesGRN(${po.id}, '${po.nomor_po}', ${hargaPO}, '${namaBarang}', '${po.nama_vendor}')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow">
+                          ✅ Terima Barang & Catat Hutang
+                      </button>
+                    </div>
                 </div>
-            </div>
-            `;
-            container.appendChild(card);
+            </div>`;
         });
-
-      } catch (err) {
-        console.error(err);
-        document.getElementById("errorBox").classList.remove("hidden");
-        document.getElementById("errorMsg").innerText = "Error: " + err.message;
-        document.getElementById("containerPO").innerHTML = "";
-      }
+      } catch (err) { alert("Error: " + err.message); }
     }
 
-    // --- 2. TERIMA BARANG ---
-    async function terimaBarang(poId, noPO) {
+    // 2. PROSES GRN + JURNAL OTOMATIS
+    async function prosesGRN(id, noPO, hargaLama, namaBarang, namaVendor) {
       try {
-          const qty = document.getElementById(`qty-${poId}`).value;
-          const kondisi = document.getElementById(`kondisi-${poId}`).value;
-          const fileInput = document.getElementById(`nota-${poId}`);
+          const qty = Number(document.getElementById(`qty-${id}`).value);
+          const hargaBaru = Number(document.getElementById(`harga-${id}`).value);
+          const kondisi = document.getElementById(`kondisi-${id}`).value;
+          const fileInput = document.getElementById(`nota-${id}`);
 
-          if(fileInput.files.length === 0) { alert("Wajib upload nota!"); return; }
-          if(!confirm(`Terima barang ${noPO}?`)) return;
+          if(qty <= 0 || hargaBaru <= 0) return alert("Jumlah dan Harga tidak boleh 0!");
+          if(fileInput.files.length === 0) return alert("Wajib upload nota!");
 
-          const namaFile = "Nota_" + noPO + "_" + fileInput.files[0].name;
+          if(hargaBaru !== hargaLama) {
+              if(!confirm(`⚠️ PERHATIAN: Harga Nota BERBEDA dengan PO!\n\nPO: ${formatRupiah(hargaLama)}\nNota: ${formatRupiah(hargaBaru)}\n\nLanjutkan update harga?`)) return;
+          } else {
+              if(!confirm("Terima barang dan catat sebagai Hutang Usaha?")) return;
+          }
 
-          // Simpan GRN
-          const { error: errGRN } = await client.from('grn_terima').insert([{
-            po_id: poId, jumlah_diterima: qty, kondisi_barang: kondisi,
+          const namaFile = `Nota_${noPO}_${Date.now()}_${fileInput.files[0].name}`;
+          const totalTagihan = qty * hargaBaru;
+
+          // A. Simpan GRN
+          await client.from('grn_terima').insert([{
+            po_id: id, jumlah_diterima: qty, kondisi_barang: kondisi,
             nama_pemeriksa: "Gudang", tanggal_terima: new Date(), bukti_nota: namaFile
           }]);
-          if(errGRN) throw errGRN;
 
-          // Update PO
-          const { error: errUp } = await client.from('purchase_order').update({ status: 'DITERIMA' }).eq('id', poId);
-          if(errUp) throw errUp;
+          // B. Update PO (Status jadi Tagihan)
+          await client.from('purchase_order').update({ 
+              status: 'DITERIMA', 
+              harga_satuan: hargaBaru, 
+              total_harga: totalTagihan 
+          }).eq('id', id);
 
-          alert("Berhasil!");
+          // C. Update Stok Master
+          // Note: Logikanya ada di Stok Proyek, tapi bisa ditambahkan trigger database. 
+          // Di sini kita fokus ke Akuntansi.
+
+          // D. POSTING JURNAL OTOMATIS (Debit Persediaan, Kredit Hutang)
+          const refJurnal = `GRN-${noPO}`;
+          const jurnalData = [
+              {
+                  tanggal: new Date(), nomor_referensi: refJurnal, keterangan: `Terima Barang: ${namaBarang} (${qty} x ${hargaBaru})`,
+                  nama_akun: 'Persediaan Material', debit: totalTagihan, kredit: 0
+              },
+              {
+                  tanggal: new Date(), nomor_referensi: refJurnal, keterangan: `Hutang Vendor: ${namaVendor}`,
+                  nama_akun: 'Hutang Usaha', debit: 0, kredit: totalTagihan
+              }
+          ];
+          
+          const { error: errJurnal } = await client.from('jurnal_umum').insert(jurnalData);
+          if(errJurnal) throw errJurnal;
+
+          alert("✅ Sukses! Barang diterima, Stok tercatat, dan Hutang Usaha diakui.");
           loadOpenPO();
+
       } catch (e) {
           alert("Gagal: " + e.message);
       }

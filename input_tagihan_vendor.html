@@ -2,385 +2,163 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Input & Laporan Tagihan</title>
-  <style>
-    :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; --success: #16a34a; }
-    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); padding-bottom: 80px; }
-    
-    .header { background: #fff; padding: 16px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center; }
-    .header h2 { margin: 0; font-size: 18px; color: var(--primary); }
-    .icon-btn { cursor: pointer; font-size: 20px; background:none; border:none; }
-
-    .container { max-width: 800px; margin: 0 auto; padding: 16px; }
-    .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-
-    /* Form Styles */
-    label { display: block; font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 6px; margin-top: 12px; }
-    input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #fff; }
-    input:focus, select:focus { outline: 2px solid var(--primary); border-color: var(--primary); }
-    
-    .btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-    .btn-success { background: var(--success); }
-    .btn-secondary { background: #e2e8f0; color: #334155; margin-top:0; width:auto; padding: 8px 16px; }
-    .btn-group { display: flex; gap: 10px; margin-top: 15px; }
-
-    /* Filter Grid */
-    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    
-    /* Table Styles */
-    .table-responsive { overflow-x: auto; margin-top: 15px; border: 1px solid #e2e8f0; border-radius: 8px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
-    th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
-    th { background: #f8fafc; color: #475569; font-weight: 600; }
-    tr:last-child td { border-bottom: none; }
-    
-    /* Utility */
-    .hidden { display: none; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 50px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 100; font-size: 14px; }
-    .toast.show { opacity: 1; }
-    
-    /* Badge Status */
-    .badge-count { background: var(--primary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 5px; }
-
-    /* Modal */
-    dialog { border: none; border-radius: 12px; padding: 20px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
-    dialog::backdrop { background: rgba(0,0,0,0.5); }
-  </style>
+  <title>Daftar Tagihan Vendor (AP)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-gray-100 font-sans text-gray-800 p-6">
 
-  <div class="header">
-    <h2>Manajemen Tagihan</h2>
-    <button class="icon-btn" onclick="location.reload()" title="Refresh">🔄</button>
+  <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
+    <div>
+      <h1 class="text-3xl font-bold text-indigo-900"><i class="fas fa-file-invoice-dollar mr-2"></i>Tagihan Vendor</h1>
+      <p class="text-sm text-gray-500">Daftar Hutang Usaha yang Jatuh Tempo</p>
+    </div>
+    <div class="space-x-3">
+        <a href="kas_keluar.html" class="bg-red-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-red-700">
+            <i class="fas fa-money-bill-wave"></i> Bayar Tagihan
+        </a>
+        <a href="dashboard_operasional.html" class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+    </div>
   </div>
 
-  <div class="container">
+  <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div class="bg-white p-4 rounded shadow border-l-4 border-red-500">
+          <div class="text-xs text-gray-500 font-bold uppercase">Total Hutang Usaha</div>
+          <div class="text-2xl font-bold text-red-700 mt-1" id="totalHutang">Rp 0</div>
+      </div>
+      <div class="bg-white p-4 rounded shadow border-l-4 border-orange-500">
+          <div class="text-xs text-gray-500 font-bold uppercase">Jatuh Tempo < 7 Hari</div>
+          <div class="text-2xl font-bold text-orange-600 mt-1" id="countJatuhTempo">0 Tagihan</div>
+      </div>
+      <div class="bg-white p-4 rounded shadow border-l-4 border-green-500">
+          <div class="text-xs text-gray-500 font-bold uppercase">Lunas Bulan Ini</div>
+          <div class="text-2xl font-bold text-green-600 mt-1" id="totalLunas">Rp 0</div>
+      </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto bg-white rounded-lg shadow overflow-hidden">
+    <div class="p-4 border-b bg-indigo-50 flex justify-between items-center">
+        <h3 class="font-bold text-indigo-800">Daftar Tagihan Belum Lunas (Outstanding)</h3>
+        <input type="text" placeholder="Cari Vendor / No PO..." class="border p-2 rounded text-sm w-64" onkeyup="filterTable(this.value)">
+    </div>
     
-    <div style="margin-bottom: 15px; display:flex; gap:10px;">
-      <button class="btn btn-secondary" onclick="showSection('inputSection')">📝 Input Data</button>
-      <button class="btn btn-secondary" onclick="showSection('reportSection')">📊 Laporan & Filter</button>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-indigo-100 text-indigo-900 font-bold uppercase">
+          <tr>
+            <th class="p-4">Tanggal Nota</th>
+            <th class="p-4">Vendor & No PO</th>
+            <th class="p-4 text-center">TOP / Jatuh Tempo</th>
+            <th class="p-4 text-right">Total Tagihan</th>
+            <th class="p-4 text-center">Bukti Nota</th>
+            <th class="p-4 text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody id="listTagihan" class="divide-y divide-gray-100">
+          <tr><td colspan="6" class="p-6 text-center text-gray-400">Memuat data...</td></tr>
+        </tbody>
+      </table>
     </div>
-
-    <div id="inputSection" class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0;">Form Input</h3>
-        <button class="btn-secondary" onclick="openVendorModal()" style="font-size:12px;">+ Vendor Baru</button>
-      </div>
-      
-      <form id="tagihanForm" method="POST" target="hidden_iframe" enctype="multipart/form-data">
-        <label>Tanggal Nota</label>
-        <input type="date" id="tanggal" name="tanggal" required />
-
-        <label>Pilih Vendor</label>
-        <select id="vendorSelect" name="vendor" required>
-          <option value="">-- Memuat Data... --</option>
-        </select>
-
-        <input type="hidden" name="action" value="simpan_tagihan">
-        <input type="hidden" id="hiddenMaterial" name="material">
-        <input type="hidden" id="hiddenTop" name="top">
-
-        <label>Jatuh Tempo (Otomatis)</label>
-        <input type="text" id="jatuhTempo" name="jatuhTempo" readonly style="background:#f1f5f9" />
-
-        <label>Total Rupiah</label>
-        <input type="number" name="total" placeholder="Contoh: 1500000" required />
-
-        <label>Foto Nota</label>
-        <input type="file" name="bukti" accept="image/*,.pdf" required />
-
-        <button type="submit" class="btn">Simpan Data</button>
-      </form>
-    </div>
-
-    <div id="reportSection" class="card hidden">
-      <h3 style="margin-top:0;">Filter Laporan <span id="dataCount" class="badge-count">0</span></h3>
-      
-      <div class="filter-grid">
-        <div>
-          <label>Mulai Tanggal</label>
-          <input type="date" id="filterStart">
-        </div>
-        <div>
-          <label>Sampai Tanggal</label>
-          <input type="date" id="filterEnd">
-        </div>
-      </div>
-      
-      <div class="filter-grid">
-         <div>
-          <label>Vendor</label>
-          <select id="filterVendor">
-            <option value="">Semua Vendor</option>
-          </select>
-        </div>
-        <div>
-          <label>Jatuh Tempo</label>
-          <input type="date" id="filterDue">
-        </div>
-      </div>
-
-      <div class="btn-group">
-        <button onclick="applyFilter()" class="btn" style="flex:1;">🔍 Terapkan Filter</button>
-        <button onclick="downloadExcel()" class="btn btn-success" style="flex:1;">📥 Download Excel</button>
-      </div>
-
-      <div class="table-responsive">
-        <table id="reportTable">
-          <thead>
-            <tr>
-              <th>Tanggal</th>
-              <th>Vendor</th>
-              <th>Jatuh Tempo</th>
-              <th>Total (Rp)</th>
-              <th>Bukti</th>
-            </tr>
-          </thead>
-          <tbody id="tableBody">
-            <tr><td colspan="5" style="text-align:center; color:#999;">Klik "Terapkan Filter" untuk lihat data.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
-
-  <dialog id="vendorDialog">
-    <form method="dialog">
-      <h3 style="margin-top:0">Vendor Baru</h3>
-      <label>Nama Vendor</label> <input type="text" id="newVendorName" required />
-      <label>Material</label> <input type="text" id="newVendorMat" required />
-      <label>TOP</label> <select id="newVendorTop"></select>
-      <div style="display:flex; gap:10px; margin-top:20px;">
-        <button type="button" class="btn btn-secondary" onclick="document.getElementById('vendorDialog').close()">Batal</button>
-        <button type="button" class="btn" onclick="simpanVendor()">Simpan</button>
-      </div>
-    </form>
-  </dialog>
-
-  <div id="toast" class="toast">Notifikasi</div>
-  <iframe name="hidden_iframe" style="display:none;"></iframe>
 
   <script>
-    // --- KONFIGURASI ---
-    // Pastikan URL ini sesuai dengan Deploy Terbaru Anda
-    const SCRIPT_URL = "GANTI_DENGAN_URL_WEB_APP_ANDA_DISINI"; 
-    
-    const KEYS = { VENDOR: "pn_vendors", HISTORY: "pn_history_data" };
-    
-    // Elements
-    const vendorSelect = document.getElementById("vendor");
-    const filterVendor = document.getElementById("filterVendor");
-    const topSelect = document.getElementById("vendorTop");
-    let allHistoryData = []; 
+    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    const fmt = (n) => new Intl.NumberFormat('id-ID', {style: 'currency', currency: 'IDR'}).format(n);
 
-    // --- INIT ---
-    window.onload = function() {
-      setupTopDropdown();
-      renderDropdowns(); // Load lokal dulu biar cepat
-      
-      // Ambil data baru dari server
-      fetchData("vendor");
-      fetchData("history");
+    async function loadTagihan() {
+        // Ambil PO yang statusnya DITERIMA (Berarti jadi Hutang)
+        // Kita juga join dengan tabel GRN untuk ambil tanggal terima dan bukti nota
+        // Supabase join syntax: purchase_order join grn_terima on id = po_id
+        
+        const { data: listPO, error } = await client
+            .from('purchase_order')
+            .select(`
+                *,
+                grn_terima ( tanggal_terima, bukti_nota )
+            `)
+            .eq('status', 'DITERIMA') 
+            .order('jatuh_tempo', { ascending: true });
 
-      const form = document.getElementById("tagihanForm");
-      if (form) form.action = SCRIPT_URL;
+        const tbody = document.getElementById("listTagihan");
+        tbody.innerHTML = "";
 
-      const tgl = document.getElementById("tanggal");
-      if (tgl) tgl.valueAsDate = new Date();
-    };
+        if(!listPO || listPO.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Tidak ada tagihan belum lunas.</td></tr>`;
+            document.getElementById("totalHutang").innerText = fmt(0);
+            return;
+        }
 
-    function showSection(id) {
-      const inputSection = document.getElementById("inputSection");
-      const reportSection = document.getElementById("reportSection");
-      if (inputSection) inputSection.classList.add("hidden");
-      if (reportSection) reportSection.classList.add("hidden");
-      const target = document.getElementById(id);
-      if (target) target.classList.remove("hidden");
+        let totalHutang = 0;
+        let countNearDue = 0;
+        const today = new Date();
+
+        listPO.forEach(po => {
+            const grn = po.grn_terima && po.grn_terima[0] ? po.grn_terima[0] : { tanggal_terima: po.created_at, bukti_nota: '-' };
+            const tglNota = new Date(grn.tanggal_terima).toLocaleDateString('id-ID');
+            const jatuhTempo = new Date(po.jatuh_tempo);
+            
+            // Hitung sisa hari
+            const diffTime = jatuhTempo - today;
+            const sisaHari = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            let badgeColor = "bg-green-100 text-green-800";
+            let statusText = `${sisaHari} Hari Lagi`;
+
+            if(sisaHari < 0) {
+                badgeColor = "bg-red-100 text-red-800";
+                statusText = `Telat ${Math.abs(sisaHari)} Hari`;
+            } else if (sisaHari <= 7) {
+                badgeColor = "bg-orange-100 text-orange-800";
+                countNearDue++;
+            }
+
+            totalHutang += po.total_harga;
+
+            // Link Nota (Simulasi)
+            const btnNota = grn.bukti_nota !== '-' 
+                ? `<a href="#" onclick="alert('Membuka foto: ${grn.bukti_nota}')" class="text-blue-600 hover:text-blue-800 text-xs font-bold"><i class="fas fa-image"></i> Lihat</a>`
+                : `<span class="text-gray-400 text-xs">-</span>`;
+
+            tbody.innerHTML += `
+                <tr class="hover:bg-indigo-50 transition">
+                    <td class="p-4 text-gray-600 font-mono text-xs">${tglNota}</td>
+                    <td class="p-4">
+                        <div class="font-bold text-gray-800 text-base">${po.nama_vendor}</div>
+                        <div class="text-xs text-blue-600 font-bold mt-1">${po.nomor_po}</div>
+                    </td>
+                    <td class="p-4 text-center">
+                        <div class="font-bold text-gray-700">${new Date(po.jatuh_tempo).toLocaleDateString('id-ID')}</div>
+                        <span class="text-[10px] ${badgeColor} px-2 py-0.5 rounded border border-current mt-1 inline-block">${statusText}</span>
+                    </td>
+                    <td class="p-4 text-right font-bold text-indigo-900 font-mono text-base">${fmt(po.total_harga)}</td>
+                    <td class="p-4 text-center">${btnNota}</td>
+                    <td class="p-4 text-center">
+                        <button onclick="window.location.href='kas_keluar.html'" class="bg-white border border-red-500 text-red-600 px-3 py-1 rounded text-xs font-bold hover:bg-red-50">
+                            Bayar
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        document.getElementById("totalHutang").innerText = fmt(totalHutang);
+        document.getElementById("countJatuhTempo").innerText = countNearDue + " Tagihan";
     }
 
-    // --- FETCH DATA ---
-    function fetchData(type) {
-      let url = SCRIPT_URL;
-      if(type === "history") url += "?action=get_history";
-      
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          if(type === "history") {
-            allHistoryData = Array.isArray(data) ? data : [];
-            const dataCount = document.getElementById("dataCount");
-            if (dataCount) dataCount.innerText = allHistoryData.length;
-          } else {
-            localStorage.setItem(KEYS.VENDOR, JSON.stringify(data));
-            renderDropdowns();
-          }
-        })
-        .catch(err => console.error("Error fetching " + type, err));
+    function filterTable(keyword) {
+        const rows = document.getElementById("listTagihan").getElementsByTagName("tr");
+        for (let i = 0; i < rows.length; i++) {
+            const text = rows[i].innerText.toLowerCase();
+            rows[i].style.display = text.includes(keyword.toLowerCase()) ? "" : "none";
+        }
     }
 
-    // --- LOGIKA FILTER ---
-    function applyFilter() {
-      if(allHistoryData.length === 0) {
-        showToast("⏳ Sedang memuat data, coba sebentar lagi...");
-        fetchData("history"); 
-        return;
-      }
-
-      const fStart = document.getElementById("filterMulai")?.value;
-      const fEnd = document.getElementById("filterSampai")?.value;
-      const fVendor = (filterVendor?.value || "").toLowerCase();
-      const fDue = document.getElementById("filterDue")?.value;
-
-      const filtered = allHistoryData.filter(item => {
-        let valid = true;
-        if(fStart && item.tanggal < fStart) valid = false;
-        if(fEnd && item.tanggal > fEnd) valid = false;
-        if(fVendor && !item.vendor.toLowerCase().includes(fVendor)) valid = false;
-        if(fDue && item.jatuhTempo !== fDue) valid = false;
-        return valid;
-      });
-
-      renderTable(filtered);
-      showToast(`Ditemukan ${filtered.length} data.`);
-    }
-
-    // --- PERBAIKAN UTAMA ADA DI SINI (RENDER TABLE) ---
-    function renderTable(data) {
-      const tbody = document.getElementById("tableBody");
-      if (!tbody) return;
-      tbody.innerHTML = "";
-      
-      if(!data || data.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Tidak ada data.</td></tr>";
-        return;
-      }
-
-      data.forEach(row => {
-        let rawTotal = (row.total || "").toString(); 
-        let cleanStr = rawTotal.replace(/\./g, ""); 
-        let numberVal = parseFloat(cleanStr);
-        if (isNaN(numberVal)) numberVal = 0;
-        let rp = "Rp " + numberVal.toLocaleString("id-ID");
-
-        let link = row.bukti && row.bukti.includes("http") 
-          ? `<a href="${row.bukti}" target="_blank" rel="noopener">Lihat</a>` 
-          : "-";
-
-        let tr = `
-          <tr>
-            <td>${formatDateIndo(row.tanggal)}</td>
-            <td>${row.vendor}</td>
-            <td style="color:#dc2626;">${formatDateIndo(row.jatuhTempo)}</td>
-            <td style="font-weight:bold; color:#16a34a;">${rp}</td>
-            <td>${link}</td>
-          </tr>
-        `;
-        tbody.innerHTML += tr;
-      });
-    }
-
-    // --- UTILS ---
-    function downloadExcel() {
-      const table = document.getElementById("reportTable");
-      if (!table) return;
-      let blob = new Blob(['\ufeff', table.outerHTML], { type: 'application/vnd.ms-excel' });
-      let url = URL.createObjectURL(blob);
-      let a = document.createElement("a");
-      a.href = url;
-      a.download = 'Laporan_Tagihan.xls';
-      a.click();
-    }
-
-    function renderDropdowns() {
-      let vendors = JSON.parse(localStorage.getItem(KEYS.VENDOR) || "[]");
-      let html = "<option value=''>-- Pilih Vendor --</option>";
-      vendors.forEach(v => {
-        html += `<option value="${v.name}" data-top="${v.top}" data-mat="${v.material}">${v.name}</option>`;
-      });
-      if (vendorSelect) vendorSelect.innerHTML = html;
-      if (filterVendor) filterVendor.innerHTML = html.replace("-- Pilih Vendor --", "Semua Vendor");
-    }
-
-    function setupTopDropdown() {
-      if (!topSelect) return;
-      topSelect.innerHTML = "";
-      for(let i=15; i<=120; i++) {
-        let opt = document.createElement("option");
-        opt.value = i + " hari"; opt.innerText = i + " hari";
-        topSelect.appendChild(opt);
-      }
-    }
-
-    function formatDateIndo(dateStr) {
-      if(!dateStr) return "-";
-      let parts = dateStr.split("-");
-      if(parts.length !== 3) return dateStr;
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-
-    function showToast(msg) {
-      let t = document.getElementById("toast");
-      if (!t) return;
-      t.innerText = msg; t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 3000);
-    }
-    
-    // Logic Form Input
-    vendorSelect?.addEventListener("change", function() {
-       let opt = this.options[this.selectedIndex];
-       if(opt?.dataset.top) {
-         const hiddenMat = document.getElementById("vendorMaterialHidden");
-         const hiddenTop = document.getElementById("vendorTopHidden");
-         if (hiddenMat) hiddenMat.value = opt.dataset.mat;
-         if (hiddenTop) hiddenTop.value = opt.dataset.top;
-         let tgl = document.getElementById("tanggal")?.value;
-         if(tgl) calcDue(tgl, opt.dataset.top);
-       }
-    });
-    
-    document.getElementById("tanggal")?.addEventListener("change", function() {
-       let opt = vendorSelect?.options[vendorSelect.selectedIndex];
-       if(opt?.dataset.top) calcDue(this.value, opt.dataset.top);
-    });
-
-    function calcDue(d, t) {
-      let days = parseInt(t);
-      let date = new Date(d);
-      date.setDate(date.getDate() + days);
-      const due = document.getElementById("jatuhTempo");
-      if (due) due.value = date.toISOString().split("T")[0];
-    }
-
-    function openVendorModal() { document.getElementById("vendorDialog")?.showModal(); }
-    
-    function simpanVendor() {
-      let name = document.getElementById("vendorName")?.value || "";
-      let mat = document.getElementById("vendorMaterial")?.value || "";
-      let top = topSelect?.value || "";
-      
-      let fd = new FormData();
-      fd.append("action", "simpan_vendor");
-      fd.append("vendorName", name);
-      fd.append("vendorMaterial", mat);
-      fd.append("vendorTop", top);
-      fetch(SCRIPT_URL, {method:"POST", body:fd, mode:"no-cors"});
-      
-      let v = JSON.parse(localStorage.getItem(KEYS.VENDOR)||"[]");
-      v.push({name, material:mat, top});
-      localStorage.setItem(KEYS.VENDOR, JSON.stringify(v));
-      renderDropdowns();
-      
-      document.getElementById("vendorDialog")?.close();
-      showToast("Vendor tersimpan (Background)");
-    }
-    
-    document.getElementById("tagihanForm").onsubmit = function() {
-        showToast("Mengirim data...");
-        setTimeout(()=> { this.reset(); showToast("✅ Terkirim"); }, 2000);
-    }
-
+    loadTagihan();
   </script>
 </body>
 </html>
