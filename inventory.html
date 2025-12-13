@@ -2,329 +2,127 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Inventory Management</title>
-  <style>
-    :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --bg: #f4f6f9; --card: #ffffff; --text: #333; --border: #e2e8f0; }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: var(--bg); color: var(--text); }
-    header { background: var(--card); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 50; }
-    header h1 { margin: 0; font-size: 18px; color: var(--primary); }
-    header .nav-btn { background: var(--accent); border: none; color: white; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; }
-    main { padding: 20px; max-width: 1200px; margin: 0 auto 40px; display: flex; flex-direction: column; gap: 18px; }
-    
-    /* TABS */
-    .inv-tabs { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; }
-    .inv-tab-btn { border: 1px solid var(--border); background: #f8fafc; color: var(--text); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; white-space: nowrap; }
-    .inv-tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 4px 10px rgba(52,152,219,0.25); }
-    .inv-panel.hidden { display: none; }
-
-    /* CARDS */
-    .inventory-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); margin-bottom: 20px; }
-    .form-group { margin-bottom: 12px; position: relative; }
-    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 6px; }
-    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #dfe4ea; border-radius: 8px; font-size: 14px; background-color: #fff; }
-    .btn-tambah { background: var(--success); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2); }
-    
-    /* DROPDOWN & MODAL */
-    .add-material-btn { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; padding: 0; background: var(--accent); color: #fff; border: none; border-radius: 6px; font-weight: 800; cursor: pointer; }
-    .custom-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 0 0 8px 8px; max-height: 250px; overflow-y: auto; z-index: 100; list-style: none; padding: 0; margin: 0; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
-    .custom-dropdown.show { display: block; }
-    .custom-dropdown li { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 14px; }
-    .custom-dropdown li:hover { background-color: #f0f9ff; color: var(--accent); }
-    .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-    .modal.show { display: flex; }
-    .modal-content { background: white; width: 90%; max-width: 400px; padding: 25px; border-radius: 16px; }
-
-    table.std-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    table.std-table th { text-align: left; padding: 10px; background: #f8fafc; font-size: 12px; font-weight: 600; border-bottom: 2px solid var(--border); }
-    table.std-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: var(--text); }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Request Barang - Gudang</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <header>
-    <h1>Inventory Management</h1>
-    <button class="nav-btn" type="button" onclick="goBack()">Kembali</button>
-  </header>
+<body class="bg-gray-50 font-sans text-gray-800">
 
-  <main>
-    <div class="inv-tabs">
-      <button class="inv-tab-btn active" data-target="orderPanel">Order Barang</button>
-      <button class="inv-tab-btn" data-target="receivePanel">Penerimaan (GRN)</button>
+  <div class="max-w-xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-lg">
+    <div class="text-center mb-6">
+      <h1 class="text-2xl font-bold text-indigo-700">Form Permintaan Barang</h1>
+      <p class="text-sm text-gray-500">Langkah 1: Staff Gudang Input Kebutuhan</p>
     </div>
 
-    <section id="orderPanel" class="inv-panel">
-      <div class="inventory-card">
-        <h3>Order Barang</h3>
-        <form id="orderForm">
-          <div class="form-group">
-            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-              <label>Nama Barang</label>
-              <button type="button" class="add-material-btn" onclick="openModalMaterial()" title="Tambah Material Baru">+</button>
-            </div>
-            <input type="text" id="orderItem" autocomplete="off" required placeholder="Cari barang...">
-            <ul id="orderItemDropdown" class="custom-dropdown"></ul>
-          </div>
-          
-          <div class="form-group">
-            <label>Satuan</label>
-            <select id="orderUnitSelect"></select>
-          </div>
-          
-          <div class="form-group">
-            <label>Jumlah</label>
-            <input type="number" id="orderQty" min="1" required placeholder="0">
-          </div>
-
-          <div class="form-group">
-            <label>Nama Pengorder</label>
-            <select id="orderRequester" required>
-              <option value="">-- Pilih Nama --</option>
-            </select>
-          </div>
-          
-          <button type="submit" class="btn-tambah" style="width:100%;">Simpan Order</button>
-        </form>
+    <form id="reqForm" class="space-y-4">
+      
+      <div>
+        <label class="block text-sm font-bold mb-1">Nama Material / Barang</label>
+        <input type="text" id="barang" class="w-full border rounded p-2" placeholder="Contoh: Semen Tonasa / Kertas A4" required>
       </div>
 
-      <div class="inventory-card">
-        <h3>Daftar Order (Draft)</h3>
-        <table class="std-table">
-          <thead><tr><th>Barang</th><th>Qty</th><th>Pengorder</th><th>Aksi</th></tr></thead>
-          <tbody id="orderTable"></tbody>
-        </table>
-        <div style="text-align:right; margin-top:10px;">
-          <button class="btn-tambah" style="background:#2563eb;" onclick="sendOrdersToPO()">Kirim ke Pembelian</button>
+      <div class="flex gap-4">
+        <div class="w-1/2">
+          <label class="block text-sm font-bold mb-1">Jumlah</label>
+          <input type="number" id="jumlah" class="w-full border rounded p-2" placeholder="0" required>
+        </div>
+        <div class="w-1/2">
+          <label class="block text-sm font-bold mb-1">Satuan</label>
+          <select id="satuan" class="w-full border rounded p-2 bg-white">
+            <option>Pcs</option>
+            <option>Unit</option>
+            <option>Kg</option>
+            <option>Sak</option>
+            <option>Meter</option>
+            <option>Box</option>
+          </select>
         </div>
       </div>
-    </section>
 
-    <section id="receivePanel" class="inv-panel hidden">
-      <div class="inventory-card"><p style="text-align:center;color:#999;">Fitur Penerimaan Barang</p></div>
-    </section>
-  </main>
+      <div>
+        <label class="block text-sm font-bold mb-1">Nama Pengorder (Staff)</label>
+        <input type="text" id="pengorder" class="w-full border rounded p-2" placeholder="Nama Anda" required>
+      </div>
 
-  <div id="modalMaterial" class="modal">
-    <div class="modal-content">
-      <h3 style="margin-top:0;">Tambah Material Baru</h3>
-      <form id="formMaterialBaru">
-        <div class="form-group"><label>Nama Barang</label><input type="text" id="newMaterialNameInput" required></div>
-        <div class="form-group"><label>Satuan</label><select id="newMaterialUnitInput" required></select></div>
-        <div style="text-align:right; margin-top:15px;">
-          <button type="button" onclick="closeModalMaterial()" style="padding:8px; border:1px solid #ccc; background:white; border-radius:6px;">Batal</button>
-          <button type="submit" class="btn-tambah">Simpan</button>
-        </div>
-      </form>
-    </div>
+      <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded hover:bg-indigo-700 transition">
+        🚀 Kirim Permintaan ke Finance
+      </button>
+
+    </form>
+
+    <div id="pesan" class="hidden mt-4 p-3 bg-green-100 text-green-700 rounded text-center font-bold"></div>
+  </div>
+
+  <div class="max-w-xl mx-auto mt-8">
+    <h3 class="font-bold text-gray-600 mb-2">Permintaan Terkirim (Pending PO)</h3>
+    <ul id="listReq" class="bg-white rounded shadow divide-y text-sm">
+      <li class="p-3 text-center text-gray-400">Memuat data...</li>
+    </ul>
   </div>
 
   <script>
-    // --- KONFIGURASI ---
-    const ORDER_KEY = 'inventoryOrders';
-    const MATERIAL_KEY = 'master_material_local';
-    
-    // GANTI URL DI BAWAH INI DENGAN DEPLOYMENT TERBARU ANDA
-    const ITEM_SOURCE_URL = "https://script.google.com/macros/s/AKfycby35BUkEx44e226aMxqdQqHGR-44jYysKje3x-LKmv581Tv41C6Hshqq8LTIhVOW40B/exec";
+    // --- KONEKSI SUPABASE ---
+    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-    const UNIT_OPTIONS = ["Batang","Biji","Dos","Ember","Kg","Lembar","Liter","Meter","Pcs","Roll","Sak","Set","Truk","Unit"].sort();
-    const REQUESTER_OPTIONS = ["Eka", "Indra", "Didin", "Nadia"];
-    let allMaterials = [];
-
-    // --- INIT ---
-    window.onload = function() {
-      // 1. Isi Dropdown Satuan & Pengorder
-      const unitHtml = UNIT_OPTIONS.map(u => `<option value="${u}">${u}</option>`).join('');
-      document.getElementById('orderUnitSelect').innerHTML = unitHtml;
-      document.getElementById('newMaterialUnitInput').innerHTML = unitHtml;
-
-      document.getElementById('orderRequester').innerHTML = '<option value="">-- Pilih Nama --</option>' + 
-        REQUESTER_OPTIONS.map(n => `<option value="${n}">${n}</option>`).join('');
-
-      // 2. Setup Pencarian
-      setupDropdown('orderItem', 'orderItemDropdown');
-      
-      // 3. Load Data
-      fetchDataMaster();
-      renderOrders();
-    };
-
-    // --- FUNGSI UTAMA ---
-
-    // 1. TAMBAH BARANG (FIXED DATABASE)
-    document.getElementById('formMaterialBaru').addEventListener('submit', async (e) => {
+    // 1. KIRIM DATA
+    document.getElementById("reqForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const btn = e.target.querySelector('button[type="submit"]');
-      const name = document.getElementById('newMaterialNameInput').value.trim();
-      const unit = document.getElementById('newMaterialUnitInput').value;
+      
+      const payload = {
+        nama_barang: document.getElementById("barang").value,
+        jumlah: document.getElementById("jumlah").value,
+        satuan: document.getElementById("satuan").value,
+        pengorder: document.getElementById("pengorder").value,
+        status: "PENDING"
+      };
 
-      if(!name) return;
-      btn.innerText = "Menyimpan..."; btn.disabled = true;
+      const { error } = await client.from('inventory_req').insert([payload]);
 
-      try {
-        // A. Simpan Lokal
-        const master = JSON.parse(localStorage.getItem(MATERIAL_KEY) || "[]");
-        if(!master.some(m => m.name.toLowerCase() === name.toLowerCase())){
-           master.push({name, unit});
-           localStorage.setItem(MATERIAL_KEY, JSON.stringify(master));
-           allMaterials.push(name); allMaterials.sort();
-        }
-
-        // B. Update Form
-        document.getElementById('orderItem').value = name;
-        document.getElementById('orderUnitSelect').value = unit;
-
-        // C. KIRIM KE SPREADSHEET (MENGGUNAKAN FORM DATA AGAR STABIL)
-        if (ITEM_SOURCE_URL) {
-          const payload = new URLSearchParams();
-          payload.append("action", "add_item"); // Wajib sama dengan script
-          payload.append("name", name);
-          payload.append("unit", unit);
-
-          await fetch(ITEM_SOURCE_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: payload
-          });
-          alert("Tersimpan di Spreadsheet!");
-        }
-
-        closeModalMaterial();
-        document.getElementById('newMaterialNameInput').value = '';
-
-      } catch (err) {
-        alert("Gagal koneksi ke server, hanya tersimpan di browser.");
-      } finally {
-        btn.innerText = "Simpan"; btn.disabled = false;
+      if (error) {
+        alert("Gagal: " + error.message);
+      } else {
+        document.getElementById("pesan").innerText = "✅ Permintaan berhasil dikirim!";
+        document.getElementById("pesan").classList.remove("hidden");
+        document.getElementById("reqForm").reset();
+        loadRequest(); // Refresh list bawah
+        setTimeout(() => document.getElementById("pesan").classList.add("hidden"), 3000);
       }
     });
 
-    // 2. FETCH DATA
-    async function fetchDataMaster() {
-      const input = document.getElementById('orderItem');
-      
-      let localData = JSON.parse(localStorage.getItem(MATERIAL_KEY) || "[]");
-      let localNames = localData.map(m => m.name);
-      
-      allMaterials = [...new Set(localNames)].sort();
-      
-      if (!ITEM_SOURCE_URL) return;
+    // 2. TAMPILKAN LIST REQUEST
+    async function loadRequest() {
+      const { data, error } = await client
+        .from('inventory_req')
+        .select('*')
+        .eq('status', 'PENDING') // Hanya tampilkan yang belum diproses PO
+        .order('id', { ascending: false });
 
-      try {
-        input.placeholder = "Mengambil data dari server...";
-        
-        const res = await fetch(ITEM_SOURCE_URL + "?action=get_items&t=" + Date.now());
-        
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-           console.error("Error: Script mengembalikan HTML (Login Page). Cek Deployment 'Who has access: Anyone'.");
-           input.placeholder = "Error Akses Script!";
-           return;
-        }
+      const list = document.getElementById("listReq");
+      list.innerHTML = "";
 
-        const json = await res.json();
-        
-        if (json.data && Array.isArray(json.data)) {
-          const serverNames = json.data.map(i => i.nama).filter(Boolean);
-          
-          allMaterials = [...new Set([...allMaterials, ...serverNames])].sort();
-          
-          input.placeholder = `Cari barang (${allMaterials.length} item)...`;
-          console.log("Data Server Berhasil Dimuat:", serverNames.length);
-        } else {
-          input.placeholder = "Data Server Kosong.";
-        }
-      } catch (e) { 
-        console.error("Gagal koneksi:", e);
-        input.placeholder = "Offline: Menampilkan data lokal.";
-      }
-    }
-
-    // 3. KIRIM ORDER (BULK)
-    async function sendOrdersToPO() {
-      const allOrders = JSON.parse(localStorage.getItem(ORDER_KEY) || "[]");
-      const pending = allOrders.filter(o => o.status === 'Menunggu');
-      if (!pending.length) { alert("Draft kosong"); return; }
-
-      if (ITEM_SOURCE_URL) {
-        try {
-          const payload = new URLSearchParams();
-          payload.append("action", "inventory_bulk");
-          payload.append("orders", JSON.stringify(pending)); // Kirim JSON string di dalam form field
-
-          await fetch(ITEM_SOURCE_URL, {
-            method: 'POST', mode: 'no-cors',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: payload
-          });
-        } catch(e) {}
+      if (data.length === 0) {
+        list.innerHTML = '<li class="p-3 text-center text-gray-400">Belum ada permintaan baru.</li>';
+        return;
       }
 
-      // Update Lokal
-      const batchId = 'REQ-' + Date.now();
-      const updated = allOrders.map(o => o.status === 'Menunggu' ? {...o, status: 'Requested', batchRef: batchId} : o);
-      localStorage.setItem(ORDER_KEY, JSON.stringify(updated));
-      
-      // Simpan Batch untuk Notifikasi
-      const batches = JSON.parse(localStorage.getItem('po_request_batches') || "[]");
-      batches.push({ id: batchId, date: new Date(), sender: pending[0].requester, itemCount: pending.length, items: pending, status: 'Unread' });
-      localStorage.setItem('po_request_batches', JSON.stringify(batches));
-
-      renderOrders();
-      alert("Terkirim ke Pembelian!");
+      data.forEach(item => {
+        list.innerHTML += `
+          <li class="p-3 flex justify-between items-center hover:bg-gray-50">
+            <div>
+              <span class="font-bold text-indigo-900">${item.nama_barang}</span>
+              <span class="text-xs bg-gray-200 px-2 py-1 rounded ml-2">${item.jumlah} ${item.satuan}</span>
+              <div class="text-xs text-gray-500">Oleh: ${item.pengorder} | ${new Date(item.created_at).toLocaleDateString()}</div>
+            </div>
+            <span class="text-xs font-bold text-orange-500">Menunggu PO ⏳</span>
+          </li>
+        `;
+      });
     }
 
-    // --- UI HELPERS ---
-    function setupDropdown(inputId, listId) {
-      const input = document.getElementById(inputId), list = document.getElementById(listId);
-      input.addEventListener('input', () => {
-        const val = input.value.toLowerCase();
-        const matches = allMaterials.filter(m => m.toLowerCase().includes(val));
-        list.innerHTML = matches.slice(0,20).map(m => `<li>${m}</li>`).join('');
-        list.style.display = matches.length ? 'block' : 'none';
-      });
-      list.addEventListener('click', (e) => {
-        if(e.target.tagName === 'LI') { input.value = e.target.textContent; list.style.display = 'none'; }
-      });
-      document.addEventListener('click', (e) => { if(e.target !== input) list.style.display = 'none'; });
-    }
-
-    document.getElementById('orderForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const orders = JSON.parse(localStorage.getItem(ORDER_KEY) || "[]");
-      orders.push({
-        id: Date.now(),
-        item: document.getElementById('orderItem').value,
-        qty: document.getElementById('orderQty').value,
-        unit: document.getElementById('orderUnitSelect').value,
-        requester: document.getElementById('orderRequester').value,
-        status: 'Menunggu'
-      });
-      localStorage.setItem(ORDER_KEY, JSON.stringify(orders));
-      e.target.reset(); renderOrders();
-    });
-
-    function renderOrders() {
-      const orders = JSON.parse(localStorage.getItem(ORDER_KEY) || "[]").filter(o => o.status === 'Menunggu');
-      document.getElementById('orderTable').innerHTML = orders.map(o => `
-        <tr><td>${o.item}</td><td>${o.qty} ${o.unit}</td><td>${o.requester}</td>
-        <td><button onclick="delOrder(${o.id})" style="color:red;border:none;background:none;">&times;</button></td></tr>
-      `).join('');
-    }
-    window.delOrder = (id) => {
-      const orders = JSON.parse(localStorage.getItem(ORDER_KEY) || "[]").filter(o => o.id !== id);
-      localStorage.setItem(ORDER_KEY, JSON.stringify(orders)); renderOrders();
-    };
-
-    function openModalMaterial() { document.getElementById('modalMaterial').classList.add('show'); }
-    function closeModalMaterial() { document.getElementById('modalMaterial').classList.remove('show'); }
-    function goBack() { window.location.href = 'dashboard_operasional.html'; }
-    document.querySelectorAll('.inv-tab-btn').forEach(btn => btn.addEventListener('click', (e) => {
-      document.querySelectorAll('.inv-panel').forEach(p => p.classList.add('hidden'));
-      document.getElementById(e.target.dataset.target).classList.remove('hidden');
-      document.querySelectorAll('.inv-tab-btn').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
-    }));
+    loadRequest();
   </script>
 </body>
 </html>

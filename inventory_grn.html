@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gudang - Penerimaan Barang (GRN)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 p-6">
+
+  <div class="max-w-4xl mx-auto mb-6 flex justify-between items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-green-700">Penerimaan Barang (GRN)</h1>
+      <p class="text-sm text-gray-500">Cek barang datang berdasarkan PO Finance</p>
+    </div>
+    <div class="space-x-4 text-sm">
+      <a href="inventory_req.html" class="text-blue-600 hover:underline">Input Request</a>
+      <span class="text-gray-300">|</span>
+      <a href="finance_po.html" class="text-blue-600 hover:underline">Cek PO</a>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto space-y-6" id="containerPO">
+    <div class="text-center p-10 text-gray-400">Sedang mencari PO terbuka...</div>
+  </div>
+
+  <script>
+    // --- KONEKSI SUPABASE ---
+    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // --- 1. LOAD PO YANG STATUSNYA 'OPEN' ---
+    async function loadOpenPO() {
+      const { data, error } = await client
+        .from('purchase_order')
+        .select(`
+          *,
+          inventory_req ( nama_barang, satuan, jumlah, pengorder )
+        `)
+        .eq('status', 'OPEN')
+        .order('created_at', { ascending: false });
+
+      const container = document.getElementById("containerPO");
+      container.innerHTML = "";
+
+      if (!data || data.length === 0) {
+        container.innerHTML = `<div class="bg-white p-8 rounded shadow text-center text-gray-500 font-bold">✅ Tidak ada barang yang sedang ditunggu.</div>`;
+        return;
+      }
+
+      data.forEach(po => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-lg shadow-md overflow-hidden border-l-4 border-green-500";
+        
+        card.innerHTML = `
+          <div class="p-6">
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <h3 class="text-xl font-bold text-gray-800">${po.nomor_po}</h3>
+                <p class="text-sm text-gray-500">Vendor: <strong>${po.nama_vendor}</strong></p>
+              </div>
+              <div class="text-right">
+                <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">Jatuh Tempo: ${po.jatuh_tempo}</span>
+              </div>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded mb-4 border border-gray-200">
+              <p class="text-xs text-gray-500 uppercase font-bold mb-1">Barang yang harus diterima:</p>
+              <p class="text-lg font-bold text-gray-800">${po.inventory_req.nama_barang}</p>
+              <p class="text-sm text-gray-600">Jumlah Order: ${po.inventory_req.jumlah} ${po.inventory_req.satuan}</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-green-50 p-4 rounded border border-green-100">
+              
+              <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Jumlah Diterima Riil</label>
+                <input type="number" id="qty-${po.id}" value="${po.inventory_req.jumlah}" class="w-full border p-2 rounded text-sm font-bold text-green-700">
+              </div>
+              
+              <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Kondisi Barang</label>
+                <select id="kondisi-${po.id}" class="w-full border p-2 rounded text-sm">
+                  <option value="Bagus / Sesuai">✅ Bagus / Sesuai</option>
+                  <option value="Rusak Sebagian">⚠️ Rusak Sebagian</option>
+                  <option value="Rusak Total">❌ Rusak Total</option>
+                </select>
+              </div>
+
+              <button onclick="terimaBarang(${po.id}, '${po.nomor_po}')" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow">
+                📦 Konfirmasi Terima
+              </button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // --- 2. FUNGSI TERIMA BARANG (GRN ACTION) ---
+    async function terimaBarang(poId, noPO) {
+      const qtyTerima = document.getElementById(`qty-${poId}`).value;
+      const kondisi = document.getElementById(`kondisi-${poId}`).value;
+
+      if(!confirm(`Yakin terima barang untuk ${noPO} dengan jumlah ${qtyTerima}?`)) return;
+
+      const { error: errGRN } = await client.from('grn_terima').insert([{
+        po_id: poId,
+        jumlah_diterima: qtyTerima,
+        kondisi_barang: kondisi,
+        nama_pemeriksa: "Staff Gudang",
+        tanggal_terima: new Date()
+      }]);
+
+      if (errGRN) {
+        alert("Gagal simpan GRN: " + errGRN.message);
+        return;
+      }
+
+      const { error: errUpdate } = await client
+        .from('purchase_order')
+        .update({ status: 'DITERIMA' })
+        .eq('id', poId);
+
+      if (errUpdate) {
+        alert("GRN OK, tapi gagal update status PO.");
+      } else {
+        alert("✅ Barang berhasil diterima! Data dikirim ke Finance untuk pembayaran.");
+        loadOpenPO();
+      }
+    }
+
+    // Jalankan saat load
+    loadOpenPO();
+  </script>
+</body>
+</html>
