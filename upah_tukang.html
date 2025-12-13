@@ -331,14 +331,8 @@
     </div>
   </main>
 
-  <script>
-  // --- 1. SETUP DATABASE ---
-  const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-  const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
-  const client = supabase.createClient(supabaseUrl, supabaseKey);
-
-  // --- 2. DATA MASTER RAB (Sesuai Gambar Excel Anda) ---
-  // k = tahap, n = nama pekerjaan, b = bobot, h = harga/nilai
+    <script>
+  // ====== KONFIGURASI MASTER RAB (ada Bobot) ======
   const MASTER_RAB = [
     { k:"1", n:"Bowplank", b:1, h:145000 }, { k:"1", n:"Pondasi", b:3, h:435000 }, { k:"1", n:"Sloof", b:3, h:435000 }, { k:"1", n:"Kolom", b:3, h:435000 }, { k:"1", n:"Urugan Tanah", b:1, h:145000 },
     { k:"2", n:"Pasangan Batu", b:7, h:1015000 }, { k:"2", n:"Ringbalk", b:4, h:580000 }, { k:"2", n:"Kuda-kuda", b:3, h:435000 }, { k:"2", n:"Tiang Cor", b:1, h:145000 },
@@ -347,288 +341,159 @@
     { k:"5", n:"Cat Dinding", b:7, h:725000 }, { k:"5", n:"Finishing", b:10, h:3110000 }
   ];
 
+  // ====== FORMAT ======
   const fmt = (n) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(n);
 
-  let activeKavling = null;
-  let selectedItems = [];              // untuk mode pembayaran (checkbox)
-  let activeTab = "pengajuan";         // "pengajuan" | "pembayaran"
-  let blocks = [];
+  // ====== STATE ======
+  window.activeTab = window.activeTab || "pengajuan";
+  window.activeKavling = window.activeKavling || null;
+  window.selectedItems = window.selectedItems || [];
 
-  // ---------- UTIL TAB ----------
-  function setTab(tab) {
-    activeTab = tab;
+  const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+  const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
+  const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-    // highlight tombol tab
+  function setTab(tab){
+    window.activeTab = tab;
     const btnPengajuan = document.getElementById("tabPengajuan");
     const btnPembayaran = document.getElementById("tabPembayaran");
-    if (btnPengajuan && btnPembayaran) {
-      if (tab === "pengajuan") {
-        btnPengajuan.classList.add("border-green-500", "text-green-600");
-        btnPembayaran.classList.remove("border-blue-500", "text-blue-600");
-      } else {
-        btnPembayaran.classList.add("border-blue-500", "text-blue-600");
-        btnPengajuan.classList.remove("border-green-500", "text-green-600");
-      }
+    if(btnPengajuan && btnPembayaran){
+      btnPengajuan.classList.toggle("border-green-500", tab==="pengajuan");
+      btnPengajuan.classList.toggle("text-green-600", tab==="pengajuan");
+      btnPembayaran.classList.toggle("border-blue-500", tab==="pembayaran");
+      btnPembayaran.classList.toggle("text-blue-600", tab==="pembayaran");
     }
-
-    // footer toggle
-    const fPengajuan = document.getElementById("footerPengajuan");
-    const fPembayaran = document.getElementById("footerPembayaran");
-    if (fPengajuan && fPembayaran) {
-      fPengajuan.classList.toggle("hidden", tab !== "pengajuan");
-      fPembayaran.classList.toggle("hidden", tab !== "pembayaran");
-    }
-
-    // column toggle
-    const colAksi = document.getElementById("colAksi");
-    const colStatus = document.getElementById("colStatus");
-    if (colAksi) colAksi.textContent = (tab === "pengajuan") ? "Aksi" : "";   // pembayaran tidak pakai aksi
-    if (colStatus) colStatus.textContent = (tab === "pengajuan") ? "Status" : "Pilih";
-
-    // re-render kalau sudah ada blok aktif
-    if (activeKavling) bukaDetailBlok(activeKavling);
+    document.getElementById("footerPengajuan")?.classList.toggle("hidden", tab!=="pengajuan");
+    document.getElementById("footerPembayaran")?.classList.toggle("hidden", tab!=="pembayaran");
+    if(window.activeKavling) bukaDetailBlok(window.activeKavling);
   }
 
-  // ---------- 3. AUTO DETECT BLOK PADA SVG ----------
   document.addEventListener("DOMContentLoaded", () => {
-    // tab click
-    document.getElementById("tabPengajuan")?.addEventListener("click", () => setTab("pengajuan"));
-    document.getElementById("tabPembayaran")?.addEventListener("click", () => setTab("pembayaran"));
+    document.getElementById("tabPengajuan")?.addEventListener("click", ()=>setTab("pengajuan"));
+    document.getElementById("tabPembayaran")?.addEventListener("click", ()=>setTab("pembayaran"));
     setTab("pengajuan");
-
-    // Cari semua elemen yang punya data-unit-id (sesuai file SVG Anda)
-    blocks = Array.from(document.querySelectorAll('[data-unit-id]'));
-    console.log(`Ditemukan ${blocks.length} blok.`);
-
-    if(blocks.length === 0) {
-      console.warn("PERINGATAN: Tidak ada blok ditemukan. Pastikan Anda sudah mem-paste kode SVG!");
-    }
-
-    blocks.forEach(el => {
-      el.addEventListener('click', function() {
-        blocks.forEach(b => b.classList.remove('selected'));
-        this.classList.add('selected');
-        const id = this.getAttribute('data-unit-id');
-        bukaDetailBlok(id);
+    document.querySelectorAll('[data-unit-id]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        document.querySelectorAll('[data-unit-id]').forEach(b=>b.classList.remove('selected'));
+        el.classList.add('selected');
+        bukaDetailBlok(el.getAttribute('data-unit-id'));
       });
     });
   });
 
-  // ---------- 4. VALIDASI BLOK ADA DI DAFTAR PROYEK ----------
-  // Sesuai permintaan: database mengacu pada "daftar blok yang diajukan di daftar proyek".
-  // Jika tabel/kolom belum ada, fungsi ini akan fallback = true (tidak mematikan aplikasi).
   async function cekBlokTerdaftarDiProyek(kavling) {
     try {
-      const { data, error } = await client
-        .from("daftar_proyek")
-        .select("kavling")
-        .eq("kavling", kavling)
-        .limit(1);
-
-      if (error) throw error;
-      return (data && data.length > 0);
+      const { data, error } = await client.from("daftar_proyek").select("kavling").eq("kavling", kavling).limit(1);
+      if(error) throw error;
+      return data && data.length > 0;
     } catch (e) {
       console.warn("cekBlokTerdaftarDiProyek fallback:", e?.message || e);
-      return true; // fallback agar tetap jalan walau tabel belum dibuat
+      return true;
     }
   }
 
-  // ---------- 5. LOAD DATA DARI SUPABASE ----------
-  async function bukaDetailBlok(id) {
-    if(!id) return;
-    activeKavling = id;
-
-    const loader = document.getElementById('loading');
-    loader.classList.remove('hidden');
-    document.getElementById('judulBlok').innerHTML = `Blok <span class="text-green-600">${id}</span>`;
-    document.getElementById('subJudul').innerText = (activeTab === "pengajuan")
-      ? "Mode: Pengajuan"
-      : "Mode: Pembayaran (cairkan dana)";
-
-    try {
-      // 1) LUNAS (terbayar) dari transaksi_upah
-      const { data: bayarData, error: bayarErr } = await client
-        .from('transaksi_upah')
-        .select('nama_pekerjaan')
-        .eq('kavling', id);
-
+  async function bukaDetailBlok(kavling){
+    if(!kavling) return;
+    window.activeKavling = kavling;
+    document.getElementById('loading')?.classList.remove('hidden');
+    document.getElementById('judulBlok')?.innerHTML = `Blok <span class="text-green-600">${kavling}</span>`;
+    document.getElementById('subJudul')?.innerText = window.activeTab==="pengajuan"? "Mode: Pengajuan" : "Mode: Pembayaran";
+    try{
+      const { data: bayarData, error: bayarErr } = await client.from('transaksi_upah').select('nama_pekerjaan').eq('kavling', kavling);
       if(bayarErr) throw bayarErr;
-      const lunasSet = new Set((bayarData || []).map(d => d.nama_pekerjaan));
-
-      // 2) DIAJUKAN (optional) dari pengajuan_upah
-      let diajukanSet = new Set();
-      try {
-        const { data: ajukanData, error: ajukanErr } = await client
-          .from('pengajuan_upah')
-          .select('nama_pekerjaan, status')
-          .eq('kavling', id);
-
-        if(!ajukanErr && ajukanData) {
-          ajukanData.forEach(r => {
-            if ((r.status || "").toUpperCase() === "DIAJUKAN") {
-              diajukanSet.add(r.nama_pekerjaan);
-            }
-          });
-        }
-      } catch (e) {
-        console.warn("Tabel pengajuan_upah belum ada / error:", e?.message || e);
+      const lunasSet = new Set((bayarData||[]).map(x=>x.nama_pekerjaan));
+      const diajukanSet = new Set();
+      try{
+        const { data: ajukanData } = await client.from('pengajuan_upah').select('nama_pekerjaan, status').eq('kavling', kavling);
+        (ajukanData||[]).forEach(r=>{ if((r.status||"").toUpperCase()==="DIAJUKAN") diajukanSet.add(r.nama_pekerjaan); });
+      }catch(e){
+        console.warn("pengajuan_upah belum ada:", e?.message||e);
       }
-
-      renderTabel({ lunasSet, diajukanSet });
-
-    } catch (err) {
-      alert("Error Database: " + (err?.message || err));
-    } finally {
-      loader.classList.add('hidden');
+      renderTabel({lunasSet, diajukanSet});
+    }catch(err){
+      alert("Error Database: " + (err?.message||err));
+    }finally{
+      document.getElementById('loading')?.classList.add('hidden');
     }
   }
 
-  // ---------- 6. RENDER TABEL ----------
-  function renderTabel({ lunasSet, diajukanSet }) {
+  function renderTabel({lunasSet, diajukanSet}){
     const tbody = document.getElementById('tabelBody');
+    if(!tbody) return;
     tbody.innerHTML = "";
-    let currKat = "";
-
-    MASTER_RAB.forEach((item, idx) => {
-      // Header Tahap
-      if(item.k !== currKat) {
+    let curr="";
+    MASTER_RAB.forEach((item, idx)=>{
+      if(item.k !== curr){
         tbody.innerHTML += `
           <tr class="bg-blue-50 border-t-2 border-blue-100">
             <td colspan="5" class="px-4 py-2 text-xs font-bold text-blue-800">TAHAP ${item.k}</td>
           </tr>`;
-        currKat = item.k;
+        curr = item.k;
       }
-
       const isLunas = lunasSet.has(item.n);
       const isDiajukan = diajukanSet.has(item.n);
-      const bobotTxt = `${item.b}%`;
-
-      // --- CELL: Status / Pilih ---
-      let statusCell = "";
-      let aksiCell = "";
-
-      if (activeTab === "pembayaran") {
-        // Mode pembayaran: checkbox hanya untuk yang belum LUNAS
-        if (isLunas) {
-          statusCell = `<i class="fas fa-check-circle text-green-500 text-lg" title="LUNAS"></i>`;
-        } else {
-          statusCell = `<input type="checkbox" class="chk-item w-5 h-5 accent-green-600 cursor-pointer"
-                        value="${idx}" data-price="${item.h}" onchange="hitungTotal()">`;
-        }
-        aksiCell = ""; // tidak ada aksi di pembayaran (pakai tombol cairkan bawah)
-      } else {
-        // Mode pengajuan: status + tombol Ajukan per pekerjaan
-        if (isLunas) {
+      let statusCell="", aksiCell="";
+      if(window.activeTab==="pengajuan"){
+        if(isLunas){
           statusCell = `<span class="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-1 rounded-full">TERBAYAR</span>`;
-          aksiCell = ``; // tidak ada tombol pengajuan
-        } else if (isDiajukan) {
+        }else if(isDiajukan){
           statusCell = `<span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-1 rounded-full">DIAJUKAN</span>`;
           aksiCell = `<button class="btn-ajukan px-3 py-2 rounded-lg text-xs font-bold" disabled>Menunggu</button>`;
-        } else {
+        }else{
           statusCell = `<span class="text-[10px] font-bold bg-green-100 text-green-800 px-2 py-1 rounded-full">BELUM</span>`;
-          aksiCell = `<button class="btn-ajukan px-3 py-2 rounded-lg text-xs font-bold"
-                      onclick="ajukanPekerjaan(${idx})">
-                      <i class="fas fa-paper-plane mr-1"></i>AJUKAN
-                    </button>`;
+          aksiCell = `<button class="btn-ajukan px-3 py-2 rounded-lg text-xs font-bold" onclick="ajukanPekerjaan(${idx})"><i class="fas fa-paper-plane mr-1"></i>AJUKAN</button>`;
         }
+      }else{
+        if(isLunas) statusCell = `<i class="fas fa-check-circle text-green-500 text-lg" title="LUNAS"></i>`;
+        else statusCell = `<input type="checkbox" class="chk-item w-5 h-5 accent-green-600 cursor-pointer" value="${idx}" data-price="${item.h}" onchange="hitungTotal()">`;
       }
-
-      // --- ROW CLASS ---
-      let rowClass = "hover:bg-gray-50";
-      if (isLunas && activeTab === "pengajuan") rowClass = "row-lunas"; // grey untuk yang terbayar
-      if (isLunas && activeTab === "pembayaran") rowClass = "bg-green-50 opacity-60"; // existing behavior
-
+      const rowClass = isLunas && window.activeTab==="pengajuan"? "row-lunas" : isLunas && window.activeTab==="pembayaran"? "bg-green-50 opacity-60" : "hover:bg-gray-50";
       tbody.innerHTML += `
         <tr class="border-b ${rowClass} transition">
           <td class="px-4 py-3 text-center">${statusCell}</td>
-          <td class="px-4 py-3 font-medium text-gray-700">
-            ${item.n}
-            ${isLunas ? '<span class="ml-2 text-[10px] bg-slate-200 text-slate-700 px-1 rounded font-bold">LUNAS</span>' : ''}
-          </td>
-          <td class="px-4 py-3 text-center font-bold text-gray-600">${bobotTxt}</td>
+          <td class="px-4 py-3 font-medium text-gray-700">${item.n}</td>
+          <td class="px-4 py-3 text-center font-bold text-gray-600">${item.b}%</td>
           <td class="px-4 py-3 text-right font-mono text-gray-600">${fmt(item.h)}</td>
           <td class="px-4 py-3 text-center">${aksiCell}</td>
-        </tr>
-      `;
+        </tr>`;
     });
-
-    // reset footer pembayaran
-    hitungTotal();
+    if(window.activeTab==="pembayaran") hitungTotal();
   }
 
-  // ---------- 7. MODE PEMBAYARAN: HITUNG TOTAL & SIMPAN ----------
-  function hitungTotal() {
-    // kalau lagi di pengajuan, footer pembayaran disembunyikan, tapi kita tetap aman-kan
-    const checkboxes = document.querySelectorAll('.chk-item:checked');
-    let total = 0;
-    selectedItems = [];
-
-    checkboxes.forEach(chk => {
-      total += parseFloat(chk.getAttribute('data-price'));
-      selectedItems.push(MASTER_RAB[chk.value]);
+  function hitungTotal(){
+    const chks = document.querySelectorAll('.chk-item:checked');
+    let total=0;
+    window.selectedItems = [];
+    chks.forEach(c=>{
+      total += Number(c.getAttribute('data-price')||0);
+      window.selectedItems.push(MASTER_RAB[Number(c.value)]);
     });
-
-    document.getElementById('totalDisplay').innerText = fmt(total);
+    const display = document.getElementById('totalDisplay');
+    if(display) display.innerText = fmt(total);
     const btn = document.getElementById('btnCairkan');
-
-    if(total > 0) {
-      btn.disabled = false;
-      btn.innerHTML = `<i class="fas fa-money-bill-wave"></i> CAIRKAN ${fmt(total)}`;
-    } else {
-      btn.disabled = true;
-      btn.innerHTML = `<i class="fas fa-check-circle"></i> CAIRKAN DANA`;
+    if(btn){
+      btn.disabled = total<=0;
+      btn.innerHTML = total>0 ? `<i class="fas fa-money-bill-wave"></i> CAIRKAN ${fmt(total)}` : `<i class="fas fa-check-circle"></i> CAIRKAN DANA`;
     }
   }
+  window.hitungTotal = hitungTotal;
 
-  async function simpanPembayaran() {
-    if(!activeKavling) return;
-    if(!confirm(`Konfirmasi pencairan dana sebesar ${document.getElementById('totalDisplay').innerText} untuk ${activeKavling}?`)) return;
-
-    document.getElementById('loading').classList.remove('hidden');
-
-    try {
-      const payload = selectedItems.map(item => ({
-        kavling: activeKavling,
-        nama_pekerjaan: item.n,
-        nilai_bayar: item.h,
-        status: 'LUNAS',
-        tanggal_bayar: new Date()
-      }));
-
-      const { error } = await client.from('transaksi_upah').insert(payload);
-      if(error) throw error;
-
-      alert("✅ Sukses! Data pembayaran tersimpan.");
-      bukaDetailBlok(activeKavling); // Refresh
-
-    } catch (err) {
-      alert("Gagal simpan pembayaran: " + (err?.message || err));
-      document.getElementById('loading').classList.add('hidden');
-    }
-  }
-
-  // ---------- 8. MODE PENGAJUAN: AJUKAN PER PEKERJAAN ----------
-  async function ajukanPekerjaan(idx) {
-    if(!activeKavling) return;
-
-    // Gate: pastikan blok ada di daftar proyek (permintaan Anda)
-    const ok = await cekBlokTerdaftarDiProyek(activeKavling);
-    if (!ok) {
-      alert(`Blok ${activeKavling} belum terdaftar di "daftar_proyek".
-Tambahkan dulu blok ini di daftar proyek agar bisa diajukan.`);
+  async function ajukanPekerjaan(idx){
+    const kavling = window.activeKavling;
+    if(!kavling) return;
+    const ok = await cekBlokTerdaftarDiProyek(kavling);
+    if(!ok){
+      alert(`Blok ${kavling} belum terdaftar di "daftar_proyek".
+Tambahkan dulu blok ini agar bisa diajukan.`);
       return;
     }
-
     const item = MASTER_RAB[idx];
-    if (!item) return;
-
-    if(!confirm(`Ajukan pekerjaan "${item.n}" (Bobot ${item.b}%) untuk Blok ${activeKavling}?`)) return;
-
-    document.getElementById('loading').classList.remove('hidden');
-
-    try {
+    if(!item) return;
+    if(!confirm(`Ajukan "${item.n}" (Bobot ${item.b}%) untuk Blok ${kavling}?`)) return;
+    document.getElementById('loading')?.classList.remove('hidden');
+    try{
       const payload = {
-        kavling: activeKavling,
+        kavling,
         tahap: item.k,
         nama_pekerjaan: item.n,
         bobot: item.b,
@@ -636,25 +501,40 @@ Tambahkan dulu blok ini di daftar proyek agar bisa diajukan.`);
         status: "DIAJUKAN",
         tanggal_ajukan: new Date()
       };
-
       const { error } = await client.from("pengajuan_upah").insert(payload);
-      if (error) throw error;
-
+      if(error) throw error;
       alert("✅ Pengajuan tersimpan.");
-      bukaDetailBlok(activeKavling);
-
-    } catch (e) {
-      alert("Gagal ajukan: " + (e?.message || e) + "
-
-Catatan: pastikan tabel 'pengajuan_upah' sudah dibuat di Supabase.");
-      document.getElementById('loading').classList.add('hidden');
+      bukaDetailBlok(kavling);
+    }catch(e){
+      alert("Gagal ajukan: " + (e?.message||e));
+      document.getElementById('loading')?.classList.add('hidden');
     }
   }
-
-  // expose functions to inline onclick
-  window.simpanPembayaran = simpanPembayaran;
-  window.hitungTotal = hitungTotal;
   window.ajukanPekerjaan = ajukanPekerjaan;
+
+  async function simpanPembayaran(){
+    const kavling = window.activeKavling;
+    if(!kavling) return;
+    if(!confirm(`Konfirmasi pencairan dana sebesar ${document.getElementById('totalDisplay').innerText} untuk ${kavling}?`)) return;
+    document.getElementById('loading')?.classList.remove('hidden');
+    try{
+      const payload = window.selectedItems.map(item=>({
+        kavling,
+        nama_pekerjaan: item.n,
+        nilai_bayar: item.h,
+        status: 'LUNAS',
+        tanggal_bayar: new Date()
+      }));
+      const { error } = await client.from('transaksi_upah').insert(payload);
+      if(error) throw error;
+      alert("✅ Sukses! Data pembayaran tersimpan.");
+      bukaDetailBlok(kavling);
+    }catch(err){
+      alert("Gagal simpan pembayaran: " + (err?.message||err));
+      document.getElementById('loading')?.classList.add('hidden');
+    }
+  }
+  window.simpanPembayaran = simpanPembayaran;
 </script>
 </body>
 </html>
