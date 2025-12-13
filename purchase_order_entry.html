@@ -61,8 +61,18 @@
     .checklist-table th, .checklist-table td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; text-align: left; font-size: 13px; }
     .modal-footer { padding: 15px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; }
     
-    /* PRINT TEMPLATE (HIDDEN) */
-    #po-template-container { position: absolute; left: -9999px; }
+    /* PRINT TEMPLATE (UPDATED) */
+    /* Ubah dari left: -9999px menjadi z-index di belakang layar */
+    #po-template-container { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      z-index: -9999; /* Taruh di paling belakang */
+      width: 210mm;   /* Paksa lebar A4 */
+      background: white;
+      opacity: 0;     /* Tidak terlihat mata, tapi ada untuk sistem */
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>

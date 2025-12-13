@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Input Transaksi Kas</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
   window.PN_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlBHrduAIgPZZrPMYAiEwaFUJOrGws1IbIzw09jXt9sdDNafaAzRS3RT2AWxVTop_oIQ/exec";
   // opsional kalau mau dipakai tombol download
@@ -680,209 +681,50 @@
   </dialog>
 
   <script>
-    // --- KONFIGURASI ---
-    // Pastikan ini URL Deploy TERBARU Anda (akhiran /exec)
-    const DEFAULT_SCRIPT_URL = window.PN_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwlBHrduAIgPZZrPMYAiEwaFUJOrGws1IbIzw09jXt9sdDNafaAzRS3RT2AWxVTop_oIQ/exec";
-    const MASTER_SHEET_TAB = "Master_Akun";
-    const SHEET_ID = window.PN_SHEET_ID;
+    // --- 1. KONFIGURASI SUPABASE ---
+    // Ganti dengan URL dan ANON KEY dari Dashboard Supabase Anda
+    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+    const supabaseKey = "EYJ... (sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN) ...";
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-    // --- VARIABEL UTAMA ---
+    // --- 2. VARIABEL ELEMENT HTML (Sama seperti sebelumnya) ---
     const formKas = document.getElementById("formKas");
     const jenisSelect = document.getElementById("jenis");
     const statusBox = document.getElementById("statusBox");
 
-    // Elemen Kas Masuk
+    // Elemen Input
     const kasMasukFields = document.getElementById("kasMasukFields");
     const kasMasukDetail = document.getElementById("kasMasukDetail");
     const kasMasukSumber = document.getElementById("kasMasukSumber");
-    const kasMasukSumberList = document.getElementById("kasMasukSumberList");
     const kasMasukJumlah = document.getElementById("kasMasukJumlah");
     const kasMasukBank = document.getElementById("kasMasukBank");
-    const kasMasukBukti = document.getElementById("kasMasukBukti"); // INPUT FILE
     const kasMasukKet = document.getElementById("kasMasukKet");
-    const kasMasukNoBukti = document.getElementById("kasMasukNoBukti");
+    const kasMasukBukti = document.getElementById("kasMasukBukti");
 
-    // Elemen Kas Keluar
     const kasKeluarFields = document.getElementById("kasKeluarFields");
     const kasKeluarAkun = document.getElementById("kasKeluarAkun");
-    const kasKeluarAkunList = document.getElementById("kasKeluarAkunList");
-    const kasKeluarBank = document.getElementById("kasKeluarBank");
     const kasKeluarJumlah = document.getElementById("kasKeluarJumlah");
-    const kasKeluarBukti = document.getElementById("kasKeluarBukti"); // INPUT FILE
+    const kasKeluarBank = document.getElementById("kasKeluarBank");
     const kasKeluarKet = document.getElementById("kasKeluarKet");
-    const kasKeluarNoBukti = document.getElementById("kasKeluarNoBukti");
+    const kasKeluarBukti = document.getElementById("kasKeluarBukti");
 
-    // Hidden Inputs
-    const hiddenAkun = document.getElementById("akunFinal");
-    const hiddenNoBukti = document.getElementById("hiddenNoBukti");
-
-    // Data Master
-    let akunMaster = [];
-
-    function renderComboOptions(listEl, filterText = "") {
-      if (!listEl) return;
-      const term = (filterText || "").toLowerCase();
-      listEl.innerHTML = "";
-      akunMaster
-        .filter(a => {
-          const value = a.kode ? `${a.kode} - ${a.nama}` : a.nama;
-          return !term || value.toLowerCase().includes(term);
-        })
-        .slice(0, 30)
-        .forEach(a => {
-          const val = a.kode ? `${a.kode} - ${a.nama}` : a.nama;
-          const option = document.createElement("div");
-          option.className = "combo-option";
-          option.setAttribute("role", "option");
-          option.dataset.value = val;
-          option.textContent = val;
-          listEl.appendChild(option);
-        });
-    }
-
-    function attachCombo(inputEl, listEl) {
-      if (!inputEl || !listEl) return;
-      const showList = () => {
-        renderComboOptions(listEl, inputEl.value);
-        listEl.style.display = "block";
-        inputEl.setAttribute("aria-expanded", "true");
-      };
-      const hideList = () => {
-        setTimeout(() => {
-          listEl.style.display = "none";
-          inputEl.setAttribute("aria-expanded", "false");
-        }, 120);
-      };
-      inputEl.addEventListener("focus", showList);
-      inputEl.addEventListener("input", showList);
-      inputEl.addEventListener("blur", hideList);
-      listEl.addEventListener("mousedown", (e) => {
-        const option = e.target.closest(".combo-option");
-        if (option) {
-          inputEl.value = option.dataset.value || option.textContent;
-          hideList();
-        }
-      });
-    }
-
-    // --- 1. INISIALISASI ---
-    attachCombo(kasMasukSumber, kasMasukSumberList);
-    attachCombo(kasKeluarAkun, kasKeluarAkunList);
+    // --- 3. LOGIKA TAMPILAN (UI) ---
     document.getElementById("tanggal").valueAsDate = new Date();
-    fetchMasterData(); // Ambil data dropdown
 
-    // --- 2. LOGIKA GANTI JENIS TRANSAKSI ---
-    jenisSelect.addEventListener("change", function() {
+    jenisSelect.addEventListener("change", function () {
       resetTampilan();
-      const val = this.value;
-      if (val === "kas-masuk") {
+      if (this.value === "kas-masuk") {
         kasMasukFields.style.display = "block";
-        if(kasMasukSumber.value) kasMasukDetail.style.display = "block";
-      } else if (val === "kas-keluar") {
+        kasMasukDetail.style.display = "block";
+      } else if (this.value === "kas-keluar") {
         kasKeluarFields.style.display = "block";
       }
     });
 
-    // Tampilkan detail kas masuk saat mengetik
-    kasMasukSumber.addEventListener("input", function() {
-      if(this.value.length > 1) kasMasukDetail.style.display = "block";
-    });
-
-    // --- 3. MESIN PENGIRIM BARU (SOLUSI UPLOAD) ---
-    formKas.addEventListener("submit", function(e) {
-      e.preventDefault(); // Mencegah form kirim sendiri, kita ambil alih
-      
-      const jenis = jenisSelect.value;
-      
-      // Validasi Manual
-      if(jenis === "kas-masuk") {
-          if(!kasMasukSumber.value || !kasMasukJumlah.value) { alert("Data belum lengkap!"); return; }
-      } else {
-          if(!kasKeluarAkun.value || !kasKeluarJumlah.value) { alert("Data belum lengkap!"); return; }
-      }
-
-      setStatus("info", "Sedang mengemas data & file...");
-
-      // A. ISI HIDDEN INPUTS (Agar data rapi)
-      if (jenis === "kas-masuk") {
-          hiddenAkun.value = kasMasukSumber.value;
-          hiddenNoBukti.value = kasMasukNoBukti.value;
-          
-          // --- INI YANG KEMARIN HILANG (WAJIB ADA) ---
-          document.getElementById("hiddenJumlah").value = kasMasukJumlah.value;
-          document.getElementById("hiddenBank").value = kasMasukBank.value;
-          document.getElementById("hiddenKet").value = kasMasukKet.value;
-          // -------------------------------------------
-
-      } else {
-          hiddenAkun.value = kasKeluarAkun.value;
-          hiddenNoBukti.value = kasKeluarNoBukti.value;
-          
-          // --- INI JUGA WAJIB ADA UNTUK KAS KELUAR ---
-          document.getElementById("hiddenJumlah").value = kasKeluarJumlah.value;
-          document.getElementById("hiddenBank").value = kasKeluarBank.value;
-          document.getElementById("hiddenKet").value = kasKeluarKet.value;
-          // -------------------------------------------
-      }
-
-      // B. BUNGKUS DATA MENGGUNAKAN FORMDATA
-      // FormData otomatis mendeteksi file input dan membungkusnya dgn benar
-      const paketData = new FormData(formKas);
-      
-      // Tambahan manual jika perlu (untuk memastikan logic script backend terbaca)
-      // Script backend baca 'kasMasukBukti' atau 'kasKeluarBukti' dari parameter
-      // FormData sudah otomatis menyertakan input file yang memiliki 'name' attribute
-
-      setStatus("info", "🚀 Mengirim ke Server... (Tunggu sebentar)");
-
-      // C. KIRIM PAKAI FETCH (Lebih Kuat & Stabil)
-      fetch(DEFAULT_SCRIPT_URL, {
-        method: "POST",
-        body: paketData // Ini kuncinya! File terbawa di sini
-      })
-      .then(response => response.text())
-      .then(text => {
-        // SUKSES!
-        setStatus("success", "✅ BERHASIL! Server menjawab: " + text);
-        
-        // Update Preview sebelum reset
-        updatePreview({
-            tanggal: document.getElementById("tanggal").value,
-            jenis: jenis,
-            sumber: hiddenAkun.value,
-            jumlah: jenis === "kas-masuk" ? kasMasukJumlah.value : kasKeluarJumlah.value,
-            bank: jenis === "kas-masuk" ? kasMasukBank.value : kasKeluarBank.value,
-            ket: jenis === "kas-masuk" ? kasMasukKet.value : kasKeluarKet.value,
-            file: getFileName(jenis)
-        });
-
-        // Reset Form
-        setTimeout(() => {
-            formKas.reset();
-            resetTampilan();
-            document.getElementById("tanggal").valueAsDate = new Date();
-            // setStatus("info", "Siap input lagi.");
-        }, 2000);
-      })
-      .catch(err => {
-        // GAGAL
-        console.error(err);
-        setStatus("error", "❌ GAGAL KIRIM: " + err.message);
-        alert("Gagal terhubung ke script. Cek internet atau URL.");
-      });
-    });
-
-    // --- HELPER FUNCTIONS ---
     function resetTampilan() {
       kasMasukFields.style.display = "none";
       kasMasukDetail.style.display = "none";
       kasKeluarFields.style.display = "none";
-    }
-
-    function getFileName(jenis) {
-      if (jenis === "kas-masuk" && kasMasukBukti.files.length > 0) return kasMasukBukti.files[0].name;
-      if (jenis === "kas-keluar" && kasKeluarBukti.files.length > 0) return kasKeluarBukti.files[0].name;
-      return "Tidak ada file";
     }
 
     function setStatus(type, msg) {
@@ -891,54 +733,68 @@
       statusBox.style.display = "block";
     }
 
-    function updatePreview(d) {
-      const html = `
-        <tr><td>Tanggal</td><td>${d.tanggal}</td></tr>
-        <tr><td>Jenis</td><td>${d.jenis}</td></tr>
-        <tr><td>Akun/Sumber</td><td>${d.sumber}</td></tr>
-        <tr><td>Jumlah</td><td>Rp ${Number(d.jumlah).toLocaleString('id-ID')}</td></tr>
-        <tr><td>Bank</td><td>${d.bank}</td></tr>
-        <tr><td>Ket</td><td>${d.ket}</td></tr>
-        <tr><td>File</td><td>${d.file}</td></tr>
-      `;
-      document.getElementById("previewBody").innerHTML = html;
-    }
+    // --- 4. LOGIKA KIRIM KE DATABASE (INTI PERUBAHAN) ---
+    formKas.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      setStatus("info", "Sedang mengirim ke Database...");
 
-    // --- DATA MASTER (DROPDOWN) ---
-    function fetchMasterData() {
-      const url = `${DEFAULT_SCRIPT_URL}?sheetName=${MASTER_SHEET_TAB}&sheetId=${SHEET_ID}`;
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          const list = Array.isArray(data) ? data : (data.data || []);
-          akunMaster = list.map(i => ({
-             nama: (i.nama || i.namaakun || "").toString(),
-             kode: (i.kode || i.kodeakun || "").toString(),
-             kategori: (i.kategori || "").toString()
-          })).filter(i => i.nama);
-          renderDropdowns();
-        })
-        .catch(e => console.error("Gagal load master", e));
-    }
+      const jenis = jenisSelect.value;
+      const tanggal = document.getElementById("tanggal").value;
 
-    function renderDropdowns() {
-      renderComboOptions(kasMasukSumberList, kasMasukSumber.value);
-      renderComboOptions(kasKeluarAkunList, kasKeluarAkun.value);
+      let dataSiapKirim = {};
 
-      const banks = akunMaster.filter(a => a.kode.startsWith("11") || a.kategori.toLowerCase().includes("harta"));
-      let bankHtml = '<option value="">-- Pilih Rekening --</option>';
-      banks.forEach(b => {
-        let val = `${b.kode} - ${b.nama}`;
-        bankHtml += `<option value="${val}">${val}</option>`;
-      });
-      if(kasMasukBank) kasMasukBank.innerHTML = bankHtml;
-      if(kasKeluarBank) kasKeluarBank.innerHTML = bankHtml;
-    }
+      if (jenis === "kas-masuk") {
+        dataSiapKirim = {
+          tanggal,
+          jenis_transaksi: "MASUK",
+          akun: kasMasukSumber.value,
+          jumlah: kasMasukJumlah.value,
+          bank_sumber: kasMasukBank.value,
+          keterangan: kasMasukKet.value,
+          nama_file_bukti: kasMasukBukti.files[0] ? kasMasukBukti.files[0].name : "Tanpa Bukti",
+        };
+      } else {
+        dataSiapKirim = {
+          tanggal,
+          jenis_transaksi: "KELUAR",
+          akun: kasKeluarAkun.value,
+          jumlah: kasKeluarJumlah.value,
+          bank_sumber: kasKeluarBank.value,
+          keterangan: kasKeluarKet.value,
+          nama_file_bukti: kasKeluarBukti.files[0] ? kasKeluarBukti.files[0].name : "Tanpa Bukti",
+        };
+      }
 
-    // Tombol Download & Filter (Biarkan seperti biasa)
-    document.getElementById("filterSheetBtn").addEventListener("click", function() {
-       window.open(`https://docs.google.com/spreadsheets/d/${SHEET_ID}`, "_blank");
+      try {
+        const { data, error } = await supabase.from("transaksi").insert([dataSiapKirim]).select();
+
+        if (error) throw error;
+
+        setStatus("success", "✅ Berhasil! Data tersimpan di Database Supabase.");
+        console.log("Data tersimpan:", data);
+
+        setTimeout(() => {
+          formKas.reset();
+          resetTampilan();
+          document.getElementById("tanggal").valueAsDate = new Date();
+          setStatus("info", "Siap input lagi.");
+        }, 2000);
+      } catch (err) {
+        console.error(err);
+        setStatus("error", "❌ Gagal: " + err.message);
+      }
     });
+
+    // --- 5. DATA MASTER (OPSIONAL UNTUK TEST) ---
+    function isiDropdownBank() {
+      const dummyBank = ["Bank BCA", "Bank Mandiri", "Kas Kecil"];
+      let html = '<option value="">-- Pilih --</option>';
+      dummyBank.forEach((b) => (html += `<option value="${b}">${b}</option>`));
+      if (kasMasukBank) kasMasukBank.innerHTML = html;
+      if (kasKeluarBank) kasKeluarBank.innerHTML = html;
+    }
+
+    isiDropdownBank();
   </script>
 </body>
 </html>
