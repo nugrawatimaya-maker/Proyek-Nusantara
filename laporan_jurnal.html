@@ -3,212 +3,356 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Laporan Jurnal Umum - NLD Corp</title>
-  
+  <title>Laporan Keuangan - NLD Corp</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   
   <style>
-    /* Class untuk menyembunyikan elemen di layar web, tapi tetap ada di kode */
-    .hidden-on-screen {
-      display: none !important;
-    }
+    /* Sembunyikan elemen saat di layar, tampil saat print */
+    .hidden-on-screen { display: none !important; }
     
     @media print {
-      body { -webkit-print-color-adjust: exact; }
+      body { -webkit-print-color-adjust: exact; background: white; }
       .no-print { display: none !important; }
-      /* Saat print biasa (Ctrl+P), paksa muncul */
       .hidden-on-screen { display: block !important; }
+      #areaLaporan { box-shadow: none; border: none; padding: 0; margin: 0; }
     }
+
+    /* Style Laporan Standar */
+    .table-finance th { background-color: #f3f4f6; padding: 8px; border: 1px solid #d1d5db; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+    .table-finance td { padding: 8px; border: 1px solid #e5e7eb; font-size: 13px; }
+    .sub-header { background-color: #e5e7eb; font-weight: bold; padding: 10px; font-size: 13px; }
+    .total-row { background-color: #f9fafb; font-weight: bold; }
   </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans p-6">
+<body class="bg-gray-100 text-gray-800 font-sans p-4 md:p-6">
 
-  <div class="max-w-6xl mx-auto mb-6 flex flex-col md:flex-row justify-between items-end gap-4 no-print">
-    <div class="flex gap-4 items-end bg-white p-4 rounded shadow">
+  <div class="max-w-7xl mx-auto mb-6 flex flex-col xl:flex-row justify-between items-start xl:items-end gap-4 no-print">
+    
+    <div class="bg-white p-4 rounded-lg shadow-sm flex flex-wrap gap-4 w-full xl:w-auto items-end">
+      
+      <div class="w-full md:w-auto">
+        <label class="block text-xs font-bold text-gray-500 mb-1">Jenis Laporan</label>
+        <select id="jenisLaporan" class="border-2 border-blue-500 rounded p-2 text-sm font-bold w-full md:w-48 bg-blue-50 text-blue-900 focus:outline-none" onchange="renderLaporan()">
+          <option value="JURNAL">1. Jurnal Umum</option>
+          <option value="BUKU_BESAR">2. Buku Besar (Ledger)</option>
+          <option value="LABA_RUGI">3. Laba Rugi (P&L)</option>
+          <option value="NERACA">4. Neraca (Balance Sheet)</option>
+        </select>
+      </div>
+
       <div>
-        <label class="block text-xs font-bold text-gray-500 mb-1">Dari Tanggal</label>
-        <input type="date" id="tglMulai" class="border rounded p-2 text-sm">
+        <label class="block text-xs font-bold text-gray-500 mb-1">Dari</label>
+        <input type="date" id="tglMulai" class="border rounded p-2 text-sm w-36">
       </div>
       <div>
-        <label class="block text-xs font-bold text-gray-500 mb-1">Sampai Tanggal</label>
-        <input type="date" id="tglSelesai" class="border rounded p-2 text-sm">
+        <label class="block text-xs font-bold text-gray-500 mb-1">Sampai</label>
+        <input type="date" id="tglSelesai" class="border rounded p-2 text-sm w-36">
       </div>
-      <button onclick="loadJurnal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold">
-        Filter
+      
+      <button onclick="fetchData()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded text-sm font-bold shadow transition">
+        <i class="fas fa-filter mr-1"></i> Tampilkan
       </button>
     </div>
 
-    <div class="flex gap-2">
-      <button onclick="downloadPDF()" class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded shadow font-bold">
-        📄 Download PDF
+    <div class="flex gap-2 w-full xl:w-auto justify-end">
+      <button onclick="downloadPDF()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded shadow font-bold text-sm flex items-center gap-2 transition">
+        <i class="fas fa-file-pdf"></i> Download PDF
       </button>
-      <a href="kas_masuk.html" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded shadow text-sm">Kembali</a>
+      <a href="dashboard_operasional.html" class="bg-gray-600 hover:bg-gray-700 text-white px-5 py-3 rounded shadow text-sm font-bold flex items-center gap-2 transition">
+        <i class="fas fa-arrow-left"></i> Dashboard
+      </a>
     </div>
   </div>
 
-  <div id="areaLaporan" class="max-w-6xl mx-auto bg-white p-4 sm:p-8 rounded shadow-sm min-h-screen">
+  <div id="areaLaporan" class="max-w-7xl mx-auto bg-white p-8 shadow-lg min-h-screen">
     
     <div id="kopSurat" class="hidden-on-screen flex flex-col items-center text-center border-b-4 border-double border-gray-800 pb-4 mb-6">
-      
-      <img src="logo.png" alt="[ LOGO NLD CORP ]" class="h-24 mb-2 object-contain" onerror="this.style.display='none'">
-      
-      <h1 class="text-3xl font-extrabold text-yellow-600 uppercase tracking-widest" style="font-family: serif;">NLD CORP</h1>
-      <h2 class="text-lg font-bold text-gray-900 uppercase tracking-wide">PT. NUSANTARA LAND DEVELOPMENT</h2>
-      
-      <div class="text-sm text-gray-600 mt-2 font-medium leading-tight">
-        <p>HQ Delft Apartement</p>
-        <p>Jl. Sunset Boulevard Blok 5B/16 Citra Land City, Centre Point Indonesia (CPI)</p>
-        <p>Kel. Maccini Sombala Kec. Tamalate, Makassar, 90224 Indonesia</p>
-        <p class="font-bold text-gray-800 mt-1">Telp : 0411- 6004251</p>
+      <h1 class="text-3xl font-extrabold text-gray-800 uppercase tracking-widest" style="font-family: serif;">NLD CORP</h1>
+      <h2 class="text-lg font-bold text-gray-600 uppercase tracking-wide">PT. NUSANTARA LAND DEVELOPMENT</h2>
+      <div class="text-xs text-gray-500 mt-2">
+        HQ Delft Apartement, Jl. Sunset Boulevard Blok 5B/16 Citra Land City, CPI Makassar<br>
+        Telp : 0411- 6004251
       </div>
     </div>
 
-    <div class="text-center mb-6 mt-2">
-      <h2 class="text-xl font-bold underline decoration-2 underline-offset-4 text-gray-800">JURNAL UMUM</h2>
-      <p class="text-sm text-gray-500 mt-1 italic" id="labelPeriode">Periode: Semua Data</p>
+    <div class="text-center mb-8">
+      <h2 id="judulLaporan" class="text-2xl font-bold text-gray-800 underline decoration-2 underline-offset-4 uppercase">JURNAL UMUM</h2>
+      <p class="text-sm text-gray-500 mt-2 italic" id="labelPeriode">Periode: -</p>
     </div>
 
-    <table class="w-full text-left border border-gray-200">
-      <thead class="bg-gray-100 text-gray-700 uppercase text-xs font-bold">
-        <tr>
-          <th class="p-3 border-b border-gray-300 text-center w-28">Tanggal</th>
-          <th class="p-3 border-b border-gray-300">Keterangan / Akun</th>
-          <th class="p-3 border-b border-gray-300 text-right w-36">Debit</th>
-          <th class="p-3 border-b border-gray-300 text-right w-36">Kredit</th>
-        </tr>
-      </thead>
-      <tbody id="tabelBody" class="text-sm text-gray-700">
-        <tr><td colspan="4" class="p-6 text-center text-gray-400">Memuat data...</td></tr>
-      </tbody>
-      <tfoot class="bg-gray-50 font-bold border-t-2 border-gray-300">
-        <tr>
-          <td colspan="2" class="p-3 text-right border-gray-200">TOTAL:</td>
-          <td id="totalDebit" class="p-3 text-right border-gray-200 text-blue-700">Rp 0</td>
-          <td id="totalKredit" class="p-3 text-right border-gray-200 text-green-700">Rp 0</td>
-        </tr>
-      </tfoot>
-    </table>
+    <div id="kontenLaporan" class="overflow-x-auto">
+      <div class="p-10 text-center text-gray-400">Silakan klik tombol "Tampilkan"...</div>
+    </div>
 
-    <div class="flex justify-end mt-16 text-center text-sm">
-      <div class="w-56">
+    <div class="flex justify-end mt-20 text-center text-sm no-break">
+      <div class="w-64">
         <p class="mb-20">Makassar, <span id="tglCetak"></span></p>
-        <p class="font-bold border-b border-gray-400 pb-1 mx-4">Finance Department</p>
+        <p class="font-bold border-b border-gray-400 pb-1 mx-4">Finance Manager</p>
       </div>
     </div>
   </div>
 
   <script>
-    // --- SETUP SUPABASE ---
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
-
     const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(num);
 
-    // Set Tanggal Cetak Otomatis
+    let rawData = []; // Menyimpan data mentah dari DB
+
+    // Set Tanggal Default
     const today = new Date();
-    document.getElementById("tglCetak").innerText = today.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
-
-    // --- FUNGSI LOAD DATA ---
-    async function loadJurnal() {
-      const tglMulai = document.getElementById("tglMulai").value;
-      const tglSelesai = document.getElementById("tglSelesai").value;
-      const labelPeriode = document.getElementById("labelPeriode");
-      const tbody = document.getElementById("tabelBody");
-
-      if (tglMulai && tglSelesai) {
-        labelPeriode.innerText = `Periode: ${tglMulai} s/d ${tglSelesai}`;
-      } else {
-        labelPeriode.innerText = "Periode: Semua Data";
-      }
-
-      tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center">Sedang mengambil data...</td></tr>`;
-
-      let query = client
-        .from('jurnal_umum')
-        .select('*')
-        .order('tanggal', { ascending: true })
-        .order('id', { ascending: true });
-
-      if (tglMulai) query = query.gte('tanggal', tglMulai);
-      if (tglSelesai) query = query.lte('tanggal', tglSelesai);
-
-      const { data, error } = await query;
-
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-red-500 p-4 text-center">Error: ${error.message}</td></tr>`;
-        return;
-      }
-      if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400">Tidak ada data.</td></tr>`;
-        document.getElementById("totalDebit").innerText = "Rp 0";
-        document.getElementById("totalKredit").innerText = "Rp 0";
-        return;
-      }
-
-      tbody.innerHTML = "";
-      let sumDebit = 0, sumKredit = 0;
-
-      data.forEach(row => {
-        sumDebit += row.debit;
-        sumKredit += row.kredit;
-        
-        const indentStyle = row.kredit > 0 ? "pl-10 text-gray-500 italic" : "font-semibold text-gray-800";
-        
-        const tr = `
-          <tr class="border-b border-gray-100 hover:bg-gray-50">
-            <td class="p-2 border-r text-center align-top whitespace-nowrap text-gray-600">${row.tanggal}</td>
-            <td class="p-2 border-r align-top">
-              <div class="${indentStyle}">${row.nama_akun}</div>
-              <div class="text-xs text-gray-400 mt-1 ml-1">${row.keterangan || ''}</div>
-            </td>
-            <td class="p-2 border-r text-right align-top text-gray-700 font-mono">
-              ${row.debit > 0 ? formatRupiah(row.debit) : '-'}
-            </td>
-            <td class="p-2 text-right align-top text-gray-700 font-mono">
-              ${row.kredit > 0 ? formatRupiah(row.kredit) : '-'}
-            </td>
-          </tr>
-        `;
-        tbody.innerHTML += tr;
-      });
-
-      document.getElementById("totalDebit").innerText = formatRupiah(sumDebit);
-      document.getElementById("totalKredit").innerText = formatRupiah(sumKredit);
-    }
-
-    // --- FUNGSI PDF DENGAN KOP OTOMATIS MUNCUL ---
-    function downloadPDF() {
-      const element = document.getElementById('areaLaporan');
-      const kop = document.getElementById('kopSurat');
-
-      // 1. Munculkan Kop Surat Sebentar
-      kop.classList.remove('hidden-on-screen');
-
-      // 2. Setting PDF
-      const opt = {
-        margin:       0.3, // Margin halaman (inch)
-        filename:     'Jurnal_NLD_Corp.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true }, 
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
-      };
-
-      // 3. Generate PDF
-      html2pdf().set(opt).from(element).save().then(() => {
-          // 4. Sembunyikan lagi Kop Surat setelah selesai
-          kop.classList.add('hidden-on-screen');
-      });
-    }
-
-    // Init Date
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
     document.getElementById("tglMulai").value = firstDay.toISOString().split('T')[0];
     document.getElementById("tglSelesai").value = today.toISOString().split('T')[0];
+    document.getElementById("tglCetak").innerText = today.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
 
-    loadJurnal();
+    // --- 1. AMBIL DATA DARI DB ---
+    async function fetchData() {
+      const tglMulai = document.getElementById("tglMulai").value;
+      const tglSelesai = document.getElementById("tglSelesai").value;
+      const container = document.getElementById("kontenLaporan");
+
+      document.getElementById("labelPeriode").innerText = `Periode: ${new Date(tglMulai).toLocaleDateString()} s/d ${new Date(tglSelesai).toLocaleDateString()}`;
+      container.innerHTML = `<div class="p-10 text-center"><i class="fas fa-spinner fa-spin text-3xl text-blue-500"></i><p class="mt-2">Mengolah Data Akuntansi...</p></div>`;
+
+      // Query ke Jurnal Umum
+      let query = client.from('jurnal_umum').select('*').gte('tanggal', tglMulai).lte('tanggal', tglSelesai).order('tanggal').order('id');
+      const { data, error } = await query;
+
+      if (error) { container.innerHTML = `<div class="text-red-500 text-center">Error: ${error.message}</div>`; return; }
+      
+      rawData = data || [];
+      renderLaporan();
+    }
+
+    // --- 2. LOGIKA RENDER (SWITCHER) ---
+    function renderLaporan() {
+      const jenis = document.getElementById("jenisLaporan").value;
+      const judul = document.getElementById("jenisLaporan").options[document.getElementById("jenisLaporan").selectedIndex].text;
+      document.getElementById("judulLaporan").innerText = judul.replace(/^\d+\.\s/, ''); // Hapus nomor urut
+
+      if (rawData.length === 0) {
+        document.getElementById("kontenLaporan").innerHTML = `<div class="p-10 text-center text-gray-400">Tidak ada transaksi pada periode ini.</div>`;
+        return;
+      }
+
+      if (jenis === 'JURNAL') renderJurnalUmum();
+      else if (jenis === 'BUKU_BESAR') renderBukuBesar();
+      else if (jenis === 'LABA_RUGI') renderLabaRugi();
+      else if (jenis === 'NERACA') renderNeraca();
+    }
+
+    // --- A. JURNAL UMUM ---
+    function renderJurnalUmum() {
+      let html = `<table class="w-full text-left table-finance"><thead><tr>
+        <th class="text-center w-24">Tanggal</th><th>Keterangan / Akun</th><th class="text-right w-32">Debit</th><th class="text-right w-32">Kredit</th>
+      </tr></thead><tbody>`;
+      
+      let totD = 0, totK = 0;
+      rawData.forEach(row => {
+        totD += row.debit; totK += row.kredit;
+        const indent = row.kredit > 0 ? "pl-8 text-gray-500 italic" : "font-bold text-gray-800";
+        html += `<tr>
+          <td class="text-center">${new Date(row.tanggal).toLocaleDateString('id-ID')}</td>
+          <td><div class="${indent}">${row.nama_akun}</div><div class="text-xs text-gray-400 mt-1">${row.keterangan}</div></td>
+          <td class="text-right">${row.debit > 0 ? formatRupiah(row.debit) : '-'}</td>
+          <td class="text-right">${row.kredit > 0 ? formatRupiah(row.kredit) : '-'}</td>
+        </tr>`;
+      });
+
+      html += `<tr class="total-row"><td colspan="2" class="text-right p-2">TOTAL</td><td class="text-right p-2">${formatRupiah(totD)}</td><td class="text-right p-2">${formatRupiah(totK)}</td></tr></tbody></table>`;
+      document.getElementById("kontenLaporan").innerHTML = html;
+    }
+
+    // --- B. BUKU BESAR (Grouping per Akun) ---
+    function renderBukuBesar() {
+      // Grouping data
+      const groups = {};
+      rawData.forEach(item => {
+        if (!groups[item.nama_akun]) groups[item.nama_akun] = [];
+        groups[item.nama_akun].push(item);
+      });
+
+      let html = "";
+      // Loop setiap akun
+      Object.keys(groups).sort().forEach(akun => {
+        html += `<div class="mb-8"><div class="sub-header uppercase border border-gray-300 border-b-0 text-blue-800">AKUN: ${akun}</div>
+        <table class="w-full text-left table-finance">
+          <thead><tr><th class="w-24">Tgl</th><th>Keterangan</th><th class="text-right w-32">Debit</th><th class="text-right w-32">Kredit</th><th class="text-right w-32">Saldo</th></tr></thead>
+          <tbody>`;
+        
+        let saldo = 0;
+        groups[akun].forEach(row => {
+          // Logika Saldo Normal: Harta/Beban bertambah di Debit. Hutang/Pendapatan bertambah di Kredit.
+          // Untuk simplifikasi tampilan: Debit = (+), Kredit = (-)
+          saldo += (row.debit - row.kredit);
+          html += `<tr>
+            <td>${new Date(row.tanggal).toLocaleDateString('id-ID')}</td>
+            <td>${row.keterangan}</td>
+            <td class="text-right">${row.debit > 0 ? formatRupiah(row.debit) : '-'}</td>
+            <td class="text-right">${row.kredit > 0 ? formatRupiah(row.kredit) : '-'}</td>
+            <td class="text-right font-bold ${saldo < 0 ? 'text-red-600' : ''}">${formatRupiah(Math.abs(saldo))} ${saldo < 0 ? '(Kr)' : '(Dr)'}</td>
+          </tr>`;
+        });
+        html += `</tbody></table></div>`;
+      });
+      document.getElementById("kontenLaporan").innerHTML = html;
+    }
+
+    // --- C. LABA RUGI (Pendapatan - Beban) ---
+    function renderLabaRugi() {
+      // Filter Akun
+      let pendapatan = 0;
+      let beban = 0;
+      let detailBeban = "";
+
+      // Kita cari akun yang mengandung kata "Biaya" atau "Beban"
+      // Di sistem kita, akun biaya: "Biaya Proyek (Bahan)", "Biaya Proyek (Upah)"
+      
+      // Grouping saldo akhir per akun
+      const saldoAkun = hitungSaldoPerAkun();
+
+      let html = `<div class="max-w-3xl mx-auto border p-6 bg-white">`;
+      
+      // 1. PENDAPATAN
+      html += `<div class="font-bold text-lg mb-2">PENDAPATAN USAHA</div>`;
+      // (Saat ini belum ada modul penjualan, jadi 0)
+      html += `<div class="flex justify-between border-b pb-2 mb-4"><span>Pendapatan Proyek</span><span>Rp 0</span></div>`;
+
+      // 2. BEBAN / HARGA POKOK
+      html += `<div class="font-bold text-lg mb-2 text-red-700">BEBAN POKOK & OPERASIONAL</div><table class="w-full mb-4">`;
+      
+      for (const [akun, nilai] of Object.entries(saldoAkun)) {
+        // Cek jika akun adalah Biaya/Beban (Saldo Debit)
+        if (akun.includes("Biaya") || akun.includes("Beban") || akun.includes("Gaji")) {
+            // Di laporan L/R, biaya mengurangi laba, jadi ditampilkan positif sebagai pengurang
+            const val = nilai.debit - nilai.kredit; 
+            if (val !== 0) {
+                beban += val;
+                html += `<tr><td class="py-1 pl-4 text-gray-600">${akun}</td><td class="text-right">${formatRupiah(val)}</td></tr>`;
+            }
+        }
+      }
+      html += `</table><div class="flex justify-between border-t border-b py-2 font-bold bg-red-50 text-red-800"><span>TOTAL BEBAN</span><span>(${formatRupiah(beban)})</span></div>`;
+
+      // 3. LABA BERSIH
+      const laba = pendapatan - beban;
+      const warnaLaba = laba >= 0 ? "text-green-700" : "text-red-700";
+      html += `<div class="flex justify-between mt-6 pt-4 border-t-4 border-double border-gray-400 font-extrabold text-xl ${warnaLaba}">
+        <span>LABA (RUGI) BERSIH</span><span>${formatRupiah(laba)}</span>
+      </div></div>`;
+
+      document.getElementById("kontenLaporan").innerHTML = html;
+    }
+
+    // --- D. NERACA (Harta = Hutang + Modal) ---
+    function renderNeraca() {
+      const saldoAkun = hitungSaldoPerAkun();
+      let totalAset = 0;
+      let totalKewajiban = 0;
+      let modalAwal = 0; // Seharusnya dari DB, kita asumsikan 0 atau dari saldo
+      
+      // Hitung Laba Tahun Berjalan (Untuk penyeimbang Modal)
+      let labaBerjalan = 0;
+      for (const [akun, nilai] of Object.entries(saldoAkun)) {
+         if (akun.includes("Biaya") || akun.includes("Beban")) labaBerjalan -= (nilai.debit - nilai.kredit);
+         // Jika ada pendapatan, tambahkan ke labaBerjalan
+      }
+
+      let htmlAset = "";
+      let htmlPasiva = "";
+
+      for (const [akun, nilai] of Object.entries(saldoAkun)) {
+        const saldo = nilai.debit - nilai.kredit;
+        
+        // Klasifikasi Sederhana berdasarkan Nama Akun
+        if (akun.includes("Kas") || akun.includes("Bank") || akun.includes("Persediaan") || akun.includes("Piutang")) {
+            // ASET (Saldo Normal Debit)
+            if (saldo !== 0) {
+                totalAset += saldo;
+                htmlAset += `<tr><td class="py-1 text-gray-600">${akun}</td><td class="text-right">${formatRupiah(saldo)}</td></tr>`;
+            }
+        } else if (akun.includes("Hutang")) {
+            // KEWAJIBAN (Saldo Normal Kredit -> Di sini saldo minus artinya Kredit lebih besar)
+            // Karena rumus kita Debit - Kredit, maka saldo Kredit akan minus. Kita mutlakkan.
+            const hutang = Math.abs(saldo); 
+            if (hutang !== 0) {
+                totalKewajiban += hutang;
+                htmlPasiva += `<tr><td class="py-1 text-gray-600">${akun}</td><td class="text-right">${formatRupiah(hutang)}</td></tr>`;
+            }
+        }
+      }
+
+      const totalModal = (totalAset - totalKewajiban); // Balancing figure (Laba Ditahan)
+
+      let html = `<div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 border p-6 bg-white">
+        
+        <div>
+            <div class="font-bold text-lg border-b-2 border-blue-500 mb-3 text-blue-800">ASET (AKTIVA)</div>
+            <table class="w-full mb-4">${htmlAset}</table>
+            <div class="flex justify-between border-t-2 border-gray-800 pt-2 font-bold text-blue-900 text-lg">
+                <span>TOTAL ASET</span><span>${formatRupiah(totalAset)}</span>
+            </div>
+        </div>
+
+        <div>
+            <div class="font-bold text-lg border-b-2 border-red-500 mb-3 text-red-800">KEWAJIBAN & EKUITAS</div>
+            
+            <div class="font-bold text-sm text-gray-500 mb-1 mt-2">KEWAJIBAN JANGKA PENDEK</div>
+            <table class="w-full mb-4">${htmlPasiva}</table>
+
+            <div class="font-bold text-sm text-gray-500 mb-1 mt-4">EKUITAS (MODAL)</div>
+            <table class="w-full mb-4">
+                <tr><td class="py-1 text-gray-600">Modal Awal & Laba Ditahan</td><td class="text-right">${formatRupiah(totalModal)}</td></tr>
+            </table>
+
+            <div class="flex justify-between border-t-2 border-gray-800 pt-2 font-bold text-red-900 text-lg">
+                <span>TOTAL PASIVA</span><span>${formatRupiah(totalKewajiban + totalModal)}</span>
+            </div>
+        </div>
+
+      </div>`;
+
+      document.getElementById("kontenLaporan").innerHTML = html;
+    }
+
+    // Helper: Hitung Saldo Akhir per Akun
+    function hitungSaldoPerAkun() {
+        const saldo = {};
+        rawData.forEach(row => {
+            if (!saldo[row.nama_akun]) saldo[row.nama_akun] = { debit: 0, kredit: 0 };
+            saldo[row.nama_akun].debit += row.debit;
+            saldo[row.nama_akun].kredit += row.kredit;
+        });
+        return saldo;
+    }
+
+    // --- DOWNLOAD PDF ---
+    function downloadPDF() {
+      const kop = document.getElementById('kopSurat');
+      const judul = document.getElementById("judulLaporan").innerText;
+      
+      kop.classList.remove('hidden-on-screen'); // Munculkan Kop
+      
+      const element = document.getElementById('areaLaporan');
+      const opt = {
+        margin: 0.3,
+        filename: `Laporan_${judul}_NLD.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' } // Landscape biar muat tabel lebar
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+          kop.classList.add('hidden-on-screen'); // Sembunyikan lagi
+      });
+    }
+
+    fetchData();
   </script>
 </body>
 </html>
