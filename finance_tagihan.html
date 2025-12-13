@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Finance - Daftar Tagihan Vendor</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 p-6">
+
+  <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-blue-800"><i class="fas fa-file-invoice-dollar mr-2"></i>Daftar Tagihan Vendor</h1>
+      <p class="text-sm text-gray-500">Invoice Masuk (Menunggu Pembayaran)</p>
+    </div>
+    <a href="dashboard_operasional.html" class="text-sm text-gray-600 hover:underline">Kembali ke Dashboard</a>
+  </div>
+
+  <div class="max-w-6xl mx-auto space-y-4" id="listTagihan">
+    <div class="p-10 text-center text-gray-400">Memuat tagihan...</div>
+  </div>
+
+  <script>
+    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(num);
+
+    async function loadTagihan() {
+      const { data, error } = await client
+        .from('purchase_order')
+        .select(`
+            *,
+            grn_terima ( bukti_nota, tanggal_terima, nama_pemeriksa )
+        `)
+        .eq('status', 'DITERIMA')
+        .order('jatuh_tempo', { ascending: true });
+
+      const container = document.getElementById("listTagihan");
+      container.innerHTML = "";
+
+      if (!data || data.length === 0) {
+        container.innerHTML = `<div class="bg-white p-8 rounded text-center text-gray-500">✅ Tidak ada tagihan pending. Semua lunas/belum ada barang masuk.</div>`;
+        return;
+      }
+
+      data.forEach(item => {
+        const infoGRN = item.grn_terima && item.grn_terima.length > 0 ? item.grn_terima[0] : {};
+        const fileNota = infoGRN.bukti_nota || "Tidak ada file";
+        const tglTerima = infoGRN.tanggal_terima ? new Date(infoGRN.tanggal_terima).toLocaleDateString() : "-";
+        const today = new Date();
+        const tempo = new Date(item.jatuh_tempo);
+        const diffTime = tempo - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        let badgeTempo = diffDays < 0 ? `<span class="bg-red-100 text-red-700 px-2 py-1 rounded font-bold text-xs">Lewat ${Math.abs(diffDays)} Hari</span>` : `<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded font-bold text-xs">${diffDays} Hari Lagi</span>`;
+
+        container.innerHTML += `
+          <div class="bg-white p-6 rounded-lg shadow border-l-4 border-blue-600 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                    <h3 class="text-xl font-bold text-gray-800">${item.nama_vendor}</h3>
+                    <span class="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600 font-mono">${item.nomor_po}</span>
+                </div>
+                <p class="text-sm text-gray-500">Barang diterima: ${tglTerima} oleh ${infoGRN.nama_pemeriksa || '-'}</p>
+                <div class="mt-2 text-sm">
+                    <span class="font-bold text-gray-600">Bukti Nota:</span> 
+                    <span class="text-blue-600 underline cursor-pointer hover:text-blue-800" onclick="alert('Membuka file: ${fileNota}')">
+                        <i class="fas fa-paperclip"></i> ${fileNota}
+                    </span>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-gray-500 font-bold uppercase">Total Tagihan</p>
+                <h2 class="text-2xl font-bold text-gray-800">${formatRupiah(item.total_harga)}</h2>
+                <div class="mt-2 flex justify-end gap-2 items-center">
+                    <span class="text-xs text-gray-400">Jatuh Tempo: ${new Date(item.jatuh_tempo).toLocaleDateString()}</span>
+                    ${badgeTempo}
+                </div>
+            </div>
+            <div class="border-l pl-4 flex flex-col gap-2">
+                <button onclick="bayarTagihan(${item.id})" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold text-sm shadow">
+                    <i class="fas fa-check-double"></i> Tandai Lunas
+                </button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    async function bayarTagihan(id) {
+        if(!confirm("Yakin tandai tagihan ini sebagai LUNAS?")) return;
+        const { error } = await client.from('purchase_order').update({ status: 'LUNAS' }).eq('id', id);
+        if(error) {
+            alert("Gagal update: " + error.message);
+        } else {
+            alert("✅ Pembayaran berhasil dicatat. Tagihan diarsipkan.");
+            loadTagihan();
+        }
+    }
+
+    loadTagihan();
+  </script>
+</body>
+</html>
