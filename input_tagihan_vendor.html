@@ -12,21 +12,18 @@
   <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
     <div>
       <h1 class="text-3xl font-bold text-indigo-900"><i class="fas fa-file-invoice-dollar mr-2"></i>Tagihan Vendor</h1>
-      <p class="text-sm text-gray-500">Daftar Hutang Usaha yang Jatuh Tempo</p>
+      <p class="text-sm text-gray-500">Daftar Hutang Usaha & Penerbitan Cek/Giro</p>
     </div>
     <div class="space-x-3">
-        <a href="kas_keluar.html" class="bg-red-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-red-700">
-            <i class="fas fa-money-bill-wave"></i> Bayar Tagihan
-        </a>
-        <a href="dashboard_operasional.html" class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700">
-            <i class="fas fa-home"></i> Dashboard
+        <a href="kas_keluar.html" class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm">
+            <i class="fas fa-arrow-left"></i> Dashboard
         </a>
     </div>
   </div>
 
   <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
       <div class="bg-white p-4 rounded shadow border-l-4 border-red-500">
-          <div class="text-xs text-gray-500 font-bold uppercase">Total Hutang Usaha</div>
+          <div class="text-xs text-gray-500 font-bold uppercase">Total Hutang (Outstanding)</div>
           <div class="text-2xl font-bold text-red-700 mt-1" id="totalHutang">Rp 0</div>
       </div>
       <div class="bg-white p-4 rounded shadow border-l-4 border-orange-500">
@@ -34,27 +31,27 @@
           <div class="text-2xl font-bold text-orange-600 mt-1" id="countJatuhTempo">0 Tagihan</div>
       </div>
       <div class="bg-white p-4 rounded shadow border-l-4 border-green-500">
-          <div class="text-xs text-gray-500 font-bold uppercase">Lunas Bulan Ini</div>
-          <div class="text-2xl font-bold text-green-600 mt-1" id="totalLunas">Rp 0</div>
+          <div class="text-xs text-gray-500 font-bold uppercase">Sudah Dibayar Bulan Ini</div>
+          <div class="text-2xl font-bold text-green-600 mt-1" id="totalLunas">0 PO</div>
       </div>
   </div>
 
   <div class="max-w-6xl mx-auto bg-white rounded-lg shadow overflow-hidden">
     <div class="p-4 border-b bg-indigo-50 flex justify-between items-center">
-        <h3 class="font-bold text-indigo-800">Daftar Tagihan Belum Lunas (Outstanding)</h3>
-        <input type="text" placeholder="Cari Vendor / No PO..." class="border p-2 rounded text-sm w-64" onkeyup="filterTable(this.value)">
+        <h3 class="font-bold text-indigo-800">Daftar Tagihan Belum Lunas</h3>
+        <input type="text" placeholder="Cari Vendor / No PO..." class="border p-2 rounded text-sm w-64 shadow-sm" onkeyup="filterTable(this.value)">
     </div>
     
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead class="bg-indigo-100 text-indigo-900 font-bold uppercase">
           <tr>
-            <th class="p-4">Tanggal Nota</th>
+            <th class="p-4">Tgl Terima</th>
             <th class="p-4">Vendor & No PO</th>
-            <th class="p-4 text-center">TOP / Jatuh Tempo</th>
-            <th class="p-4 text-right">Total Tagihan</th>
+            <th class="p-4 text-center">Jatuh Tempo</th>
+            <th class="p-4 text-right">Nilai Tagihan</th>
             <th class="p-4 text-center">Bukti Nota</th>
-            <th class="p-4 text-center">Status</th>
+            <th class="p-4 text-center">Aksi</th>
           </tr>
         </thead>
         <tbody id="listTagihan" class="divide-y divide-gray-100">
@@ -64,31 +61,100 @@
     </div>
   </div>
 
+  <div id="modalBayar" class="hidden fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center">
+    <div class="bg-white w-full max-w-lg p-6 rounded-lg shadow-2xl relative">
+        <button onclick="tutupModal()" class="absolute top-4 right-4 text-gray-400 hover:text-red-600 font-bold text-xl">✕</button>
+        
+        <h2 class="text-xl font-bold text-green-700 mb-1"><i class="fas fa-money-check-alt mr-2"></i>Pembayaran / Terbit Cek</h2>
+        <p class="text-xs text-gray-500 mb-6">Mencatat pelunasan hutang dan pengeluaran bank.</p>
+
+        <form id="formBayar" class="space-y-4">
+            <input type="hidden" id="bayarIdPO">
+            <input type="hidden" id="bayarNoPO">
+            <input type="hidden" id="bayarVendor">
+            
+            <div class="bg-gray-50 p-3 rounded border">
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="text-gray-600">Total Tagihan:</span>
+                    <span class="font-bold text-gray-800" id="displayTotal">Rp 0</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Vendor:</span>
+                    <span class="font-bold text-blue-600" id="displayVendor">-</span>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Sumber Dana (Bank/Kas)</label>
+                <select id="pilihAkun" class="w-full border p-2 rounded focus:ring-2 focus:ring-green-500 bg-white" required>
+                    <option value="">-- Memuat Bank... --</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Nomor Cek / Giro / Ref</label>
+                    <input type="text" id="nomorCek" class="w-full border p-2 rounded" placeholder="Cth: CG-882190">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Tanggal Cair / Bayar</label>
+                    <input type="date" id="tglBayar" class="w-full border p-2 rounded" required>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Keterangan</label>
+                <textarea id="ketBayar" rows="2" class="w-full border p-2 rounded" placeholder="Pelunasan Invoice No..."></textarea>
+            </div>
+
+            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow mt-2">
+                <i class="fas fa-check-circle mr-1"></i> Konfirmasi Pembayaran
+            </button>
+        </form>
+    </div>
+  </div>
+
   <script>
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const fmt = (n) => new Intl.NumberFormat('id-ID', {style: 'currency', currency: 'IDR'}).format(n);
 
+    // --- INIT ---
+    async function init() {
+        loadAkunBank();
+        loadTagihan();
+    }
+
+    // 1. LOAD AKUN BANK (Untuk Dropdown)
+    async function loadAkunBank() {
+        // Ambil akun yang namanya mengandung Bank atau Kas
+        const { data } = await client.from('master_akun').select('nama_akun').order('nama_akun');
+        const sel = document.getElementById("pilihAkun");
+        sel.innerHTML = '<option value="">-- Pilih Bank / Kas --</option>';
+        if(data) {
+            data.forEach(a => {
+                const nama = a.nama_akun.toUpperCase();
+                if(nama.includes("BANK") || nama.includes("KAS") || nama.includes("MANDIRI") || nama.includes("BCA")) {
+                    sel.innerHTML += `<option value="${a.nama_akun}">${a.nama_akun}</option>`;
+                }
+            });
+        }
+    }
+
+    // 2. LOAD TAGIHAN (PO status DITERIMA)
     async function loadTagihan() {
-        // Ambil PO yang statusnya DITERIMA (Berarti jadi Hutang)
-        // Kita juga join dengan tabel GRN untuk ambil tanggal terima dan bukti nota
-        // Supabase join syntax: purchase_order join grn_terima on id = po_id
-        
         const { data: listPO, error } = await client
             .from('purchase_order')
-            .select(`
-                *,
-                grn_terima ( tanggal_terima, bukti_nota )
-            `)
-            .eq('status', 'DITERIMA') 
+            .select(`*, grn_terima ( tanggal_terima, bukti_nota )`)
+            .eq('status', 'DITERIMA') // Hanya yang barangnya sudah diterima tapi belum lunas
             .order('jatuh_tempo', { ascending: true });
 
         const tbody = document.getElementById("listTagihan");
         tbody.innerHTML = "";
 
         if(!listPO || listPO.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Tidak ada tagihan belum lunas.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Tidak ada tagihan outstanding (Semua Lunas).</td></tr>`;
             document.getElementById("totalHutang").innerText = fmt(0);
             return;
         }
@@ -102,7 +168,7 @@
             const tglNota = new Date(grn.tanggal_terima).toLocaleDateString('id-ID');
             const jatuhTempo = new Date(po.jatuh_tempo);
             
-            // Hitung sisa hari
+            // Hitung Hari
             const diffTime = jatuhTempo - today;
             const sisaHari = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
@@ -119,13 +185,13 @@
 
             totalHutang += po.total_harga;
 
-            // Link Nota (Simulasi)
+            // Link Nota
             const btnNota = grn.bukti_nota !== '-' 
-                ? `<a href="#" onclick="alert('Membuka foto: ${grn.bukti_nota}')" class="text-blue-600 hover:text-blue-800 text-xs font-bold"><i class="fas fa-image"></i> Lihat</a>`
+                ? `<a href="#" onclick="alert('Bukti Nota: ${grn.bukti_nota}')" class="text-blue-600 hover:text-blue-800 text-xs font-bold underline">Lihat Nota</a>`
                 : `<span class="text-gray-400 text-xs">-</span>`;
 
             tbody.innerHTML += `
-                <tr class="hover:bg-indigo-50 transition">
+                <tr class="hover:bg-indigo-50 transition border-b">
                     <td class="p-4 text-gray-600 font-mono text-xs">${tglNota}</td>
                     <td class="p-4">
                         <div class="font-bold text-gray-800 text-base">${po.nama_vendor}</div>
@@ -138,8 +204,9 @@
                     <td class="p-4 text-right font-bold text-indigo-900 font-mono text-base">${fmt(po.total_harga)}</td>
                     <td class="p-4 text-center">${btnNota}</td>
                     <td class="p-4 text-center">
-                        <button onclick="window.location.href='kas_keluar.html'" class="bg-white border border-red-500 text-red-600 px-3 py-1 rounded text-xs font-bold hover:bg-red-50">
-                            Bayar
+                        <button onclick="bukaModalBayar(${po.id}, '${po.nomor_po}', '${po.nama_vendor}', ${po.total_harga}, '${po.jatuh_tempo}')" 
+                            class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 font-bold text-xs flex items-center gap-1 mx-auto transition transform hover:scale-105">
+                            <i class="fas fa-money-check"></i> Bayar
                         </button>
                     </td>
                 </tr>
@@ -150,6 +217,81 @@
         document.getElementById("countJatuhTempo").innerText = countNearDue + " Tagihan";
     }
 
+    // 3. LOGIKA MODAL BAYAR
+    function bukaModalBayar(id, noPO, vendor, total, tempo) {
+        document.getElementById("bayarIdPO").value = id;
+        document.getElementById("bayarNoPO").value = noPO;
+        document.getElementById("bayarVendor").value = vendor;
+        document.getElementById("displayTotal").innerText = fmt(total);
+        document.getElementById("displayVendor").innerText = vendor;
+        document.getElementById("tglBayar").value = tempo; // Default ke tanggal jatuh tempo PO
+        document.getElementById("nomorCek").value = "";
+        document.getElementById("ketBayar").value = `Pelunasan ${noPO}`;
+        
+        document.getElementById("modalBayar").classList.remove("hidden");
+    }
+
+    function tutupModal() { document.getElementById("modalBayar").classList.add("hidden"); }
+
+    // 4. PROSES BAYAR (UPDATE DB & JURNAL)
+    document.getElementById("formBayar").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        
+        const idPO = document.getElementById("bayarIdPO").value;
+        const noPO = document.getElementById("bayarNoPO").value;
+        const vendor = document.getElementById("bayarVendor").value;
+        const akunBank = document.getElementById("pilihAkun").value;
+        const tglBayar = document.getElementById("tglBayar").value;
+        const noCek = document.getElementById("nomorCek").value || "-";
+        const ket = document.getElementById("ketBayar").value;
+        
+        // Ambil Total Harga dari text display (remove formatting)
+        const totalStr = document.getElementById("displayTotal").innerText;
+        const totalVal = Number(totalStr.replace(/[^0-9,-]+/g,"").replace(",","."));
+
+        if(!akunBank) return alert("Pilih Akun Bank!");
+        if(!confirm(`Konfirmasi pembayaran ${totalStr} kepada ${vendor}?\nVia: ${akunBank}`)) return;
+
+        try {
+            // A. Update Status PO jadi LUNAS
+            const { error: errUp } = await client.from('purchase_order')
+                .update({ status: 'LUNAS' }).eq('id', idPO);
+            if(errUp) throw errUp;
+
+            // B. Simpan ke Riwayat Transaksi (Kas Keluar)
+            await client.from('transaksi').insert([{
+                tanggal: tglBayar,
+                jenis_transaksi: 'KELUAR',
+                akun: 'Hutang Usaha', // Lawan transaksi
+                bank_sumber: akunBank,
+                jumlah: totalVal,
+                keterangan: `${ket} (Ref: ${noCek})`
+            }]);
+
+            // C. JURNAL UMUM (Debit Hutang, Kredit Bank)
+            const ref = `PAY-${noPO}`;
+            const jurnal = [
+                {
+                    tanggal: tglBayar, nomor_referensi: ref, keterangan: `${ket} - Vendor: ${vendor}`,
+                    nama_akun: 'Hutang Usaha', debit: totalVal, kredit: 0
+                },
+                {
+                    tanggal: tglBayar, nomor_referensi: ref, keterangan: `${ket} - Cek: ${noCek}`,
+                    nama_akun: akunBank, debit: 0, kredit: totalVal
+                }
+            ];
+            const { error: errJur } = await client.from('jurnal_umum').insert(jurnal);
+            if(errJur) throw errJur;
+
+            alert("✅ Pembayaran Berhasil Disimpan!");
+            tutupModal();
+            loadTagihan(); // Refresh Tabel
+
+        } catch (e) {
+            alert("Gagal: " + e.message);
+        }
+    });
+
     function filterTable(keyword) {
         const rows = document.getElementById("listTagihan").getElementsByTagName("tr");
         for (let i = 0; i < rows.length; i++) {
@@ -158,7 +300,7 @@
         }
     }
 
-    loadTagihan();
+    init();
   </script>
 </body>
 </html>
