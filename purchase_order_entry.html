@@ -14,8 +14,6 @@
       color: #000 !important; font-family: 'Times New Roman', Times, serif; position: relative;
     }
     .kertas-po * { border-color: #000 !important; }
-    
-    /* Checkbox Custom */
     .chk-item { transform: scale(1.5); cursor: pointer; }
   </style>
 </head>
@@ -47,7 +45,7 @@
         <tr>
           <th class="p-4 text-center w-10"><input type="checkbox" id="chkAll" class="chk-item" onclick="toggleAll(this)"></th>
           <th class="p-4">Tanggal & Staff</th>
-          <th class="p-4">Barang diminta</th>
+          <th class="p-4">Barang diminta & Stok Gudang</th>
           <th class="p-4 w-40 text-right">Estimasi Total</th>
         </tr>
       </thead>
@@ -107,13 +105,12 @@
             <thead class="bg-gray-100 font-bold">
                 <tr>
                     <th class="p-2 border">Barang</th>
-                    <th class="p-2 border text-center">Qty</th>
+                    <th class="p-2 border text-center">Qty Request</th>
                     <th class="p-2 border w-40">Harga Satuan (Rp)</th>
                     <th class="p-2 border w-40 text-right">Subtotal</th>
                 </tr>
             </thead>
-            <tbody id="bodyBatchInput">
-                </tbody>
+            <tbody id="bodyBatchInput"></tbody>
             <tfoot>
                 <tr class="bg-gray-100 font-bold">
                     <td colspan="3" class="p-2 text-right">GRAND TOTAL:</td>
@@ -169,8 +166,7 @@
                         <th class="p-2 border border-black text-right">Total</th>
                     </tr>
                 </thead>
-                <tbody id="printTabelBody">
-                    </tbody>
+                <tbody id="printTabelBody"></tbody>
                 <tfoot>
                     <tr class="bg-gray-100">
                         <td colspan="4" class="p-2 border border-black text-right font-bold uppercase">Grand Total</td>
@@ -198,7 +194,7 @@
     let listVendor = [];
     let listPending = [];
     let selectedIds = [];
-    let batchData = []; // Data final untuk disimpan
+    let batchData = [];
 
     // --- INIT ---
     async function init() {
@@ -213,10 +209,11 @@
         if (data) listVendor = data;
     }
 
-    // 2. LOAD PENDING
+    // 2. LOAD PENDING & SISA STOK
     async function loadPendingRequests() {
-      const { data } = await client.from('inventory_req').select('*').eq('status', 'PENDING').order('created_at');
-      listPending = data || [];
+      // Ambil Request Pending
+      const { data: requestData } = await client.from('inventory_req').select('*').eq('status', 'PENDING').order('created_at');
+      listPending = requestData || [];
       const tbody = document.getElementById("tabelAntrian");
       tbody.innerHTML = "";
 
@@ -225,59 +222,74 @@
         return;
       }
 
+      // Ambil Data Stok dari Master Stok berdasarkan nama barang di request
+      const itemNames = listPending.map(item => item.nama_barang);
+      const { data: stockData } = await client.from('master_stok').select('nama_barang, total_stok').in('nama_barang', itemNames);
+      
+      // Mapping Stok agar mudah diakses
+      const stockMap = {};
+      if(stockData) {
+          stockData.forEach(s => stockMap[s.nama_barang] = s.total_stok);
+      }
+
       listPending.forEach(item => {
+        const sisaStok = stockMap[item.nama_barang] || 0;
+        
+        // Logika Warna Stok
+        let stokBadge = "";
+        if(sisaStok === 0) {
+            stokBadge = `<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold border border-red-200">Gudang Kosong (0)</span>`;
+        } else {
+            stokBadge = `<span class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-bold border border-orange-200">Ada di Gudang: ${sisaStok}</span>`;
+        }
+
         tbody.innerHTML += `
-          <tr class="hover:bg-yellow-50 border-b">
+          <tr class="hover:bg-yellow-50 border-b transition">
             <td class="p-4 text-center">
                 <input type="checkbox" class="chk-item" value="${item.id}" onchange="cekCentang()">
             </td>
             <td class="p-4">
-              <div class="font-bold">${new Date(item.created_at).toLocaleDateString()}</div>
-              <div class="text-xs text-gray-500">${item.pengorder}</div>
+              <div class="font-bold text-gray-700">${new Date(item.created_at).toLocaleDateString()}</div>
+              <div class="text-xs text-gray-500 flex items-center gap-1">
+                 <i class="fas fa-user"></i> ${item.pengorder}
+              </div>
             </td>
             <td class="p-4">
-              <div class="font-bold text-gray-800">${item.nama_barang}</div>
-              <div class="text-xs bg-gray-100 px-2 py-1 rounded inline-block">Jml: ${item.jumlah} ${item.satuan}</div>
+              <div class="font-bold text-gray-800 text-lg">${item.nama_barang}</div>
+              <div class="flex items-center gap-2 mt-1">
+                  <span class="text-xs bg-gray-200 px-2 py-1 rounded font-bold">Minta: ${item.jumlah} ${item.satuan}</span>
+                  ${stokBadge}
+              </div>
             </td>
-            <td class="p-4 text-right text-gray-400 italic text-xs">Belum set harga</td>
+            <td class="p-4 text-right text-gray-400 italic text-xs">Harga diinput saat PO</td>
           </tr>`;
       });
     }
 
-    // 3. LOGIKA CHECKBOX BATCH
+    // 3. LOGIKA BATCH & MODAL (Sama seperti sebelumnya)
     function toggleAll(source) {
         const checkboxes = document.querySelectorAll('.chk-item');
-        checkboxes.forEach(chk => {
-            if(chk !== source) chk.checked = source.checked;
-        });
+        checkboxes.forEach(chk => { if(chk !== source) chk.checked = source.checked; });
         cekCentang();
     }
 
     function cekCentang() {
         const checked = document.querySelectorAll('.chk-item:checked:not(#chkAll)');
         selectedIds = Array.from(checked).map(c => c.value);
-        
         const btn = document.getElementById("btnBatch");
         document.getElementById("countBatch").innerText = selectedIds.length;
-        
-        if (selectedIds.length > 0) btn.classList.remove("hidden");
-        else btn.classList.add("hidden");
+        if (selectedIds.length > 0) btn.classList.remove("hidden"); else btn.classList.add("hidden");
     }
 
-    // 4. SIAPKAN MODAL BATCH
     function siapkanBatch() {
-        // Isi Dropdown Vendor
         const selVendor = document.getElementById("batchVendor");
         selVendor.innerHTML = '<option value="">-- Pilih Vendor Database --</option>';
         listVendor.forEach(v => {
             selVendor.innerHTML += `<option value="${v.nama_vendor}" data-top="${v.top_hari}">${v.nama_vendor} (TOP: ${v.top_hari} Hari)</option>`;
         });
 
-        // Render Tabel Input Harga
         const tbody = document.getElementById("bodyBatchInput");
         tbody.innerHTML = "";
-        
-        // Filter item yang dipilih
         const selectedItems = listPending.filter(item => selectedIds.includes(String(item.id)));
         
         selectedItems.forEach((item, idx) => {
@@ -299,14 +311,12 @@
                 </tr>
             `;
         });
-
         document.getElementById("modalBatch").classList.remove("hidden");
     }
 
     function hitungTotalBatch() {
         let grandTotal = 0;
         const count = selectedIds.length;
-
         for(let i=0; i<count; i++) {
             const qty = Number(document.getElementById(`bqty-${i}`).value);
             const harga = Number(document.getElementById(`bharga-${i}`).value);
@@ -326,13 +336,11 @@
 
     function tutupModalBatch() { document.getElementById("modalBatch").classList.add("hidden"); }
 
-    // 5. PREVIEW KERTAS
     function previewPOBatch() {
         const vendor = document.getElementById("batchVendor").value;
         const tempo = document.getElementById("batchTempo").value;
         if(!vendor || !tempo) { alert("Pilih Vendor & Tanggal dulu!"); return; }
 
-        // Kumpulkan Data
         batchData = [];
         const count = selectedIds.length;
         let grandTotal = 0;
@@ -355,7 +363,6 @@
             batchData.push(item);
         }
 
-        // Render ke Kertas
         document.getElementById("printNoPO").innerText = nomorPO;
         document.getElementById("printTanggal").innerText = new Date().toLocaleDateString('id-ID');
         document.getElementById("printVendor").innerText = vendor;
@@ -377,48 +384,30 @@
             `;
         });
 
-        // Set Tombol Simpan
-        const actionArea = document.getElementById("actionArea");
-        actionArea.innerHTML = `
+        document.getElementById("actionArea").innerHTML = `
             <button onclick="simpanBatchDB('${nomorPO}', '${vendor}', '${tempo}')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-bold shadow">
                 ✅ Terbitkan PO (Batch) & Download
             </button>
         `;
-
         document.getElementById("modalKertas").classList.remove("hidden");
     }
 
-    // 6. SIMPAN DB (LOOPING INSERT)
     async function simpanBatchDB(noPO, vendor, tempo) {
         const btn = document.querySelector("#actionArea button");
         btn.innerText = "⏳ Menyimpan..."; btn.disabled = true;
-
         try {
-            // Kita Insert per Item tapi dengan NO PO yang SAMA
             const payload = batchData.map(d => ({
-                req_id: d.reqId,
-                nomor_po: noPO,
-                nama_vendor: vendor,
-                harga_satuan: d.harga,
-                total_harga: d.total, // Total per baris
-                jatuh_tempo: tempo,
-                status: 'OPEN'
+                req_id: d.reqId, nomor_po: noPO, nama_vendor: vendor,
+                harga_satuan: d.harga, total_harga: d.total, jatuh_tempo: tempo, status: 'OPEN'
             }));
-
-            // Insert Batch
             const { error } = await client.from('purchase_order').insert(payload);
             if(error) throw error;
 
-            // Update Status Request
             const reqIds = batchData.map(d => d.reqId);
             await client.from('inventory_req').update({ status: 'PO DIBUAT' }).in('id', reqIds);
-
-            // Download PDF
             await downloadPDF(noPO);
-
             alert("Sukses! Batch PO diterbitkan.");
-            location.reload(); // Refresh total biar bersih
-
+            location.reload();
         } catch (e) {
             alert("Gagal: " + e.message);
             btn.innerText = "Coba Lagi"; btn.disabled = false;
@@ -431,27 +420,15 @@
         await html2pdf().set(opt).from(element).save();
     }
 
-    // 7. LOAD RIWAYAT (GROUP BY PO NUMBER)
     async function loadRiwayatPO() {
         const { data } = await client.from('purchase_order').select('*').order('created_at', { ascending: false });
-        
         const tbody = document.getElementById("tabelRiwayat");
         tbody.innerHTML = "";
+        if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">Belum ada PO.</td></tr>`; return; }
 
-        if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">Belum ada PO.</td></tr>`;
-            return;
-        }
-
-        // Grouping Data by Nomor PO (Agar tidak duplikat baris)
         const groups = {};
         data.forEach(row => {
-            if(!groups[row.nomor_po]) {
-                groups[row.nomor_po] = { 
-                    tgl: row.created_at, vendor: row.nama_vendor, tempo: row.jatuh_tempo, 
-                    status: row.status, grandTotal: 0, count: 0, items: [] 
-                };
-            }
+            if(!groups[row.nomor_po]) groups[row.nomor_po] = { tgl: row.created_at, vendor: row.nama_vendor, status: row.status, grandTotal: 0, count: 0, items: [] };
             groups[row.nomor_po].grandTotal += row.total_harga;
             groups[row.nomor_po].count++;
             groups[row.nomor_po].items.push(row);
@@ -459,97 +436,44 @@
 
         Object.keys(groups).forEach(noPO => {
             const g = groups[noPO];
-            
-            // Tombol Re-Print (Kirim data JSON string)
-            // Karena data items kompleks, kita hanya kirim ID PO nya saja nanti fetch ulang di modal detail (biar simple)
-            // Atau kita rebuild logic render di client side (Disini saya pakai logic simple render ulang dari data yg ada)
-            
-            // Hack: Simpan data items ke attribute element hidden biar bisa diambil saat klik print
             const jsonItems = JSON.stringify(g.items).replace(/"/g, "&quot;");
-
             tbody.innerHTML += `
                 <tr class="hover:bg-blue-50 border-b">
-                    <td class="p-4 font-bold text-gray-800">
-                        ${noPO} <br> <span class="text-xs text-gray-500 font-normal">${new Date(g.tgl).toLocaleDateString()}</span>
-                    </td>
+                    <td class="p-4 font-bold text-gray-800">${noPO} <br> <span class="text-xs text-gray-500 font-normal">${new Date(g.tgl).toLocaleDateString()}</span></td>
                     <td class="p-4">${g.vendor}</td>
                     <td class="p-4 text-center"><span class="bg-gray-200 px-2 py-1 rounded text-xs font-bold">${g.count} Item</span></td>
                     <td class="p-4 text-right font-bold font-mono text-green-700">${formatRupiah(g.grandTotal)}</td>
                     <td class="p-4 text-center text-xs font-bold">${g.status}</td>
-                    <td class="p-4 text-center">
-                        <button onclick='reprintBatch("${noPO}", ${jsonItems})' class="bg-gray-700 text-white px-3 py-1 rounded text-xs hover:bg-black">
-                            <i class="fas fa-print"></i> PDF
-                        </button>
-                    </td>
-                </tr>
-            `;
+                    <td class="p-4 text-center"><button onclick='reprintBatch("${noPO}", ${jsonItems})' class="bg-gray-700 text-white px-3 py-1 rounded text-xs hover:bg-black"><i class="fas fa-print"></i> PDF</button></td>
+                </tr>`;
         });
     }
 
-    // Fungsi Cetak Ulang dari Riwayat
-    function reprintBatch(noPO, items) {
-        // Kita pakai fungsi preview yang sama, tapi data disuapi manual
-        const first = items[0];
-        
-        document.getElementById("printNoPO").innerText = noPO;
-        document.getElementById("printTanggal").innerText = new Date(first.created_at).toLocaleDateString();
-        document.getElementById("printVendor").innerText = first.nama_vendor;
-        document.getElementById("printTempo").innerText = new Date(first.jatuh_tempo).toLocaleDateString();
-        
-        let grandTotal = 0;
-        const tbody = document.getElementById("printTabelBody");
-        tbody.innerHTML = "";
-
-        // Kita perlu fetch nama barang (karena di tabel PO gak ada nama barang, adanya req_id)
-        // Agar cepat, kita tampilkan "Item ID: ..." dulu, atau fetch async.
-        // TAPI: Supaya cepat & simple, kita anggap user sudah tau. Atau idealnya join query.
-        // Di code loadRiwayatPO saya belum join inventory_req. Mari kita perbaiki di next update jika perlu.
-        // SEKARANG: Kita tampilkan Generic Item dulu atau fetch on demand.
-        
-        // *FIX CEPAT*: Fetch detail barang saat klik print
-        fetchDetailAndPrint(noPO, items);
-    }
+    function reprintBatch(noPO, items) { fetchDetailAndPrint(noPO, items); }
 
     async function fetchDetailAndPrint(noPO, items) {
-        // Ambil nama barang
         const reqIds = items.map(i => i.req_id);
         const { data } = await client.from('inventory_req').select('id, nama_barang, satuan').in('id', reqIds);
-        
-        // Map ID ke Nama
         const mapNama = {};
         if(data) data.forEach(d => mapNama[d.id] = d);
 
         let grandTotal = 0;
         const tbody = document.getElementById("printTabelBody");
         tbody.innerHTML = "";
+        const first = items[0];
+        document.getElementById("printNoPO").innerText = noPO;
+        document.getElementById("printTanggal").innerText = new Date(first.created_at).toLocaleDateString();
+        document.getElementById("printVendor").innerText = first.nama_vendor;
+        document.getElementById("printTempo").innerText = new Date(first.jatuh_tempo).toLocaleDateString();
 
         items.forEach((d, i) => {
             const info = mapNama[d.req_id] || { nama_barang: 'Item Terhapus', satuan: '' };
-            // Hitung Qty reverse dari total / harga (atau ambil dari req jika ada)
-            // Asumsi: Kita tidak simpan Qty di tabel PO (ini kelemahan struktur simple). 
-            // Kita ambil qty dari total_harga / harga_satuan
             const qty = d.total_harga / d.harga_satuan;
-
-            tbody.innerHTML += `
-                <tr>
-                    <td class="p-2 border border-black text-center">${i+1}</td>
-                    <td class="p-2 border border-black font-bold">${info.nama_barang}</td>
-                    <td class="p-2 border border-black text-center">${qty} ${info.satuan}</td>
-                    <td class="p-2 border border-black text-right">${formatRupiah(d.harga_satuan)}</td>
-                    <td class="p-2 border border-black text-right font-bold">${formatRupiah(d.total_harga)}</td>
-                </tr>
-            `;
+            tbody.innerHTML += `<tr><td class="p-2 border border-black text-center">${i+1}</td><td class="p-2 border border-black font-bold">${info.nama_barang}</td><td class="p-2 border border-black text-center">${qty} ${info.satuan}</td><td class="p-2 border border-black text-right">${formatRupiah(d.harga_satuan)}</td><td class="p-2 border border-black text-right font-bold">${formatRupiah(d.total_harga)}</td></tr>`;
             grandTotal += d.total_harga;
         });
-
         document.getElementById("printGrandTotal").innerText = formatRupiah(grandTotal);
-
-        // Tombol Download
-        document.getElementById("actionArea").innerHTML = `
-            <button onclick="downloadPDF('${noPO}')" class="bg-gray-800 text-white px-6 py-2 rounded font-bold shadow">
-                Download PDF Arsip
-            </button>
-        `;
+        document.getElementById("actionArea").innerHTML = `<button onclick="downloadPDF('${noPO}')" class="bg-gray-800 text-white px-6 py-2 rounded font-bold shadow">Download PDF Arsip</button>`;
         document.getElementById("modalKertas").classList.remove("hidden");
     }
 

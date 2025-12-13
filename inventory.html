@@ -45,6 +45,9 @@
                 <select id="pilihBarang" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-300" onchange="cekPilihan()">
                     <option value="">-- Memuat Data... --</option>
                 </select>
+                <p id="infoStok" class="text-[11px] text-right font-bold mt-1 text-gray-400 min-h-[1.5em] transition-colors duration-300">
+                    -
+                </p>
             </div>
 
             <div id="panelBaru" class="hidden bg-orange-50 p-3 rounded border border-orange-200 text-sm space-y-2">
@@ -139,10 +142,11 @@
         loadRequestDB();
     }
 
-    // 1. LOAD DATA MATERIAL
+    // 1. LOAD DATA MATERIAL (Update: Ambil total_stok)
     async function loadMaterial() {
       const select = document.getElementById("pilihBarang");
-      const { data } = await client.from('master_stok').select('nama_barang, satuan').order('nama_barang');
+      // Ambil kolom total_stok juga
+      const { data } = await client.from('master_stok').select('nama_barang, satuan, total_stok').order('nama_barang');
       
       select.innerHTML = '<option value="">-- Pilih Material --</option>';
       if(data) {
@@ -150,6 +154,8 @@
             const opt = document.createElement('option');
             opt.value = item.nama_barang;
             opt.setAttribute('data-satuan', item.satuan);
+            // Simpan stok di atribut data-stok
+            opt.setAttribute('data-stok', item.total_stok || 0); 
             opt.text = item.nama_barang;
             select.appendChild(opt);
           });
@@ -161,10 +167,9 @@
       select.appendChild(optBaru);
     }
 
-    // 2. LOAD DATA PROYEK (BARU)
+    // 2. LOAD DATA PROYEK
     async function loadProyek() {
         const select = document.getElementById("pilihProyek");
-        // Hanya ambil proyek yang statusnya BERJALAN
         const { data } = await client.from('master_proyek').select('nama_proyek').eq('status', 'BERJALAN').order('nama_proyek');
         
         if(data) {
@@ -177,23 +182,49 @@
         }
     }
 
-    // 3. LOGIKA TAMPILAN
+    // 3. LOGIKA TAMPILAN (Update: Tampilkan Info Stok)
     function cekPilihan() {
       const select = document.getElementById("pilihBarang");
       const panelBaru = document.getElementById("panelBaru");
       const satuanDisplay = document.getElementById("satuanDisplay");
+      const infoStok = document.getElementById("infoStok");
       
+      // Reset Tampilan Stok
+      infoStok.innerText = "";
+      infoStok.className = "text-[11px] text-right font-bold mt-1 text-gray-400 transition-colors duration-300";
+
       if (select.value === "BARU") {
         panelBaru.classList.remove("hidden");
         satuanDisplay.value = document.getElementById("satuanBaru").value;
         document.getElementById("namaBaru").focus();
         document.getElementById("satuanBaru").onchange = function() { satuanDisplay.value = this.value; }
+        infoStok.innerText = "Stok Awal: 0 (Barang Baru)";
+        infoStok.classList.add("text-orange-500");
+
       } else if (select.value === "") {
         panelBaru.classList.add("hidden");
         satuanDisplay.value = "-";
+        infoStok.innerText = "-";
+
       } else {
         panelBaru.classList.add("hidden");
-        satuanDisplay.value = select.options[select.selectedIndex].getAttribute('data-satuan');
+        const satuan = select.options[select.selectedIndex].getAttribute('data-satuan');
+        const stok = parseFloat(select.options[select.selectedIndex].getAttribute('data-stok'));
+        
+        satuanDisplay.value = satuan;
+        
+        // Update Teks Stok
+        infoStok.innerText = `Sisa Stok Gudang: ${stok} ${satuan}`;
+        
+        // Ubah Warna jika stok habis
+        if (stok > 0) {
+            infoStok.classList.remove("text-gray-400", "text-red-600");
+            infoStok.classList.add("text-green-600");
+        } else {
+            infoStok.classList.remove("text-gray-400", "text-green-600");
+            infoStok.classList.add("text-red-600");
+            infoStok.innerText += " (Habis)";
+        }
       }
     }
 
@@ -203,11 +234,11 @@
       
       const mode = document.getElementById("pilihBarang").value;
       const jumlah = document.getElementById("jumlah").value;
-      const proyek = document.getElementById("pilihProyek").value; // Ambil nilai proyek
+      const proyek = document.getElementById("pilihProyek").value; 
       
       if (!mode) { alert("Pilih material dulu!"); return; }
       if (jumlah <= 0) { alert("Jumlah harus lebih dari 0!"); return; }
-      if (!proyek) { alert("Pilih tujuan proyek!"); return; } // Validasi Proyek
+      if (!proyek) { alert("Pilih tujuan proyek!"); return; }
 
       let item = {};
       if (mode === "BARU") {
@@ -221,12 +252,11 @@
 
       keranjang.push(item);
       
-      // Reset Input (Kecuali Pengorder & Proyek agar mudah input ulang)
       document.getElementById("pilihBarang").value = "";
       document.getElementById("jumlah").value = "";
       document.getElementById("satuanDisplay").value = "";
       document.getElementById("namaBaru").value = "";
-      cekPilihan();
+      cekPilihan(); // Reset info stok
       renderKeranjang();
     });
 
@@ -288,14 +318,14 @@
                 if(errM && errM.code !== '23505') throw new Error("Gagal Master: " + errM.message);
             }
 
-            // B. Insert Request (Include Nama Proyek)
+            // B. Insert Request
             const payloadReq = keranjang.map(i => ({
                 nama_barang: i.nama,
                 jumlah: i.jumlah,
                 satuan: i.satuan,
                 pengorder: pengorder,
                 status: 'PENDING',
-                nama_proyek: i.proyek // <--- DATA PROYEK DIKIRIM KE SINI
+                nama_proyek: i.proyek
             }));
 
             const { error: errReq } = await client.from('inventory_req').insert(payloadReq);
@@ -321,9 +351,7 @@
       ul.innerHTML = "";
       if(data && data.length > 0) {
           data.forEach(d => {
-              // Tampilkan Nama Proyek di list
               const proyekLabel = d.nama_proyek ? `<span class="bg-blue-100 text-blue-800 text-[10px] px-1 rounded ml-1">${d.nama_proyek}</span>` : '';
-              
               ul.innerHTML += `
                 <li class="p-3 flex justify-between items-center hover:bg-gray-50">
                     <div>
