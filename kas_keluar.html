@@ -3,90 +3,68 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kas Keluar - Dashboard Finance</title>
+  <title>Kas Keluar - Finance</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
     body { font-family: "Segoe UI", sans-serif; background: #f4f6f8; }
     .btn-gradient { background: linear-gradient(135deg, #ef4444, #b91c1c); }
-    .btn-gradient:hover { background: linear-gradient(135deg, #dc2626, #991b1b); }
-    /* Animasi halus untuk panel giro */
-    #panelGiro { transition: all 0.3s ease-in-out; }
   </style>
 </head>
 <body class="p-6 text-gray-800">
 
   <header class="max-w-xl mx-auto mb-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500">
-    <div>
-      <h1 class="text-xl font-bold text-gray-900">Kas Keluar</h1>
-      <p class="text-xs text-gray-500">Catat Biaya & Pembayaran Hutang</p>
-    </div>
-    <a href="dashboard_operasional.html" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-full text-sm font-bold transition">
-      <i class="fas fa-arrow-left mr-1"></i> Dashboard
-    </a>
+    <div><h1 class="text-xl font-bold text-gray-900">Kas Keluar</h1><p class="text-xs text-gray-500">Operasional & Biaya Proyek (HPP)</p></div>
+    <a href="dashboard_operasional.html" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-full text-sm font-bold"><i class="fas fa-arrow-left mr-1"></i> Dashboard</a>
   </header>
 
-  <main class="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg">
-    
-    <div class="space-y-5">
+  <main class="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-5">
       
       <div>
         <label class="block text-sm font-bold text-gray-700 mb-1">Tanggal Transaksi</label>
-        <input type="date" id="tanggal" class="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 outline-none bg-gray-50 text-gray-800">
+        <input type="date" id="tanggal" class="w-full border p-3 rounded-xl bg-gray-50">
       </div>
 
       <div class="grid grid-cols-2 gap-4">
         <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Untuk Keperluan</label>
-            <select id="akunBiaya" class="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 bg-white">
-              <option value="">-- Memuat Akun... --</option>
-            </select>
+            <label class="block text-sm font-bold text-gray-700 mb-1">Keperluan (Akun)</label>
+            <select id="akunBiaya" class="w-full border p-3 rounded-xl bg-white"><option>-- Memuat... --</option></select>
         </div>
         <div>
             <label class="block text-sm font-bold text-gray-700 mb-1">Sumber Dana</label>
-            <select id="akunKas" class="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 bg-white">
-              <option value="">-- Memuat Bank... --</option>
-            </select>
+            <select id="akunKas" class="w-full border p-3 rounded-xl bg-white"><option>-- Memuat... --</option></select>
         </div>
       </div>
 
+      <div class="bg-orange-50 p-3 rounded-xl border border-orange-200">
+          <label class="block text-xs font-bold text-orange-800 mb-1"><i class="fas fa-building mr-1"></i> Alokasi ke Proyek (Untuk HPP)</label>
+          <select id="pilihProyek" class="w-full border p-2 rounded-lg text-sm font-bold text-gray-700 bg-white focus:ring-2 focus:ring-orange-400">
+              <option value="">-- Bukan Biaya Proyek (Operasional Kantor) --</option>
+              </select>
+          <p class="text-[10px] text-orange-600 mt-1">*Pilih proyek jika biaya ini adalah Legalitas, Izin, atau Upah Non-Opname.</p>
+      </div>
+
       <div>
-        <label class="block text-sm font-bold text-gray-700 mb-1">Jumlah Pengeluaran (Rp)</label>
-        <input type="number" id="jumlah" class="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500 text-lg font-bold text-gray-800 placeholder-gray-300" placeholder="0">
+        <label class="block text-sm font-bold text-gray-700 mb-1">Jumlah (Rp)</label>
+        <input type="number" id="jumlah" class="w-full border p-3 rounded-xl text-lg font-bold" placeholder="0">
       </div>
 
       <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
           <div class="flex items-center gap-3 mb-2">
-              <input type="checkbox" id="chkGiro" class="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer" onchange="toggleGiro()">
-              <label for="chkGiro" class="text-sm font-bold text-indigo-900 cursor-pointer select-none">Pembayaran dengan Cek / Giro Mundur?</label>
+              <input type="checkbox" id="chkGiro" class="w-5 h-5 rounded cursor-pointer" onchange="toggleGiro()">
+              <label for="chkGiro" class="text-sm font-bold text-indigo-900 cursor-pointer">Bayar pakai Cek / Giro?</label>
           </div>
-          
           <div id="panelGiro" class="hidden space-y-3 mt-3 border-t border-indigo-200 pt-3">
-              <div>
-                  <label class="block text-xs font-bold text-indigo-800 mb-1">Nomor Cek / Referensi</label>
-                  <input type="text" id="nomorCek" class="w-full border border-indigo-200 p-2 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400" placeholder="Contoh: CG-881900">
-              </div>
-              <div>
-                  <label class="block text-xs font-bold text-indigo-800 mb-1">Tanggal Cair (Jatuh Tempo)</label>
-                  <input type="date" id="tglCair" class="w-full border border-indigo-200 p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-400">
-                  <p class="text-[10px] text-indigo-500 mt-1">*Tanggal ini akan muncul di Monitoring Cek</p>
-              </div>
+              <input type="text" id="nomorCek" class="w-full border p-2 rounded-lg text-sm" placeholder="No Cek/Ref">
+              <input type="date" id="tglCair" class="w-full border p-2 rounded-lg text-sm">
           </div>
       </div>
 
-      <div>
-        <label class="block text-sm font-bold text-gray-700 mb-1">Keterangan</label>
-        <textarea id="keterangan" rows="2" class="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-red-500" placeholder="Deskripsi transaksi..."></textarea>
-      </div>
+      <textarea id="keterangan" rows="2" class="w-full border p-3 rounded-xl" placeholder="Keterangan..."></textarea>
 
-      <div id="statusBox" class="hidden p-3 rounded-lg text-sm font-bold text-center"></div>
+      <button onclick="simpanTransaksi()" id="btnSimpan" class="w-full btn-gradient text-white font-bold py-4 rounded-xl shadow-lg">SIMPAN</button>
 
-      <button id="btnSimpan" onclick="simpanTransaksi()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl shadow-lg transition transform hover:-translate-y-1 flex justify-center items-center gap-2">
-        <i class="fas fa-paper-plane"></i> SIMPAN PENGELUARAN
-      </button>
-
-    </div>
   </main>
 
   <script>
@@ -96,120 +74,85 @@
 
     document.getElementById("tanggal").valueAsDate = new Date();
     
-    // --- LOAD SEMUA AKUN DARI DB ---
-    async function loadAkun() {
-      const { data } = await client.from('master_akun').select('nama_akun').order('nama_akun');
-      
-      const selBiaya = document.getElementById("akunBiaya");
-      const selKas = document.getElementById("akunKas");
-      
-      // Reset Pilihan
-      selBiaya.innerHTML = '<option value="">-- Pilih Akun Biaya --</option>';
-      selKas.innerHTML = '<option value="">-- Pilih Sumber Dana --</option>';
+    // LOAD DATA
+    async function init() {
+        // 1. Load Akun
+        const { data: akun } = await client.from('master_akun').select('*').order('nama_akun');
+        const selBiaya = document.getElementById("akunBiaya");
+        const selKas = document.getElementById("akunKas");
+        selBiaya.innerHTML = '<option value="">-- Pilih Akun --</option>';
+        selKas.innerHTML = '<option value="">-- Pilih Sumber --</option>';
+        
+        if(akun) {
+            akun.forEach(a => {
+                const n = a.nama_akun;
+                if(n.toLowerCase().match(/kas|bank|mandiri|bca/)) selKas.innerHTML += `<option value="${n}">${n}</option>`;
+                else selBiaya.innerHTML += `<option value="${n}">${n}</option>`;
+            });
+        }
 
-      if(data) {
-        data.forEach(akun => {
-            const nama = akun.nama_akun;
-            const namaKecil = nama.toLowerCase();
-
-            // LOGIKA PEMISAHAN:
-            // Jika nama akun mengandung 'kas' atau 'bank' -> Masuk Sumber Dana
-            // Selain itu -> Masuk Keperluan
-            if(namaKecil.includes('kas') || namaKecil.includes('bank') || namaKecil.includes('mandiri') || namaKecil.includes('bca')) {
-                selKas.innerHTML += `<option value="${nama}">${nama}</option>`;
-            } else {
-                selBiaya.innerHTML += `<option value="${nama}">${nama}</option>`;
-            }
-        });
-      }
-    }
-    loadAkun();
-
-    // --- TOGGLE TAMPILAN GIRO ---
-    function toggleGiro() {
-        const isChecked = document.getElementById("chkGiro").checked;
-        const panel = document.getElementById("panelGiro");
-        if(isChecked) {
-            panel.classList.remove("hidden");
-            document.getElementById("tglCair").required = true;
-        } else {
-            panel.classList.add("hidden");
-            document.getElementById("tglCair").required = false;
+        // 2. Load Proyek (Untuk HPP)
+        const { data: proyek } = await client.from('master_proyek').select('nama_proyek, kategori').eq('status', 'BERJALAN');
+        const selProyek = document.getElementById("pilihProyek");
+        if(proyek) {
+            proyek.forEach(p => {
+                selProyek.innerHTML += `<option value="${p.nama_proyek}">${p.nama_proyek} [${p.kategori}]</option>`;
+            });
         }
     }
+    init();
 
-    // --- SIMPAN TRANSAKSI ---
+    function toggleGiro() {
+        const c = document.getElementById("chkGiro").checked;
+        document.getElementById("panelGiro").classList.toggle("hidden", !c);
+    }
+
     async function simpanTransaksi() {
-      const btn = document.getElementById("btnSimpan");
-      const statusBox = document.getElementById("statusBox");
-      
-      const tglJurnal = document.getElementById("tanggal").value;
-      const akunBiaya = document.getElementById("akunBiaya").value;
-      const akunKas = document.getElementById("akunKas").value;
-      const jumlah = Number(document.getElementById("jumlah").value);
-      let keterangan = document.getElementById("keterangan").value;
-
-      // Data Cek
-      const isCek = document.getElementById("chkGiro").checked;
-      const noCek = document.getElementById("nomorCek").value;
-      const tglCair = document.getElementById("tglCair").value;
-
-      if (!tglJurnal || !akunBiaya || !akunKas || jumlah <= 0) {
-        alert("Data belum lengkap!"); return;
-      }
-      if (isCek && (!noCek || !tglCair)) {
-        alert("Nomor Cek dan Tanggal Cair wajib diisi!"); return;
-      }
-
-      if(isCek) keterangan += ` (Ref: ${noCek})`;
-
-      if(!confirm(`Simpan Pengeluaran Rp ${jumlah.toLocaleString()}?`)) return;
-
-      btn.disabled = true;
-      btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`;
-      
-      try {
-        const refNo = "OUT-" + Date.now();
-
-        // 1. Simpan ke Jurnal Umum (Akuntansi)
-        const jurnalData = [
-            {
-                tanggal: tglJurnal, nomor_referensi: refNo, keterangan: keterangan,
-                nama_akun: akunBiaya, debit: jumlah, kredit: 0
-            },
-            {
-                tanggal: tglJurnal, nomor_referensi: refNo, keterangan: keterangan,
-                nama_akun: akunKas, debit: 0, kredit: jumlah
-            }
-        ];
+        const tgl = document.getElementById("tanggal").value;
+        const akunB = document.getElementById("akunBiaya").value;
+        const akunK = document.getElementById("akunKas").value;
+        const proyek = document.getElementById("pilihProyek").value; // Ambil Proyek
+        const jml = Number(document.getElementById("jumlah").value);
+        let ket = document.getElementById("keterangan").value;
         
-        const { error: errJurnal } = await client.from('jurnal_umum').insert(jurnalData);
-        if (errJurnal) throw new Error("Gagal Jurnal: " + errJurnal.message);
+        const isCek = document.getElementById("chkGiro").checked;
+        const noCek = document.getElementById("nomorCek").value;
+        const tglCair = document.getElementById("tglCair").value;
 
-        // 2. Simpan ke Transaksi (Cashflow)
-        const tglTransaksi = isCek ? tglCair : tglJurnal;
-        const { error: errTrans } = await client.from('transaksi').insert([{
-          tanggal: tglTransaksi,
-          jenis_transaksi: 'KELUAR',
-          akun: akunBiaya,
-          bank_sumber: akunKas,
-          jumlah: jumlah,
-          keterangan: keterangan
-        }]);
+        if(!tgl || !akunB || !akunK || jml <= 0) return alert("Lengkapi data!");
+        if(isCek && (!noCek || !tglCair)) return alert("Data Cek kurang lengkap!");
 
-        if (errTrans) throw new Error("Gagal Transaksi: " + errTrans.message);
+        if(isCek) ket += ` (Ref: ${noCek})`;
+        if(proyek) ket += ` [Proyek: ${proyek}]`; // Tempel nama proyek di ket juga biar jelas
 
-        statusBox.className = "p-3 rounded-lg text-sm font-bold text-center bg-green-100 text-green-700 block mb-3";
-        statusBox.innerHTML = `✅ Berhasil Disimpan! Ref: ${refNo}`;
-        
-        setTimeout(() => { location.reload(); }, 1500);
+        if(!confirm("Simpan transaksi?")) return;
 
-      } catch (err) {
-        statusBox.className = "p-3 rounded-lg text-sm font-bold text-center bg-red-100 text-red-700 block mb-3";
-        statusBox.innerText = "Error: " + err.message;
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-paper-plane"></i> SIMPAN PENGELUARAN`;
-      }
+        try {
+            const ref = "OUT-" + Date.now();
+            
+            // 1. JURNAL UMUM
+            await client.from('jurnal_umum').insert([
+                { tanggal: tgl, nomor_referensi: ref, keterangan: ket, nama_akun: akunB, debit: jml, kredit: 0 },
+                { tanggal: tgl, nomor_referensi: ref, keterangan: ket, nama_akun: akunK, debit: 0, kredit: jml }
+            ]);
+
+            // 2. TRANSAKSI (Dengan kolom nama_proyek)
+            const tglFinal = isCek ? tglCair : tgl;
+            const { error } = await client.from('transaksi').insert([{
+                tanggal: tglFinal,
+                jenis_transaksi: 'KELUAR',
+                akun: akunB,
+                bank_sumber: akunK,
+                jumlah: jml,
+                keterangan: ket,
+                nama_proyek: proyek || null // KUNCI UTAMA: Simpan nama proyek
+            }]);
+
+            if(error) throw error;
+            alert("✅ Tersimpan!");
+            location.reload();
+
+        } catch (e) { alert("Error: " + e.message); }
     }
   </script>
 </body>

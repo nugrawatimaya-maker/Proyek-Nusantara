@@ -2,99 +2,60 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Laporan HPP & Laba Proyek</title>
+  <title>Laporan HPP Lengkap</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 font-sans text-gray-800 p-6">
 
   <div class="max-w-7xl mx-auto mb-6 flex justify-between items-center">
     <div>
-      <h1 class="text-2xl font-bold text-indigo-900"><i class="fas fa-calculator mr-2"></i>Analisa HPP & Infrastruktur</h1>
-      <p class="text-sm text-gray-500">Perhitungan Otomatis Alokasi Biaya Infrastruktur ke Unit</p>
+      <h1 class="text-2xl font-bold text-indigo-900"><i class="fas fa-calculator mr-2"></i>Laporan HPP (Cost of Goods Sold)</h1>
+      <p class="text-sm text-gray-500">Gabungan Material Gudang + Biaya Legal/Izin (Kas)</p>
     </div>
-    <a href="dashboard_operasional.html" class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm">
-      <i class="fas fa-arrow-left"></i> Dashboard
-    </a>
+    <a href="dashboard_operasional.html" class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold text-sm hover:bg-gray-700"><i class="fas fa-arrow-left"></i> Dashboard</a>
   </div>
 
-  <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-      <div class="bg-white p-5 rounded-lg shadow border-l-4 border-orange-500">
-          <div class="flex justify-between items-start">
-              <div>
-                  <p class="text-xs font-bold text-gray-500 uppercase">Total Biaya Infrastruktur</p>
-                  <h2 class="text-2xl font-bold text-orange-600 mt-1" id="totalInfra">Rp 0</h2>
-                  <p class="text-xs text-gray-400 mt-1">Jalan, Drainase, Fasum</p>
-              </div>
-              <div class="bg-orange-100 p-2 rounded text-orange-600"><i class="fas fa-road fa-lg"></i></div>
-          </div>
+  <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white p-4 rounded shadow border-l-4 border-orange-500">
+          <p class="text-xs font-bold text-gray-500 uppercase">Biaya Infra & Fasum</p>
+          <h2 class="text-xl font-bold text-orange-600 mt-1" id="costInfra">Rp 0</h2>
       </div>
-
-      <div class="bg-white p-5 rounded-lg shadow border-l-4 border-blue-500">
-          <div class="flex justify-between items-start">
-              <div>
-                  <p class="text-xs font-bold text-gray-500 uppercase">Alokasi Infra / Unit</p>
-                  <h2 class="text-2xl font-bold text-blue-700 mt-1" id="alokasiPerUnit">Rp 0</h2>
-                  <p class="text-xs text-gray-400 mt-1">Dibebankan ke <span id="jmlUnit">0</span> Unit Rumah</p>
-              </div>
-              <div class="bg-blue-100 p-2 rounded text-blue-600"><i class="fas fa-chart-pie fa-lg"></i></div>
-          </div>
+      <div class="bg-white p-4 rounded shadow border-l-4 border-purple-500">
+          <p class="text-xs font-bold text-gray-500 uppercase">Biaya Legal & Izin (Soft Cost)</p>
+          <h2 class="text-xl font-bold text-purple-600 mt-1" id="costSoft">Rp 0</h2>
       </div>
-
-      <div class="bg-white p-5 rounded-lg shadow border-l-4 border-green-500">
-          <div class="flex justify-between items-start">
-              <div>
-                  <p class="text-xs font-bold text-gray-500 uppercase">Total HPP Seluruh Proyek</p>
-                  <h2 class="text-2xl font-bold text-green-700 mt-1" id="totalHPPAll">Rp 0</h2>
-                  <p class="text-xs text-gray-400 mt-1">Material + Infrastruktur</p>
-              </div>
-              <div class="bg-green-100 p-2 rounded text-green-600"><i class="fas fa-city fa-lg"></i></div>
-          </div>
+      <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500">
+          <p class="text-xs font-bold text-gray-500 uppercase">Alokasi Beban / Unit</p>
+          <h2 class="text-xl font-bold text-blue-700 mt-1" id="allocPerUnit">Rp 0</h2>
+          <p class="text-[10px] text-gray-400">Total Beban Bersama ÷ Jml Unit</p>
+      </div>
+      <div class="bg-white p-4 rounded shadow border-l-4 border-green-500">
+          <p class="text-xs font-bold text-gray-500 uppercase">Total Aset Proyek (WIP)</p>
+          <h2 class="text-xl font-bold text-green-700 mt-1" id="totalWIP">Rp 0</h2>
       </div>
   </div>
 
   <div class="max-w-7xl mx-auto bg-white rounded-lg shadow overflow-hidden">
-    <div class="p-4 border-b bg-indigo-50">
-        <h3 class="font-bold text-indigo-900">Rincian HPP Per Unit Rumah</h3>
+    <div class="p-4 bg-indigo-50 border-b flex justify-between items-center">
+        <h3 class="font-bold text-indigo-900">Rincian HPP Per Unit</h3>
+        <span class="text-xs bg-indigo-200 text-indigo-800 px-2 py-1 rounded font-bold" id="labelJmlUnit">0 Unit</span>
     </div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
-            <thead class="bg-indigo-100 text-indigo-900 font-bold uppercase">
-                <tr>
-                    <th class="p-4">Nama Unit / Blok</th>
-                    <th class="p-4 text-right">Biaya Material (Langsung)</th>
-                    <th class="p-4 text-right text-orange-700">+ Alokasi Infrastruktur</th>
-                    <th class="p-4 text-right text-green-700 bg-green-50">Total HPP Unit</th>
-                    <th class="p-4 text-center">Status</th>
-                </tr>
-            </thead>
-            <tbody id="bodyHPP" class="divide-y divide-gray-100">
-                <tr><td colspan="5" class="p-6 text-center text-gray-400">Sedang menghitung...</td></tr>
-            </tbody>
-        </table>
-    </div>
-  </div>
-
-  <div class="max-w-7xl mx-auto mt-8 bg-white rounded-lg shadow overflow-hidden">
-    <div class="p-4 border-b bg-orange-50 cursor-pointer" onclick="toggleInfra()">
-        <h3 class="font-bold text-orange-900 flex justify-between">
-            <span>Rincian Pengeluaran Infrastruktur (Sumber Alokasi)</span>
-            <i class="fas fa-chevron-down"></i>
-        </h3>
-    </div>
-    <div id="panelInfra" class="overflow-x-auto hidden">
-        <table class="w-full text-left text-sm">
-            <thead class="bg-orange-100 text-orange-900 font-bold">
-                <tr>
-                    <th class="p-3">Nama Proyek Infra</th>
-                    <th class="p-3 text-right">Total Material Digunakan</th>
-                </tr>
-            </thead>
-            <tbody id="bodyInfra"></tbody>
-        </table>
-    </div>
+    <table class="w-full text-left text-sm">
+        <thead class="bg-indigo-100 text-indigo-900 font-bold uppercase">
+            <tr>
+                <th class="p-3">Proyek / Unit</th>
+                <th class="p-3 text-right">Material (Gudang)</th>
+                <th class="p-3 text-right">Biaya Langsung (Kas)</th>
+                <th class="p-3 text-right text-orange-700">+ Alokasi Infra/Legal</th>
+                <th class="p-3 text-right text-green-700 bg-green-50">Total HPP</th>
+            </tr>
+        </thead>
+        <tbody id="bodyHPP" class="divide-y divide-gray-100">
+            <tr><td colspan="5" class="p-6 text-center text-gray-400">Menghitung...</td></tr>
+        </tbody>
+    </table>
   </div>
 
   <script>
@@ -103,130 +64,119 @@
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const fmt = (n) => new Intl.NumberFormat('id-ID', {style: 'currency', currency: 'IDR', minimumFractionDigits:0}).format(n);
 
-    function toggleInfra() {
-        document.getElementById("panelInfra").classList.toggle("hidden");
-    }
+    async function loadReport() {
+        // 1. DATA MASTER PROYEK
+        const { data: proy } = await client.from('master_proyek').select('*');
+        if(!proy) return;
 
-    async function loadAnalisaHPP() {
-        // 1. AMBIL DAFTAR PROYEK (Untuk memisahkan Rumah vs Infra)
-        const { data: proyek } = await client.from('master_proyek').select('*');
-        
-        // 2. AMBIL DATA PEMAKAIAN MATERIAL (Stok History)
-        // Kita perlu join dengan master_stok untuk dapat harga (estimasi) atau kita asumsikan hitungan nilai ada
-        // Karena di stok_history belum ada nilai rupiah, kita perlu hitung manual: Qty Pakai * Harga Rata2
-        // Untuk simplifikasi demo ini, kita ambil estimasi harga dari Purchase Order terakhir (sama seperti di menu stok)
-        
-        const { data: history } = await client.from('stok_history')
-            .select(`
-                *,
-                master_stok ( nama_barang )
-            `)
+        // 2. DATA MATERIAL (GUDANG)
+        // Kita perlu estimasi nilai material. Logic sama dengan stok_proyek.
+        // Ambil pemakaian + harga terakhir
+        const { data: usage } = await client.from('stok_history')
+            .select(`*, master_stok(nama_barang)`)
             .eq('jenis_transaksi', 'PEMAKAIAN PROYEK');
-
-        // Ambil Harga Referensi (Harga PO Terakhir per Item)
-        const { data: hargaRef } = await client.from('purchase_order')
-            .select(`*, inventory_req!fk_req_id(nama_barang)`)
-            .order('created_at', {ascending: false});
             
-        // Map Harga: { "Semen": 60000, "Pasir": 300000 }
-        let mapHarga = {};
-        if(hargaRef) {
-            hargaRef.forEach(h => {
-                const nama = h.inventory_req?.nama_barang;
-                if(nama && !mapHarga[nama]) mapHarga[nama] = h.harga_satuan;
-            });
-        }
-
-        // --- MULAI PERHITUNGAN ---
+        const { data: po } = await client.from('purchase_order').select(`*, inventory_req!fk_req_id(nama_barang)`).order('created_at', {ascending: false});
         
-        let totalBiayaInfra = 0;
-        let mapBiayaRumah = {}; // { "Blok A1": 50000000, "Blok A2": ... }
-        let detailInfra = {}; // { "Jalan": 10000000 }
+        let mapHarga = {};
+        if(po) po.forEach(p => { if(p.inventory_req?.nama_barang && !mapHarga[p.inventory_req.nama_barang]) mapHarga[p.inventory_req.nama_barang] = p.harga_satuan; });
 
-        // Proses setiap transaksi pemakaian
-        if(history && proyek) {
-            history.forEach(trx => {
-                const namaBarang = trx.master_stok?.nama_barang;
-                const harga = mapHarga[namaBarang] || 0; 
-                const nilaiTrx = trx.jumlah * harga;
-                
-                // Parsing Nama Proyek dari Keterangan (Format: "Proyek: NAMA_PROYEK | ...")
-                let namaProyek = "Unknown";
-                if(trx.keterangan.includes("Proyek:")) {
-                    const parts = trx.keterangan.split("|"); // Split "Proyek: A1 | Ket"
-                    namaProyek = parts[0].replace("Proyek:", "").trim();
-                }
+        // 3. DATA KAS KELUAR (Biaya Legal, Izin, dll)
+        const { data: cash } = await client.from('transaksi')
+            .select('*')
+            .eq('jenis_transaksi', 'KELUAR')
+            .not('nama_proyek', 'is', null); // Hanya yg ada tag proyek
 
-                // Cek Kategori Proyek di Master
-                const dataProyek = proyek.find(p => p.nama_proyek === namaProyek);
+        // --- PROCESSING ---
+        let costInfra = 0; // Material + Kas untuk Infra
+        let costSoft = 0;  // Biaya Umum/Legal yg dibagi rata
+        let directMaterial = {}; // Per Unit
+        let directCash = {};     // Per Unit
+
+        // Helper: Cek Kategori Proyek
+        const getKat = (nama) => {
+            const p = proy.find(x => x.nama_proyek === nama);
+            return p ? p.kategori : 'Lainnya';
+        };
+
+        // A. Hitung Material Gudang
+        if(usage) {
+            usage.forEach(u => {
+                // Parse Nama Proyek dari Keterangan (Format: "Proyek: NAMA | ...")
+                let pName = "";
+                if(u.keterangan.includes("Proyek:")) pName = u.keterangan.split("|")[0].replace("Proyek:", "").trim();
                 
-                if(dataProyek) {
-                    if(dataProyek.kategori === 'Infrastruktur' || dataProyek.kategori === 'Fasilitas Umum') {
-                        // Masuk Keranjang Infrastruktur
-                        totalBiayaInfra += nilaiTrx;
-                        if(!detailInfra[namaProyek]) detailInfra[namaProyek] = 0;
-                        detailInfra[namaProyek] += nilaiTrx;
-                    } else {
-                        // Masuk Keranjang Rumah (Biaya Langsung)
-                        if(!mapBiayaRumah[namaProyek]) mapBiayaRumah[namaProyek] = 0;
-                        mapBiayaRumah[namaProyek] += nilaiTrx;
-                    }
+                const val = u.jumlah * (mapHarga[u.master_stok?.nama_barang] || 0);
+                const kat = getKat(pName);
+
+                if(kat === 'Infrastruktur' || kat === 'Fasilitas Umum') {
+                    costInfra += val;
+                } else if(kat === 'Bangunan Rumah') {
+                    if(!directMaterial[pName]) directMaterial[pName] = 0;
+                    directMaterial[pName] += val;
                 }
             });
         }
 
-        // Hitung Unit Pembagi (Hanya yang kategori Bangunan Rumah)
-        const listUnitRumah = proyek.filter(p => p.kategori === 'Bangunan Rumah' && p.status === 'BERJALAN');
-        const jumlahUnit = listUnitRumah.length || 1; // Hindari bagi 0
+        // B. Hitung Kas Keluar
+        if(cash) {
+            cash.forEach(c => {
+                const pName = c.nama_proyek;
+                const kat = getKat(pName);
+                
+                if(kat === 'Infrastruktur' || kat === 'Fasilitas Umum') {
+                    costInfra += c.jumlah;
+                } else if (kat === 'Bangunan Rumah') {
+                    // Cek apakah ini biaya "Pecah Sertifikat" (Direct) atau "Izin Induk" (Shared)?
+                    // Sederhananya: Jika proyeknya spesifik "Blok A1", masuk direct.
+                    // Jika user membuat proyek dummy "Legalitas Umum", masuk shared.
+                    // Disini kita asumsikan jika nempel di Unit Rumah -> Direct Cost.
+                    if(!directCash[pName]) directCash[pName] = 0;
+                    directCash[pName] += c.jumlah;
+                } else {
+                    // Kategori Lain (Misal: Legalitas Umum) -> Masuk Soft Cost dibagi rata
+                    costSoft += c.jumlah; 
+                }
+            });
+        }
 
-        // ALOKASI
-        const alokasiPerUnit = totalBiayaInfra / jumlahUnit;
+        // C. Hitung Alokasi
+        const listUnit = proy.filter(p => p.kategori === 'Bangunan Rumah');
+        const jmlUnit = listUnit.length || 1;
+        const totalSharedCost = costInfra + costSoft;
+        const bebanPerUnit = totalSharedCost / jmlUnit;
 
-        // --- RENDER UI ---
+        // D. Render
+        document.getElementById("costInfra").innerText = fmt(costInfra);
+        document.getElementById("costSoft").innerText = fmt(costSoft);
+        document.getElementById("allocPerUnit").innerText = fmt(bebanPerUnit);
+        document.getElementById("labelJmlUnit").innerText = jmlUnit + " Unit";
 
-        document.getElementById("totalInfra").innerText = fmt(totalBiayaInfra);
-        document.getElementById("jmlUnit").innerText = jumlahUnit;
-        document.getElementById("alokasiPerUnit").innerText = fmt(alokasiPerUnit);
-
-        // Render Tabel Rumah
         const tbody = document.getElementById("bodyHPP");
         tbody.innerHTML = "";
-        
-        let grandTotalHPP = 0;
+        let grandTotal = 0;
 
-        // Loop berdasarkan Master Proyek agar yang belum ada biaya tetap muncul
-        listUnitRumah.forEach(unit => {
-            const biayaLangsung = mapBiayaRumah[unit.nama_proyek] || 0;
-            const hppTotal = biayaLangsung + alokasiPerUnit;
-            grandTotalHPP += hppTotal;
+        listUnit.forEach(u => {
+            const mat = directMaterial[u.nama_proyek] || 0;
+            const cas = directCash[u.nama_proyek] || 0;
+            const total = mat + cas + bebanPerUnit;
+            grandTotal += total;
 
             tbody.innerHTML += `
                 <tr class="hover:bg-indigo-50 border-b">
-                    <td class="p-4 font-bold text-gray-700">${unit.nama_proyek}</td>
-                    <td class="p-4 text-right font-mono text-gray-600">${fmt(biayaLangsung)}</td>
-                    <td class="p-4 text-right font-mono text-orange-600 font-bold text-xs">+ ${fmt(alokasiPerUnit)}</td>
-                    <td class="p-4 text-right font-bold text-green-700 bg-green-50 text-lg">${fmt(hppTotal)}</td>
-                    <td class="p-4 text-center"><span class="bg-gray-200 text-xs px-2 py-1 rounded">On Progress</span></td>
+                    <td class="p-3 font-bold">${u.nama_proyek}</td>
+                    <td class="p-3 text-right text-gray-600">${fmt(mat)}</td>
+                    <td class="p-3 text-right text-blue-600">${fmt(cas)}</td>
+                    <td class="p-3 text-right text-orange-600 text-xs font-bold">+ ${fmt(bebanPerUnit)}</td>
+                    <td class="p-3 text-right font-bold text-green-700 bg-green-50 text-base">${fmt(total)}</td>
                 </tr>
             `;
         });
-
-        document.getElementById("totalHPPAll").innerText = fmt(grandTotalHPP);
-
-        // Render Detail Infra
-        const bodyInfra = document.getElementById("bodyInfra");
-        bodyInfra.innerHTML = "";
-        Object.keys(detailInfra).forEach(nama => {
-            bodyInfra.innerHTML += `
-                <tr class="border-b">
-                    <td class="p-3">${nama}</td>
-                    <td class="p-3 text-right font-mono">${fmt(detailInfra[nama])}</td>
-                </tr>
-            `;
-        });
+        
+        document.getElementById("totalWIP").innerText = fmt(grandTotal);
     }
 
-    loadAnalisaHPP();
+    loadReport();
   </script>
 </body>
 </html>
