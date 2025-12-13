@@ -3,100 +3,165 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Laporan Jurnal Umum</title>
+  <title>Laporan Jurnal Umum - NLD Corp</title>
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.tailwindcss.com"></script> 
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <style>
+    @media print {
+      body { -webkit-print-color-adjust: exact; }
+      .no-print { display: none !important; }
+    }
+  </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans">
+<body class="bg-gray-100 text-gray-800 font-sans p-6">
 
-  <div class="bg-white shadow sticky top-0 z-10">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+  <div class="max-w-5xl mx-auto mb-6 flex flex-col md:flex-row justify-between items-end gap-4 no-print">
+    <div class="flex gap-4 items-end bg-white p-4 rounded shadow">
       <div>
-        <h1 class="text-2xl font-bold text-blue-700">Laporan Jurnal Umum</h1>
-        <p class="text-sm text-gray-500">Rekapan otomatis Debit & Kredit</p>
+        <label class="block text-xs font-bold text-gray-500 mb-1">Dari Tanggal</label>
+        <input type="date" id="tglMulai" class="border rounded p-2 text-sm">
       </div>
-      <div class="space-x-2">
-        <a href="kas_masuk.html" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">Input Masuk</a>
-        <a href="kas_keluar.html" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm">Input Keluar</a>
+      <div>
+        <label class="block text-xs font-bold text-gray-500 mb-1">Sampai Tanggal</label>
+        <input type="date" id="tglSelesai" class="border rounded p-2 text-sm">
+      </div>
+      <button onclick="loadJurnal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold">
+        Filter
+      </button>
+    </div>
+
+    <div class="flex gap-2">
+      <button onclick="downloadPDF()" class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded shadow font-bold">
+        📄 Download PDF
+      </button>
+      <a href="kas_masuk.html" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded shadow text-sm">Kembali</a>
+    </div>
+  </div>
+
+  <div id="areaLaporan" class="max-w-5xl mx-auto bg-white p-8 shadow-lg min-h-screen">
+    
+    <div class="flex flex-col items-center text-center border-b-4 border-double border-gray-800 pb-4 mb-6">
+      
+      <img src="logo.png" alt="[ LOGO NLD CORP ]" class="h-24 mb-2 object-contain">
+      
+      <h1 class="text-3xl font-extrabold text-yellow-600 uppercase tracking-widest" style="font-family: serif;">NLD CORP</h1>
+      <h2 class="text-lg font-bold text-gray-900 uppercase tracking-wide">PT. NUSANTARA LAND DEVELOPMENT</h2>
+      
+      <div class="text-sm text-gray-600 mt-2 font-medium leading-tight">
+        <p>HQ Delft Apartement</p>
+        <p>Jl. Sunset Boulevard Blok 5B/16 Citra Land City, Centre Point Indonesia (CPI)</p>
+        <p>Kel. Maccini Sombala Kec. Tamalate, Makassar, 90224 Indonesia</p>
+        <p class="font-bold text-gray-800 mt-1">Telp : 0411- 6004251</p>
+      </div>
+    </div>
+
+    <div class="text-center mb-6">
+      <h2 class="text-xl font-bold underline decoration-2 underline-offset-4">JURNAL UMUM</h2>
+      <p class="text-sm text-gray-500 mt-1 italic" id="labelPeriode">Periode: Semua Data</p>
+    </div>
+
+    <table class="w-full text-left border border-gray-300">
+      <thead class="bg-gray-100 text-gray-800 uppercase text-xs font-bold">
+        <tr>
+          <th class="p-3 border border-gray-300 text-center w-28">Tanggal</th>
+          <th class="p-3 border border-gray-300">Keterangan / Akun</th>
+          <th class="p-3 border border-gray-300 text-right w-36">Debit</th>
+          <th class="p-3 border border-gray-300 text-right w-36">Kredit</th>
+        </tr>
+      </thead>
+      <tbody id="tabelBody" class="text-sm">
+        <tr><td colspan="4" class="p-6 text-center text-gray-400">Memuat data...</td></tr>
+      </tbody>
+      <tfoot class="bg-gray-50 font-bold border-t-2 border-gray-300">
+        <tr>
+          <td colspan="2" class="p-3 text-right border border-gray-300">TOTAL:</td>
+          <td id="totalDebit" class="p-3 text-right border border-gray-300 text-blue-700">Rp 0</td>
+          <td id="totalKredit" class="p-3 text-right border border-gray-300 text-green-700">Rp 0</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="flex justify-end mt-16 text-center text-sm">
+      <div class="w-56">
+        <p class="mb-20">Makassar, <span id="tglCetak"></span></p>
+        <p class="font-bold border-b border-gray-400 pb-1 mx-4">Finance Department</p>
       </div>
     </div>
   </div>
 
-  <main class="max-w-6xl mx-auto px-4 py-8">
-    
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <table class="w-full text-left border-collapse">
-        <thead class="bg-gray-200 text-gray-700 uppercase text-xs font-bold">
-          <tr>
-            <th class="p-4 border-b">Tanggal</th>
-            <th class="p-4 border-b">Akun / Keterangan</th>
-            <th class="p-4 border-b text-right">Debit</th>
-            <th class="p-4 border-b text-right">Kredit</th>
-          </tr>
-        </thead>
-        <tbody id="tabelBody" class="text-sm">
-          <tr><td colspan="4" class="p-6 text-center text-gray-400">Sedang memuat data...</td></tr>
-        </tbody>
-        <tfoot class="bg-gray-100 font-bold border-t-2 border-gray-300">
-          <tr>
-            <td colspan="2" class="p-4 text-right">TOTAL:</td>
-            <td id="totalDebit" class="p-4 text-right text-blue-700">Rp 0</td>
-            <td id="totalKredit" class="p-4 text-right text-green-700">Rp 0</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-
-  </main>
-
   <script>
-    // --- KONFIGURASI SUPABASE ---
+    // --- SETUP SUPABASE ---
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; // Ganti dengan Key Anda jika beda
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-    // --- FUNGSI FORMAT RUPIAH ---
-    const formatRupiah = (angka) => {
-      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(angka);
-    };
+    const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(num);
 
-    // --- LOAD DATA JURNAL ---
+    // Set Tanggal Cetak Otomatis
+    const today = new Date();
+    document.getElementById("tglCetak").innerText = today.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+
+    // --- FUNGSI LOAD DATA ---
     async function loadJurnal() {
-      const { data, error } = await client
+      const tglMulai = document.getElementById("tglMulai").value;
+      const tglSelesai = document.getElementById("tglSelesai").value;
+      const labelPeriode = document.getElementById("labelPeriode");
+      const tbody = document.getElementById("tabelBody");
+
+      if (tglMulai && tglSelesai) {
+        labelPeriode.innerText = `Periode: ${tglMulai} s/d ${tglSelesai}`;
+      } else {
+        labelPeriode.innerText = "Periode: Semua Data";
+      }
+
+      tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center">Sedang mengambil data...</td></tr>`;
+
+      let query = client
         .from('jurnal_umum')
         .select('*')
-        .order('tanggal', { ascending: false })
-        .order('id', { ascending: false });
+        .order('tanggal', { ascending: true })
+        .order('id', { ascending: true });
+
+      if (tglMulai) query = query.gte('tanggal', tglMulai);
+      if (tglSelesai) query = query.lte('tanggal', tglSelesai);
+
+      const { data, error } = await query;
 
       if (error) {
-        console.error("Error:", error);
-        document.getElementById("tabelBody").innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">Gagal memuat data: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="text-red-500 p-4 text-center">Error: ${error.message}</td></tr>`;
+        return;
+      }
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400">Tidak ada data.</td></tr>`;
+        document.getElementById("totalDebit").innerText = "Rp 0";
+        document.getElementById("totalKredit").innerText = "Rp 0";
         return;
       }
 
-      const tbody = document.getElementById("tabelBody");
       tbody.innerHTML = "";
+      let sumDebit = 0, sumKredit = 0;
 
-      let sumDebit = 0;
-      let sumKredit = 0;
-
-      data.forEach((row) => {
+      data.forEach(row => {
         sumDebit += row.debit;
         sumKredit += row.kredit;
-        const indentClass = row.kredit > 0 ? "pl-8 text-gray-600 italic" : "font-semibold text-gray-800";
-        const rowClass = "hover:bg-gray-50 border-b";
-
+        
+        // Style untuk Kredit menjorok
+        const indentStyle = row.kredit > 0 ? "pl-10 text-gray-600 italic" : "font-semibold text-gray-800";
+        
         const tr = `
-          <tr class="${rowClass}">
-            <td class="p-3 align-top">${row.tanggal}</td>
-            <td class="p-3 align-top">
-              <div class="${indentClass}">${row.nama_akun}</div>
-              <div class="text-xs text-gray-400 mt-1">${row.keterangan || '-'}</div>
+          <tr class="border-b border-gray-100 hover:bg-gray-50">
+            <td class="p-2 border-r text-center align-top whitespace-nowrap">${row.tanggal}</td>
+            <td class="p-2 border-r align-top">
+              <div class="${indentStyle}">${row.nama_akun}</div>
+              <div class="text-xs text-gray-400 mt-1 ml-1">${row.keterangan || ''}</div>
             </td>
-            <td class="p-3 text-right align-top ${row.debit > 0 ? 'text-gray-900' : 'text-gray-300'}">
+            <td class="p-2 border-r text-right align-top text-gray-700">
               ${row.debit > 0 ? formatRupiah(row.debit) : '-'}
             </td>
-            <td class="p-3 text-right align-top ${row.kredit > 0 ? 'text-gray-900' : 'text-gray-300'}">
+            <td class="p-2 text-right align-top text-gray-700">
               ${row.kredit > 0 ? formatRupiah(row.kredit) : '-'}
             </td>
           </tr>
@@ -106,13 +171,25 @@
 
       document.getElementById("totalDebit").innerText = formatRupiah(sumDebit);
       document.getElementById("totalKredit").innerText = formatRupiah(sumKredit);
-
-      if (sumDebit === sumKredit) {
-        document.getElementById("totalKredit").innerHTML += " <span class='text-xs bg-green-200 text-green-800 px-2 py-1 rounded ml-2'>Balance ✅</span>";
-      } else {
-        document.getElementById("totalKredit").innerHTML += " <span class='text-xs bg-red-200 text-red-800 px-2 py-1 rounded ml-2'>Tidak Balance ❌</span>";
-      }
     }
+
+    // --- FUNGSI PDF ---
+    function downloadPDF() {
+      const element = document.getElementById('areaLaporan');
+      const opt = {
+        margin:       0.3,
+        filename:     'Jurnal_NLD_Corp.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true }, 
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+
+    // Init Date
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    document.getElementById("tglMulai").value = firstDay.toISOString().split('T')[0];
+    document.getElementById("tglSelesai").value = today.toISOString().split('T')[0];
 
     loadJurnal();
   </script>
