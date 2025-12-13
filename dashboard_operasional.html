@@ -3,1101 +3,163 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Dashboard Operasional</title>
+  <title>Dashboard Operasional NLD</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  
   <style>
-    :root {
-      --primary: #2c3e50;
-      --accent: #3498db;
-      --success: #27ae60;
-      --danger: #e74c3c;
-      --bg: #f4f6f9;
-      --card: #ffffff;
-      --text: #333;
-      --border: #e2e8f0;
-      --sidebar-width: 260px;
-    }
-
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #F3F4F6; }
     
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      overflow-x: hidden;
+    .glass-header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
     }
-
-    /* LAYOUT UTAMA */
-    .dashboard-container { display: flex; min-height: 100vh; position: relative; }
-
-    /* SIDEBAR (Desktop & Mobile Drawer) */
-    .sidebar {
-      width: var(--sidebar-width);
-      background-color: var(--primary);
-      color: white;
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 100%;
-      z-index: 1000;
-      transition: transform 0.3s ease;
-      display: flex;
-      flex-direction: column;
+    .menu-card {
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-
-    .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
-    .sidebar-header h2 { margin: 0; font-size: 18px; font-weight: 600; }
-    .close-sidebar-btn { display: none; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
-
-    .sidebar ul { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
-    .sidebar ul li a {
-      display: flex; align-items: center; padding: 15px 20px; color: rgba(255,255,255,0.8);
-      text-decoration: none; border-left: 4px solid transparent; transition: 0.2s;
-    }
-    .sidebar ul li a:hover, .sidebar ul li a.active {
-      background-color: rgba(255,255,255,0.1); color: white; border-left-color: var(--accent);
-    }
-
-    /* MAIN CONTENT */
-    .main-content {
-      flex: 1;
-      margin-left: var(--sidebar-width);
-      padding: 20px;
-      width: 100%;
-      transition: margin 0.3s ease;
-    }
-
-    /* HEADER DASHBOARD */
-    .header-dashboard {
-      background: var(--card);
-      padding: 15px 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 25px;
-      position: sticky;
-      top: 0;
-      z-index: 90;
-    }
-
-    .header-left { display: flex; align-items: center; gap: 15px; }
-    .menu-toggle { display: none; background: none; border: none; font-size: 24px; color: var(--primary); cursor: pointer; }
-    .header-dashboard h1 { font-size: 20px; margin: 0; color: var(--primary); }
-
-    .home-btn {
-      background: var(--accent); color: white; border: none; padding: 8px 16px;
-      border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;
-    }
-
-    /* CARDS STATISTIK */
-    .dashboard-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-
-    .card {
-      background: var(--card);
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-      border: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .card h3 { margin: 0 0 10px; font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-    .card .number { font-size: 36px; font-weight: 700; color: var(--primary); margin-bottom: 5px; }
-    .card p { margin: 0; font-size: 13px; color: #94a3b8; }
-
-    /* SECTION TABLE */
-    .table-section {
-      background: var(--card);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-      border: 1px solid var(--border);
-      margin-bottom: 30px;
-    }
-
-    .table-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .table-header h2 { margin: 0; font-size: 18px; color: var(--primary); }
-
-    .btn-tambah {
-      background: var(--success); color: white; border: none; padding: 10px 20px;
-      border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;
-      font-size: 14px; box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2);
-    }
-    .btn-tambah:active { transform: scale(0.98); }
-
-    /* TABLE STYLES (DESKTOP) */
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th { text-align: left; padding: 12px 15px; background: #f8fafc; color: #64748b; font-size: 13px; font-weight: 600; border-bottom: 2px solid var(--border); }
-    td { padding: 14px 15px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text); }
-    tr:last-child td { border-bottom: none; }
-    .progress-bar { background: #e2e8f0; border-radius: 10px; height: 8px; width: 100%; overflow: hidden; }
-    .progress-fill { height: 100%; background: var(--accent); border-radius: 10px; }
-
-    /* MODAL */
-    .modal {
-      display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.5); backdrop-filter: blur(3px); align-items: center; justify-content: center;
-      opacity: 0; transition: opacity 0.3s ease;
-    }
-    .modal.show { display: flex; opacity: 1; }
-    .modal-content {
-      background: white; width: 90%; max-width: 500px; padding: 25px; border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1); transform: translateY(20px); transition: transform 0.3s ease;
-    }
-    .modal.show .modal-content { transform: translateY(0); }
-    
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .modal-header h2 { margin: 0; font-size: 20px; }
-    .close-btn { background: none; border: none; font-size: 28px; cursor: pointer; color: #94a3b8; }
-    
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #64748b; }
-    .form-group input {
-      width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;
-      font-size: 15px; background: #f8fafc;
-    }
-    .form-group input:focus { outline: 2px solid var(--accent); background: white; border-color: transparent; }
-
-    .modal-actions { display: flex; gap: 10px; margin-top: 25px; }
-    .btn-save { flex: 2; background: var(--primary); color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-    .btn-cancel { flex: 1; background: transparent; border: 1px solid var(--border); color: #64748b; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-
-    /* OVERLAY KHUSUS MOBILE */
-    .overlay-sidebar {
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); z-index: 999;
-    }
-
-    /* --- RESPONSIVE MOBILE (ANDROID) --- */
-    @media (max-width: 768px) {
-      /* Sidebar jadi Drawer */
-      .sidebar { transform: translateX(-100%); width: 280px; box-shadow: 4px 0 15px rgba(0,0,0,0.1); }
-      .sidebar.active { transform: translateX(0); }
-      .sidebar-header .close-sidebar-btn { display: block; }
-      .overlay-sidebar.active { display: block; }
-      
-      /* Main Content Geser */
-      .main-content { margin-left: 0; padding: 15px; }
-      
-      /* Header */
-      .menu-toggle { display: block; }
-      .header-dashboard h1 { font-size: 18px; }
-
-      /* Tabel jadi Kartu (Card View) agar tidak geser kanan-kiri */
-      table, thead, tbody, th, td, tr { display: block; }
-      thead tr { position: absolute; top: -9999px; left: -9999px; }
-      
-      tbody tr {
-        background: white;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-        padding: 10px;
-      }
-      
-      td {
-        border: none;
-        border-bottom: 1px solid #f1f5f9;
-        position: relative;
-        padding-left: 40%; /* Space untuk label */
-        padding-top: 10px;
-        padding-bottom: 10px;
-        text-align: right;
-      }
-      
-      td:last-child { border-bottom: none; }
-      
-      td::before {
-        content: attr(data-label);
-        position: absolute;
-        left: 10px;
-        top: 10px;
-        width: 35%;
-        padding-right: 10px;
-        white-space: nowrap;
-        text-align: left;
-        font-weight: 700;
-        color: #64748b;
-        font-size: 13px;
-      }
-      
-      .btn-tambah { width: 100%; justify-content: center; }
-    }
-
-    /* Inventory mini cards */
-    .inventory-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-    .inventory-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-    }
-    .inventory-card h3 {
-      margin: 0 0 10px 0;
-      font-size: 16px;
-    }
-    .inventory-card .form-group {
-      margin-bottom: 12px;
-    }
-    .inline-helper {
-      font-size: 12px;
-      color: #64748b;
-      margin-top: -6px;
-      margin-bottom: 8px;
-    }
-    .inline-helper button {
-      background: transparent;
-      border: none;
-      color: var(--accent);
-      font-weight: 700;
-      cursor: pointer;
-      padding: 0;
-    }
-    .inventory-card label {
-      font-size: 13px;
-      color: #475569;
-      font-weight: 600;
-    }
-    .inventory-card input,
-    .inventory-card select {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #dfe4ea;
-      border-radius: 8px;
-      font-size: 14px;
-    }
-    .inventory-card button {
-      width: 100%;
-      margin-top: 6px;
-    }
-    .unit-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      margin: 6px 0 4px;
-    }
-    .unit-row select {
-      flex: 1;
-      padding: 9px;
-      border-radius: 8px;
-      border: 1px solid #dfe4ea;
-      background: #fff;
-      font-size: 14px;
-    }
-    .unit-note {
-      font-size: 12px;
-      color: #0f172a;
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 10px;
-      margin: -4px 0 10px 0;
-    }
-    .unit-note strong {
-      color: var(--primary);
-    }
-    .label-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
-    .add-material-btn {
-      padding: 8px 12px;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 13px;
+    .menu-card:active {
+      transform: scale(0.97);
     }
   </style>
-  <script>
-    // GANTI isi string di bawah dengan URL Web App hasil deploy barusan
-    window.PN_INVENTORY_ITEMS_URL = "https://script.google.com/macros/s/AKfycby35BUkEx44e226aMxqdQqHGR-44jYysKje3x-LKmv581Tv41C6Hshqq8LTIhVOW40B/exec?action=get_items";
-  </script>
 </head>
-<body>
+<body class="text-gray-800">
 
-  <div class="overlay-sidebar" onclick="toggleSidebar()"></div>
-
-  <div class="dashboard-container">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <h2>PT. Nusantara Land</h2>
-        <button class="close-sidebar-btn" onclick="toggleSidebar()">&times;</button>
+  <header class="glass-header fixed top-0 w-full z-50 px-6 py-4 flex justify-between items-center shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-700 rounded-lg flex items-center justify-center text-white font-bold shadow-lg">
+        NLD
       </div>
-      <ul>
-        <li><a href="dashboard_operasional.html" class="active">📊 Dashboard</a></li>
-        <li><a href="#project">🏗️ Proyek</a></li>
-        <li><a href="#laporan">📑 Laporan</a></li>
-        <li><a href="#inventory">📦 Inventory</a></li>
-        <li><a href="#pembelian">🛒 Pembelian</a></li>
-        <li><a href="inventory_grn.html">📥 Penerimaan GRN</a></li>
-        <li><a href="stok_proyek.html">📊 Stok Proyek</a></li>
-        <li><a href="#tim">👥 Tim Kerja</a></li>
-        <li><a href="pengaturan_operasional.html">⚙️ Pengaturan</a></li>
-      </ul>
-    </aside>
-
-    <main class="main-content">
-      <div class="header-dashboard">
-        <div class="header-left">
-          <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-          <h1>Dashboard Operasional</h1>
-        </div>
-        <button class="home-btn" onclick="goHome()">Home</button>
-      </div>
-
-    <div class="dashboard-cards">
-      <div class="card">
-        <h3>Proyek Berjalan</h3>
-        <div class="number" id="proyekBerjalanCount">0</div>
-        <p>Sedang dikerjakan</p>
-      </div>
-      <div class="card">
-        <h3>Proyek Perencanaan</h3>
-        <div class="number" id="proyekPerencanaanCount">0</div>
-        <p>Dalam tahap planning</p>
+      <div>
+        <h1 class="text-lg font-bold leading-tight">NLD Corp</h1>
+        <p class="text-xs text-gray-500">Divisi Operasional</p>
       </div>
     </div>
-
-    <div class="table-section">
-      <div class="table-header">
-        <h2>📦 Stok Proyek</h2>
-        <button class="btn-tambah" onclick="window.location.href='stok_proyek.html'">Buka Stok</button>
-      </div>
-      <p class="text-sm text-gray-500">Pantau saldo material gudang dan catat pemakaian langsung melalui halaman Stok Proyek.</p>
-    </div>
-
-      <div class="table-section">
-        <div class="table-header">
-          <h2>🚧 Proyek Berjalan</h2>
-          <button class="btn-tambah" onclick="openModalBerjalan()">Tambah Proyek</button>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Nama Proyek</th>
-              <th>Lokasi</th>
-              <th>Progress</th>
-              <th>Deadline</th>
-            </tr>
-          </thead>
-          <tbody id="proyekBerjalanTable">
-            </tbody>
-        </table>
-      </div>
-
-      <div class="table-section">
-        <div class="table-header">
-          <h2>📝 Proyek Perencanaan</h2>
-          <button class="btn-tambah" onclick="openModalPerencanaan()">Tambah Proyek</button>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Nama Proyek</th>
-              <th>Lokasi</th>
-              <th>Progress</th>
-              <th>Deadline</th>
-            </tr>
-          </thead>
-          <tbody id="proyekPerencanaanTable">
-            </tbody>
-        </table>
-      </div>
-
-      <div class="table-section">
-        <div class="table-header">
-          <h2>📦 Inventory</h2>
-          <button class="btn-tambah" onclick="window.location.href='inventory.html'">Buka Halaman Inventory</button>
-        </div>
-        <p style="margin:0;color:#64748b;font-size:14px;">Kelola order, penerimaan, dan master material kini dipindah ke halaman khusus Inventory.</p>
-      </div>
-    </main>
-  </div>
-
-  <div id="modalBerjalan" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Tambah Proyek Berjalan</h2>
-        <button class="close-btn" onclick="closeModalBerjalan()">&times;</button>
-      </div>
-      <form id="formBerjalan">
-        <div class="form-group">
-          <label>Nama Proyek</label>
-          <input type="text" id="namaProjekBerjalan" placeholder="Nama proyek..." required>
-        </div>
-        <div class="form-group">
-          <label>Lokasi Proyek</label>
-          <input type="text" id="lokasiProjekBerjalan" placeholder="Lokasi..." required>
-        </div>
-        <div class="form-group">
-          <label>Deadline</label>
-          <input type="date" id="deadlineProjekBerjalan" required>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" onclick="closeModalBerjalan()">Batal</button>
-          <button type="submit" class="btn-save">Simpan</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div id="modalPerencanaan" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Tambah Proyek Perencanaan</h2>
-        <button class="close-btn" onclick="closeModalPerencanaan()">&times;</button>
-      </div>
-      <form id="formPerencanaan">
-        <div class="form-group">
-          <label>Nama Proyek</label>
-          <input type="text" id="namaProjekPerencanaan" placeholder="Nama proyek..." required>
-        </div>
-        <div class="form-group">
-          <label>Lokasi Proyek</label>
-          <input type="text" id="lokasiProjekPerencanaan" placeholder="Lokasi..." required>
-        </div>
-        <div class="form-group">
-          <label>Target Selesai Plan</label>
-          <input type="date" id="deadlineProjekPerencanaan" required>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" onclick="closeModalPerencanaan()">Batal</button>
-          <button type="submit" class="btn-save">Simpan</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div id="modalMaterial" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Tambah Material Baru</h2>
-        <button class="close-btn" onclick="closeModalMaterial()">&times;</button>
-      </div>
-      <form id="formMaterialBaru">
-        <div class="form-group">
-          <label>Nama Material</label>
-          <input type="text" id="newMaterialNameInput" required placeholder="Contoh: Semen Tiga Roda">
-        </div>
-        <div class="form-group">
-          <label>Satuan</label>
-          <select id="newMaterialUnitInput" required>
-            <option value="">-- Pilih Satuan --</option>
-            <option value="Batang">Batang</option>
-            <option value="Biji">Biji</option>
-            <option value="Dos">Dos</option>
-            <option value="Ember">Ember</option>
-            <option value="Filsh">Filsh</option>
-            <option value="Gulung">Gulung</option>
-            <option value="Kaleng">Kaleng</option>
-            <option value="Kg">Kg</option>
-            <option value="Kubik">Kubik</option>
-            <option value="Lembar">Lembar</option>
-            <option value="Liter">Liter</option>
-            <option value="Meter">Meter</option>
-            <option value="Pcs">Pcs</option>
-            <option value="Pickup">Pickup</option>
-            <option value="Roll">Roll</option>
-            <option value="Sak">Sak</option>
-            <option value="Set">Set</option>
-            <option value="Truk">Truk</option>
-            <option value="Unit">Unit</option>
-          </select>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" onclick="closeModalMaterial()">Batal</button>
-          <button type="submit" class="btn-save" style="background:var(--success);">Simpan ke Database</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    // --- LOGIC MOBILE MENU ---
-    function toggleSidebar() {
-      document.getElementById('sidebar').classList.toggle('active');
-      document.querySelector('.overlay-sidebar').classList.toggle('active');
-    }
-
-    // --- LOGIC DATA ---
-    function getData(key) {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : [];
-    }
-
-    function saveData(key, data) {
-      localStorage.setItem(key, JSON.stringify(data));
-    }
-
-    function ensureDefaultProjects() {
-      const daftarProyek = getData('daftarProyek');
-      const exists = daftarProyek.some(p => p.nama && p.nama.toLowerCase() === 'sunrise city maros'.toLowerCase());
-      if (!exists) {
-        const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='600'><rect width='100%' height='100%' fill='%23f8f9fa'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='30' fill='%237f8c8d'>Siteplan: Sunrise City Maros</text></svg>";
-        const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-        const proyek = {
-          id: Date.now(),
-          nama: 'Sunrise City Maros',
-          lokasi: 'Maros',
-          status: 'Ongoing',
-          progress: 20,
-          deadline: '2026-04-30',
-          siteplanImage: dataUrl
-        };
-        daftarProyek.push(proyek);
-        saveData('daftarProyek', daftarProyek);
-      }
-    }
-
-    // MODAL HANDLERS
-    function openModalBerjalan() { 
-      document.getElementById('modalBerjalan').classList.add('show'); 
-      if(window.innerWidth < 768) toggleSidebar(); // Tutup menu jika terbuka
-    }
-    function closeModalBerjalan() { document.getElementById('modalBerjalan').classList.remove('show'); document.getElementById('formBerjalan').reset(); }
     
-    function openModalPerencanaan() { 
-      document.getElementById('modalPerencanaan').classList.add('show'); 
-      if(window.innerWidth < 768) toggleSidebar(); 
-    }
-    function closeModalPerencanaan() { document.getElementById('modalPerencanaan').classList.remove('show'); document.getElementById('formPerencanaan').reset(); }
+    <div class="flex items-center gap-3">
+      <div class="text-right hidden md:block">
+        <p class="text-sm font-bold">Staff Lapangan</p>
+        <p class="text-xs text-green-600">● Online</p>
+      </div>
+      <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 border border-gray-300">
+        <i class="fas fa-hard-hat"></i>
+      </div>
+    </div>
+  </header>
 
-    // Modal Material Baru
-    let currentMaterialInputId = null;
-    function openModalMaterial(inputId) {
-      currentMaterialInputId = inputId;
-      populateUnitSelect('newMaterialUnitInput');
-      const nameInput = document.getElementById('newMaterialNameInput');
-      const sourceInput = document.getElementById(inputId);
-      if (nameInput && sourceInput) nameInput.value = sourceInput.value || '';
-      const existingUnit = findUnitByName(sourceInput?.value) || '';
-      const unitSelect = document.getElementById('newMaterialUnitInput');
-      if (unitSelect) unitSelect.value = UNIT_OPTIONS.find(u => u.toLowerCase() === (existingUnit || '').toLowerCase()) || '';
-      document.getElementById('modalMaterial').classList.add('show');
-    }
-    function closeModalMaterial() {
-      document.getElementById('modalMaterial').classList.remove('show');
-      document.getElementById('formMaterialBaru').reset();
-      currentMaterialInputId = null;
-    }
+  <main class="pt-24 pb-20 px-4 md:px-8 max-w-4xl mx-auto">
 
-    // --- INVENTORY LOGIC ---
-    const ORDER_KEY = 'inventoryOrders';
-    const STOCK_KEY = 'inventoryStock';
-    const ITEM_SOURCE_URL = window.PN_INVENTORY_ITEMS_URL || "";
-    const MATERIAL_KEY = 'master_material_local';
-    const UNIT_OPTIONS = ["Batang","Biji","Dos","Ember","Filsh","Gulung","Kaleng","Kg","Kubik","Lembar","Liter","Meter","Pickup","Pcs","Roll","Sak","Set","Truk","Unit"].sort((a,b)=>a.localeCompare(b));
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-gray-800">Halo, Tim Proyek! 👋</h2>
+      <p class="text-gray-500 text-sm">Berikut ringkasan aktivitas lapangan hari ini.</p>
+    </div>
 
-    function loadMasterMaterials() {
-      try {
-        const raw = localStorage.getItem(MATERIAL_KEY);
-        return raw ? JSON.parse(raw) : [];
-      } catch (err) {
-        console.warn("Gagal baca master material", err);
-        return [];
-      }
-    }
+    <div class="grid grid-cols-2 gap-4 mb-8">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs text-gray-400 font-bold uppercase">Proyek Aktif</p>
+            <h3 class="text-3xl font-bold text-blue-600 mt-2" id="statProyek">-</h3>
+          </div>
+          <div class="p-3 bg-blue-50 text-blue-600 rounded-lg"><i class="fas fa-building text-xl"></i></div>
+        </div>
+      </div>
 
-    function saveMasterMaterials(list) {
-      localStorage.setItem(MATERIAL_KEY, JSON.stringify(list));
-    }
-
-    function populateUnitSelect(selectId) {
-      const el = document.getElementById(selectId);
-      if (!el) return;
-      el.innerHTML = '<option value="">Pilih satuan</option>' + UNIT_OPTIONS.map(u => `<option value="${u}">${u}</option>`).join('');
-    }
-
-    function normalizeSheetItems(list) {
-      return (list || []).map(i => {
-        if (typeof i === "string") return { name: i, unit: "" };
-        const name = i.nama || i.name || i.item || "";
-        const unit = i.satuan || i.unit || i.uom || "";
-        return { name, unit };
-      }).filter(i => i.name);
-    }
-
-    function mergeMasterMaterials(sheetItems) {
-      const map = new Map();
-      loadMasterMaterials().forEach(m => {
-        const key = (m.name || "").toLowerCase();
-        if (!key) return;
-        map.set(key, m);
-      });
-      (sheetItems || []).forEach(m => {
-        const key = (m.name || "").toLowerCase();
-        if (!key) return;
-        const existing = map.get(key) || { name: m.name };
-        if (m.unit && !existing.unit) existing.unit = m.unit;
-        map.set(key, existing);
-      });
-      const merged = Array.from(map.values());
-      saveMasterMaterials(merged);
-      return merged;
-    }
-
-    function findMasterMaterial(name) {
-      const lower = (name || '').trim().toLowerCase();
-      if (!lower) return null;
-      return loadMasterMaterials().find(m => (m.name || '').toLowerCase() === lower);
-    }
-
-    function findUnitByName(name) {
-      const material = findMasterMaterial(name);
-      if (material && material.unit) return material.unit;
-      const orders = getData(ORDER_KEY);
-      const orderMatch = orders.find(o => (o.item || '').toLowerCase() === (name || '').toLowerCase());
-      if (orderMatch && orderMatch.unit) return orderMatch.unit;
-      const stock = getData(STOCK_KEY);
-      const stockMatch = stock.find(s => (s.item || '').toLowerCase() === (name || '').toLowerCase());
-      return (stockMatch && stockMatch.unit) ? stockMatch.unit : "";
-    }
-
-    function renderOrders() {
-      const orders = getData(ORDER_KEY);
-      const table = document.getElementById('orderTable');
-      const receiveOrderRef = document.getElementById('receiveOrderRef');
-      table.innerHTML = '';
-      receiveOrderRef.innerHTML = '<option value="">-- Pilih order --</option>';
-
-      if (orders.length === 0) {
-        table.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:14px; color:#94a3b8;">Belum ada order barang</td></tr>';
-        return;
-      }
-
-      orders.forEach((o, idx) => {
-        table.innerHTML += `
-          <tr>
-            <td data-label="No">${idx + 1}</td>
-            <td data-label="Barang">${o.item}</td>
-            <td data-label="Jumlah">${o.qty} ${o.unit || ''}</td>
-            <td data-label="Vendor">${o.vendor || '-'}</td>
-            <td data-label="ETA">${o.eta || '-'}</td>
-            <td data-label="Status">${o.status || 'Menunggu'}</td>
-          </tr>
-        `;
-        receiveOrderRef.innerHTML += `<option value="${o.id}">${o.item} (${o.qty})</option>`;
-      });
-    }
-
-    function renderStock() {
-      const stock = getData(STOCK_KEY);
-      const table = document.getElementById('stockTable');
-      table.innerHTML = '';
-
-      if (stock.length === 0) {
-        table.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:14px; color:#94a3b8;">Belum ada stok tercatat</td></tr>';
-        return;
-      }
-
-      stock.forEach((s, idx) => {
-        table.innerHTML += `
-          <tr>
-            <td data-label="No">${idx + 1}</td>
-            <td data-label="Barang">${s.item}</td>
-            <td data-label="Jumlah">${s.qty}</td>
-            <td data-label="Update">${s.updated || '-'}</td>
-          </tr>
-        `;
-      });
-    }
-
-    function addOrder(e) {
-      e.preventDefault();
-      const item = document.getElementById('orderItem').value.trim();
-      const qty = Number(document.getElementById('orderQty').value);
-      const vendor = document.getElementById('orderVendor').value.trim();
-      const eta = document.getElementById('orderEta').value;
-      if (!item || !qty) return;
-      const unit = document.getElementById('orderUnitSelect')?.value || findUnitByName(item);
-
-      const orders = getData(ORDER_KEY);
-      orders.push({
-        id: Date.now(),
-        item,
-        qty,
-        unit,
-        vendor,
-        eta,
-        status: 'Menunggu'
-      });
-      saveData(ORDER_KEY, orders);
-      document.getElementById('orderForm').reset();
-      const orderUnitSelect = document.getElementById('orderUnitSelect');
-      if (orderUnitSelect) orderUnitSelect.value = '';
-      updateUnitLabel('orderItem', '');
-      toggleAddButtonBlink('orderItem', false);
-      renderOrders();
-    }
-
-    function receiveGoods(e) {
-      e.preventDefault();
-      const ref = document.getElementById('receiveOrderRef').value;
-      const item = document.getElementById('receiveItem').value.trim();
-      const qty = Number(document.getElementById('receiveQty').value);
-      const date = document.getElementById('receiveDate').value || new Date().toISOString().split('T')[0];
-      if (!item || !qty) return;
-      const unit = document.getElementById('receiveUnitSelect')?.value || findUnitByName(item);
-
-      const stock = getData(STOCK_KEY);
-      const existing = stock.find(s => s.item.toLowerCase() === item.toLowerCase());
-      if (existing) {
-        existing.qty = Number(existing.qty || 0) + qty;
-        existing.updated = date;
-        if (!existing.unit && unit) existing.unit = unit;
-      } else {
-        stock.push({ item, qty, unit, updated: date });
-      }
-      saveData(STOCK_KEY, stock);
-
-      if (ref) {
-        const orders = getData(ORDER_KEY).map(o => o.id == ref ? { ...o, status: 'Diterima' } : o);
-        saveData(ORDER_KEY, orders);
-      }
-
-      document.getElementById('receiveForm').reset();
-      const receiveUnitSelect = document.getElementById('receiveUnitSelect');
-      if (receiveUnitSelect) receiveUnitSelect.value = '';
-      updateUnitLabel('receiveItem', '');
-      toggleAddButtonBlink('receiveItem', false);
-      renderStock();
-      renderOrders();
-    }
-
-    function collectItemNames() {
-      const orders = getData(ORDER_KEY);
-      const stock = getData(STOCK_KEY);
-      const master = loadMasterMaterials();
-      const set = new Set();
-      orders.forEach(o => o.item && set.add(o.item));
-      stock.forEach(s => s.item && set.add(s.item));
-      master.forEach(m => m.name && set.add(m.name));
-      return Array.from(set);
-    }
-
-    async function fetchItemMaster() {
-      if (!ITEM_SOURCE_URL) {
-        renderItemDatalist(collectItemNames());
-        updateUnitLabel('orderItem', document.getElementById('orderItem')?.value || '');
-        updateUnitLabel('receiveItem', document.getElementById('receiveItem')?.value || '');
-        return;
-      }
-      try {
-        const res = await fetch(ITEM_SOURCE_URL);
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : (data.data || []);
-        const normalized = normalizeSheetItems(list);
-        const merged = mergeMasterMaterials(normalized);
-        const names = merged.map(i => i.name).filter(Boolean);
-        renderItemDatalist(names.length ? names : collectItemNames());
-        updateUnitLabel('orderItem', document.getElementById('orderItem')?.value || '');
-        updateUnitLabel('receiveItem', document.getElementById('receiveItem')?.value || '');
-      } catch (err) {
-        console.error("Gagal ambil master item", err);
-        renderItemDatalist(collectItemNames());
-        updateUnitLabel('orderItem', document.getElementById('orderItem')?.value || '');
-        updateUnitLabel('receiveItem', document.getElementById('receiveItem')?.value || '');
-      }
-    }
-
-    function renderItemDatalist(items) {
-      const listEl = document.getElementById('itemMasterList');
-      if (!listEl) return;
-      const uniq = Array.from(new Set(items || [])).sort((a,b)=>a.localeCompare(b));
-      listEl.innerHTML = uniq.map(n => `<option value="${n}"></option>`).join("");
-    }
-
-    function buildItemEndpoint(action) {
-      if (!ITEM_SOURCE_URL) return "";
-      try {
-        const url = new URL(ITEM_SOURCE_URL);
-        url.searchParams.set("action", action);
-        return url.toString();
-      } catch (err) {
-        console.warn("Gagal siapkan endpoint item", err);
-        return ITEM_SOURCE_URL;
-      }
-    }
-
-    async function syncNewMaterialToSheet(name, unit) {
-      // Pastikan URL diisi
-      if (!ITEM_SOURCE_URL) return;
-
-      // Kita set action lewat URL parameter
-      const endpoint = buildItemEndpoint("add_item");
-
-      if (!endpoint || !name) return;
-
-      try {
-        // Jangan gunakan application/json agar tidak trigger preflight CORS
-        await fetch(endpoint, {
-          method: "POST",
-          mode: "no-cors", // lebih stabil, tapi respon tidak bisa dibaca
-          headers: {
-            "Content-Type": "text/plain"
-          },
-          body: JSON.stringify({ name: name, unit: unit || "" })
-        });
-
-        console.log("Request tambah item terkirim: " + name);
-      } catch (err) {
-        console.warn("Gagal sinkron ke spreadsheet", err);
-      }
-    }
-
-    function addMaterialFromInput(inputId) {
-      const input = document.getElementById(inputId);
-      const val = (input.value || '').trim();
-      if (!val) return;
-      const unitSelectId = inputId === 'orderItem' ? 'orderUnitSelect' : 'receiveUnitSelect';
-      const unitVal = document.getElementById(unitSelectId)?.value || '';
-      const master = loadMasterMaterials();
-      const exists = master.some(m => (m.name || '').toLowerCase() === val.toLowerCase());
-      if (!exists) {
-        master.push({ name: val, unit: unitVal });
-        saveMasterMaterials(master);
-        syncNewMaterialToSheet(val, unitVal); // kirim ke spreadsheet agar database ikut terbarui
-      }
-      renderItemDatalist(collectItemNames());
-      toggleHelper(inputId, false);
-      updateUnitLabel(inputId, val);
-      toggleAddButtonBlink(inputId, false);
-    }
-
-    function toggleHelper(inputId, show) {
-      const helperId = inputId === 'orderItem' ? 'orderItemHelper' : 'receiveItemHelper';
-      const el = document.getElementById(helperId);
-      if (el) el.style.display = show ? 'block' : 'none';
-    }
-
-    function handleItemInput(event) {
-      const input = event.target;
-      const value = (input.value || '').trim().toLowerCase();
-      const listEl = document.getElementById('itemMasterList');
-      if (!listEl) return;
-      const hasMatch = Array.from(listEl.options || []).some(opt => (opt.value || '').toLowerCase() === value);
-      toggleHelper(input.id, value && !hasMatch);
-      updateUnitLabel(input.id, input.value || '');
-    }
-
-    function updateUnitLabel(inputId, value) {
-      const unit = findUnitByName(value);
-      const unitId = inputId === 'orderItem' ? 'orderItemUnit' : 'receiveItemUnit';
-      const target = document.getElementById(unitId);
-      if (target) target.textContent = unit || '-';
-      const selectId = inputId === 'orderItem' ? 'orderUnitSelect' : 'receiveUnitSelect';
-      const select = document.getElementById(selectId);
-      if (select) {
-        const match = UNIT_OPTIONS.find(u => u.toLowerCase() === (unit || '').toLowerCase());
-        select.value = match || '';
-      }
-    }
-
-    function toggleAddButtonBlink() {}
-
-    // RENDER TABLE (WITH MOBILE SUPPORT)
-    function displayProyekBerjalan() {
-      const daftarProyek = getData('daftarProyek');
-      const proyekBerjalan = daftarProyek.filter(p => p.status === 'Ongoing');
-      const table = document.getElementById('proyekBerjalanTable');
-      document.getElementById('proyekBerjalanCount').textContent = proyekBerjalan.length;
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs text-gray-400 font-bold uppercase">Stok Menipis</p>
+            <h3 class="text-3xl font-bold text-red-600 mt-2" id="statStok">-</h3>
+          </div>
+          <div class="p-3 bg-red-50 text-red-600 rounded-lg"><i class="fas fa-exclamation-triangle text-xl"></i></div>
+        </div>
+      </div>
       
-      table.innerHTML = '';
-      if (proyekBerjalan.length === 0) {
-        table.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#999;">Belum ada proyek berjalan</td></tr>';
-        return;
-      }
-      
-      proyekBerjalan.forEach((p, idx) => {
-        const link = `siteplan.html?id=${p.id}`;
-        // Perhatikan atribut data-label untuk tampilan mobile
-        table.innerHTML += `
-          <tr>
-            <td data-label="No">${idx + 1}</td>
-            <td data-label="Nama Proyek"><a href="${link}" style="color:var(--accent); font-weight:bold; text-decoration:none;">${p.nama}</a></td>
-            <td data-label="Lokasi">${p.lokasi}</td>
-            <td data-label="Progress">
-              <div style="display:flex; align-items:center; gap:10px;">
-                <div class="progress-bar"><div class="progress-fill" style="width:${p.progress}%"></div></div>
-                <span style="font-size:12px">${p.progress}%</span>
-              </div>
-            </td>
-            <td data-label="Deadline">${p.deadline}</td>
-          </tr>
-        `;
-      });
-    }
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs text-gray-400 font-bold uppercase">Request Pending</p>
+            <h3 class="text-3xl font-bold text-orange-600 mt-2" id="statReq">-</h3>
+          </div>
+          <div class="p-3 bg-orange-50 text-orange-600 rounded-lg"><i class="fas fa-clock text-xl"></i></div>
+        </div>
+      </div>
 
-    function displayProyekPerencanaan() {
-      const daftarProyek = getData('daftarProyek');
-      const data = daftarProyek.filter(p => p.status === 'Planning');
-      const table = document.getElementById('proyekPerencanaanTable');
-      document.getElementById('proyekPerencanaanCount').textContent = data.length;
-      
-      table.innerHTML = '';
-      if (data.length === 0) {
-        table.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#999;">Belum ada proyek perencanaan</td></tr>';
-        return;
-      }
-      
-      data.forEach((p, idx) => {
-        const link = `siteplan.html?id=${p.id}`;
-        table.innerHTML += `
-          <tr>
-            <td data-label="No">${idx + 1}</td>
-            <td data-label="Nama Proyek"><a href="${link}" style="color:var(--accent); font-weight:bold; text-decoration:none;">${p.nama}</a></td>
-            <td data-label="Lokasi">${p.lokasi}</td>
-            <td data-label="Progress">
-              <div style="display:flex; align-items:center; gap:10px;">
-                <div class="progress-bar"><div class="progress-fill" style="width:${p.progress}%"></div></div>
-                <span style="font-size:12px">${p.progress}%</span>
-              </div>
-            </td>
-            <td data-label="Deadline">${p.deadline}</td>
-          </tr>
-        `;
-      });
-    }
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs text-gray-400 font-bold uppercase">Menunggu Barang</p>
+            <h3 class="text-3xl font-bold text-green-600 mt-2" id="statPO">-</h3>
+          </div>
+          <div class="p-3 bg-green-50 text-green-600 rounded-lg"><i class="fas fa-truck text-xl"></i></div>
+        </div>
+      </div>
+    </div>
 
-    // FORM SUBMITS
-    document.getElementById('formBerjalan').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const p = {
-        id: Date.now(),
-        nama: document.getElementById('namaProjekBerjalan').value,
-        lokasi: document.getElementById('lokasiProjekBerjalan').value,
-        status: 'Ongoing',
-        progress: 0,
-        deadline: document.getElementById('deadlineProjekBerjalan').value
-      };
-      const list = getData('daftarProyek');
-      list.push(p);
-      saveData('daftarProyek', list);
-      closeModalBerjalan();
-      displayProyekBerjalan();
-    });
+    <div class="grid gap-4 mb-8">
+      <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl shadow-md p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p class="text-sm uppercase tracking-wide text-blue-100 font-semibold mb-1">Order Material</p>
+          <h3 class="text-2xl font-bold">Pantau dan kelola permintaan bahan</h3>
+          <p class="text-sm text-blue-100/80 mt-2">Lihat daftar inventory, GRN, dan stok proyek lewat menu khusus.</p>
+        </div>
+        <button onclick="window.location.href='inventory.html'" class="bg-white text-blue-600 font-bold uppercase px-5 py-2 rounded-xl shadow-lg hover:shadow-2xl transition">
+          Buka Inventory
+        </button>
+      </div>
+      <div class="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-xl shadow-md p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p class="text-sm uppercase tracking-wide text-emerald-100 font-semibold mb-1">Tambah Proyek</p>
+          <h3 class="text-2xl font-bold">Atur proyek baru atau cek database proyek</h3>
+          <p class="text-sm text-emerald-100/80 mt-2">Buka master proyek untuk menambah, menghapus, dan melacak nilai kontrak.</p>
+        </div>
+        <button onclick="window.location.href='master_proyek.html'" class="bg-white text-emerald-600 font-bold uppercase px-5 py-2 rounded-xl shadow-lg hover:shadow-2xl transition">
+          Buka Master Proyek
+        </button>
+      </div>
+      <div class="bg-gradient-to-r from-yellow-600 to-yellow-500 text-white rounded-xl shadow-md p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p class="text-sm uppercase tracking-wide text-yellow-100 font-semibold mb-1">Terima Barang (GRN)</p>
+          <h3 class="text-2xl font-bold">Validasi kedatangan barang langsung dari gudang</h3>
+          <p class="text-sm text-yellow-100/80 mt-2">Buka halaman GRN untuk konfirmasi penerimaan dan update status PO.</p>
+        </div>
+        <button onclick="window.location.href='inventory_grn.html'" class="bg-white text-yellow-600 font-bold uppercase px-5 py-2 rounded-xl shadow-lg hover:shadow-2xl transition">
+          Buka GRN
+        </button>
+      </div>
+      <div class="bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl shadow-md p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p class="text-sm uppercase tracking-wide text-purple-100 font-semibold mb-1">Kelola Stok</p>
+          <h3 class="text-2xl font-bold">Lihat saldo material dan histori pemakaian</h3>
+          <p class="text-sm text-purple-100/80 mt-2">Buka Stok Proyek untuk melihat stok aktual dan mencatat pemakaian.</p>
+        </div>
+        <button onclick="window.location.href='stok_proyek.html'" class="bg-white text-purple-600 font-bold uppercase px-5 py-2 rounded-xl shadow-lg hover:shadow-2xl transition">
+          Buka Stok Proyek
+        </button>
+      </div>
+      <div class="bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-xl shadow-md p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p class="text-sm uppercase tracking-wide text-indigo-100 font-semibold mb-1">Vendor & Supplier</p>
+          <h3 class="text-2xl font-bold">Atur daftar supplier dan TOP pembayaran</h3>
+          <p class="text-sm text-indigo-100/80 mt-2">Buka Master Vendor untuk menambah, melihat kontak, dan menghapus entri.</p>
+        </div>
+        <button onclick="window.location.href='master_vendor.html'" class="bg-white text-indigo-600 font-bold uppercase px-5 py-2 rounded-xl shadow-lg hover:shadow-2xl transition">
+          Buka Master Vendor
+        </button>
+      </div>
+    </div>
 
-    document.getElementById('formPerencanaan').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const p = {
-        id: Date.now(),
-        nama: document.getElementById('namaProjekPerencanaan').value,
-        lokasi: document.getElementById('lokasiProjekPerencanaan').value,
-        status: 'Planning',
-        progress: 0,
-        deadline: document.getElementById('deadlineProjekPerencanaan').value
-      };
-      const list = getData('daftarProyek');
-      list.push(p);
-      saveData('daftarProyek', list);
-      closeModalPerencanaan();
-      displayProyekPerencanaan();
-    });
-
-    // Inventory forms (hanya aktif jika elemen ada)
-    const orderFormEl = document.getElementById('orderForm');
-    if (orderFormEl) {
-      orderFormEl.addEventListener('submit', addOrder);
-    }
-    const receiveFormEl = document.getElementById('receiveForm');
-    if (receiveFormEl) {
-      receiveFormEl.addEventListener('submit', receiveGoods);
-    }
-    const formMaterialBaru = document.getElementById('formMaterialBaru');
-    if (formMaterialBaru) {
-      formMaterialBaru.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const name = document.getElementById('newMaterialNameInput').value.trim();
-        const unit = document.getElementById('newMaterialUnitInput').value;
-        if (!name || !unit) return;
-        const master = loadMasterMaterials();
-        const idx = master.findIndex(m => (m.name || '').toLowerCase() === name.toLowerCase());
-        if (idx >= 0) {
-          master[idx].unit = unit;
-        } else {
-          master.push({ name, unit });
-        }
-        saveMasterMaterials(master);
-        syncNewMaterialToSheet(name, unit);
-        renderItemDatalist(collectItemNames());
-        if (currentMaterialInputId) {
-          const input = document.getElementById(currentMaterialInputId);
-          if (input) input.value = name;
-          const selectId = currentMaterialInputId === 'orderItem' ? 'orderUnitSelect' : 'receiveUnitSelect';
-          const select = document.getElementById(selectId);
-          if (select) select.value = UNIT_OPTIONS.find(u => u.toLowerCase() === unit.toLowerCase()) || unit;
-          updateUnitLabel(currentMaterialInputId, name);
-        }
-        closeModalMaterial();
-      });
-    }
-
-    function goHome() {
-      window.location.href = "index.html";
-    }
-
-    // INIT
-    window.onload = function() {
-      ensureDefaultProjects();
-      displayProyekBerjalan();
-      displayProyekPerencanaan();
-      const hasInventory = document.getElementById('inventory');
-      if (hasInventory) {
-        renderOrders();
-        renderStock();
-        populateUnitSelect('orderUnitSelect');
-        populateUnitSelect('receiveUnitSelect');
-        fetchItemMaster();
-        ['orderItem','receiveItem'].forEach(id => {
-          const input = document.getElementById(id);
-          if (input) {
-            input.addEventListener('input', handleItemInput);
-            input.addEventListener('change', handleItemInput);
-          }
-        });
-        ['orderUnitSelect','receiveUnitSelect'].forEach(id => {
-          const sel = document.getElementById(id);
-          if (sel) {
-            sel.addEventListener('change', () => {
-              const relatedInput = id === 'orderUnitSelect' ? 'orderItem' : 'receiveItem';
-              const selectedUnit = sel.value;
-              const labelId = relatedInput === 'orderItem' ? 'orderItemUnit' : 'receiveItemUnit';
-              const lbl = document.getElementById(labelId);
-              if (lbl) lbl.textContent = selectedUnit || '-';
-            });
-          }
-        });
-      }
-    };
-  </script>
-</body>
-</html>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <a href="master_vendor.html" class="menu-card bg-white p-6 rounded-2xl shadow-sm flex items-center gap-4 border border-gray-100 hover:shadow-lg transition">
+        <div class="w-14 h-14 bg-pink-50 text-pink-600 rounded-full flex items-center justify-center text-2xl">
+          <i class="fas fa-store"></i>
+        </div>
+        <div>
+          <h4 class="font-bold text-gray-800 text-base">Master Vendor</h4>
+          <p class="text-xs text-gray-400 mt-1">Data Supplier & TOP</p>
+        </div>
+      </a>
+    </div>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Master Data Proyek</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 p-6">
+
+  <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800"><i class="fas fa-city text-blue-600 mr-2"></i>Daftar Proyek</h1>
+      <p class="text-gray-500">Kelola database proyek, nilai kontrak, dan RAB</p>
+    </div>
+    <a href="stok_proyek.html" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
+      <i class="fas fa-arrow-left"></i> Kembali ke Gudang
+    </a>
+  </div>
+
+  <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <div class="lg:col-span-1">
+      <div class="bg-white p-6 rounded-lg shadow-lg sticky top-6">
+        <h2 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">➕ Proyek Baru</h2>
+        
+        <form id="formProyek" class="space-y-4">
+          
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Nama Proyek</label>
+            <input type="text" id="namaProyek" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Cth: Jembatan Desa A" required>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Kategori Proyek</label>
+            <select id="kategoriSelect" class="w-full border p-2 rounded bg-white mb-2" onchange="cekKategori()">
+              <option value="">-- Pilih Kategori --</option>
+              <option value="Bangunan Rumah">Bangunan Rumah</option>
+              <option value="Infrastruktur">Infrastruktur (Jalan/Drainase)</option>
+              <option value="Fasilitas Umum">Fasilitas Umum</option>
+              <option value="Renovasi">Renovasi</option>
+              <option value="LAINNYA">-- Isi Kategori Lain --</option>
+            </select>
+            
+            <input type="text" id="kategoriLain" class="hidden w-full border p-2 rounded bg-blue-50 border-blue-300 text-blue-800 placeholder-blue-300" placeholder="Tulis kategori manual...">
+          </div>
+
+          <div id="boxUploadRAB" class="hidden bg-orange-50 p-3 rounded border border-orange-200">
+             <label class="block text-xs font-bold text-orange-800 mb-1">📂 Upload File RAB (Infrastruktur)</label>
+             <input type="file" id="fileRAB" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700">
+             <p class="text-[10px] text-gray-400 mt-1 italic">*Wajib untuk proyek infrastruktur</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Nilai Proyek (RAB)</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2 text-gray-500 font-bold">Rp</span>
+              <input type="number" id="nilaiProyek" class="w-full border p-2 pl-10 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0" min="0" required>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Tanggal Mulai (Start)</label>
+            <input type="date" id="tglMulai" class="w-full border p-2 rounded" required>
+          </div>
+
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded shadow transition">
+            Simpan Proyek
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="lg:col-span-2">
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
+          <h3 class="font-bold text-gray-700">Daftar Proyek Berjalan</h3>
+          <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold" id="totalProyek">0 Proyek</span>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-gray-100 uppercase text-xs font-bold text-gray-600">
+              <tr>
+                <th class="p-3 border-b">Proyek / Kategori</th>
+                <th class="p-3 border-b">Tgl Mulai</th>
+                <th class="p-3 border-b text-right">Nilai (IDR)</th>
+                <th class="p-3 border-b text-center">Status</th>
+                <th class="p-3 border-b text-center w-16">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelProyek" class="divide-y divide-gray-100">
+              <tr><td colspan="5" class="p-4 text-center text-gray-400">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- SETUP SUPABASE ---
+    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+    const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
+
+    // --- 1. LOGIKA KATEGORI ---
+    function cekKategori() {
+      const select = document.getElementById("kategoriSelect");
+      const inputLain = document.getElementById("kategoriLain");
+      const boxRAB = document.getElementById("boxUploadRAB");
+      
+      // Reset tampilan
+      inputLain.classList.add("hidden");
+      boxRAB.classList.add("hidden");
+      inputLain.required = false;
+
+      if (select.value === "LAINNYA") {
+        inputLain.classList.remove("hidden");
+        inputLain.focus();
+        inputLain.required = true;
+      } 
+      // JIKA PILIH INFRASTRUKTUR -> MUNCUL UPLOAD
+      else if (select.value === "Infrastruktur") {
+        boxRAB.classList.remove("hidden");
+      }
+    }
+
+    // --- 2. LOAD DATA PROYEK ---
+    async function loadProyek() {
+      // Kita pakai lokasi untuk menyimpan nama file RAB sementara (karena kolom lokasi sudah tidak dipakai)
+      const { data, error } = await client
+        .from('master_proyek')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const tbody = document.getElementById("tabelProyek");
+      tbody.innerHTML = "";
+
+      if (error) { alert("Gagal ambil data"); return; }
+      document.getElementById("totalProyek").innerText = (data.length || 0) + " Proyek";
+
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400">Belum ada proyek terdaftar.</td></tr>`;
+        return;
+      }
+
+      data.forEach(p => {
+        let badgeColor = "bg-gray-100 text-gray-600";
+        let infoTambahan = "";
+
+        if (p.kategori === 'Bangunan Rumah') badgeColor = "bg-blue-100 text-blue-600";
+        
+        // Logika Tampilan Infrastruktur (Ada File RAB)
+        if (p.kategori === 'Infrastruktur') {
+            badgeColor = "bg-orange-100 text-orange-600";
+            // Jika kolom 'lokasi' berisi nama file (simulasi)
+            if(p.lokasi && p.lokasi.includes("RAB")) {
+                infoTambahan = `<div class="text-[10px] text-orange-700 mt-1 font-bold"><i class="fas fa-file-pdf"></i> ${p.lokasi}</div>`;
+            } else {
+                infoTambahan = `<div class="text-[10px] text-red-400 mt-1 italic"><i class="fas fa-exclamation-circle"></i> RAB Belum Ada</div>`;
+            }
+        }
+
+        const tr = `
+          <tr class="hover:bg-gray-50 group">
+            <td class="p-3">
+              <div class="font-bold text-gray-800">${p.nama_proyek}</div>
+              <div class="text-xs ${badgeColor} inline-block px-1.5 py-0.5 rounded mt-1 font-semibold">${p.kategori || '-'}</div>
+              ${infoTambahan} 
+            </td>
+            <td class="p-3 align-top text-gray-600 whitespace-nowrap">
+               ${p.tanggal_mulai ? new Date(p.tanggal_mulai).toLocaleDateString('id-ID') : '-'}
+            </td>
+            <td class="p-3 align-top text-right font-mono font-bold text-gray-700">
+               ${formatRupiah(p.nilai_proyek || 0)}
+            </td>
+            <td class="p-3 align-top text-center">
+               <span class="text-xs font-bold text-green-600 border border-green-200 bg-green-50 px-2 py-1 rounded">BERJALAN</span>
+            </td>
+            <td class="p-3 align-top text-center">
+               <button onclick="hapusProyek(${p.id}, '${p.nama_proyek}')" class="text-gray-400 hover:text-red-600 transition p-2 rounded hover:bg-red-50" title="Hapus Proyek">
+                 <i class="fas fa-trash-alt"></i>
+               </button>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += tr;
+      });
+    }
+
+    // --- 3. HAPUS PROYEK ---
+    async function hapusProyek(id, nama) {
+      if(!confirm(`⚠️ PERINGATAN!\n\nYakin hapus proyek "${nama}"?\nData akan hilang permanen.`)) return;
+      document.body.style.cursor = 'wait';
+      const { error } = await client.from('master_proyek').delete().eq('id', id);
+      document.body.style.cursor = 'default';
+      if (error) { alert("GAGAL: " + error.message); } 
+      else { 
+          document.getElementById("tabelProyek").innerHTML = '<tr><td colspan="5" class="p-4 text-center">Memuat ulang...</td></tr>';
+          setTimeout(loadProyek, 500); 
+          alert("✅ Proyek berhasil dihapus.");
+      }
+    }
+
+    // --- 4. SIMPAN DATA ---
+    document.getElementById("formProyek").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const nama = document.getElementById("namaProyek").value;
+      const selectKat = document.getElementById("kategoriSelect").value;
+      const lainKat = document.getElementById("kategoriLain").value;
+      const nilai = document.getElementById("nilaiProyek").value;
+      const tgl = document.getElementById("tglMulai").value;
+      const fileInput = document.getElementById("fileRAB");
+
+      // Cek Kategori
+      let kategoriFinal = selectKat;
+      if (selectKat === "LAINNYA") {
+        if (!lainKat) { alert("Isi nama kategori lainnya!"); return; }
+        kategoriFinal = lainKat;
+      }
+      if (!selectKat) { alert("Pilih kategori!"); return; }
+
+      // Validasi Khusus Infrastruktur
+      let namaFileRAB = ""; // Kita simpan nama file di kolom 'lokasi' sebagai pengganti sementara
+      if (selectKat === "Infrastruktur") {
+          if(fileInput.files.length === 0) {
+              alert("⚠️ Wajib Upload File RAB untuk proyek Infrastruktur!");
+              return;
+          }
+          // Simulasi simpan nama file (Aslinya harus upload ke Storage Supabase)
+          namaFileRAB = "File_RAB_" + fileInput.files[0].name; 
+      }
+
+      const payload = {
+        nama_proyek: nama,
+        kategori: kategoriFinal,
+        nilai_proyek: nilai,
+        tanggal_mulai: tgl,
+        lokasi: namaFileRAB, // Hack: Simpan info RAB di kolom lokasi yg nganggur
+        status: 'BERJALAN'
+      };
+
+      const { error } = await client.from('master_proyek').insert([payload]);
+
+      if (error) {
+        alert("Gagal simpan: " + error.message);
+      } else {
+        alert("✅ Proyek berhasil ditambahkan!");
+        document.getElementById("formProyek").reset();
+        document.getElementById("kategoriLain").classList.add("hidden");
+        document.getElementById("boxUploadRAB").classList.add("hidden");
+        loadProyek();
+      }
+    });
+
+    loadProyek();
+  </script>
+</body>
+</html>

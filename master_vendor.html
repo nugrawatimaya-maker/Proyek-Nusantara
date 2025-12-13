@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Master Data Vendor / Supplier</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-sans text-gray-800 p-6">
+
+  <div class="max-w-6xl mx-auto mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800"><i class="fas fa-store text-blue-600 mr-2"></i>Master Vendor</h1>
+      <p class="text-gray-500">Kelola data Supplier & Aturan Pembayaran (TOP)</p>
+    </div>
+    <div class="flex gap-2">
+       <a href="finance_po.html" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
+        <i class="fas fa-arrow-left"></i> Kembali ke PO
+      </a>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <div class="lg:col-span-1">
+      <div class="bg-white p-6 rounded-lg shadow-lg sticky top-6">
+        <h2 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">➕ Tambah Supplier</h2>
+        
+        <form id="formVendor" class="space-y-4">
+          
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Nama Vendor / Toko</label>
+            <input type="text" id="namaVendor" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Cth: PT. Baja Utama" required>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Alamat</label>
+            <textarea id="alamatVendor" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" rows="2" placeholder="Alamat lengkap..."></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">No. Telepon / WA</label>
+            <input type="text" id="telpVendor" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0812...">
+          </div>
+
+          <div class="bg-blue-50 p-3 rounded border border-blue-100">
+            <label class="block text-xs font-bold text-blue-800 mb-1">Term of Payment (TOP)</label>
+            <select id="topVendor" class="w-full border p-2 rounded bg-white text-gray-700 font-bold focus:ring-2 focus:ring-blue-500">
+              <option value="0">Cash / Tunai (0 Hari)</option>
+              <option value="15">15 Hari</option>
+              <option value="30">30 Hari</option>
+              <option value="45">45 Hari</option>
+              <option value="60">60 Hari</option>
+              <option value="90">90 Hari</option>
+              <option value="120">120 Hari</option>
+            </select>
+            <p class="text-[10px] text-gray-400 mt-1 italic">Jatuh tempo akan dihitung otomatis dari TOP ini.</p>
+          </div>
+
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded shadow transition">
+            Simpan Vendor
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="lg:col-span-2">
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
+          <h3 class="font-bold text-gray-700">Daftar Supplier Terdaftar</h3>
+          <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold" id="totalVendor">0 Vendor</span>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-gray-100 uppercase text-xs font-bold text-gray-600">
+              <tr>
+                <th class="p-3 border-b">Nama Vendor</th>
+                <th class="p-3 border-b">Kontak & Alamat</th>
+                <th class="p-3 border-b text-center">TOP (Hari)</th>
+                <th class="p-3 border-b text-center w-16">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelVendor" class="divide-y divide-gray-100">
+              <tr><td colspan="4" class="p-4 text-center text-gray-400">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+    async function loadVendor() {
+      const { data, error } = await client
+        .from('master_vendor')
+        .select('*')
+        .order('nama_vendor', { ascending: true });
+
+      const tbody = document.getElementById("tabelVendor");
+      tbody.innerHTML = "";
+
+      if (error) { alert("Gagal load data"); return; }
+      document.getElementById("totalVendor").innerText = (data.length || 0) + " Vendor";
+
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400">Belum ada vendor.</td></tr>`;
+        return;
+      }
+
+      data.forEach(v => {
+        let topBadge = `<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold text-xs">Cash</span>`;
+        if(v.top_hari > 0) {
+            let color = "bg-blue-100 text-blue-800";
+            if(v.top_hari >= 60) color = "bg-orange-100 text-orange-800";
+            if(v.top_hari >= 90) color = "bg-red-100 text-red-800";
+            topBadge = `<span class="${color} px-2 py-1 rounded font-bold text-xs">${v.top_hari} Hari</span>`;
+        }
+
+        const tr = `
+          <tr class="hover:bg-gray-50 group">
+            <td class="p-3 align-top font-bold text-gray-800">
+              ${v.nama_vendor}
+            </td>
+            <td class="p-3 align-top text-gray-600">
+               <div class="text-xs font-bold"><i class="fas fa-phone mr-1"></i> ${v.telepon || '-'}</div>
+               <div class="text-xs italic mt-1 text-gray-400">${v.alamat || '-'}</div>
+            </td>
+            <td class="p-3 align-top text-center">
+               ${topBadge}
+            </td>
+            <td class="p-3 align-top text-center">
+               <button onclick="hapusVendor(${v.id}, '${v.nama_vendor}')" class="text-gray-400 hover:text-red-600 transition p-2 rounded hover:bg-red-50" title="Hapus Vendor">
+                 <i class="fas fa-trash-alt"></i>
+               </button>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += tr;
+      });
+    }
+
+    async function hapusVendor(id, nama) {
+      if(!confirm(`⚠️ Yakin hapus vendor "${nama}"?\nPastikan vendor ini tidak sedang digunakan di PO aktif.`)) return;
+      
+      const { error } = await client.from('master_vendor').delete().eq('id', id);
+      
+      if (error) {
+        alert("Gagal menghapus: " + error.message);
+      } else {
+        alert("✅ Vendor dihapus.");
+        loadVendor();
+      }
+    }
+
+    document.getElementById("formVendor").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const nama = document.getElementById("namaVendor").value;
+      const alamat = document.getElementById("alamatVendor").value;
+      const telp = document.getElementById("telpVendor").value;
+      const top = document.getElementById("topVendor").value;
+
+      const payload = {
+        nama_vendor: nama,
+        alamat: alamat,
+        telepon: telp,
+        top_hari: parseInt(top)
+      };
+
+      const { error } = await client.from('master_vendor').insert([payload]);
+
+      if (error) {
+        alert("Gagal simpan: " + error.message);
+      } else {
+        alert(`✅ Vendor "${nama}" berhasil ditambahkan dengan TOP ${top} Hari!`);
+        document.getElementById("formVendor").reset();
+        loadVendor();
+      }
+    });
+
+    loadVendor();
+  </script>
+</body>
+</html>
