@@ -10,33 +10,55 @@
 <body class="bg-gray-50 font-sans text-gray-800">
 
   <div class="max-w-xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-lg">
-    <div class="text-center mb-6">
-      <h1 class="text-2xl font-bold text-indigo-700">Form Permintaan Barang</h1>
-      <p class="text-sm text-gray-500">Langkah 1: Staff Gudang Input Kebutuhan</p>
+    
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-indigo-700">Form Permintaan Barang</h1>
+        <p class="text-sm text-gray-500">Gudang & Logistik</p>
+      </div>
+      <a href="stok_proyek.html" class="text-sm text-blue-600 hover:underline">Lihat Stok →</a>
     </div>
 
     <form id="reqForm" class="space-y-4">
       
       <div>
-        <label class="block text-sm font-bold mb-1">Nama Material / Barang</label>
-        <input type="text" id="barang" class="w-full border rounded p-2" placeholder="Contoh: Semen Tonasa / Kertas A4" required>
+        <label class="block text-sm font-bold mb-1">Pilih Material / Barang</label>
+        <select id="pilihBarang" class="w-full border rounded p-2 bg-white focus:ring-2 focus:ring-indigo-300" onchange="cekPilihan()">
+          <option value="">-- Sedang memuat data... --</option>
+        </select>
+      </div>
+
+      <div id="panelBaru" class="hidden bg-orange-50 p-4 rounded border border-orange-200 space-y-3">
+        <p class="text-xs font-bold text-orange-600 uppercase tracking-wide">✨ Tambah ke Database Master</p>
+        <div>
+          <label class="block text-xs font-bold mb-1">Nama Material Baru</label>
+          <input type="text" id="namaBaru" class="w-full border p-2 rounded text-sm" placeholder="Contoh: Paku Beton 5cm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold mb-1">Satuan Dasar</label>
+          <select id="satuanBaru" class="w-full border p-2 rounded text-sm bg-white">
+            <option value="Pcs">Pcs</option>
+            <option value="Unit">Unit</option>
+            <option value="Kg">Kg</option>
+            <option value="Sak">Sak</option>
+            <option value="Meter">Meter</option>
+            <option value="Lembar">Lembar</option>
+            <option value="Box">Box</option>
+            <option value="Kaleng">Kaleng</option>
+            <option value="Batang">Batang</option>
+            <option value="Set">Set</option>
+          </select>
+        </div>
       </div>
 
       <div class="flex gap-4">
-        <div class="w-1/2">
-          <label class="block text-sm font-bold mb-1">Jumlah</label>
+        <div class="w-2/3">
+          <label class="block text-sm font-bold mb-1">Jumlah Diminta</label>
           <input type="number" id="jumlah" class="w-full border rounded p-2" placeholder="0" required>
         </div>
-        <div class="w-1/2">
+        <div class="w-1/3">
           <label class="block text-sm font-bold mb-1">Satuan</label>
-          <select id="satuan" class="w-full border rounded p-2 bg-white">
-            <option>Pcs</option>
-            <option>Unit</option>
-            <option>Kg</option>
-            <option>Sak</option>
-            <option>Meter</option>
-            <option>Box</option>
-          </select>
+          <input type="text" id="satuanDisplay" class="w-full border rounded p-2 bg-gray-100 text-gray-500" readonly placeholder="-">
         </div>
       </div>
 
@@ -45,8 +67,8 @@
         <input type="text" id="pengorder" class="w-full border rounded p-2" placeholder="Nama Anda" required>
       </div>
 
-      <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded hover:bg-indigo-700 transition">
-        🚀 Kirim Permintaan ke Finance
+      <button type="submit" id="btnSubmit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded hover:bg-indigo-700 transition flex justify-center items-center gap-2">
+        <span>🚀 Kirim Permintaan</span>
       </button>
 
     </form>
@@ -54,7 +76,7 @@
     <div id="pesan" class="hidden mt-4 p-3 bg-green-100 text-green-700 rounded text-center font-bold"></div>
   </div>
 
-  <div class="max-w-xl mx-auto mt-8">
+  <div class="max-w-xl mx-auto mt-8 mb-12">
     <h3 class="font-bold text-gray-600 mb-2">Permintaan Terkirim (Pending PO)</h3>
     <ul id="listReq" class="bg-white rounded shadow divide-y text-sm">
       <li class="p-3 text-center text-gray-400">Memuat data...</li>
@@ -67,61 +89,171 @@
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-    // 1. KIRIM DATA
+    // --- 1. LOAD DATA MATERIAL DARI DB ---
+    async function loadMaterial() {
+      const select = document.getElementById("pilihBarang");
+      
+      // Ambil data dari master_stok
+      const { data, error } = await client
+        .from('master_stok')
+        .select('id, nama_barang, satuan')
+        .order('nama_barang', { ascending: true });
+
+      if (error) { console.error("Gagal load material:", error); return; }
+
+      // Reset Dropdown
+      select.innerHTML = '<option value="">-- Pilih Material --</option>';
+      
+      // Masukkan Data DB
+      data.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.nama_barang; // Kita simpan namanya sebagai value
+        opt.setAttribute('data-satuan', item.satuan); // Simpan satuan di atribut rahasia
+        opt.text = item.nama_barang;
+        select.appendChild(opt);
+      });
+
+      // Tambah Opsi Spesial "Baru"
+      const optBaru = document.createElement('option');
+      optBaru.value = "BARU";
+      optBaru.text = "➕ Tambah Material Baru ++";
+      optBaru.className = "font-bold text-orange-600 bg-orange-50";
+      select.appendChild(optBaru);
+    }
+
+    // --- 2. LOGIKA GANTI PILIHAN (CHANGE) ---
+    function cekPilihan() {
+      const select = document.getElementById("pilihBarang");
+      const panelBaru = document.getElementById("panelBaru");
+      const satuanDisplay = document.getElementById("satuanDisplay");
+      const inputNamaBaru = document.getElementById("namaBaru");
+      
+      if (select.value === "BARU") {
+        // Jika pilih BARU: Munculkan panel, kosongkan satuan
+        panelBaru.classList.remove("hidden");
+        satuanDisplay.value = document.getElementById("satuanBaru").value; // Default satuan panel
+        inputNamaBaru.focus();
+        
+        // Listener kecil: kalau satuan di panel baru berubah, update display
+        document.getElementById("satuanBaru").onchange = function() {
+           satuanDisplay.value = this.value;
+        }
+
+      } else if (select.value === "") {
+        // Jika pilih kosong
+        panelBaru.classList.add("hidden");
+        satuanDisplay.value = "-";
+      } else {
+        // Jika pilih BARANG LAMA: Sembunyikan panel, ambil satuan dari DB
+        panelBaru.classList.add("hidden");
+        const selectedOption = select.options[select.selectedIndex];
+        satuanDisplay.value = selectedOption.getAttribute('data-satuan');
+      }
+    }
+
+    // --- 3. PROSES SUBMIT ---
     document.getElementById("reqForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       
+      const mode = document.getElementById("pilihBarang").value;
+      const jumlah = document.getElementById("jumlah").value;
+      const pengorder = document.getElementById("pengorder").value;
+      
+      let finalNamaBarang = "";
+      let finalSatuan = "";
+
+      // VALIDASI & LOGIKA
+      if (mode === "") { alert("Pilih material dulu!"); return; }
+
+      if (mode === "BARU") {
+        // A. JIKA BARANG BARU
+        finalNamaBarang = document.getElementById("namaBaru").value.trim();
+        finalSatuan = document.getElementById("satuanBaru").value;
+
+        if (!finalNamaBarang) { alert("Nama material baru wajib diisi!"); return; }
+
+        // 1. Simpan ke master_stok dulu (Agar tersimpan permanen)
+        const { error: errMaster } = await client.from('master_stok').insert([{
+          nama_barang: finalNamaBarang,
+          satuan: finalSatuan,
+          total_stok: 0 // Stok awal 0
+        }]);
+
+        if (errMaster) {
+          // Jika error karena nama kembar (unique constraint)
+          if(errMaster.code === '23505') {
+             alert(`Barang "${finalNamaBarang}" sudah ada di database! Silakan pilih dari list.`);
+          } else {
+             alert("Gagal simpan master: " + errMaster.message);
+          }
+          return;
+        }
+
+      } else {
+        // B. JIKA BARANG LAMA (Ambil dari dropdown langsung)
+        finalNamaBarang = mode;
+        finalSatuan = document.getElementById("satuanDisplay").value;
+      }
+
+      // 2. Simpan ke Request (Proses Utama)
       const payload = {
-        nama_barang: document.getElementById("barang").value,
-        jumlah: document.getElementById("jumlah").value,
-        satuan: document.getElementById("satuan").value,
-        pengorder: document.getElementById("pengorder").value,
+        nama_barang: finalNamaBarang,
+        jumlah: jumlah,
+        satuan: finalSatuan,
+        pengorder: pengorder,
         status: "PENDING"
       };
 
       const { error } = await client.from('inventory_req').insert([payload]);
 
       if (error) {
-        alert("Gagal: " + error.message);
+        alert("Gagal kirim request: " + error.message);
       } else {
-        document.getElementById("pesan").innerText = "✅ Permintaan berhasil dikirim!";
-        document.getElementById("pesan").classList.remove("hidden");
+        // SUKSES
+        const pesan = document.getElementById("pesan");
+        pesan.innerText = `✅ Request "${finalNamaBarang}" berhasil dikirim!`;
+        pesan.classList.remove("hidden");
+        
+        // Reset Form
         document.getElementById("reqForm").reset();
-        loadRequest(); // Refresh list bawah
-        setTimeout(() => document.getElementById("pesan").classList.add("hidden"), 3000);
+        document.getElementById("panelBaru").classList.add("hidden");
+        loadMaterial(); // Refresh dropdown (biar barang baru tadi langsung muncul di list)
+        loadRequest();  // Refresh list bawah
+
+        setTimeout(() => pesan.classList.add("hidden"), 3000);
       }
     });
 
-    // 2. TAMPILKAN LIST REQUEST
+    // --- 4. LOAD LIST REQUEST BAWAH ---
     async function loadRequest() {
-      const { data, error } = await client
+      const { data } = await client
         .from('inventory_req')
         .select('*')
-        .eq('status', 'PENDING') // Hanya tampilkan yang belum diproses PO
+        .eq('status', 'PENDING')
         .order('id', { ascending: false });
 
       const list = document.getElementById("listReq");
       list.innerHTML = "";
-
-      if (data.length === 0) {
+      if (data && data.length > 0) {
+        data.forEach(item => {
+          list.innerHTML += `
+            <li class="p-3 flex justify-between items-center hover:bg-gray-50">
+              <div>
+                <span class="font-bold text-indigo-900">${item.nama_barang}</span>
+                <span class="text-xs bg-gray-200 px-2 py-1 rounded ml-2">${item.jumlah} ${item.satuan}</span>
+                <div class="text-xs text-gray-500">Oleh: ${item.pengorder}</div>
+              </div>
+              <span class="text-xs font-bold text-orange-500">Pending PO ⏳</span>
+            </li>
+          `;
+        });
+      } else {
         list.innerHTML = '<li class="p-3 text-center text-gray-400">Belum ada permintaan baru.</li>';
-        return;
       }
-
-      data.forEach(item => {
-        list.innerHTML += `
-          <li class="p-3 flex justify-between items-center hover:bg-gray-50">
-            <div>
-              <span class="font-bold text-indigo-900">${item.nama_barang}</span>
-              <span class="text-xs bg-gray-200 px-2 py-1 rounded ml-2">${item.jumlah} ${item.satuan}</span>
-              <div class="text-xs text-gray-500">Oleh: ${item.pengorder} | ${new Date(item.created_at).toLocaleDateString()}</div>
-            </div>
-            <span class="text-xs font-bold text-orange-500">Menunggu PO ⏳</span>
-          </li>
-        `;
-      });
     }
 
+    // Jalankan Saat Awal
+    loadMaterial();
     loadRequest();
   </script>
 </body>
