@@ -7,13 +7,17 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
-    /* STICKY HEADER */
     thead th { position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1); }
     .tabel-excel th { background-color: #f3f4f6; border: 1px solid #d1d5db; padding: 10px; font-size: 13px; }
     .tabel-excel td { border: 1px solid #e5e7eb; padding: 8px 10px; font-size: 14px; }
     .tabel-excel tr:hover { background-color: #f9fafb; }
     .btn-edit { opacity: 0; transition: opacity 0.2s; cursor: pointer; }
     tr:hover .btn-edit { opacity: 1; }
+    
+    /* Animasi Error */
+    .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
+    .shake { animation: shake 0.3s; }
+    @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
   </style>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800 p-6">
@@ -25,8 +29,12 @@
     </div>
     
     <div class="flex gap-2">
+      <button onclick="document.getElementById('modalTambahItem').classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
+        <i class="fas fa-plus"></i> Item Baru
+      </button>
+
       <a href="inventory_grn.html" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
-        <i class="fas fa-plus-circle"></i> Terima Barang
+        <i class="fas fa-truck-loading"></i> Terima Barang
       </a>
       <button onclick="bukaModal('PAKAI')" class="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
         <i class="fas fa-hard-hat"></i> Catat Pemakaian
@@ -170,11 +178,120 @@
     </div>
   </div>
 
+  <div id="modalTambahItem" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
+    <div class="bg-white p-6 rounded shadow-xl w-full max-w-sm">
+      <h2 class="text-lg font-bold mb-4 text-indigo-800 border-b pb-2">✨ Tambah Material Baru</h2>
+      
+      <div class="space-y-4">
+        <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Nama Material Baru</label>
+            <input type="text" id="tambahNama" class="w-full border p-2 rounded font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none transition" placeholder="Cth: Cat Dulux Putih" oninput="cekDuplikat()">
+            
+            <p id="msgErrorNama" class="hidden text-[10px] font-bold text-red-600 mt-1">
+                <i class="fas fa-exclamation-circle"></i> Nama barang sudah terdaftar!
+            </p>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Satuan</label>
+            <select id="tambahSatuan" class="w-full border p-2 rounded font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                <option value="">-- Pilih Satuan --</option>
+                <option value="Lembar">Lembar</option><option value="Truk">Truk</option><option value="Set">Set</option>
+                <option value="Kaleng 5 kg">Kaleng 5 kg</option><option value="Kg">Kg</option><option value="M">M</option>
+                <option value="Kubik m3">Kubik m3</option><option value="Batang">Batang</option><option value="Box">Box</option>
+                <option value="Kaleng">Kaleng</option><option value="Biji">Biji</option><option value="Pcs">Pcs</option>
+                <option value="Roll">Roll</option><option value="Gulung">Gulung</option><option value="Flsh">Flsh</option>
+                <option value="Lipat">Lipat</option><option value="Pickup">Pickup</option><option value="Meter">Meter</option>
+                <option value="Liter">Liter</option><option value="Botol">Botol</option><option value="Zak">Zak</option>
+            </select>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-6">
+        <button onclick="document.getElementById('modalTambahItem').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-bold text-sm">Batal</button>
+        <button onclick="simpanItemBaru()" id="btnSimpanMaster" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed">Simpan</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
+
+    // --- FITUR BARU: CEK DUPLIKAT REAL-TIME ---
+    let timeoutCheck = null;
+
+    async function cekDuplikat() {
+        const input = document.getElementById("tambahNama");
+        const msg = document.getElementById("msgErrorNama");
+        const btn = document.getElementById("btnSimpanMaster");
+        const keyword = input.value.trim();
+
+        // Reset state jika kosong
+        if(keyword.length === 0) {
+            input.classList.remove("input-error");
+            msg.classList.add("hidden");
+            btn.disabled = false;
+            return;
+        }
+
+        // Cek ke Database (Case Insensitive)
+        // Gunakan ilike agar "Semen" mendeteksi "semen"
+        const { data } = await client
+            .from('master_stok')
+            .select('id')
+            .ilike('nama_barang', keyword);
+
+        if(data && data.length > 0) {
+            // DUPLIKAT DITEMUKAN!
+            input.classList.add("input-error", "shake");
+            msg.classList.remove("hidden");
+            btn.disabled = true; // Kunci Tombol
+            
+            // Hapus animasi shake setelah selesai
+            setTimeout(() => input.classList.remove("shake"), 500);
+        } else {
+            // AMAN
+            input.classList.remove("input-error");
+            msg.classList.add("hidden");
+            btn.disabled = false; // Buka Tombol
+        }
+    }
+
+    // --- SIMPAN ITEM BARU ---
+    async function simpanItemBaru() {
+        const nama = document.getElementById("tambahNama").value.trim();
+        const satuan = document.getElementById("tambahSatuan").value;
+        const btn = document.getElementById("btnSimpanMaster");
+
+        if(!nama || !satuan) { alert("Lengkapi nama dan satuan!"); return; }
+        if(btn.disabled) return; // Mencegah bypass lewat enter
+
+        // Double Check Terakhir (Safety Net)
+        const { data: existing } = await client.from('master_stok').select('id').ilike('nama_barang', nama);
+        if(existing && existing.length > 0) {
+            alert("GAGAL: Barang sudah ada! Cek penulisan.");
+            return;
+        }
+
+        const { error } = await client.from('master_stok').insert([{
+            nama_barang: nama,
+            satuan: satuan,
+            total_stok: 0
+        }]);
+
+        if(error) {
+            alert("Gagal simpan: " + error.message);
+        } else {
+            alert("✅ Material Baru Berhasil Ditambahkan!");
+            document.getElementById("tambahNama").value = "";
+            document.getElementById("tambahNama").classList.remove("input-error");
+            document.getElementById("msgErrorNama").classList.add("hidden");
+            document.getElementById("modalTambahItem").classList.add("hidden");
+            loadAllData();
+        }
+    }
 
     // --- LOAD DATA ---
     async function loadAllData() {
@@ -236,7 +353,7 @@
       document.getElementById("grandTotalAset").innerText = formatRupiah(grandTotalRupiah);
     }
 
-    // 2. LOAD PROYEK
+    // --- (FUNGSI LAINNYA TETAP SAMA) ---
     async function loadProyekDropdown() {
         const select = document.getElementById("pilihProyek");
         const { data } = await client.from('master_proyek').select('nama_proyek, kategori').eq('status', 'BERJALAN').order('nama_proyek');
@@ -251,12 +368,7 @@
         }
     }
 
-    // --- MODAL & LOGIKA VALIDASI STOK (CORE UPDATE) ---
-    
-    // Event Listener Saat Ganti Barang
-    document.getElementById("pilihBarang").addEventListener("change", function(){
-        updateJumlahState();
-    });
+    document.getElementById("pilihBarang").addEventListener("change", function(){ updateJumlahState(); });
 
     function updateJumlahState(){
         const select = document.getElementById("pilihBarang");
@@ -264,47 +376,29 @@
         const info = document.getElementById("infoStok");
         const btnSimpan = document.getElementById("btnSimpanTransaksi");
         const jenis = document.getElementById("jenisInput").value;
-        
-        // Ambil Data Stok dari Attribute Option
         const selectedOption = select.options[select.selectedIndex];
         const stokAttr = selectedOption ? selectedOption.getAttribute('data-stok') : null;
         
-        // Reset Style
         info.className = "text-xs text-right mt-1 font-bold italic";
         jumlahInput.disabled = false;
         jumlahInput.placeholder = "0";
         btnSimpan.disabled = false;
         btnSimpan.classList.remove("opacity-50", "cursor-not-allowed");
 
-        // Jika Belum Pilih Barang
-        if(!select.value) {
-             info.innerText = "";
-             return;
-        }
-
+        if(!select.value) { info.innerText = ""; return; }
         const stok = Number(stokAttr);
 
-        // LOGIKA UTAMA
         if (jenis === 'PAKAI') {
-            // Mode Pakai: Validasi Stok
             if (stok <= 0) {
-                // STOK HABIS -> DISABLE INPUT
-                jumlahInput.disabled = true;
-                jumlahInput.value = "";
-                jumlahInput.placeholder = "Stok Habis";
-                
+                jumlahInput.disabled = true; jumlahInput.value = ""; jumlahInput.placeholder = "Stok Habis";
                 info.innerText = "❌ Stok Gudang Kosong (0) - Tidak bisa dipakai";
                 info.className = "text-xs text-right mt-1 font-bold text-red-600";
-                
-                btnSimpan.disabled = true;
-                btnSimpan.classList.add("opacity-50", "cursor-not-allowed");
+                btnSimpan.disabled = true; btnSimpan.classList.add("opacity-50", "cursor-not-allowed");
             } else {
-                // STOK ADA -> ENABLE
                 info.innerText = `✅ Sisa Stok Gudang: ${stok}`;
                 info.className = "text-xs text-right mt-1 font-bold text-green-600";
             }
         } else {
-            // Mode Opname: Selalu Enable (Walau Stok 0/Minus)
             info.innerText = `Info Sistem: ${stok} (Opname untuk koreksi)`;
             info.className = "text-xs text-right mt-1 font-bold text-purple-600";
         }
@@ -318,7 +412,6 @@
         const divProyek = document.getElementById("divProyek");
         const labelKet = document.getElementById("labelKet");
         const title = document.getElementById("modalTitle");
-        
         divProyek.classList.add("hidden");
         labelKet.innerText = "Keterangan";
         
@@ -330,8 +423,6 @@
         } else { 
             title.innerText = "Stok Opname / Penyesuaian"; 
         }
-        
-        // Panggil fungsi validasi status saat modal dibuka
         updateJumlahState();
     }
 
@@ -346,16 +437,12 @@
         const stokSistem = Number(select.options[select.selectedIndex]?.getAttribute('data-stok') || 0);
 
         if(!barangId) { alert("Pilih material dulu!"); return; }
-        // Opname boleh 0 atau minus (tergantung kebijakan), tapi Pakai harus > 0
         if(jenis === 'PAKAI' && jumlah <= 0) { alert("Jumlah harus lebih dari 0!"); return; }
 
         if(jenis === 'PAKAI') {
             const namaProyek = document.getElementById("pilihProyek").value;
             if(!namaProyek) { alert("Wajib pilih Proyek!"); return; }
-            
-            // Double Check Stok (Server Side Logic Simulation)
             if(jumlah > stokSistem) { alert(`Stok tidak cukup! Sisa: ${stokSistem}`); return; }
-
             keterangan = `Proyek: ${namaProyek} | ${keterangan}`;
             await client.from('master_stok').update({ total_stok: stokSistem - jumlah }).eq('id', barangId);
             await client.from('stok_history').insert([{ barang_id: barangId, jenis_transaksi: 'PEMAKAIAN PROYEK', jumlah: jumlah, keterangan: keterangan }]);
@@ -369,7 +456,6 @@
         loadAllData();
     }
 
-    // --- Helper Lain ---
     function bukaModalEdit(id, nama, satuan) {
       document.getElementById("modalEditItem").classList.remove("hidden");
       document.getElementById("editId").value = id;
