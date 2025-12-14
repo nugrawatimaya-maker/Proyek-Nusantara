@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <script>
+  // Ambil izin dari penyimpanan
+  const izin = sessionStorage.getItem("izin_akses");
+
+  // Cek: Jika BUKAN orang finance DAN bukan superadmin, tendang keluar!
+  if (izin !== "finance" && izin !== "superadmin") {
+    alert("⛔ Anda tidak memiliki akses ke Finance!");
+    window.location.href = "login_internal.html";
+  }
+</script>
   <meta charset="UTF-8" />
   <title>Dashboard Finance - Entry Data</title>
   <style>

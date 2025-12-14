@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Internal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-gray-900">
+
+  <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm border border-gray-700">
+    <div class="text-center mb-6">
+      <h1 class="text-xl font-bold text-white">🔐 Area Terbatas</h1>
+      <p class="text-xs text-gray-400">Masukkan Kode Akses Divisi</p>
+    </div>
+
+    <form onsubmit="cekPassword(event)" class="space-y-4">
+      <div>
+        <input type="password" id="passInput" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 outline-none text-center tracking-widest" placeholder="Kode Akses..." required>
+      </div>
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded transition">
+        BUKA PINTU
+      </button>
+    </form>
+    
+    <p id="errorMsg" class="hidden text-red-400 text-xs text-center mt-4 font-bold">Kode Salah!</p>
+  </div>
+
+  <script>
+    function cekPassword(e) {
+      e.preventDefault();
+      const input = document.getElementById("passInput").value;
+      const msg = document.getElementById("errorMsg");
+
+      // --- DAFTAR PASSWORD & ATURANNYA ---
+      
+      // 1. Password untuk FINANCE
+      if (input === "UANG2025") {
+        sessionStorage.setItem("izin_akses", "finance"); 
+        window.location.href = "dashboard_finance.html";
+      } 
+      
+      // 2. Password untuk OPERASIONAL (Gudang/Proyek)
+      else if (input === "PROYEK2025") {
+        sessionStorage.setItem("izin_akses", "operasional");
+        window.location.href = "dashboard_operasional.html";
+      }
+
+      // 3. Password untuk HR (SDM)
+      else if (input === "HRD2025") {
+        sessionStorage.setItem("izin_akses", "hr"); 
+        window.location.href = "dashboard_hr.html";
+      }
+
+      // 4. Password MASTER (Superadmin)
+      else if (input === "SUPERADMIN") {
+        sessionStorage.setItem("izin_akses", "superadmin");
+        window.location.href = "index.html"; 
+      }
+
+      // JIKA SALAH
+      else {
+        msg.classList.remove("hidden");
+        msg.innerText = "⛔ Kode Salah / Tidak Terdaftar";
+      }
+    }
+  </script>
+</body>
+</html>
