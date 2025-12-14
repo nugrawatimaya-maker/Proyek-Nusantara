@@ -2,19 +2,19 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Finance - Approval & Cetak PO (Batch)</title>
+  <title>Finance - Purchase Order (PO)</title>
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   
   <style>
-    .kertas-po {
-      width: 210mm; min-height: 297mm; padding: 20mm; background: white; margin: 0 auto;
-      color: #000 !important; font-family: 'Times New Roman', Times, serif; position: relative;
-    }
-    .kertas-po * { border-color: #000 !important; }
-    .chk-item { transform: scale(1.5); cursor: pointer; }
+    /* Custom Checkbox */
+    .chk-item { transform: scale(1.5); cursor: pointer; accent-color: #2563eb; }
   </style>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800 p-6">
@@ -22,21 +22,20 @@
   <div class="max-w-7xl mx-auto mb-6 flex justify-between items-center">
     <div>
       <h1 class="text-2xl font-bold text-blue-800">Finance Approval (PO)</h1>
-      <p class="text-sm text-gray-500">Kelola Penerbitan & Arsip Purchase Order</p>
+      <p class="text-sm text-gray-500">Penerbitan & Pencetakan Purchase Order Profesional</p>
     </div>
     <div class="space-x-3">
         <a href="master_vendor.html" class="text-sm bg-pink-100 text-pink-700 px-3 py-1 rounded hover:bg-pink-200"><i class="fas fa-users"></i> Kelola Vendor</a>
-        <a href="inventory_req.html" class="text-sm text-blue-600 hover:underline">← Lihat Menu Gudang</a>
+        <a href="dashboard_finance.html" class="text-sm text-blue-600 hover:underline">← Kembali ke Dashboard</a>
     </div>
   </div>
 
   <div class="max-w-7xl mx-auto bg-white rounded-lg shadow overflow-hidden mb-10 border-l-4 border-yellow-400 relative">
-    
     <div class="p-4 bg-yellow-50 border-b border-yellow-100 flex justify-between items-center sticky top-0 z-10">
         <h3 class="font-bold text-yellow-800"><i class="fas fa-clock mr-2"></i>Antrian Request (Belum Ada PO)</h3>
         
         <button id="btnBatch" onclick="siapkanBatch()" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow font-bold text-sm flex items-center gap-2 animate-bounce">
-            <i class="fas fa-layer-group"></i> Buat 1 PO untuk <span id="countBatch">0</span> Item
+            <i class="fas fa-layer-group"></i> Proses PO (<span id="countBatch">0</span> Item)
         </button>
     </div>
 
@@ -46,7 +45,7 @@
           <th class="p-4 text-center w-10"><input type="checkbox" id="chkAll" class="chk-item" onclick="toggleAll(this)"></th>
           <th class="p-4">Tanggal & Staff</th>
           <th class="p-4">Barang diminta & Stok Gudang</th>
-          <th class="p-4 w-40 text-right">Estimasi Total</th>
+          <th class="p-4 w-40 text-right">Status</th>
         </tr>
       </thead>
       <tbody id="tabelAntrian" class="text-sm divide-y divide-gray-100">
@@ -65,10 +64,10 @@
         <tr>
           <th class="p-4">No. PO / Tanggal</th>
           <th class="p-4">Vendor</th>
-          <th class="p-4">Jumlah Item</th>
+          <th class="p-4 text-center">Jml Item</th>
           <th class="p-4 text-right">Grand Total</th>
           <th class="p-4 text-center">Status</th>
-          <th class="p-4 text-center">Aksi</th>
+          <th class="p-4 text-center">Cetak</th>
         </tr>
       </thead>
       <tbody id="tabelRiwayat" class="text-sm divide-y divide-gray-100">
@@ -77,111 +76,57 @@
     </table>
   </div>
 
-  <div id="modalBatch" class="hidden fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center">
-    <div class="bg-white w-full max-w-4xl p-6 rounded-lg shadow-lg relative max-h-[90vh] overflow-auto">
-        <button onclick="tutupModalBatch()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-xl font-bold">✕</button>
+  <div id="modalBatch" class="hidden fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center backdrop-blur-sm">
+    <div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-2xl relative max-h-[95vh] overflow-auto border border-gray-200">
+        <button onclick="tutupModalBatch()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl font-bold">&times;</button>
         
-        <h2 class="text-xl font-bold text-blue-800 mb-4 border-b pb-2">🏢 Setup PO Batch</h2>
+        <div class="flex items-center gap-3 mb-6 border-b pb-4">
+            <div class="bg-blue-100 p-2 rounded-full text-blue-600"><i class="fas fa-file-invoice-dollar fa-lg"></i></div>
+            <h2 class="text-xl font-bold text-gray-800">Penerbitan Purchase Order</h2>
+        </div>
 
-        <div class="mb-6 bg-blue-50 p-4 rounded">
-            <label class="block text-sm font-bold text-blue-800 mb-1">Pilih Vendor untuk PO ini:</label>
-            <select id="batchVendor" class="w-full border p-2 rounded font-bold" onchange="autoIsiTempoBatch(this)">
-                <option value="">-- Pilih Vendor Database --</option>
-            </select>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-gray-50 p-4 rounded-lg border">
+            <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pilih Vendor</label>
+                <select id="batchVendor" class="w-full border p-2 rounded font-bold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" onchange="autoIsiTempoBatch(this)">
+                    <option value="">-- Pilih Vendor Database --</option>
+                </select>
+            </div>
             
-            <div class="grid grid-cols-2 gap-4 mt-3">
-                <div>
-                    <label class="text-xs font-bold text-gray-600">Jatuh Tempo</label>
-                    <input type="date" id="batchTempo" class="w-full border p-2 rounded text-sm bg-white">
-                </div>
-                <div class="flex items-end">
-                    <p class="text-xs text-gray-500 italic" id="batchInfoTop">Pilih vendor untuk auto-TOP</p>
-                </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Jatuh Tempo Pembayaran</label>
+                <input type="date" id="batchTempo" class="w-full border p-2 rounded text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                <p class="text-[10px] text-blue-500 mt-1 italic" id="batchInfoTop">Otomatis dari data vendor</p>
             </div>
         </div>
 
-        <h3 class="font-bold text-gray-700 mb-2">Rincian Harga Item:</h3>
-        <table class="w-full text-sm border mb-6">
-            <thead class="bg-gray-100 font-bold">
-                <tr>
-                    <th class="p-2 border">Barang</th>
-                    <th class="p-2 border text-center">Qty Request</th>
-                    <th class="p-2 border w-40">Harga Satuan (Rp)</th>
-                    <th class="p-2 border w-40 text-right">Subtotal</th>
-                </tr>
-            </thead>
-            <tbody id="bodyBatchInput"></tbody>
-            <tfoot>
-                <tr class="bg-gray-100 font-bold">
-                    <td colspan="3" class="p-2 text-right">GRAND TOTAL:</td>
-                    <td class="p-2 text-right" id="batchGrandTotal">Rp 0</td>
-                </tr>
-            </tfoot>
-        </table>
-
-        <div class="text-right">
-            <button onclick="previewPOBatch()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded font-bold shadow text-lg">
-                <i class="fas fa-file-pdf"></i> Preview & Terbitkan
-            </button>
-        </div>
-    </div>
-  </div>
-
-  <div id="modalKertas" class="hidden fixed inset-0 bg-black bg-opacity-90 z-[60] flex justify-center items-center overflow-auto p-4">
-    <div class="flex flex-col items-center w-full">
-        <div id="actionArea" class="bg-white p-3 rounded shadow mb-4 flex gap-3 sticky top-4 z-50"></div>
-
-        <div id="areaCetak" class="kertas-po shadow-2xl">
-            <div class="flex flex-col items-center text-center border-b-4 border-double border-black pb-4 mb-6">
-                <img src="logo.png" alt="[ LOGO ]" class="h-20 mb-2 object-contain" onerror="this.style.display='none'">
-                <h1 class="text-3xl font-extrabold uppercase tracking-widest" style="font-family: serif;">NLD CORP</h1>
-                <h2 class="text-lg font-bold uppercase">PT. NUSANTARA LAND DEVELOPMENT</h2>
-                <div class="text-xs mt-2 font-medium">HQ Delft Apartement, Makassar - Telp: 0411-6004251</div>
-            </div>
-
-            <div class="flex justify-between items-start mb-8 border-b border-black pb-4">
-                <div><h2 class="text-2xl font-bold underline">PURCHASE ORDER</h2><p class="text-sm">Surat Pemesanan Barang</p></div>
-                <div class="text-right"><p class="text-xl font-bold" id="printNoPO">PO-XXXX</p><p class="text-sm" id="printTanggal">-</p></div>
-            </div>
-
-            <div class="flex justify-between mb-8 text-sm">
-                <div class="w-1/2 pr-4">
-                    <p class="font-bold uppercase text-xs mb-1">Kepada Vendor:</p>
-                    <p class="font-bold text-lg" id="printVendor">Nama Vendor</p>
-                    <p>Mohon kirimkan barang sesuai rincian berikut.</p>
-                </div>
-                <div class="w-1/2 pl-4 border-l border-black">
-                    <p class="font-bold uppercase text-xs mb-1">Jatuh Tempo:</p>
-                    <p class="font-bold text-lg" id="printTempo">-</p>
-                </div>
-            </div>
-
-            <table class="w-full text-left border border-black mb-8 text-sm">
-                <thead class="bg-gray-200 font-bold">
+        <h3 class="font-bold text-gray-700 mb-2 text-sm uppercase tracking-wide">Rincian & Harga Item</h3>
+        <div class="overflow-x-auto border rounded-lg mb-6">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100 font-bold text-gray-600">
                     <tr>
-                        <th class="p-2 border border-black text-center w-10">No</th>
-                        <th class="p-2 border border-black">Deskripsi Barang</th>
-                        <th class="p-2 border border-black text-center">Qty</th>
-                        <th class="p-2 border border-black text-right">Harga</th>
-                        <th class="p-2 border border-black text-right">Total</th>
+                        <th class="p-3 text-left">Nama Barang</th>
+                        <th class="p-3 text-center">Qty</th>
+                        <th class="p-3 w-48 text-right">Harga Satuan (Rp)</th>
+                        <th class="p-3 w-48 text-right">Subtotal</th>
                     </tr>
                 </thead>
-                <tbody id="printTabelBody"></tbody>
-                <tfoot>
-                    <tr class="bg-gray-100">
-                        <td colspan="4" class="p-2 border border-black text-right font-bold uppercase">Grand Total</td>
-                        <td class="p-2 border border-black text-right font-bold text-lg" id="printGrandTotal">-</td>
+                <tbody id="bodyBatchInput" class="divide-y"></tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="3" class="p-3 text-right font-bold text-gray-600">GRAND TOTAL EST.</td>
+                        <td class="p-3 text-right font-bold text-blue-700 text-lg" id="batchGrandTotal">Rp 0</td>
                     </tr>
                 </tfoot>
             </table>
-
-            <div class="flex justify-between mt-16 text-center text-sm">
-                <div class="w-40"><p class="mb-20">Dibuat Oleh,</p><p class="font-bold border-b border-black pb-1" id="printStaff">Finance</p></div>
-                <div class="w-40"><p class="mb-20">Disetujui Oleh,</p><p class="font-bold border-b border-black pb-1">Manager Ops</p></div>
-            </div>
         </div>
-        
-        <button onclick="document.getElementById('modalKertas').classList.add('hidden')" class="mt-4 text-white hover:text-red-400 font-bold">Tutup Preview</button>
+
+        <div class="text-right flex justify-end gap-3">
+            <button onclick="tutupModalBatch()" class="px-5 py-2 text-gray-500 hover:text-gray-800 font-bold text-sm">Batal</button>
+            <button id="btnTerbitkan" onclick="terbitkanPO()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2 transition hover:scale-105">
+                <i class="fas fa-save"></i> <span>Simpan & Download PDF</span>
+            </button>
+        </div>
     </div>
   </div>
 
@@ -189,7 +134,8 @@
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
-    const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(num);
+    const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    const fmtNum = (n) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(n);
 
     let listVendor = [];
     let listPending = [];
@@ -203,17 +149,15 @@
         loadRiwayatPO();
     }
     
-    // 1. LOAD VENDOR
+    // 1. LOAD DATA
     async function loadVendors() {
         const { data } = await client.from('master_vendor').select('*').order('nama_vendor');
         if (data) listVendor = data;
     }
 
-    // 2. LOAD PENDING & SISA STOK
     async function loadPendingRequests() {
-      // Ambil Request Pending
-      const { data: requestData } = await client.from('inventory_req').select('*').eq('status', 'PENDING').order('created_at');
-      listPending = requestData || [];
+      const { data } = await client.from('inventory_req').select('*').eq('status', 'PENDING').order('created_at');
+      listPending = data || [];
       const tbody = document.getElementById("tabelAntrian");
       tbody.innerHTML = "";
 
@@ -222,57 +166,42 @@
         return;
       }
 
-      // Ambil Data Stok dari Master Stok berdasarkan nama barang di request
+      // Cek Stok Gudang
       const itemNames = listPending.map(item => item.nama_barang);
       const { data: stockData } = await client.from('master_stok').select('nama_barang, total_stok').in('nama_barang', itemNames);
-      
-      // Mapping Stok agar mudah diakses
       const stockMap = {};
-      if(stockData) {
-          stockData.forEach(s => stockMap[s.nama_barang] = s.total_stok);
-      }
+      if(stockData) stockData.forEach(s => stockMap[s.nama_barang] = s.total_stok);
 
       listPending.forEach(item => {
-        const sisaStok = stockMap[item.nama_barang] || 0;
-        
-        // Logika Warna Stok
-        let stokBadge = "";
-        if(sisaStok === 0) {
-            stokBadge = `<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold border border-red-200">Gudang Kosong (0)</span>`;
-        } else {
-            stokBadge = `<span class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-bold border border-orange-200">Ada di Gudang: ${sisaStok}</span>`;
-        }
+        const sisa = stockMap[item.nama_barang] || 0;
+        const stokBadge = sisa === 0 
+            ? `<span class="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200">Stok: 0</span>` 
+            : `<span class="text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded border border-green-200">Stok: ${sisa}</span>`;
 
         tbody.innerHTML += `
           <tr class="hover:bg-yellow-50 border-b transition">
-            <td class="p-4 text-center">
-                <input type="checkbox" class="chk-item" value="${item.id}" onchange="cekCentang()">
+            <td class="p-4 text-center"><input type="checkbox" class="chk-item" value="${item.id}" onchange="cekCentang()"></td>
+            <td class="p-4">
+              <div class="font-bold text-gray-700">${new Date(item.created_at).toLocaleDateString('id-ID')}</div>
+              <div class="text-xs text-gray-500"><i class="fas fa-user-circle"></i> ${item.pengorder}</div>
             </td>
             <td class="p-4">
-              <div class="font-bold text-gray-700">${new Date(item.created_at).toLocaleDateString()}</div>
-              <div class="text-xs text-gray-500 flex items-center gap-1">
-                 <i class="fas fa-user"></i> ${item.pengorder}
-              </div>
-            </td>
-            <td class="p-4">
-              <div class="font-bold text-gray-800 text-lg">${item.nama_barang}</div>
+              <div class="font-bold text-gray-800">${item.nama_barang}</div>
               <div class="flex items-center gap-2 mt-1">
-                  <span class="text-xs bg-gray-200 px-2 py-1 rounded font-bold">Minta: ${item.jumlah} ${item.satuan}</span>
+                  <span class="text-xs bg-gray-200 px-2 py-0.5 rounded font-bold">Req: ${item.jumlah} ${item.satuan}</span>
                   ${stokBadge}
               </div>
             </td>
-            <td class="p-4 text-right text-gray-400 italic text-xs">Harga diinput saat PO</td>
+            <td class="p-4 text-right"><span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded">Pending Approval</span></td>
           </tr>`;
       });
     }
 
-    // 3. LOGIKA BATCH & MODAL (Sama seperti sebelumnya)
+    // 2. LOGIKA PILIH BATCH
     function toggleAll(source) {
-        const checkboxes = document.querySelectorAll('.chk-item');
-        checkboxes.forEach(chk => { if(chk !== source) chk.checked = source.checked; });
+        document.querySelectorAll('.chk-item').forEach(chk => { if(chk !== source) chk.checked = source.checked; });
         cekCentang();
     }
-
     function cekCentang() {
         const checked = document.querySelectorAll('.chk-item:checked:not(#chkAll)');
         selectedIds = Array.from(checked).map(c => c.value);
@@ -281,11 +210,13 @@
         if (selectedIds.length > 0) btn.classList.remove("hidden"); else btn.classList.add("hidden");
     }
 
+    // 3. SETUP BATCH (MODAL)
     function siapkanBatch() {
+        // Isi Dropdown Vendor
         const selVendor = document.getElementById("batchVendor");
         selVendor.innerHTML = '<option value="">-- Pilih Vendor Database --</option>';
         listVendor.forEach(v => {
-            selVendor.innerHTML += `<option value="${v.nama_vendor}" data-top="${v.top_hari}">${v.nama_vendor} (TOP: ${v.top_hari} Hari)</option>`;
+            selVendor.innerHTML += `<option value="${v.nama_vendor}" data-top="${v.top_hari}" data-alamat="${v.alamat || '-'}">${v.nama_vendor}</option>`;
         });
 
         const tbody = document.getElementById("bodyBatchInput");
@@ -294,8 +225,8 @@
         
         selectedItems.forEach((item, idx) => {
             tbody.innerHTML += `
-                <tr class="border-b">
-                    <td class="p-2">
+                <tr class="hover:bg-gray-50">
+                    <td class="p-3">
                         <div class="font-bold text-gray-700">${item.nama_barang}</div>
                         <input type="hidden" id="bid-${idx}" value="${item.id}">
                         <input type="hidden" id="bnama-${idx}" value="${item.nama_barang}">
@@ -303,52 +234,58 @@
                         <input type="hidden" id="bsat-${idx}" value="${item.satuan}">
                         <input type="hidden" id="bstaff-${idx}" value="${item.pengorder}">
                     </td>
-                    <td class="p-2 text-center text-xs font-bold bg-gray-50">${item.jumlah} ${item.satuan}</td>
-                    <td class="p-2">
-                        <input type="number" id="bharga-${idx}" class="w-full border p-1 rounded text-right" placeholder="0" onkeyup="hitungTotalBatch()">
+                    <td class="p-3 text-center text-sm font-bold bg-gray-50">${item.jumlah} ${item.satuan}</td>
+                    <td class="p-3">
+                        <input type="number" id="bharga-${idx}" class="w-full border p-2 rounded text-right focus:border-blue-500 outline-none" placeholder="0" onkeyup="hitungTotalBatch()">
                     </td>
-                    <td class="p-2 text-right font-bold" id="bsub-${idx}">Rp 0</td>
+                    <td class="p-3 text-right font-bold text-gray-700" id="bsub-${idx}">Rp 0</td>
                 </tr>
             `;
         });
         document.getElementById("modalBatch").classList.remove("hidden");
+        document.getElementById("batchGrandTotal").innerText = "Rp 0";
     }
 
     function hitungTotalBatch() {
         let grandTotal = 0;
-        const count = selectedIds.length;
-        for(let i=0; i<count; i++) {
+        for(let i=0; i<selectedIds.length; i++) {
             const qty = Number(document.getElementById(`bqty-${i}`).value);
             const harga = Number(document.getElementById(`bharga-${i}`).value);
             const sub = qty * harga;
             grandTotal += sub;
-            document.getElementById(`bsub-${i}`).innerText = formatRupiah(sub);
+            document.getElementById(`bsub-${i}`).innerText = fmt(sub);
         }
-        document.getElementById("batchGrandTotal").innerText = formatRupiah(grandTotal);
+        document.getElementById("batchGrandTotal").innerText = fmt(grandTotal);
     }
 
     function autoIsiTempoBatch(selectEl) {
         const top = parseInt(selectEl.options[selectEl.selectedIndex].getAttribute('data-top') || 0);
         const t = new Date(); t.setDate(t.getDate() + top);
         document.getElementById("batchTempo").value = t.toISOString().split('T')[0];
-        document.getElementById("batchInfoTop").innerText = top > 0 ? `Auto TOP: ${top} Hari` : "Cash / Tunai";
+        document.getElementById("batchInfoTop").innerText = top > 0 ? `Term: ${top} Hari (Auto)` : "Pembayaran Tunai";
     }
 
     function tutupModalBatch() { document.getElementById("modalBatch").classList.add("hidden"); }
 
-    function previewPOBatch() {
-        const vendor = document.getElementById("batchVendor").value;
+    // 4. TERBITKAN PO & DOWNLOAD PDF
+    async function terbitkanPO() {
+        const vendorEl = document.getElementById("batchVendor");
+        const vendorName = vendorEl.value;
+        const vendorAddress = vendorEl.options[vendorEl.selectedIndex].getAttribute('data-alamat') || '';
         const tempo = document.getElementById("batchTempo").value;
-        if(!vendor || !tempo) { alert("Pilih Vendor & Tanggal dulu!"); return; }
+
+        if(!vendorName || !tempo) { alert("Harap lengkapi Vendor & Jatuh Tempo!"); return; }
 
         batchData = [];
-        const count = selectedIds.length;
         let grandTotal = 0;
+        const count = selectedIds.length;
         const nomorPO = "PO-" + Math.floor(100000 + Math.random() * 900000);
+        const tglPO = new Date().toISOString().split('T')[0];
 
+        // Collect Data
         for(let i=0; i<count; i++) {
             const harga = Number(document.getElementById(`bharga-${i}`).value);
-            if(harga <= 0) { alert("Harga tidak boleh 0!"); return; }
+            if(harga <= 0) { alert("Harga item tidak boleh 0!"); return; }
             
             const item = {
                 reqId: document.getElementById(`bid-${i}`).value,
@@ -363,118 +300,219 @@
             batchData.push(item);
         }
 
-        document.getElementById("printNoPO").innerText = nomorPO;
-        document.getElementById("printTanggal").innerText = new Date().toLocaleDateString('id-ID');
-        document.getElementById("printVendor").innerText = vendor;
-        document.getElementById("printTempo").innerText = new Date(tempo).toLocaleDateString('id-ID');
-        document.getElementById("printGrandTotal").innerText = formatRupiah(grandTotal);
-        document.getElementById("printStaff").innerText = "Admin Finance";
+        const btn = document.getElementById("btnTerbitkan");
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`;
+        btn.disabled = true;
 
-        const tbody = document.getElementById("printTabelBody");
-        tbody.innerHTML = "";
-        batchData.forEach((d, i) => {
-            tbody.innerHTML += `
-                <tr>
-                    <td class="p-2 border border-black text-center">${i+1}</td>
-                    <td class="p-2 border border-black font-bold">${d.nama}</td>
-                    <td class="p-2 border border-black text-center">${d.qty} ${d.satuan}</td>
-                    <td class="p-2 border border-black text-right">${formatRupiah(d.harga)}</td>
-                    <td class="p-2 border border-black text-right font-bold">${formatRupiah(d.total)}</td>
-                </tr>
-            `;
-        });
-
-        document.getElementById("actionArea").innerHTML = `
-            <button onclick="simpanBatchDB('${nomorPO}', '${vendor}', '${tempo}')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-bold shadow">
-                ✅ Terbitkan PO (Batch) & Download
-            </button>
-        `;
-        document.getElementById("modalKertas").classList.remove("hidden");
-    }
-
-    async function simpanBatchDB(noPO, vendor, tempo) {
-        const btn = document.querySelector("#actionArea button");
-        btn.innerText = "⏳ Menyimpan..."; btn.disabled = true;
         try {
+            // A. SIMPAN KE DB
             const payload = batchData.map(d => ({
-                req_id: d.reqId, nomor_po: noPO, nama_vendor: vendor,
+                req_id: d.reqId, nomor_po: nomorPO, nama_vendor: vendorName,
                 harga_satuan: d.harga, total_harga: d.total, jatuh_tempo: tempo, status: 'OPEN'
             }));
             const { error } = await client.from('purchase_order').insert(payload);
             if(error) throw error;
 
+            // B. UPDATE STATUS REQUEST
             const reqIds = batchData.map(d => d.reqId);
             await client.from('inventory_req').update({ status: 'PO DIBUAT' }).in('id', reqIds);
-            await downloadPDF(noPO);
-            alert("Sukses! Batch PO diterbitkan.");
+
+            // C. GENERATE PDF LANGSUNG
+            const pdfData = {
+                noPO: nomorPO,
+                tgl: tglPO,
+                vendor: vendorName,
+                vendorAlamat: vendorAddress,
+                tempo: tempo,
+                items: batchData,
+                grandTotal: grandTotal
+            };
+            generatePOPdf(pdfData);
+
+            alert("✅ PO Berhasil Diterbitkan & PDF sedang didownload.");
             location.reload();
+
         } catch (e) {
             alert("Gagal: " + e.message);
-            btn.innerText = "Coba Lagi"; btn.disabled = false;
+            btn.innerHTML = "Coba Lagi"; btn.disabled = false;
         }
     }
 
-    async function downloadPDF(filename) {
-        const element = document.getElementById('areaCetak');
-        const opt = { margin: 0, filename: `${filename}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4' } };
-        await html2pdf().set(opt).from(element).save();
+    // 5. PDF GENERATOR ENGINE (JSPDF + AutoTable) - VERSI PRO
+    function generatePOPdf(data) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4'); // Portrait, A4
+
+        // --- KOP SURAT ---
+        // Logo (Placeholder)
+        // doc.addImage("logo.png", "PNG", 15, 10, 20, 20); 
+
+        doc.setFontSize(16); doc.setFont("helvetica", "bold");
+        doc.text("PT. NUSANTARA LAND DEVELOPMENT", 15, 20);
+        
+        doc.setFontSize(9); doc.setFont("helvetica", "normal");
+        doc.text("Perumahan Sunrise City Maros", 15, 25);
+        doc.text("082022872224 | Didin", 15, 30);
+        
+        doc.setLineWidth(0.5); doc.line(15, 35, 195, 35); // Garis
+
+        // --- JUDUL DOKUMEN ---
+        doc.setFontSize(18); doc.setFont("helvetica", "bold");
+        doc.text("PURCHASE ORDER", 105, 45, { align: "center" });
+
+        // --- INFO PO & VENDOR (2 KOLOM) ---
+        doc.setFontSize(10); doc.setFont("helvetica", "bold");
+        
+        // Kolom Kiri (Vendor)
+        doc.text("KEPADA:", 15, 55);
+        doc.setFont("helvetica", "normal");
+        doc.text(data.vendor, 15, 60);
+        doc.setFontSize(9);
+        doc.text(data.vendorAlamat || "(Alamat tidak terdata)", 15, 65, { maxWidth: 80 });
+
+        // Kolom Kanan (Detail PO)
+        doc.setFontSize(10); doc.setFont("helvetica", "bold");
+        doc.text("DETAIL PESANAN:", 120, 55);
+        
+        doc.setFont("helvetica", "normal");
+        doc.text(`Nomor PO      : ${data.noPO}`, 120, 60);
+        doc.text(`Tanggal       : ${new Date(data.tgl).toLocaleDateString('id-ID')}`, 120, 65);
+        doc.text(`Jatuh Tempo   : ${new Date(data.tempo).toLocaleDateString('id-ID')}`, 120, 70);
+
+        // --- TABEL BARANG ---
+        const head = [['No', 'Deskripsi Barang', 'Qty', 'Harga Satuan', 'Total']];
+        const body = data.items.map((item, index) => [
+            index + 1,
+            item.nama,
+            `${item.qty} ${item.satuan}`,
+            fmtNum(item.harga),
+            fmtNum(item.total)
+        ]);
+
+        // Tambah Baris Total
+        body.push([
+            { content: 'GRAND TOTAL', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+            { content: fmt(data.grandTotal), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
+        ]);
+
+        doc.autoTable({
+            startY: 80,
+            head: head,
+            body: body,
+            theme: 'grid',
+            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+            columnStyles: {
+                0: { halign: 'center', cellWidth: 10 },
+                2: { halign: 'center' },
+                3: { halign: 'right' },
+                4: { halign: 'right' }
+            },
+            styles: { fontSize: 9, cellPadding: 3 }
+        });
+
+        // --- FOOTER TANDA TANGAN ---
+        let finalY = doc.lastAutoTable.finalY + 20;
+        if(finalY > 250) { doc.addPage(); finalY = 20; }
+
+        doc.setFontSize(10); doc.setFont("helvetica", "normal");
+        
+        // Kiri (Dibuat)
+        doc.text("Dibuat Oleh,", 30, finalY);
+        doc.text("( Admin Finance )", 30, finalY + 25);
+
+        // Kanan (Disetujui)
+        doc.text("Disetujui Oleh,", 140, finalY);
+        doc.text("( Manager Operasional )", 140, finalY + 25);
+
+        // Footer Note
+        doc.setFontSize(8); doc.setFont("helvetica", "italic");
+        doc.text("* Dokumen ini diterbitkan secara digital oleh sistem NLD Corp.", 105, 285, { align: "center" });
+
+        doc.save(`${data.noPO}_${data.vendor}.pdf`);
     }
 
+    // 6. FUNGSI REPRINT (CETAK ULANG DARI RIWAYAT)
     async function loadRiwayatPO() {
         const { data } = await client.from('purchase_order').select('*').order('created_at', { ascending: false });
         const tbody = document.getElementById("tabelRiwayat");
         tbody.innerHTML = "";
-        if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">Belum ada PO.</td></tr>`; return; }
+        
+        if (!data || data.length === 0) {
+             tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">Belum ada PO.</td></tr>`;
+             return;
+        }
 
+        // Grouping Data per Nomor PO
         const groups = {};
         data.forEach(row => {
-            if(!groups[row.nomor_po]) groups[row.nomor_po] = { tgl: row.created_at, vendor: row.nama_vendor, status: row.status, grandTotal: 0, count: 0, items: [] };
+            if(!groups[row.nomor_po]) groups[row.nomor_po] = { 
+                tgl: row.created_at, 
+                vendor: row.nama_vendor, 
+                tempo: row.jatuh_tempo, 
+                status: row.status, 
+                grandTotal: 0, 
+                items: [] 
+            };
             groups[row.nomor_po].grandTotal += row.total_harga;
-            groups[row.nomor_po].count++;
             groups[row.nomor_po].items.push(row);
         });
 
         Object.keys(groups).forEach(noPO => {
             const g = groups[noPO];
-            const jsonItems = JSON.stringify(g.items).replace(/"/g, "&quot;");
+            // Encode data untuk tombol reprint
+            const btnData = encodeURIComponent(JSON.stringify(g)); 
+            
             tbody.innerHTML += `
                 <tr class="hover:bg-blue-50 border-b">
                     <td class="p-4 font-bold text-gray-800">${noPO} <br> <span class="text-xs text-gray-500 font-normal">${new Date(g.tgl).toLocaleDateString()}</span></td>
                     <td class="p-4">${g.vendor}</td>
-                    <td class="p-4 text-center"><span class="bg-gray-200 px-2 py-1 rounded text-xs font-bold">${g.count} Item</span></td>
-                    <td class="p-4 text-right font-bold font-mono text-green-700">${formatRupiah(g.grandTotal)}</td>
-                    <td class="p-4 text-center text-xs font-bold">${g.status}</td>
-                    <td class="p-4 text-center"><button onclick='reprintBatch("${noPO}", ${jsonItems})' class="bg-gray-700 text-white px-3 py-1 rounded text-xs hover:bg-black"><i class="fas fa-print"></i> PDF</button></td>
+                    <td class="p-4 text-center"><span class="bg-gray-100 px-2 py-1 rounded text-xs font-bold border">${g.items.length} Item</span></td>
+                    <td class="p-4 text-right font-bold font-mono text-green-700">${fmt(g.grandTotal)}</td>
+                    <td class="p-4 text-center"><span class="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded">${g.status}</span></td>
+                    <td class="p-4 text-center">
+                        <button onclick='reprintPO("${btnData}")' class="bg-gray-800 text-white px-3 py-1 rounded text-xs hover:bg-black transition shadow">
+                            <i class="fas fa-file-pdf"></i> Download
+                        </button>
+                    </td>
                 </tr>`;
         });
     }
 
-    function reprintBatch(noPO, items) { fetchDetailAndPrint(noPO, items); }
+    // Ambil detail nama barang dari inventory_req karena di tabel PO cuma ada harga & total
+    async function reprintPO(encodedData) {
+        const g = JSON.parse(decodeURIComponent(encodedData));
+        
+        // Kita butuh nama barang & satuan. Di tabel PO, data itu tidak disimpan langsung (hanya ID req).
+        // Jadi kita fetch ulang nama barang dari inventory_req
+        const reqIds = g.items.map(i => i.req_id);
+        const { data: reqData } = await client.from('inventory_req').select('id, nama_barang, satuan').in('id', reqIds);
+        
+        const mapInfo = {};
+        if(reqData) reqData.forEach(d => mapInfo[d.id] = d);
 
-    async function fetchDetailAndPrint(noPO, items) {
-        const reqIds = items.map(i => i.req_id);
-        const { data } = await client.from('inventory_req').select('id, nama_barang, satuan').in('id', reqIds);
-        const mapNama = {};
-        if(data) data.forEach(d => mapNama[d.id] = d);
-
-        let grandTotal = 0;
-        const tbody = document.getElementById("printTabelBody");
-        tbody.innerHTML = "";
-        const first = items[0];
-        document.getElementById("printNoPO").innerText = noPO;
-        document.getElementById("printTanggal").innerText = new Date(first.created_at).toLocaleDateString();
-        document.getElementById("printVendor").innerText = first.nama_vendor;
-        document.getElementById("printTempo").innerText = new Date(first.jatuh_tempo).toLocaleDateString();
-
-        items.forEach((d, i) => {
-            const info = mapNama[d.req_id] || { nama_barang: 'Item Terhapus', satuan: '' };
-            const qty = d.total_harga / d.harga_satuan;
-            tbody.innerHTML += `<tr><td class="p-2 border border-black text-center">${i+1}</td><td class="p-2 border border-black font-bold">${info.nama_barang}</td><td class="p-2 border border-black text-center">${qty} ${info.satuan}</td><td class="p-2 border border-black text-right">${formatRupiah(d.harga_satuan)}</td><td class="p-2 border border-black text-right font-bold">${formatRupiah(d.total_harga)}</td></tr>`;
-            grandTotal += d.total_harga;
+        // Reconstruct Item Data untuk PDF Generator
+        const itemsFormatted = g.items.map(i => {
+            const info = mapInfo[i.req_id] || { nama_barang: 'Item (Terhapus)', satuan: 'Unit' };
+            return {
+                nama: info.nama_barang,
+                qty: i.total_harga / i.harga_satuan, // Hitung balik qty
+                satuan: info.satuan,
+                harga: i.harga_satuan,
+                total: i.total_harga
+            };
         });
-        document.getElementById("printGrandTotal").innerText = formatRupiah(grandTotal);
-        document.getElementById("actionArea").innerHTML = `<button onclick="downloadPDF('${noPO}')" class="bg-gray-800 text-white px-6 py-2 rounded font-bold shadow">Download PDF Arsip</button>`;
-        document.getElementById("modalKertas").classList.remove("hidden");
+
+        const pdfData = {
+            noPO: g.items[0].nomor_po,
+            tgl: g.tgl,
+            vendor: g.vendor,
+            vendorAlamat: "", // Bisa fetch lagi ke master vendor kalau mau perfect, sementara kosong
+            tempo: g.tempo,
+            items: itemsFormatted,
+            grandTotal: g.grandTotal
+        };
+
+        generatePOPdf(pdfData);
     }
 
     init();

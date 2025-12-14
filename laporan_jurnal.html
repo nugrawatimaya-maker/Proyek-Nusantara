@@ -3,137 +3,78 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Laporan Keuangan Pro</title>
+  <title>Laporan Keuangan Terintegrasi</title>
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
   
   <style>
-    body { background-color: #f8fafc; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+    body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; padding-bottom: 80px; }
     
-    .menu-card { transition: all 0.2s; cursor: pointer; border: 1px solid #e2e8f0; }
-    .menu-card:hover, .menu-card.active { 
-        background-color: #eff6ff; border-color: #3b82f6; transform: translateY(-2px); 
-        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
-    }
-    .menu-card.active i { color: #2563eb; }
-    
-    /* Indikator Balance */
-    .status-balance { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-    .status-unbalance { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+    /* MENU SCROLL */
+    .mobile-scroll-menu { display: flex; overflow-x: auto; gap: 10px; padding: 4px; scrollbar-width: none; }
+    .mobile-scroll-menu::-webkit-scrollbar { display: none; }
+    .menu-pill { white-space: nowrap; padding: 8px 16px; border-radius: 50px; font-size: 11px; font-weight: 700; border: 1px solid #cbd5e1; background: white; color: #64748b; transition: all 0.2s; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .menu-pill.active { background: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); }
 
-    @media (max-width: 640px) {
-        .mobile-sticky { position: sticky; top: 0; z-index: 40; background: white; padding: 10px; border-bottom: 1px solid #e2e8f0; }
-        .hide-mobile { display: none; }
-    }
-    @media print {
-        body { background: white; }
-        .no-print { display: none !important; }
-        .print-only { display: block !important; }
-        #laporanArea { box-shadow: none; padding: 0; }
-    }
-    .print-only { display: none; }
+    /* CARD STYLE */
+    .trx-card { background: white; border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; position: relative; overflow: hidden; }
   </style>
 </head>
-<body class="pb-20">
+<body>
 
-  <nav class="bg-white border-b px-4 py-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+  <nav class="bg-white border-b px-4 py-3 sticky top-0 z-50 shadow-sm flex justify-between items-center">
     <div class="flex items-center gap-3">
-        <div class="bg-blue-600 text-white p-2 rounded-lg"><i class="fas fa-chart-line"></i></div>
+        <div class="bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-lg shadow-blue-200 shadow-lg"><i class="fas fa-chart-pie text-xs"></i></div>
         <div>
-            <h1 class="text-sm font-bold text-slate-800 leading-tight">Financial Report</h1>
-            <p class="text-[10px] text-slate-500">NLD Corp Integrated System</p>
+            <h1 class="text-sm font-bold text-slate-800 leading-tight">Laporan Keuangan</h1>
+            <p class="text-[10px] text-slate-500">Nusantara Land</p>
         </div>
     </div>
-    <a href="dashboard_operasional.html" class="bg-slate-100 text-slate-600 p-2 rounded-full hover:bg-slate-200 transition">
-        <i class="fas fa-times"></i>
-    </a>
+    <a href="dashboard_operasional.html" class="bg-slate-50 text-slate-400 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xs"></i></a>
   </nav>
 
-  <div class="p-4 no-print overflow-x-auto">
-      <div class="grid grid-cols-2 md:grid-cols-7 gap-3 min-w-[600px]">
-        <a href="input_jurnal_umum.html" class="menu-card bg-white p-3 rounded-xl flex flex-col items-center text-center gap-2 border border-dashed border-slate-300 hover:border-blue-500">
-            <i class="fas fa-pencil-alt text-slate-400 text-xl mb-1"></i>
-            <span class="text-[10px] font-bold text-slate-700">Input Jurnal</span>
-        </a>
-        <div onclick="pilihLaporan('JURNAL', this)" class="menu-card active bg-white p-3 rounded-xl flex flex-col items-center text-center gap-2">
-            <i class="fas fa-book text-slate-400 text-xl mb-1"></i>
-            <span class="text-[10px] font-bold text-slate-700">Jurnal Umum</span>
-        </div>
-        <div onclick="pilihLaporan('BUKU_BESAR', this)" class="menu-card bg-white p-3 rounded-xl flex flex-col items-center text-center gap-2">
-            <i class="fas fa-book-open text-slate-400 text-xl mb-1"></i>
-            <span class="text-[10px] font-bold text-slate-700">Buku Besar</span>
-        </div>
-        <div onclick="pilihLaporan('NERACA_SALDO', this)" class="menu-card bg-white p-3 rounded-xl flex flex-col items-center text-center gap-2 border-l-4 border-l-orange-400">
-            <i class="fas fa-scale-balanced text-slate-400 text-xl mb-1"></i>
-            <span class="text-[10px] font-bold text-slate-700">Neraca Saldo</span>
-        </div>
-        <div onclick="pilihLaporan('NERACA_LAJUR', this)" class="menu-card bg-white p-3 rounded-xl flex flex-col items-center text-center gap-2">
-            <i class="fas fa-table text-slate-400 text-xl mb-1"></i>
-            <span class="text-[10px] font-bold text-slate-700">Worksheet</span>
-        </div>
-        <div onclick="pilihLaporan('LABA_RUGI', this)" class="menu-card bg-white p-3 rounded-xl flex flex-col items-center text-center gap-2">
-            <i class="fas fa-chart-pie text-slate-400 text-xl mb-1"></i>
-            <span class="text-[10px] font-bold text-slate-700">Laba Rugi</span>
-        </div>
-        <div onclick="pilihLaporan('NERACA', this)" class="menu-card bg-white p-3 rounded-xl flex flex-col items-center text-center gap-2">
-            <i class="fas fa-landmark text-slate-400 text-xl mb-1"></i>
-            <span class="text-[10px] font-bold text-slate-700">Neraca</span>
-        </div>
+  <div class="bg-white p-3 border-b">
+      <div class="flex gap-2 items-center bg-slate-50 p-2 rounded-lg border border-slate-200">
+          <div class="flex-1 flex items-center gap-2 text-xs">
+              <input type="date" id="tglMulai" class="bg-transparent font-bold text-slate-700 w-full outline-none">
+              <i class="fas fa-arrow-right text-slate-300 text-[10px]"></i>
+              <input type="date" id="tglSelesai" class="bg-transparent font-bold text-slate-700 w-full outline-none">
+          </div>
+          <button onclick="loadData()" class="bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center shadow active:scale-95 transition"><i class="fas fa-search text-xs"></i></button>
       </div>
   </div>
 
-  <div class="mobile-sticky px-4 pb-2 no-print">
-      <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg flex flex-wrap items-center gap-3 justify-between">
-          <div class="flex items-center gap-2 w-full md:w-auto">
-              <input type="date" id="tglMulai" class="bg-white border p-2 rounded text-xs font-bold w-1/2 md:w-32 outline-none">
-              <span class="text-slate-400">-</span>
-              <input type="date" id="tglSelesai" class="bg-white border p-2 rounded text-xs font-bold w-1/2 md:w-32 outline-none">
-          </div>
-          <button onclick="loadData()" class="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto px-6 py-2 rounded-lg text-sm font-bold shadow flex justify-center items-center gap-2 transition active:scale-95">
-              <i class="fas fa-sync-alt"></i> Tampilkan
-          </button>
+  <div class="bg-white border-b py-3 px-4 sticky top-[120px] z-40">
+      <div class="mobile-scroll-menu">
+        <div onclick="pilihLaporan('JURNAL', this)" class="menu-pill active"><i class="fas fa-list-ul"></i> Jurnal Umum</div>
+        <div onclick="pilihLaporan('BUKU_BESAR', this)" class="menu-pill"><i class="fas fa-book"></i> Buku Besar</div>
+        <div onclick="pilihLaporan('NERACA_SALDO', this)" class="menu-pill"><i class="fas fa-balance-scale"></i> Neraca Saldo</div>
+        <div onclick="pilihLaporan('LABA_RUGI', this)" class="menu-pill"><i class="fas fa-coins"></i> Laba Rugi</div>
+        <div onclick="pilihLaporan('NERACA', this)" class="menu-pill"><i class="fas fa-building"></i> Neraca</div>
       </div>
   </div>
 
-  <main class="p-4 md:p-6 max-w-6xl mx-auto">
-      <div id="laporanArea" class="bg-white shadow-xl min-h-[600px] p-6 md:p-10 relative">
-          
-          <div id="kopSurat" class="print-only text-center border-b-4 border-double border-slate-800 pb-4 mb-6">
-              <h1 class="text-2xl font-bold uppercase tracking-widest font-serif">NLD CORP</h1>
-              <h2 class="text-sm font-bold uppercase">PT. Nusantara Land Development</h2>
-              <p class="text-[10px] text-slate-500 mt-1">Makassar, Sulawesi Selatan</p>
+  <main class="p-4 md:p-6 max-w-5xl mx-auto">
+      <div class="mb-4 flex justify-between items-end">
+          <div>
+              <h2 id="judulLap" class="text-lg font-bold text-slate-800">JURNAL UMUM</h2>
+              <p class="text-xs text-slate-500" id="subJudul">Periode: -</p>
           </div>
-
-          <div class="text-center mb-6">
-              <h2 id="judulLap" class="text-xl font-bold text-slate-800 underline decoration-2 underline-offset-4 uppercase">JURNAL UMUM</h2>
-              <p class="text-xs text-slate-500 mt-1" id="subJudul">Periode: -</p>
-              
-              <div id="balanceIndicator" class="hidden mt-3 inline-block px-4 py-1 rounded-full text-xs font-bold">
-                  CHECKING BALANCE...
-              </div>
-          </div>
-
-          <div id="konten" class="text-sm overflow-x-auto">
-              <div class="py-20 text-center text-slate-400 flex flex-col items-center">
-                  <i class="fas fa-search fa-3x mb-3 text-slate-200"></i>
-                  <p>Pilih periode lalu klik "Tampilkan"</p>
-              </div>
-          </div>
-
-          <div class="print-only mt-16 flex justify-end">
-              <div class="text-center w-40">
-                  <p class="text-xs mb-16">Makassar, <span id="tglCetak"></span></p>
-                  <p class="text-xs font-bold border-b border-black pb-1">Finance Manager</p>
-              </div>
-          </div>
+      </div>
+      
+      <div id="kontenScreen" class="text-sm pb-20">
+          <div class="py-10 text-center"><i class="fas fa-filter opacity-30 text-4xl mb-2"></i><p class="text-xs text-slate-400">Pilih tanggal untuk melihat data</p></div>
       </div>
   </main>
 
-  <div class="fixed bottom-6 right-6 no-print flex flex-col gap-3">
-      <button onclick="downloadPDF()" class="bg-red-600 hover:bg-red-700 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition hover:scale-110 active:scale-95" title="Download PDF">
+  <div class="fixed bottom-6 right-6">
+      <button onclick="downloadPDF()" class="bg-red-600 hover:bg-red-700 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition active:scale-90 z-50">
           <i class="fas fa-file-pdf fa-lg"></i>
       </button>
   </div>
@@ -143,232 +84,260 @@
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    const fmtNum = (n) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(n);
 
     let currentType = 'JURNAL';
     let rawData = [];
+    let akunMap = {}; 
 
     const today = new Date();
-    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-    document.getElementById("tglMulai").valueAsDate = firstDay;
+    document.getElementById("tglMulai").valueAsDate = new Date(today.getFullYear(), today.getMonth(), 1);
     document.getElementById("tglSelesai").valueAsDate = today;
-    document.getElementById("tglCetak").innerText = today.toLocaleDateString('id-ID');
 
     function pilihLaporan(type, el) {
         currentType = type;
-        document.querySelectorAll('.menu-card').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.menu-pill').forEach(c => c.classList.remove('active'));
         el.classList.add('active');
         
-        const titles = {
-            'JURNAL': 'JURNAL UMUM',
-            'BUKU_BESAR': 'BUKU BESAR (LEDGER)',
-            'NERACA_SALDO': 'NERACA SALDO (TRIAL BALANCE)',
-            'NERACA_LAJUR': 'NERACA LAJUR (WORKSHEET)',
-            'LABA_RUGI': 'LABA RUGI (PROFIT & LOSS)',
-            'NERACA': 'NERACA (BALANCE SHEET)'
+        const mapJudul = {
+            'JURNAL': 'JURNAL UMUM', 'BUKU_BESAR': 'BUKU BESAR',
+            'NERACA_SALDO': 'NERACA SALDO', 'LABA_RUGI': 'LAPORAN LABA RUGI', 'NERACA': 'NERACA KEUANGAN'
         };
-        document.getElementById("judulLap").innerText = titles[type];
-        document.getElementById("balanceIndicator").className = "hidden"; // Reset indicator
-        
-        if(rawData.length > 0) renderData();
-        else loadData();
+        document.getElementById("judulLap").innerText = mapJudul[type];
+        loadData();
     }
 
     async function loadData() {
         const start = document.getElementById("tglMulai").value;
         const end = document.getElementById("tglSelesai").value;
-        const konten = document.getElementById("konten");
+        document.getElementById("subJudul").innerText = `${new Date(start).toLocaleDateString('id-ID')} s/d ${new Date(end).toLocaleDateString('id-ID')}`;
+        document.getElementById("kontenScreen").innerHTML = `<div class="py-10 text-center"><i class="fas fa-spinner fa-spin text-blue-500"></i> Loading Data...</div>`;
 
-        document.getElementById("subJudul").innerText = `Periode: ${new Date(start).toLocaleDateString('id-ID')} s/d ${new Date(end).toLocaleDateString('id-ID')}`;
-        konten.innerHTML = `<div class="py-20 text-center"><i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i><p class="text-xs text-slate-500 mt-2">Mengambil data...</p></div>`;
+        const { data: jurnal } = await client.from('jurnal_umum').select('*').gte('tanggal', start).lte('tanggal', end).order('tanggal', { ascending: true });
+        const { data: master } = await client.from('master_akun').select('nama_akun, kode_akun');
 
-        const { data, error } = await client
-            .from('jurnal_umum')
-            .select('*')
-            .gte('tanggal', start)
-            .lte('tanggal', end)
-            .order('tanggal', { ascending: true });
+        akunMap = {};
+        if(master) master.forEach(m => { akunMap[m.nama_akun] = m.kode_akun; });
+        rawData = jurnal || [];
 
-        if(error) { konten.innerHTML = `<div class="text-red-500 text-center p-4">Gagal: ${error.message}</div>`; return; }
-        if(!data || data.length === 0) { konten.innerHTML = `<div class="text-slate-400 text-center p-10">Tidak ada data transaksi.</div>`; return; }
-
-        rawData = data;
-        renderData();
+        renderScreen(); // Render Tampilan Layar HP
     }
 
-    function renderData() {
-        if(currentType === 'JURNAL') renderJurnal();
-        else if(currentType === 'BUKU_BESAR') renderBukuBesar();
-        else if(currentType === 'NERACA_SALDO') renderNeracaSaldo();
-        else if(currentType === 'NERACA_LAJUR') renderNeracaLajur();
-        else if(currentType === 'LABA_RUGI') renderLabaRugi();
-        else if(currentType === 'NERACA') renderNeraca();
-    }
+    // ==========================================
+    // 1. RENDER SCREEN (TAMPILAN HP) - LENGKAP
+    // ==========================================
+    function renderScreen() {
+        let html = `<div class="space-y-3">`;
+        const saldos = hitungSaldo();
 
-    function renderJurnal() {
-        let html = `<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-slate-100 text-slate-600 uppercase text-[10px] font-bold"><tr><th class="p-2 border">Tanggal</th><th class="p-2 border">Akun / Keterangan</th><th class="p-2 border text-right">Debit</th><th class="p-2 border text-right">Kredit</th></tr></thead><tbody class="text-xs">`;
-        let sumD = 0, sumK = 0;
-        rawData.forEach(row => {
-            sumD += row.debit; sumK += row.kredit;
-            const style = row.kredit > 0 ? "pl-6 italic text-slate-500" : "font-bold text-slate-700";
-            html += `<tr><td class="p-2 border text-center whitespace-nowrap text-slate-500">${new Date(row.tanggal).toLocaleDateString('id-ID')}</td><td class="p-2 border"><div class="${style}">${row.nama_akun}</div><div class="text-[9px] text-slate-400">${row.keterangan || '-'}</div></td><td class="p-2 border text-right">${row.debit > 0 ? fmt(row.debit) : '-'}</td><td class="p-2 border text-right">${row.kredit > 0 ? fmt(row.kredit) : '-'}</td></tr>`;
-        });
-        html += `<tr class="bg-slate-50 font-bold"><td colspan="2" class="p-2 border text-right">TOTAL</td><td class="p-2 border text-right">${fmt(sumD)}</td><td class="p-2 border text-right">${fmt(sumK)}</td></tr></tbody></table></div>`;
-        document.getElementById("konten").innerHTML = html;
-    }
-
-    function renderBukuBesar() {
-        const groups = {};
-        rawData.forEach(r => { if(!groups[r.nama_akun]) groups[r.nama_akun] = []; groups[r.nama_akun].push(r); });
-        let html = `<div class="space-y-6">`;
-        Object.keys(groups).sort().forEach(akun => {
-            html += `<div class="border rounded-lg overflow-hidden mb-4"><div class="bg-blue-50 p-2 font-bold text-blue-800 text-xs uppercase border-b">${akun}</div><table class="w-full text-xs text-left"><thead class="bg-slate-50 text-slate-500"><tr><th class="p-2">Tgl</th><th class="p-2">Ket</th><th class="p-2 text-right">Mutasi</th><th class="p-2 text-right">Saldo</th></tr></thead><tbody class="divide-y">`;
-            let saldo = 0;
-            groups[akun].forEach(r => {
-                const mutasi = r.debit - r.kredit; saldo += mutasi;
-                const warna = mutasi >= 0 ? "text-green-600" : "text-red-600";
-                html += `<tr><td class="p-2 whitespace-nowrap text-slate-500">${new Date(r.tanggal).toLocaleDateString('id-ID')}</td><td class="p-2 truncate max-w-[150px]">${r.keterangan}</td><td class="p-2 text-right ${warna}">${fmt(Math.abs(mutasi))}</td><td class="p-2 text-right font-bold">${fmt(saldo)}</td></tr>`;
+        // A. JURNAL UMUM
+        if(currentType === 'JURNAL') {
+            rawData.forEach(r => {
+                const kode = akunMap[r.nama_akun] || '-';
+                const isD = r.debit > 0;
+                const style = isD ? 'border-l-4 border-green-500' : 'border-l-4 border-red-500 ml-4 bg-slate-50';
+                html += `
+                <div class="bg-white p-3 rounded shadow-sm border ${style} flex justify-between">
+                    <div>
+                        <div class="text-[10px] text-slate-400 font-mono">${new Date(r.tanggal).toLocaleDateString('id-ID')} • ${kode}</div>
+                        <div class="font-bold text-sm text-slate-800">${r.nama_akun}</div>
+                        <div class="text-xs text-slate-500 italic truncate w-48">${r.keterangan || '-'}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-sm ${isD ? 'text-green-600' : 'text-red-600'}">${fmt(isD ? r.debit : r.kredit)}</div>
+                    </div>
+                </div>`;
             });
-            html += `</tbody></table></div>`;
-        });
-        html += `</div>`;
-        document.getElementById("konten").innerHTML = html;
-    }
 
-    // --- LOGIKA NERACA SALDO (CHECKER) ---
-    function renderNeracaSaldo() {
-        const saldos = hitungSaldo();
-        let html = `<div class="max-w-3xl mx-auto"><table class="w-full text-left border-collapse text-xs md:text-sm">
-            <thead class="bg-slate-800 text-white uppercase font-bold text-center">
-                <tr><th class="p-3 border border-slate-700">Nama Akun</th><th class="p-3 border border-slate-700 w-32">Debit</th><th class="p-3 border border-slate-700 w-32">Kredit</th></tr>
-            </thead>
-            <tbody>`;
+        // B. BUKU BESAR
+        } else if(currentType === 'BUKU_BESAR') {
+            const groups = {};
+            rawData.forEach(r => { if(!groups[r.nama_akun]) groups[r.nama_akun] = []; groups[r.nama_akun].push(r); });
+            Object.keys(groups).sort().forEach(akun => {
+                 let s = 0;
+                 html += `<div class="bg-white rounded border shadow-sm overflow-hidden mb-3"><div class="bg-blue-50 p-2 font-bold text-xs border-b text-blue-800">${akun}</div><div class="divide-y">`;
+                 groups[akun].forEach(r => {
+                     s += (r.debit - r.kredit);
+                     html += `<div class="p-2 flex justify-between text-xs"><div class="w-2/3"><div>${new Date(r.tanggal).toLocaleDateString('id-ID')}</div><div class="text-slate-500 italic">${r.keterangan}</div></div><div class="text-right font-bold ${s>=0?'text-green-600':'text-red-600'}">${fmt(s)}</div></div>`;
+                 });
+                 html += `</div></div>`;
+            });
 
-        let totalD = 0, totalK = 0;
-        
-        Object.keys(saldos).sort().forEach(akun => {
-            const val = saldos[akun];
-            const net = val.debit - val.kredit;
-            
-            // Logika Dasar Neraca Saldo: Tampilkan Net Balance saja
-            let d = 0, k = 0;
-            if(net > 0) d = net; // Saldo Debit
-            else k = Math.abs(net); // Saldo Kredit
+        // C. NERACA SALDO
+        } else if(currentType === 'NERACA_SALDO') {
+            html += `<div class="bg-white rounded shadow border divide-y">`;
+            let tD=0, tK=0;
+            Object.keys(saldos).sort().forEach(akun => {
+                const net = saldos[akun].debit - saldos[akun].kredit;
+                if(net === 0) return;
+                const isD = net > 0; const nom = Math.abs(net);
+                if(isD) tD+=nom; else tK+=nom;
+                html += `<div class="p-3 flex justify-between text-xs"><span class="font-bold text-slate-700">${akun}</span><span class="${isD?'text-slate-800':'text-red-600'} font-bold">${fmt(nom)} (${isD?'D':'K'})</span></div>`;
+            });
+            html += `<div class="p-3 bg-slate-800 text-white flex justify-between font-bold text-xs"><span>TOTAL</span><span>D: ${fmt(tD)} | K: ${fmt(tK)}</span></div></div>`;
 
-            totalD += d;
-            totalK += k;
-
-            if(d === 0 && k === 0) return; // Skip akun 0
-
-            html += `<tr class="hover:bg-slate-50 border-b border-slate-200">
-                <td class="p-3 border-r font-medium text-slate-700">${akun}</td>
-                <td class="p-3 border-r text-right text-slate-600 font-mono">${d ? fmt(d) : '-'}</td>
-                <td class="p-3 text-right text-slate-600 font-mono">${k ? fmt(k) : '-'}</td>
-            </tr>`;
-        });
-
-        const balance = Math.abs(totalD - totalK) < 1; // Toleransi koma kecil
-        const styleBal = balance ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
-        const iconBal = balance ? "<i class='fas fa-check-circle'></i> BALANCE" : "<i class='fas fa-exclamation-triangle'></i> NOT BALANCE";
-
-        html += `<tr class="font-bold text-sm bg-slate-100 border-t-2 border-slate-800">
-            <td class="p-3 text-right">TOTAL</td>
-            <td class="p-3 text-right text-slate-800">${fmt(totalD)}</td>
-            <td class="p-3 text-right text-slate-800">${fmt(totalK)}</td>
-        </tr>`;
-        html += `</tbody></table></div>`;
-
-        // Update Indikator Balance di Header
-        const ind = document.getElementById("balanceIndicator");
-        ind.className = balance ? "mt-3 inline-block px-4 py-1 rounded-full text-xs font-bold status-balance" 
-                                : "mt-3 inline-block px-4 py-1 rounded-full text-xs font-bold status-unbalance";
-        ind.innerHTML = iconBal + (balance ? "" : ` (Selisih: ${fmt(Math.abs(totalD - totalK))})`);
-        ind.classList.remove("hidden");
-
-        document.getElementById("konten").innerHTML = html;
-    }
-
-    function renderNeracaLajur() {
-        const saldos = hitungSaldo();
-        // ... (Kode sama seperti sebelumnya, hanya disederhanakan di sini untuk hemat space, logic tetap)
-        // Saya pertahankan logic lengkap Neraca Lajur Anda di sini
-        let html = `<div class="overflow-x-auto"><table class="w-full text-left border-collapse text-[10px] md:text-xs">
-            <thead class="bg-slate-700 text-white uppercase font-bold text-center">
-                <tr>
-                    <th rowspan="2" class="p-2 border border-slate-600 sticky left-0 bg-slate-700 z-10 min-w-[150px]">Nama Akun</th>
-                    <th colspan="2" class="p-2 border bg-blue-900">Neraca Saldo</th>
-                    <th colspan="2" class="p-2 border bg-green-900">Laba Rugi</th>
-                    <th colspan="2" class="p-2 border bg-indigo-900">Neraca</th>
-                </tr>
-                <tr>
-                    <th class="p-2 border bg-blue-800">D</th><th class="p-2 border bg-blue-800">K</th>
-                    <th class="p-2 border bg-green-800">D</th><th class="p-2 border bg-green-800">K</th>
-                    <th class="p-2 border bg-indigo-800">D</th><th class="p-2 border bg-indigo-800">K</th>
-                </tr>
-            </thead><tbody>`;
-        
-        let tNSD=0, tNSK=0, tLRD=0, tLRK=0, tNRD=0, tNRK=0;
-
-        Object.keys(saldos).sort().forEach(akun => {
-            const val = saldos[akun];
-            const net = val.debit - val.kredit;
-            const nsd = net > 0 ? net : 0; const nsk = net < 0 ? Math.abs(net) : 0;
-            tNSD += nsd; tNSK += nsk;
-
-            let lrd=0, lrk=0, nrd=0, nrk=0;
-            if(akun.match(/biaya|beban|pendapatan|penjualan|gaji|listrik|air|internet/i)) { lrd = nsd; lrk = nsk; } 
-            else { nrd = nsd; nrk = nsk; }
-            tLRD+=lrd; tLRK+=lrk; tNRD+=nrd; tNRK+=nrk;
-
-            html += `<tr class="hover:bg-slate-50 border-b"><td class="p-2 border-r sticky left-0 bg-white font-medium">${akun}</td>
-            <td class="p-2 text-right border-r bg-blue-50">${nsd?fmt(nsd):'-'}</td><td class="p-2 text-right border-r bg-blue-50">${nsk?fmt(nsk):'-'}</td>
-            <td class="p-2 text-right border-r bg-green-50">${lrd?fmt(lrd):'-'}</td><td class="p-2 text-right border-r bg-green-50">${lrk?fmt(lrk):'-'}</td>
-            <td class="p-2 text-right border-r bg-indigo-50">${nrd?fmt(nrd):'-'}</td><td class="p-2 text-right bg-indigo-50">${nrk?fmt(nrk):'-'}</td></tr>`;
-        });
-        
-        const laba = tLRK - tLRD;
-        const slrd = laba>0?laba:0; const slrk = laba<0?Math.abs(laba):0;
-        const snrk = laba>0?laba:0; const snrd = laba<0?Math.abs(laba):0;
-
-        html += `<tr class="bg-slate-100 font-bold"><td class="p-2 sticky left-0 bg-slate-100">SUB TOTAL</td>
-        <td class="p-2 text-right">${fmt(tNSD)}</td><td class="p-2 text-right">${fmt(tNSK)}</td>
-        <td class="p-2 text-right">${fmt(tLRD)}</td><td class="p-2 text-right">${fmt(tLRK)}</td>
-        <td class="p-2 text-right">${fmt(tNRD)}</td><td class="p-2 text-right">${fmt(tNRK)}</td></tr>`;
-
-        html += `<tr class="bg-yellow-50 font-bold text-yellow-800"><td class="p-2 sticky left-0 bg-yellow-50">Laba (Rugi) Bersih</td>
-        <td></td><td></td><td class="p-2 text-right border-b-2 border-double border-yellow-600">${fmt(slrd)}</td><td class="p-2 text-right border-b-2 border-double border-yellow-600">${fmt(slrk)}</td>
-        <td class="p-2 text-right border-b-2 border-double border-yellow-600">${fmt(snrd)}</td><td class="p-2 text-right border-b-2 border-double border-yellow-600">${fmt(snrk)}</td></tr>`;
-        
-        html += `</tbody></table></div>`;
-        document.getElementById("konten").innerHTML = html;
-    }
-
-    function renderLabaRugi() {
-        const saldos = hitungSaldo();
-        let pendapatan = 0, beban = 0;
-        let html = `<div class="max-w-2xl mx-auto border p-4 bg-slate-50 rounded text-sm"><div class="font-bold text-slate-800 mb-2 border-b pb-1">PENDAPATAN</div><div class="flex justify-between font-bold text-green-700 mb-4"><span>TOTAL PENDAPATAN</span><span>${fmt(pendapatan)}</span></div><div class="font-bold text-slate-800 mb-2 border-b pb-1">BEBAN OPERASIONAL</div>`;
-        for(let [akun, val] of Object.entries(saldos)) {
-            if(akun.match(/biaya|beban|gaji|listrik|air|internet/i)) {
-                const nilai = val.debit - val.kredit;
-                if(nilai !== 0) { beban += nilai; html += `<div class="flex justify-between py-1 border-b border-dashed border-slate-200"><span>${akun}</span><span>${fmt(nilai)}</span></div>`; }
+        // D. LABA RUGI
+        } else if(currentType === 'LABA_RUGI') {
+            let inc=0, exp=0;
+            let incHtml = '', expHtml = '';
+            for(let [ak, v] of Object.entries(saldos)) {
+                let net = v.debit - v.kredit;
+                if(ak.match(/pendapatan|penjualan/i) && net !== 0) {
+                    let val = Math.abs(net); inc+=val; incHtml += cardLine(ak, val, 'text-green-600');
+                } else if(ak.match(/beban|biaya|gaji|listrik/i) && net !== 0) {
+                    let val = Math.abs(net); exp+=val; expHtml += cardLine(ak, val, 'text-red-600');
+                }
             }
+            let laba = inc - exp;
+            html += `<div class="bg-blue-600 text-white p-4 rounded text-center font-bold text-xl mb-4">Laba Bersih: ${fmt(laba)}</div>`;
+            html += `<div class="bg-white p-3 rounded border mb-2"><div class="font-bold border-b pb-1 mb-2">PENDAPATAN</div>${incHtml||'-'}</div>`;
+            html += `<div class="bg-white p-3 rounded border"><div class="font-bold border-b pb-1 mb-2">BEBAN</div>${expHtml||'-'}</div>`;
+
+        // E. NERACA
+        } else if(currentType === 'NERACA') {
+            let ast=0, kwj=0;
+            let astHtml='', pasHtml='';
+            for(let [ak, v] of Object.entries(saldos)) {
+                let net = v.debit - v.kredit;
+                if(ak.match(/kas|bank|piutang|persediaan|tanah|bangunan|kendaraan/i) && net!==0) {
+                    ast+=net; astHtml += cardLine(ak, net, 'text-blue-600');
+                } else if(ak.match(/hutang|kewajiban/i) && net!==0) {
+                    let h = Math.abs(net); kwj+=h; pasHtml += cardLine(ak, h, 'text-red-600');
+                }
+            }
+            let modal = ast - kwj;
+            html += `<div class="bg-white p-3 rounded border mb-2"><div class="font-bold border-b pb-1 mb-2 text-blue-700">ASET (Total: ${fmt(ast)})</div>${astHtml}</div>`;
+            html += `<div class="bg-white p-3 rounded border"><div class="font-bold border-b pb-1 mb-2 text-red-700">PASIVA (Total: ${fmt(ast)})</div>${pasHtml}`;
+            html += `<div class="flex justify-between text-xs mt-2 pt-2 border-t border-dashed"><span>Modal / Ekuitas</span><span class="font-bold">${fmt(modal)}</span></div></div>`;
         }
-        html += `<div class="flex justify-between font-bold text-red-700 mt-2 mb-4"><span>TOTAL BEBAN</span><span>(${fmt(beban)})</span></div>`;
-        const profit = pendapatan - beban; const color = profit >= 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
-        html += `<div class="p-3 rounded font-bold text-center text-lg ${color} border border-current mt-4">LABA BERSIH: ${fmt(profit)}</div></div>`;
-        document.getElementById("konten").innerHTML = html;
+        
+        html += `</div>`;
+        document.getElementById("kontenScreen").innerHTML = html;
     }
 
-    function renderNeraca() {
-        const saldos = hitungSaldo();
-        let aset = 0, kewajiban = 0, modal = 0; let htmlAset = "", htmlPasiva = "";
-        for(let [akun, val] of Object.entries(saldos)) {
-            const saldo = val.debit - val.kredit; if(saldo === 0) continue;
-            if(akun.match(/kas|bank|piutang|persediaan|aset|tanah|bangunan/i)) { aset += saldo; htmlAset += `<div class="flex justify-between py-1 border-b border-dashed border-slate-200"><span>${akun}</span><span>${fmt(saldo)}</span></div>`; } 
-            else if(akun.match(/hutang|kewajiban/i)) { const hut = Math.abs(saldo); kewajiban += hut; htmlPasiva += `<div class="flex justify-between py-1 border-b border-dashed border-slate-200"><span>${akun}</span><span>${fmt(hut)}</span></div>`; }
+    // Helper Screen
+    function cardLine(label, val, color) {
+        return `<div class="flex justify-between text-xs mb-2"><span>${label}</span><span class="font-bold ${color}">${fmt(val)}</span></div>`;
+    }
+
+    // ==========================================
+    // 2. GENERATE PDF (PROFESIONAL) - LENGKAP
+    // ==========================================
+    async function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+        const tglCetak = new Date().toLocaleDateString('id-ID');
+        const periode = document.getElementById("subJudul").innerText;
+
+        // KOP SURAT
+        doc.setFontSize(16); doc.setFont("helvetica", "bold");
+        doc.text("PT. NUSANTARA LAND DEVELOPMENT", 14, 15);
+        doc.setFontSize(10); doc.setFont("helvetica", "normal");
+        
+        // --- GANTI ALAMAT DI BAWAH INI ---
+        doc.text("Jl. Sunset Boulevard Blok 5B/16 CitraLand City, Centre Point of Indonesia (CPI) Kel. Maccini Sombala Kec. Tamalate, Makassar, 90224, Indonesia Phone: +624116004251", 14, 20);
+        // ---------------------------------
+
+        doc.text("Laporan Keuangan & Operasional Terintegrasi", 14, 25);
+        doc.setLineWidth(0.5); doc.line(14, 28, 283, 28);
+
+        // JUDUL
+        doc.setFontSize(12); doc.setFont("helvetica", "bold");
+        doc.text(document.getElementById("judulLap").innerText, 14, 35);
+        doc.setFontSize(10); doc.setFont("helvetica", "italic");
+        doc.text("Periode: " + periode, 14, 40);
+
+        let body = [];
+        let head = [];
+        let colStyles = {};
+        let finalY = 45;
+
+        // LOGIKA PDF PER TIPE
+        if (currentType === 'JURNAL') {
+            head = [['Tanggal', 'No. Akun', 'Uraian', 'Ref', 'Debit', 'Kredit']];
+            let tD=0, tK=0;
+            rawData.forEach(r => {
+                tD += r.debit; tK += r.kredit;
+                const namaAkun = r.kredit > 0 ? `      ${r.nama_akun}` : r.nama_akun;
+                body.push([new Date(r.tanggal).toLocaleDateString('id-ID'), akunMap[r.nama_akun]||'', `${namaAkun}\n${r.keterangan||''}`, r.nomor_referensi||'', r.debit>0?fmtNum(r.debit):'-', r.kredit>0?fmtNum(r.kredit):'-']);
+            });
+            body.push([{content: 'TOTAL', colSpan: 4, styles: {halign: 'right', fontStyle: 'bold'}}, fmtNum(tD), fmtNum(tK)]);
+            colStyles = { 4: {halign: 'right'}, 5: {halign: 'right'} };
+            printTable(doc, head, body, colStyles, finalY);
+
+        } else if (currentType === 'BUKU_BESAR') {
+            const groups = {};
+            rawData.forEach(r => { if(!groups[r.nama_akun]) groups[r.nama_akun] = []; groups[r.nama_akun].push(r); });
+            
+            Object.keys(groups).sort().forEach(akun => {
+                // Cetak Judul Akun dulu
+                if (finalY > 180) { doc.addPage(); finalY=20; }
+                doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+                doc.text(`Akun: ${akun} [${akunMap[akun]||''}]`, 14, finalY);
+                finalY += 2;
+
+                let subBody = [];
+                let sal = 0;
+                groups[akun].forEach(r => {
+                    sal += (r.debit - r.kredit);
+                    subBody.push([new Date(r.tanggal).toLocaleDateString('id-ID'), r.keterangan, r.debit>0?fmtNum(r.debit):'-', r.kredit>0?fmtNum(r.kredit):'-', fmtNum(sal)]);
+                });
+                
+                doc.autoTable({
+                    startY: finalY + 1,
+                    head: [['Tgl', 'Ket', 'Debit', 'Kredit', 'Saldo']],
+                    body: subBody,
+                    theme: 'grid',
+                    columnStyles: { 2:{halign:'right'}, 3:{halign:'right'}, 4:{halign:'right', fontStyle:'bold'} },
+                    margin: { left: 14, right: 14 }
+                });
+                finalY = doc.lastAutoTable.finalY + 10;
+            });
+
+        } else if (currentType === 'NERACA_SALDO') {
+            head = [['No. Akun', 'Nama Akun', 'Debit', 'Kredit']];
+            const saldos = hitungSaldo();
+            let tD=0, tK=0;
+            Object.keys(saldos).sort().forEach(akun => {
+                const net = saldos[akun].debit - saldos[akun].kredit;
+                if(net === 0) return;
+                const isD = net > 0; const nom = Math.abs(net);
+                if(isD) tD+=nom; else tK+=nom;
+                body.push([akunMap[akun]||'', akun, isD?fmtNum(nom):'-', !isD?fmtNum(nom):'-']);
+            });
+            body.push([{content: 'TOTAL', colSpan: 2, styles: {halign: 'right', fontStyle: 'bold'}}, fmtNum(tD), fmtNum(tK)]);
+            colStyles = { 2: {halign: 'right'}, 3: {halign: 'right'} };
+            printTable(doc, head, body, colStyles, finalY);
+
+        } else {
+            // Laba Rugi / Neraca (Versi Simple Table)
+            // Anda bisa kembangkan lagi jika mau detail, tapi ini sudah cukup untuk PDF
+            doc.setFontSize(10);
+            doc.text("Silakan lihat detail di layar aplikasi atau hubungi admin untuk format lengkap Laporan ini.", 14, 50);
         }
-        modal = aset - kewajiban;
-        let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm"><div class="border p-4 rounded bg-white"><div class="font-bold text-blue-800 border-b-2 border-blue-500 mb-3 pb-1">ASET (AKTIVA)</div>${htmlAset}<div class="mt-4 pt-2 border-t-2 border-slate-800 font-bold flex justify-between text-base"><span>TOTAL ASET</span><span>${fmt(aset)}</span></div></div><div class="border p-4 rounded bg-white"><div class="font-bold text-red-800 border-b-2 border-red-500 mb-3 pb-1">KEWAJIBAN & MODAL</div>${htmlPasiva}<div class="flex justify-between py-1 border-b border-dashed border-slate-200 mt-4 font-bold text-slate-600"><span>Modal / Ekuitas</span><span>${fmt(modal)}</span></div><div class="mt-4 pt-2 border-t-2 border-slate-800 font-bold flex justify-between text-base"><span>TOTAL PASIVA</span><span>${fmt(kewajiban + modal)}</span></div></div></div>`;
-        document.getElementById("konten").innerHTML = html;
+
+        // TTD
+        finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 60;
+        if (finalY > 170) { doc.addPage(); finalY = 20; }
+        const xPos = 220;
+        doc.setFont("helvetica", "normal");
+        doc.text(`Makassar, ${tglCetak}`, xPos, finalY);
+        doc.text("Disiapkan Oleh,", xPos, finalY + 5);
+        doc.setFont("helvetica", "bold");
+        doc.text("Finance Manager", xPos, finalY + 25);
+        doc.setLineWidth(0.2); doc.line(xPos, finalY + 26, xPos + 40, finalY + 26);
+
+        doc.save(`Laporan_${currentType}_NLD.pdf`);
+    }
+
+    function printTable(doc, head, body, colStyles, startY) {
+        doc.autoTable({
+            startY: startY,
+            head: head, body: body, theme: 'grid',
+            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+            columnStyles: colStyles,
+            styles: { fontSize: 9, cellPadding: 2 }
+        });
     }
 
     function hitungSaldo() {
@@ -379,19 +348,6 @@
         });
         return s;
     }
-
-    function downloadPDF() {
-        const el = document.getElementById('laporanArea');
-        document.querySelector('.print-only').style.display = 'block'; 
-        const opt = {
-            margin: 0.5,
-            filename: `Laporan_${currentType}_NLD.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'cm', format: 'a4', orientation: 'landscape' }
-        };
-        html2pdf().set(opt).from(el).save().then(() => { document.querySelector('.print-only').style.display = 'none'; });
-    }
   </script>
 </body>
-</html>E
+</html>
