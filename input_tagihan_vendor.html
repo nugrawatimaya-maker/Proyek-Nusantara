@@ -12,10 +12,10 @@
   <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
     <div>
       <h1 class="text-3xl font-bold text-indigo-900"><i class="fas fa-file-invoice-dollar mr-2"></i>Tagihan Vendor</h1>
-      <p class="text-sm text-gray-500">Daftar Hutang Usaha & Penerbitan Cek/Giro</p>
+      <p class="text-sm text-gray-500">Kelola Hutang Usaha & Riwayat Pembayaran</p>
     </div>
     <div class="space-x-3">
-        <a href="kas_keluar.html" class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm">
+        <a href="dashboard_finance.html" class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm">
             <i class="fas fa-arrow-left"></i> Dashboard
         </a>
     </div>
@@ -31,26 +31,37 @@
           <div class="text-2xl font-bold text-orange-600 mt-1" id="countJatuhTempo">0 Tagihan</div>
       </div>
       <div class="bg-white p-4 rounded shadow border-l-4 border-green-500">
-          <div class="text-xs text-gray-500 font-bold uppercase">Sudah Dibayar Bulan Ini</div>
-          <div class="text-2xl font-bold text-green-600 mt-1" id="totalLunas">0 PO</div>
+          <div class="text-xs text-gray-500 font-bold uppercase">Total Lunas (Semua Waktu)</div>
+          <div class="text-2xl font-bold text-green-600 mt-1" id="totalLunas">Rp 0</div>
       </div>
   </div>
 
   <div class="max-w-6xl mx-auto bg-white rounded-lg shadow overflow-hidden">
-    <div class="p-4 border-b bg-indigo-50 flex justify-between items-center">
-        <h3 class="font-bold text-indigo-800">Daftar Tagihan Belum Lunas</h3>
-        <input type="text" placeholder="Cari Vendor / No PO..." class="border p-2 rounded text-sm w-64 shadow-sm" onkeyup="filterTable(this.value)">
+    
+    <div class="p-4 border-b bg-indigo-50 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-2">
+            <h3 class="font-bold text-indigo-800">Data Tagihan:</h3>
+            <select id="filterStatus" onchange="loadTagihan()" class="border-2 border-indigo-200 rounded p-1 text-sm font-bold text-indigo-700 focus:outline-none focus:border-indigo-500">
+                <option value="DITERIMA">⚡ Belum Lunas (Hutang)</option>
+                <option value="LUNAS">✅ Riwayat Lunas (Arsip)</option>
+            </select>
+        </div>
+
+        <div class="flex gap-2">
+             <input type="date" id="filterDateStart" class="border p-2 rounded text-sm shadow-sm hidden" onchange="loadTagihan()">
+             <input type="text" placeholder="Cari Vendor / No PO..." class="border p-2 rounded text-sm w-64 shadow-sm" onkeyup="filterTable(this.value)">
+        </div>
     </div>
     
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead class="bg-indigo-100 text-indigo-900 font-bold uppercase">
           <tr>
-            <th class="p-4">Tgl Terima</th>
+            <th class="p-4">Tgl Terima / PO</th>
             <th class="p-4">Vendor & No PO</th>
             <th class="p-4 text-center">Jatuh Tempo</th>
             <th class="p-4 text-right">Nilai Tagihan</th>
-            <th class="p-4 text-center">Bukti Nota</th>
+            <th class="p-4 text-center">Status</th>
             <th class="p-4 text-center">Aksi</th>
           </tr>
         </thead>
@@ -123,117 +134,147 @@
     // --- INIT ---
     async function init() {
         loadAkunBank();
-        loadTagihan();
+        hitungSummary(); // Hitung total hutang & lunas di awal
+        loadTagihan();   // Load tabel sesuai filter default (DITERIMA)
     }
 
-    // 1. LOAD AKUN BANK (Untuk Dropdown)
     async function loadAkunBank() {
-        // Ambil akun yang namanya mengandung Bank atau Kas
         const { data } = await client.from('master_akun').select('nama_akun').order('nama_akun');
         const sel = document.getElementById("pilihAkun");
         sel.innerHTML = '<option value="">-- Pilih Bank / Kas --</option>';
         if(data) {
             data.forEach(a => {
                 const nama = a.nama_akun.toUpperCase();
-                if(nama.includes("BANK") || nama.includes("KAS") || nama.includes("MANDIRI") || nama.includes("BCA")) {
+                if(nama.includes("BANK") || nama.includes("KAS") || nama.includes("MANDIRI") || nama.includes("BCA") || nama.includes("TUNAI")) {
                     sel.innerHTML += `<option value="${a.nama_akun}">${a.nama_akun}</option>`;
                 }
             });
         }
     }
 
-    // 2. LOAD TAGIHAN (PO status DITERIMA)
+    async function hitungSummary() {
+        // Ambil SEMUA data PO untuk menghitung summary global
+        const { data } = await client.from('purchase_order').select('status, total_harga, jatuh_tempo');
+        
+        let hutang = 0;
+        let lunas = 0;
+        let nearDue = 0;
+        const today = new Date();
+
+        if(data) {
+            data.forEach(po => {
+                if(po.status === 'DITERIMA') {
+                    hutang += po.total_harga;
+                    // Cek Jatuh Tempo
+                    const jt = new Date(po.jatuh_tempo);
+                    const diff = Math.ceil((jt - today) / (1000 * 60 * 60 * 24));
+                    if(diff <= 7) nearDue++;
+                } else if (po.status === 'LUNAS') {
+                    lunas += po.total_harga;
+                }
+            });
+        }
+
+        document.getElementById("totalHutang").innerText = fmt(hutang);
+        document.getElementById("countJatuhTempo").innerText = nearDue + " Tagihan";
+        document.getElementById("totalLunas").innerText = fmt(lunas);
+    }
+
     async function loadTagihan() {
+        const statusFilter = document.getElementById("filterStatus").value;
+        const tbody = document.getElementById("listTagihan");
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin"></i> Memuat data...</td></tr>`;
+
+        // Query Database sesuai Filter Dropdown
         const { data: listPO, error } = await client
             .from('purchase_order')
             .select(`*, grn_terima ( tanggal_terima, bukti_nota )`)
-            .eq('status', 'DITERIMA') // Hanya yang barangnya sudah diterima tapi belum lunas
-            .order('jatuh_tempo', { ascending: true });
+            .eq('status', statusFilter) 
+            .order('jatuh_tempo', { ascending: statusFilter === 'DITERIMA' }); // Jika Lunas, mungkin mau desc, tapi default ascending ok
 
-        const tbody = document.getElementById("listTagihan");
         tbody.innerHTML = "";
 
         if(!listPO || listPO.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Tidak ada tagihan outstanding (Semua Lunas).</td></tr>`;
-            document.getElementById("totalHutang").innerText = fmt(0);
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Tidak ada data untuk status: ${statusFilter}</td></tr>`;
             return;
         }
 
-        let totalHutang = 0;
-        let countNearDue = 0;
         const today = new Date();
 
         listPO.forEach(po => {
             const grn = po.grn_terima && po.grn_terima[0] ? po.grn_terima[0] : { tanggal_terima: po.created_at, bukti_nota: '-' };
             const tglNota = new Date(grn.tanggal_terima).toLocaleDateString('id-ID');
-            const jatuhTempo = new Date(po.jatuh_tempo);
             
-            // Hitung Hari
-            const diffTime = jatuhTempo - today;
-            const sisaHari = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            let badgeColor = "bg-green-100 text-green-800";
-            let statusText = `${sisaHari} Hari Lagi`;
+            // Logic Tampilan Per Status
+            let statusBadge = "";
+            let actionBtn = "";
 
-            if(sisaHari < 0) {
-                badgeColor = "bg-red-100 text-red-800";
-                statusText = `Telat ${Math.abs(sisaHari)} Hari`;
-            } else if (sisaHari <= 7) {
-                badgeColor = "bg-orange-100 text-orange-800";
-                countNearDue++;
+            if (statusFilter === 'DITERIMA') {
+                // LOGIC HUTANG (Sama seperti sebelumnya)
+                const jatuhTempo = new Date(po.jatuh_tempo);
+                const diffTime = jatuhTempo - today;
+                const sisaHari = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                let badgeColor = "bg-green-100 text-green-800";
+                let statusText = `${sisaHari} Hari Lagi`;
+
+                if(sisaHari < 0) {
+                    badgeColor = "bg-red-100 text-red-800"; statusText = `Telat ${Math.abs(sisaHari)} Hari`;
+                } else if (sisaHari <= 7) {
+                    badgeColor = "bg-orange-100 text-orange-800";
+                }
+
+                statusBadge = `<span class="text-[10px] ${badgeColor} px-2 py-0.5 rounded border border-current font-bold">${statusText}</span>`;
+                actionBtn = `
+                    <button onclick="bukaModalBayar(${po.id}, '${po.nomor_po}', '${po.nama_vendor}', ${po.total_harga}, '${po.jatuh_tempo}')" 
+                        class="bg-green-600 text-white px-3 py-1 rounded shadow hover:bg-green-700 font-bold text-xs flex items-center gap-1 mx-auto">
+                        <i class="fas fa-money-check"></i> Bayar
+                    </button>`;
+            } else {
+                // LOGIC LUNAS
+                statusBadge = `<span class="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded font-bold">✅ LUNAS</span>`;
+                actionBtn = `<span class="text-xs text-gray-400 italic">Selesai</span>`;
             }
-
-            totalHutang += po.total_harga;
 
             // Link Nota
             const btnNota = grn.bukti_nota !== '-' 
-                ? `<a href="#" onclick="alert('Bukti Nota: ${grn.bukti_nota}')" class="text-blue-600 hover:text-blue-800 text-xs font-bold underline">Lihat Nota</a>`
+                ? `<a href="${grn.bukti_nota}" target="_blank" class="text-blue-600 hover:text-blue-800 text-xs font-bold underline"><i class="fas fa-paperclip"></i> Nota</a>`
                 : `<span class="text-gray-400 text-xs">-</span>`;
 
             tbody.innerHTML += `
                 <tr class="hover:bg-indigo-50 transition border-b">
                     <td class="p-4 text-gray-600 font-mono text-xs">${tglNota}</td>
                     <td class="p-4">
-                        <div class="font-bold text-gray-800 text-base">${po.nama_vendor}</div>
+                        <div class="font-bold text-gray-800 text-sm">${po.nama_vendor}</div>
                         <div class="text-xs text-blue-600 font-bold mt-1">${po.nomor_po}</div>
                     </td>
                     <td class="p-4 text-center">
-                        <div class="font-bold text-gray-700">${new Date(po.jatuh_tempo).toLocaleDateString('id-ID')}</div>
-                        <span class="text-[10px] ${badgeColor} px-2 py-0.5 rounded border border-current mt-1 inline-block">${statusText}</span>
+                        <div class="font-bold text-gray-700 text-xs">${new Date(po.jatuh_tempo).toLocaleDateString('id-ID')}</div>
+                        <div class="mt-1">${statusBadge}</div>
                     </td>
-                    <td class="p-4 text-right font-bold text-indigo-900 font-mono text-base">${fmt(po.total_harga)}</td>
+                    <td class="p-4 text-right font-bold text-indigo-900 font-mono text-sm">${fmt(po.total_harga)}</td>
                     <td class="p-4 text-center">${btnNota}</td>
-                    <td class="p-4 text-center">
-                        <button onclick="bukaModalBayar(${po.id}, '${po.nomor_po}', '${po.nama_vendor}', ${po.total_harga}, '${po.jatuh_tempo}')" 
-                            class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 font-bold text-xs flex items-center gap-1 mx-auto transition transform hover:scale-105">
-                            <i class="fas fa-money-check"></i> Bayar
-                        </button>
-                    </td>
+                    <td class="p-4 text-center">${actionBtn}</td>
                 </tr>
             `;
         });
-
-        document.getElementById("totalHutang").innerText = fmt(totalHutang);
-        document.getElementById("countJatuhTempo").innerText = countNearDue + " Tagihan";
     }
 
-    // 3. LOGIKA MODAL BAYAR
+    // --- MODAL LOGIC ---
     function bukaModalBayar(id, noPO, vendor, total, tempo) {
         document.getElementById("bayarIdPO").value = id;
         document.getElementById("bayarNoPO").value = noPO;
         document.getElementById("bayarVendor").value = vendor;
         document.getElementById("displayTotal").innerText = fmt(total);
         document.getElementById("displayVendor").innerText = vendor;
-        document.getElementById("tglBayar").value = tempo; // Default ke tanggal jatuh tempo PO
+        document.getElementById("tglBayar").value = new Date().toISOString().split('T')[0]; // Default hari ini
         document.getElementById("nomorCek").value = "";
         document.getElementById("ketBayar").value = `Pelunasan ${noPO}`;
-        
         document.getElementById("modalBayar").classList.remove("hidden");
     }
 
     function tutupModal() { document.getElementById("modalBayar").classList.add("hidden"); }
 
-    // 4. PROSES BAYAR (UPDATE DB & JURNAL)
     document.getElementById("formBayar").addEventListener("submit", async (e) => {
         e.preventDefault();
         
@@ -245,47 +286,34 @@
         const noCek = document.getElementById("nomorCek").value || "-";
         const ket = document.getElementById("ketBayar").value;
         
-        // Ambil Total Harga dari text display (remove formatting)
         const totalStr = document.getElementById("displayTotal").innerText;
         const totalVal = Number(totalStr.replace(/[^0-9,-]+/g,"").replace(",","."));
 
         if(!akunBank) return alert("Pilih Akun Bank!");
-        if(!confirm(`Konfirmasi pembayaran ${totalStr} kepada ${vendor}?\nVia: ${akunBank}`)) return;
+        if(!confirm(`Yakin bayar ${totalStr} ke ${vendor}?`)) return;
 
         try {
-            // A. Update Status PO jadi LUNAS
-            const { error: errUp } = await client.from('purchase_order')
-                .update({ status: 'LUNAS' }).eq('id', idPO);
+            // 1. Update PO jadi LUNAS
+            const { error: errUp } = await client.from('purchase_order').update({ status: 'LUNAS' }).eq('id', idPO);
             if(errUp) throw errUp;
 
-            // B. Simpan ke Riwayat Transaksi (Kas Keluar)
+            // 2. Catat Transaksi (Arus Kas)
             await client.from('transaksi').insert([{
-                tanggal: tglBayar,
-                jenis_transaksi: 'KELUAR',
-                akun: 'Hutang Usaha', // Lawan transaksi
-                bank_sumber: akunBank,
-                jumlah: totalVal,
-                keterangan: `${ket} (Ref: ${noCek})`
+                tanggal: tglBayar, jenis_transaksi: 'KELUAR', akun: 'Hutang Usaha', 
+                bank_sumber: akunBank, jumlah: totalVal, keterangan: `${ket} (Ref: ${noCek})`
             }]);
 
-            // C. JURNAL UMUM (Debit Hutang, Kredit Bank)
+            // 3. Catat Jurnal
             const ref = `PAY-${noPO}`;
-            const jurnal = [
-                {
-                    tanggal: tglBayar, nomor_referensi: ref, keterangan: `${ket} - Vendor: ${vendor}`,
-                    nama_akun: 'Hutang Usaha', debit: totalVal, kredit: 0
-                },
-                {
-                    tanggal: tglBayar, nomor_referensi: ref, keterangan: `${ket} - Cek: ${noCek}`,
-                    nama_akun: akunBank, debit: 0, kredit: totalVal
-                }
-            ];
-            const { error: errJur } = await client.from('jurnal_umum').insert(jurnal);
-            if(errJur) throw errJur;
+            await client.from('jurnal_umum').insert([
+                { tanggal: tglBayar, nomor_referensi: ref, keterangan: `${ket} - ${vendor}`, nama_akun: 'Hutang Usaha', debit: totalVal, kredit: 0 },
+                { tanggal: tglBayar, nomor_referensi: ref, keterangan: `${ket} - ${vendor}`, nama_akun: akunBank, debit: 0, kredit: totalVal }
+            ]);
 
-            alert("✅ Pembayaran Berhasil Disimpan!");
+            alert("✅ Pembayaran Berhasil!");
             tutupModal();
             loadTagihan(); // Refresh Tabel
+            hitungSummary(); // Update angka summary di atas
 
         } catch (e) {
             alert("Gagal: " + e.message);
