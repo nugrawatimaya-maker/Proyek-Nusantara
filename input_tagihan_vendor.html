@@ -129,6 +129,20 @@
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
+    async function catatLog(tipe, pesan, icon = 'fa-info-circle') {
+        const user = "Admin";
+        try {
+            const { error } = await client.from('activity_logs').insert([{
+                user_name: user,
+                tipe: tipe,
+                aktivitas: pesan,
+                icon: icon
+            }]);
+            if(error) console.error("Gagal mencatat log:", error);
+        } catch (e) {
+            console.error("Error Log:", e);
+        }
+    }
     const fmt = (n) => new Intl.NumberFormat('id-ID', {style: 'currency', currency: 'IDR'}).format(n);
 
     // --- INIT ---
@@ -310,6 +324,7 @@
                 { tanggal: tglBayar, nomor_referensi: ref, keterangan: `${ket} - ${vendor}`, nama_akun: akunBank, debit: 0, kredit: totalVal }
             ]);
 
+            catatLog('KEUANGAN', `Melunasi tagihan ${vendor} (Rp ${fmt(totalVal)})`, 'fa-check-circle');
             alert("✅ Pembayaran Berhasil!");
             tutupModal();
             loadTagihan(); // Refresh Tabel

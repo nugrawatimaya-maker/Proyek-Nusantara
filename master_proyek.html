@@ -153,6 +153,20 @@
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
+    async function catatLog(tipe, pesan, icon = 'fa-info-circle') {
+        const user = "Admin";
+        try {
+            const { error } = await client.from('activity_logs').insert([{
+                user_name: user,
+                tipe: tipe,
+                aktivitas: pesan,
+                icon: icon
+            }]);
+            if(error) console.error("Gagal mencatat log:", error);
+        } catch (e) {
+            console.error("Error Log:", e);
+        }
+    }
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
     // --- INISIALISASI ---
@@ -361,6 +375,7 @@
         if(error) {
             alert("Error Gagal Simpan: " + error.message + "\n\n(Cek apakah kolom 'rab_material' & 'rab_upah_tukang' sudah dibuat di Supabase?)");
         } else { 
+            catatLog('PROYEK', `Menambahkan proyek baru: ${nama}`, 'fa-building');
             alert("Berhasil Simpan Proyek!"); 
             location.reload(); 
         }
