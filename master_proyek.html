@@ -203,15 +203,14 @@
         });
       }
       
-      const totalRAB = proyeks.reduce((sum, proyek) => sum + (Number(proyek.nilai_proyek) || 0), 0);
-      const totalRealisasi = proyeks.reduce((sum, proyek) => sum + (realisasiMap[proyek.nama_proyek] || 0), 0);
-      if (grandRABEl) grandRABEl.innerText = fmt(totalRAB);
-      if (grandRealEl) grandRealEl.innerText = fmt(totalRealisasi);
-
       // Render Baris Tabel
+      let sumRAB = 0;
+      let sumRealisasi = 0;
       proyeks.forEach(p => {
         const rab = p.nilai_proyek || 0;
         const realisasi = realisasiMap[p.nama_proyek] || 0;
+        sumRAB += Number(rab) || 0;
+        sumRealisasi += Number(realisasi) || 0;
         
         let persen = 0;
         if(rab > 0) persen = (realisasi / rab) * 100;
@@ -256,6 +255,8 @@
         `;
         tbody.innerHTML += tr;
       });
+      if (grandRABEl) grandRABEl.innerText = fmt(sumRAB);
+      if (grandRealEl) grandRealEl.innerText = fmt(sumRealisasi);
     }
 
     // 2. LOGIKA FORM INPUT
