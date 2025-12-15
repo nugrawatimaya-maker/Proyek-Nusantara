@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100 font-sans text-gray-800 p-6">
+<body class="bg-gray-100 font-sans text-gray-800 p-6 min-h-screen pb-96">
 
   <div class="max-w-7xl mx-auto mb-6 flex justify-between items-center">
     <div>
@@ -34,7 +34,12 @@
                 <option disabled>----------------------------------</option>
                 <option disabled>Memuat daftar blok...</option>
             </select>
-            <input type="text" id="inputManualNama" class="w-full border p-2 rounded mt-2 bg-blue-50 border-blue-300 focus:ring-2 focus:ring-blue-500 outline-none hidden" placeholder="Ketik Nama Proyek...">
+
+            <div id="manualInputPanel" class="hidden border border-blue-200 bg-blue-50 rounded mt-3 p-3 space-y-1 shadow-inner">
+              <label for="inputManualNama" class="text-[11px] font-semibold text-blue-800 uppercase tracking-wide">Nama Proyek Manual</label>
+              <input type="text" id="inputManualNama" class="w-full border border-blue-300 rounded p-2 bg-white font-bold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Contoh: Jalan Koridor Blok A dan B">
+              <p class="text-[10px] text-blue-700/70">Contoh: Jalan Koridor Blok A dan B</p>
+            </div>
           </div>
 
           <div>
@@ -95,30 +100,48 @@
     </div>
 
     <div class="lg:col-span-2">
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
-          <h3 class="font-bold text-gray-700">Daftar Proyek Berjalan</h3>
-          <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold" id="totalProyek">0 Proyek</span>
+      <div class="bg-white rounded-lg shadow-lg border border-gray-200 flex flex-col h-[600px]"> 
+        <div class="p-4 bg-slate-800 text-white flex justify-between items-center shadow-md z-20 rounded-t-lg shrink-0">
+          <div class="flex items-center gap-2">
+             <i class="fas fa-list-ul text-blue-400"></i>
+             <h3 class="font-bold text-lg tracking-wide">Daftar Proyek Berjalan</h3>
+          </div>
+          <span class="text-xs bg-blue-500 text-white border border-blue-400 px-3 py-1 rounded-full font-bold shadow-sm" id="totalProyek">0 Proyek</span>
         </div>
         
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-gray-100 uppercase text-xs font-bold text-gray-600">
+        <div class="grid grid-cols-2 gap-4 p-4 bg-blue-50/50 border-b border-gray-200 shrink-0">
+            <div class="bg-white p-3 rounded border border-blue-100 shadow-sm flex flex-col">
+                <span class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Total Nilai Proyek (RAB)</span>
+                <span class="text-xl font-bold text-blue-700 mt-1" id="grandTotalRAB">Rp 0</span>
+            </div>
+            <div class="bg-white p-3 rounded border border-orange-100 shadow-sm flex flex-col">
+                <span class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Total Realisasi (Act)</span>
+                <span class="text-xl font-bold text-orange-600 mt-1" id="grandTotalRealisasi">Rp 0</span>
+            </div>
+        </div>
+        
+        <div class="overflow-y-auto flex-grow bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <table class="w-full text-left text-sm relative">
+            
+            <thead class="bg-gray-100 uppercase text-xs font-bold text-gray-600 border-b-2 border-gray-200 sticky top-0 z-10 shadow-sm">
               <tr>
-                <th class="p-3 border-b">Proyek</th>
-                <th class="p-3 border-b text-right bg-blue-50">RAB (Budget)</th>
-                <th class="p-3 border-b text-right bg-yellow-50">Realisasi (Act)</th>
-                <th class="p-3 border-b text-center">Status</th>
-                <th class="p-3 border-b text-center w-16">Aksi</th>
+                <th class="p-4 bg-gray-100">Proyek</th>
+                <th class="p-4 text-right bg-gray-100">RAB (Budget)</th>
+                <th class="p-4 text-right bg-gray-100">Realisasi (Act)</th>
+                <th class="p-4 text-center bg-gray-100">Status</th>
+                <th class="p-4 text-center w-16 bg-gray-100">Aksi</th>
               </tr>
             </thead>
-            <tbody id="tabelProyek" class="divide-y divide-gray-100">
-              <tr><td colspan="5" class="p-4 text-center text-gray-400"><i class="fas fa-spinner fa-spin"></i> Menghitung Realisasi...</td></tr>
+
+            <tbody id="tabelProyek" class="divide-y divide-gray-100 bg-white">
+              <tr><td colspan="5" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><br>Menghitung Realisasi...</td></tr>
             </tbody>
           </table>
         </div>
-        <div class="p-3 bg-gray-50 text-[10px] text-gray-500 italic">
-            * Realisasi dihitung dari: Transaksi Kas Keluar + Upah Tukang + Material Keluar (pada blok terkait).
+
+        <div class="p-3 bg-blue-50/50 border-t text-[11px] text-gray-500 flex gap-2 items-start shrink-0 rounded-b-lg">
+            <i class="fas fa-info-circle mt-0.5 text-blue-400"></i>
+            <span>Scroll ke bawah untuk melihat proyek lainnya.</span>
         </div>
       </div>
     </div>
@@ -126,40 +149,43 @@
   </div>
 
   <script>
+    // --- KONFIGURASI SUPABASE ---
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
-    // --- LOGIKA UTAMA ---
+    // --- INISIALISASI ---
     loadReferensiBlok();
     loadProyek();
 
-    // 1. LOAD PROYEK + HITUNG REALISASI
+    // 1. FUNGSI LOAD DATA PROYEK
     async function loadProyek() {
-      // A. Ambil Data Proyek
       const { data: proyeks, error } = await client.from('master_proyek').select('*').order('created_at', { ascending: false });
-      if (error) { alert("Gagal ambil data"); return; }
+      if (error) { 
+          console.error(error); 
+          return; 
+      }
       
       document.getElementById("totalProyek").innerText = (proyeks.length || 0) + " Proyek";
       const tbody = document.getElementById("tabelProyek");
+      const grandRABEl = document.getElementById("grandTotalRAB");
+      const grandRealEl = document.getElementById("grandTotalRealisasi");
       tbody.innerHTML = "";
 
       if (proyeks.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400">Belum ada proyek.</td></tr>`;
+        if (grandRABEl) grandRABEl.innerText = fmt(0);
+        if (grandRealEl) grandRealEl.innerText = fmt(0);
         return;
       }
 
-      // B. Ambil Data Realisasi (Borongan/Upah + Kas Keluar) secara Paralel
-      //    Catatan: Agar fitur ini jalan, tabel 'transaksi' dan 'riwayat_upah' HARUS punya kolom 'nama_proyek' atau keterangan yang berisi nama blok.
-      
+      // Ambil Data Realisasi (Borongan/Upah + Kas Keluar)
       const { data: upahData } = await client.from('riwayat_upah').select('nama_proyek, total_bayar');
       const { data: kasData } = await client.from('transaksi').select('keterangan, jumlah').eq('jenis_transaksi', 'KELUAR');
       
-      // Mapping Realisasi per Proyek
       const realisasiMap = {};
 
-      // 1. Hitung Upah per Proyek
       if(upahData) {
           upahData.forEach(u => {
               if(!realisasiMap[u.nama_proyek]) realisasiMap[u.nama_proyek] = 0;
@@ -167,36 +193,34 @@
           });
       }
 
-      // 2. Hitung Kas Keluar (Cari nama blok di dalam keterangan)
-      //    Misal Keterangan: "Beli Semen untuk Blok A1"
       if(kasData && proyeks.length > 0) {
-          kasData.forEach(k => {
-              // Cek apakah keterangan mengandung nama salah satu proyek
-              // Ini cara sederhana. Idealnya tabel transaksi punya kolom 'proyek_id'
-              const foundProyek = proyeks.find(p => k.keterangan && k.keterangan.includes(p.nama_proyek));
-              if(foundProyek) {
-                  if(!realisasiMap[foundProyek.nama_proyek]) realisasiMap[foundProyek.nama_proyek] = 0;
-                  realisasiMap[foundProyek.nama_proyek] += k.jumlah;
-              }
-          });
+        kasData.forEach(k => {
+            const foundProyek = proyeks.find(p => k.keterangan && k.keterangan.includes(p.nama_proyek));
+            if(foundProyek) {
+                if(!realisasiMap[foundProyek.nama_proyek]) realisasiMap[foundProyek.nama_proyek] = 0;
+                realisasiMap[foundProyek.nama_proyek] += k.jumlah;
+            }
+        });
       }
+      
+      const totalRAB = proyeks.reduce((sum, proyek) => sum + (Number(proyek.nilai_proyek) || 0), 0);
+      const totalRealisasi = proyeks.reduce((sum, proyek) => sum + (realisasiMap[proyek.nama_proyek] || 0), 0);
+      if (grandRABEl) grandRABEl.innerText = fmt(totalRAB);
+      if (grandRealEl) grandRealEl.innerText = fmt(totalRealisasi);
 
-      // C. Render Tabel
+      // Render Baris Tabel
       proyeks.forEach(p => {
         const rab = p.nilai_proyek || 0;
         const realisasi = realisasiMap[p.nama_proyek] || 0;
         
-        // Hitung Persentase & Warna
         let persen = 0;
         if(rab > 0) persen = (realisasi / rab) * 100;
         
-        // Warna Realisasi
         let colorClass = "text-green-600";
         let progressColor = "bg-green-500";
         if(persen > 80) { colorClass = "text-orange-600"; progressColor = "bg-orange-500"; }
         if(persen > 100) { colorClass = "text-red-600 font-bold"; progressColor = "bg-red-600"; }
 
-        // Info Kategori
         let badgeColor = "bg-gray-100 text-gray-600";
         if (p.kategori === 'Bangunan Rumah') badgeColor = "bg-blue-100 text-blue-600";
         if (p.kategori === 'Infrastruktur') badgeColor = "bg-orange-100 text-orange-600";
@@ -210,25 +234,19 @@
                  <span class="text-[10px] text-gray-400"><i class="fas fa-calendar"></i> ${p.tanggal_mulai}</span>
               </div>
             </td>
-            
             <td class="p-3 align-middle text-right bg-blue-50/30">
                <div class="font-mono font-bold text-gray-700 text-sm">${fmt(rab)}</div>
-               <div class="text-[10px] text-gray-400">Target Budget</div>
             </td>
-
             <td class="p-3 align-middle text-right bg-yellow-50/30">
                <div class="font-mono font-bold ${colorClass} text-sm">${fmt(realisasi)}</div>
-               
                <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1 flex justify-end">
                   <div class="${progressColor} h-1.5 rounded-full" style="width: ${Math.min(persen, 100)}%"></div>
                </div>
                <div class="text-[10px] ${colorClass} mt-0.5">${persen.toFixed(1)}% Terpakai</div>
             </td>
-
             <td class="p-3 align-middle text-center">
                <span class="text-xs font-bold text-green-600 border border-green-200 bg-green-50 px-2 py-1 rounded">BERJALAN</span>
             </td>
-            
             <td class="p-3 align-middle text-center">
                <button onclick="hapusProyek(${p.id}, '${p.nama_proyek}')" class="text-gray-400 hover:text-red-600 transition p-2 rounded hover:bg-red-50">
                  <i class="fas fa-trash-alt"></i>
@@ -240,7 +258,7 @@
       });
     }
 
-    // --- FORM LOGIC (Sama seperti sebelumnya, dipercepat) ---
+    // 2. LOGIKA FORM INPUT
     function updateNilaiTotal() {
         const m = parseInt(document.getElementById("rabMaterial").value || 0);
         const u = parseInt(document.getElementById("rabUpahTukang").value || 0);
@@ -249,58 +267,110 @@
         document.getElementById("nilaiTotalPreview").innerText = fmt(total);
     }
 
+    // 3. AMBIL DATA BLOK (Dropdown)
     async function loadReferensiBlok() {
         const select = document.getElementById("pilihNamaProyek");
         const { data } = await client.from('referensi_blok').select('id').order('id');
+        
+        // Reset isi dropdown agar tidak double jika dipanggil ulang
+        select.innerHTML = `
+          <option value="MANUAL" class="font-bold text-blue-600">➕ Input Nama Manual (Proyek Baru)</option>
+          <option disabled>----------------------------------</option>
+        `;
+
         if(data) {
-            select.innerHTML = `<option value="MANUAL" class="font-bold text-blue-600">➕ Input Manual</option><option disabled>---</option>`;
             data.sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true})).forEach(b => {
-                const opt = document.createElement("option"); opt.value = "Blok " + b.id; opt.text = "Blok " + b.id; select.appendChild(opt);
+                const opt = document.createElement("option"); 
+                opt.value = "Blok " + b.id; 
+                opt.text = "Blok " + b.id; 
+                select.appendChild(opt);
             });
         }
     }
 
+    // 4. TOGGLE INPUT MANUAL (PERBAIKAN UTAMA)
     function toggleInputManual() {
-        const v = document.getElementById("pilihNamaProyek").value;
-        const i = document.getElementById("inputManualNama");
-        if(v==="MANUAL"){ i.classList.remove("hidden"); i.required=true; } else { i.classList.add("hidden"); i.required=false; }
+        const dropdown = document.getElementById("pilihNamaProyek");
+        const panel = document.getElementById("manualInputPanel");
+        const input = document.getElementById("inputManualNama");
+
+        // Cek nilai yang dipilih saat ini
+        const val = dropdown.value;
+        console.log("Dropdown berubah ke:", val); // Cek ini di Console (F12)
+
+        if (val === "MANUAL") {
+            panel.classList.remove("hidden");
+            panel.style.display = "block";
+            input.required = true;
+            input.focus();
+        } else {
+            panel.classList.add("hidden");
+            panel.style.display = "none";
+            input.required = false;
+        }
     }
 
+    // 5. CEK KATEGORI LAIN / INFRASTRUKTUR
     function cekKategori() {
         const v = document.getElementById("kategoriSelect").value;
         const l = document.getElementById("kategoriLain");
         const b = document.getElementById("boxUploadRAB");
-        l.classList.add("hidden"); b.classList.add("hidden");
-        if(v==="LAINNYA") l.classList.remove("hidden");
-        if(v==="Infrastruktur") b.classList.remove("hidden");
+        
+        l.classList.add("hidden"); 
+        b.classList.add("hidden");
+        
+        if(v === "LAINNYA") l.classList.remove("hidden");
+        if(v === "Infrastruktur") b.classList.remove("hidden");
     }
 
-    // SIMPAN
+    // 6. SIMPAN DATA KE SUPABASE
     document.getElementById("formProyek").addEventListener("submit", async (e) => {
         e.preventDefault();
+        
+        // Ambil Nilai Form
         const selNama = document.getElementById("pilihNamaProyek").value;
         let nama = selNama === "MANUAL" ? document.getElementById("inputManualNama").value : selNama;
-        const kat = document.getElementById("kategoriSelect").value === "LAINNYA" ? document.getElementById("kategoriLain").value : document.getElementById("kategoriSelect").value;
-        const rabM = document.getElementById("rabMaterial").value;
-        const rabU = document.getElementById("rabUpahTukang").value;
-        const tot = document.getElementById("nilaiProyek").value;
+        
+        const katSelect = document.getElementById("kategoriSelect").value;
+        const kat = katSelect === "LAINNYA" ? document.getElementById("kategoriLain").value : katSelect;
+        
+        // Pastikan angka di-parse dengan benar
+        const rabM = parseInt(document.getElementById("rabMaterial").value) || 0;
+        const rabU = parseInt(document.getElementById("rabUpahTukang").value) || 0;
+        const tot = parseInt(document.getElementById("nilaiProyek").value) || 0;
+        
         const tgl = document.getElementById("tglMulai").value;
         const file = document.getElementById("fileRAB").files[0];
-        const lokasi = file ? "RAB_" + file.name : "";
+        const lokasi = file ? "RAB_" + file.name : ""; // Simulasi nama file
 
-        // Insert
+        if (!nama) { alert("Nama Proyek harus diisi!"); return; }
+
+        // Insert ke Database
         const { error } = await client.from('master_proyek').insert([{
-            nama_proyek: nama, kategori: kat, nilai_proyek: tot, rab_material: rabM, rab_upah_tukang: rabU, tanggal_mulai: tgl, lokasi: lokasi, status: 'BERJALAN'
+            nama_proyek: nama, 
+            kategori: kat, 
+            nilai_proyek: tot, 
+            rab_material: rabM,       // Kolom Baru
+            rab_upah_tukang: rabU,    // Kolom Baru
+            tanggal_mulai: tgl, 
+            lokasi: lokasi, 
+            status: 'BERJALAN'
         }]);
 
-        if(error) alert("Error: " + error.message);
-        else { alert("Sukses!"); location.reload(); }
+        if(error) {
+            alert("Error Gagal Simpan: " + error.message + "\n\n(Cek apakah kolom 'rab_material' & 'rab_upah_tukang' sudah dibuat di Supabase?)");
+        } else { 
+            alert("Berhasil Simpan Proyek!"); 
+            location.reload(); 
+        }
     });
 
+    // 7. HAPUS DATA
     async function hapusProyek(id, nama) {
-        if(confirm(`Hapus ${nama}?`)) {
-            await client.from('master_proyek').delete().eq('id', id);
-            loadProyek();
+        if(confirm(`Yakin hapus proyek: ${nama}?`)) {
+            const { error } = await client.from('master_proyek').delete().eq('id', id);
+            if(error) alert("Gagal hapus: " + error.message);
+            else loadProyek();
         }
     }
   </script>
