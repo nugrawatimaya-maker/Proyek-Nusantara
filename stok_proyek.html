@@ -217,6 +217,20 @@
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
+    async function catatLog(tipe, pesan, icon = 'fa-info-circle') {
+        const user = "Gudang";
+        try {
+            const { error } = await client.from('activity_logs').insert([{
+                user_name: user,
+                tipe: tipe,
+                aktivitas: pesan,
+                icon: icon
+            }]);
+            if(error) console.error("Gagal mencatat log:", error);
+        } catch (e) {
+            console.error("Error Log:", e);
+        }
+    }
     const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
 
     // --- FITUR BARU: CEK DUPLIKAT REAL-TIME ---
@@ -444,8 +458,63 @@
             if(!namaProyek) { alert("Wajib pilih Proyek!"); return; }
             if(jumlah > stokSistem) { alert(`Stok tidak cukup! Sisa: ${stokSistem}`); return; }
             keterangan = `Proyek: ${namaProyek} | ${keterangan}`;
+
+            const { data: dataHarga } = await client
+                .from('grn_terima')
+                .select('purchase_order(harga_satuan)')
+                .eq('barang_id', barangId)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            let hargaSatuan = dataHarga?.purchase_order?.harga_satuan || 0;
+
+            if (hargaSatuan === 0) {
+                const manualPrice = prompt("⚠️ Data harga beli tidak tersedia. Masukkan harga modal satuan (Rp):", "0");
+                hargaSatuan = Number(manualPrice);
+                if (isNaN(hargaSatuan) || hargaSatuan <= 0) {
+                    alert("⛔ Transaksi dibatalkan karena harga tidak valid.");
+                    return;
+                }
+            }
+
+            const totalRupiah = hargaSatuan * jumlah;
+            if (totalRupiah <= 0) {
+                alert("⛔ Total nilai harus lebih dari 0.");
+                return;
+            }
+
             await client.from('master_stok').update({ total_stok: stokSistem - jumlah }).eq('id', barangId);
             await client.from('stok_history').insert([{ barang_id: barangId, jenis_transaksi: 'PEMAKAIAN PROYEK', jumlah: jumlah, keterangan: keterangan }]);
+
+            const refNo = "USE-" + Date.now();
+            const jurnalPayload = [
+                {
+                    tanggal: new Date().toISOString().split('T')[0],
+                    nomor_referensi: refNo,
+                    keterangan: `Pemakaian: ${keterangan}`,
+                    nama_akun: 'Beban Proyek',
+                    debit: totalRupiah,
+                    kredit: 0
+                },
+                {
+                    tanggal: new Date().toISOString().split('T')[0],
+                    nomor_referensi: refNo,
+                    keterangan: `Pemakaian: ${keterangan}`,
+                    nama_akun: 'Persediaan Material',
+                    debit: 0,
+                    kredit: totalRupiah
+                }
+            ];
+
+            const { error: errJurnal } = await client.from('jurnal_umum').insert(jurnalPayload);
+            if (errJurnal) {
+                console.error("Gagal jurnal otomatis:", errJurnal);
+                alert("⚠️ Stok berkurang, tapi Jurnal Gagal: " + errJurnal.message);
+            }
+
+            const namaBarang = select.options[select.selectedIndex]?.textContent.trim() || 'material';
+            catatLog('GUDANG', `Pemakaian ${jumlah} ${namaBarang} untuk ${namaProyek}`, 'fa-hard-hat');
         } 
         else if (jenis === 'OPNAME') {
             const { error } = await client.rpc('atur_stok_opname', { p_barang_id: barangId, p_qty_fisik: jumlah, p_alasan: keterangan });
