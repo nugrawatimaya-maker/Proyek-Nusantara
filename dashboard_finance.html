@@ -104,6 +104,52 @@
       transform: translateY(-2px);
       box-shadow: 0 8px 14px rgba(37, 99, 235, 0.3);
     }
+    .asset-monitoring {
+      background: #fff;
+      border-radius: 18px;
+      padding: 28px;
+      margin-top: 24px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      border: 1px solid #e2e8f0;
+    }
+    .asset-monitoring h3 {
+      margin: 0;
+      color: #0f172a;
+      font-size: 20px;
+    }
+    .asset-monitoring ul {
+      margin: 0;
+      padding-left: 18px;
+      color: #475467;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .asset-monitoring button {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: #fff;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .asset-monitoring button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(22, 163, 74, 0.3);
+    }
+    .asset-details {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .asset-details span {
+      color: #0f172a;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -192,6 +238,23 @@
       </section>
  
     </div>
+    <section class="asset-monitoring">
+      <div class="asset-details">
+        <h3>Monitoring Aktiva Tetap &amp; Pengontrolan</h3>
+        <p>Kelola register aset, catat depresiasi, dan pantau jadwal pemeliharaan langsung dari tim finance.</p>
+        <ul>
+          <li>Register lengkap kode aktiva, kategori, tanggal perolehan, dan nilai buku.</li>
+          <li>Form pengontrolan menampung permintaan perawatan, mutasi, atau disposisi.</li>
+          <li>Laporan depresiasi bulanan serta status pemeliharaan terkini.</li>
+        </ul>
+      </div>
+      <div class="asset-details">
+        <span>Total Aktiva: 128 item</span>
+        <span>Nilai Buku Bersih: Rp 24,5 M</span>
+        <span>Maintenance Aktif: 4 aset</span>
+        <button onclick="window.location.href='monitoring_aktiva_tetap.html'">Buka Monitoring Aktiva</button>
+      </div>
+    </section>
   </main>
 </body>
 </html>

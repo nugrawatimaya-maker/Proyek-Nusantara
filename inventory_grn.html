@@ -96,9 +96,14 @@
                         <label class="text-xs font-bold text-green-800 block mb-1">Upload Foto Nota (Wajib)</label>
                         <input type="file" id="nota-${po.id}" class="w-full bg-white text-sm border p-1 rounded">
                       </div>
-                      <button onclick="prosesGRN(${po.id}, '${po.nomor_po}', ${hargaPO}, '${namaBarang}', '${po.nama_vendor}')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow">
-                          ✅ Terima Barang & Catat Hutang
-                      </button>
+                      <div class="space-y-2">
+                        <button onclick="prosesGRN(${po.id}, '${po.nomor_po}', ${hargaPO}, '${namaBarang}', '${po.nama_vendor}')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow">
+                            ✅ Terima Barang & Catat Hutang
+                        </button>
+                        <button onclick="batalkanPO(${po.id}, '${po.nomor_po}')" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded shadow">
+                            <i class="fas fa-ban"></i> Batalkan PO
+                        </button>
+                      </div>
                     </div>
                 </div>
             </div>`;
@@ -164,6 +169,29 @@
 
       } catch (e) {
           alert("Gagal: " + e.message);
+      }
+    }
+
+    async function batalkanPO(id, nomorPO) {
+      const alasan = prompt(`Mengapa PO ${nomorPO} dibatalkan?\n(Vendor Batal / Salah Input / Lainnya)`);
+      if (alasan === null) return;
+      if (alasan.trim() === "") return alert("Wajib mengisi alasan pembatalan!");
+      if (!confirm(`Yakin membatalkan pesanan ${nomorPO}? Data akan hilang dari antrian GRN.`)) return;
+
+      try {
+        const { error } = await client
+          .from('purchase_order')
+          .update({
+            status: 'BATAL',
+            catatan: `Dibatalkan di GRN: ${alasan}`
+          })
+          .eq('id', id);
+
+        if (error) throw error;
+        alert("✅ PO Berhasil Dibatalkan.");
+        loadOpenPO();
+      } catch (err) {
+        alert("Gagal membatalkan: " + err.message);
       }
     }
 
