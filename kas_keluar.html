@@ -3,157 +3,456 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kas Keluar - Finance</title>
+  <title>Kas Keluar & Approval</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { font-family: "Segoe UI", sans-serif; background: #f4f6f8; }
-    .btn-gradient { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+    body { background-color: #f8fafc; font-family: sans-serif; padding-bottom: 80px; }
+    .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+    .st-pending { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    .st-posted { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
   </style>
 </head>
-<body class="p-6 text-gray-800">
+<body>
 
-  <header class="max-w-xl mx-auto mb-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500">
-    <div><h1 class="text-xl font-bold text-gray-900">Kas Keluar</h1><p class="text-xs text-gray-500">Operasional & Biaya Proyek (HPP)</p></div>
-    <a href="dashboard_operasional.html" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-full text-sm font-bold"><i class="fas fa-arrow-left mr-1"></i> Dashboard</a>
-  </header>
+  <nav class="bg-white border-b px-6 py-4 sticky top-0 z-40 shadow-sm flex justify-between items-center">
+    <div class="flex items-center gap-3">
+        <div class="bg-red-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg shadow-red-200">
+            <i class="fas fa-hand-holding-usd text-lg"></i>
+        </div>
+        <div>
+            <h1 class="text-lg font-bold text-slate-800 leading-tight">Kas Keluar & Approval</h1>
+            <p class="text-xs text-slate-500">Input Operasional -> Verifikasi Finance</p>
+        </div>
+    </div>
+    <a href="dashboard_operasional.html" class="bg-slate-100 text-slate-500 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-200 transition">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+  </nav>
 
-  <main class="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg space-y-5">
+  <div class="max-w-6xl mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
       
-      <div>
-        <label class="block text-sm font-bold text-gray-700 mb-1">Tanggal Transaksi</label>
-        <input type="date" id="tanggal" class="w-full border p-3 rounded-xl bg-gray-50">
-      </div>
+      <div class="lg:col-span-4 space-y-6">
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-24">
+              <h2 class="font-bold text-slate-800 border-b pb-2 mb-4 flex items-center gap-2">
+                  <i class="fas fa-pen-to-square text-red-500"></i> Input Pengajuan
+              </h2>
+              
+              <div class="space-y-4">
+                  <div>
+                      <label class="block text-xs font-bold text-slate-500 mb-1">Tanggal</label>
+                      <input type="date" id="tanggal" class="w-full border p-2 rounded bg-slate-50 font-bold text-slate-700 outline-none focus:border-red-500">
+                  </div>
 
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Keperluan (Akun)</label>
-            <select id="akunBiaya" class="w-full border p-3 rounded-xl bg-white"><option>-- Memuat... --</option></select>
-        </div>
-        <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Sumber Dana</label>
-            <select id="akunKas" class="w-full border p-3 rounded-xl bg-white"><option>-- Memuat... --</option></select>
-        </div>
-      </div>
+                  <div>
+                      <label class="block text-xs font-bold text-slate-500 mb-1">Keperluan (Estimasi Awal)</label>
+                      <select id="akunBiaya" class="w-full border p-2 rounded bg-white outline-none focus:border-red-500 text-sm">
+                          <option value="">-- Pilih Akun Biaya --</option>
+                      </select>
+                  </div>
 
-      <div class="bg-orange-50 p-3 rounded-xl border border-orange-200">
-          <label class="block text-xs font-bold text-orange-800 mb-1"><i class="fas fa-building mr-1"></i> Alokasi ke Proyek (Untuk HPP)</label>
-          <select id="pilihProyek" class="w-full border p-2 rounded-lg text-sm font-bold text-gray-700 bg-white focus:ring-2 focus:ring-orange-400">
-              <option value="">-- Bukan Biaya Proyek (Operasional Kantor) --</option>
-              </select>
-          <p class="text-[10px] text-orange-600 mt-1">*Pilih proyek jika biaya ini adalah Legalitas, Izin, atau Upah Non-Opname.</p>
-      </div>
+                  <div class="bg-orange-50 p-3 rounded border border-orange-100 relative">
+                      <label class="block text-xs font-bold text-orange-800 mb-1">Alokasi Proyek / Blok (Multi-Select)</label>
+                      
+                      <div id="dropdownBtn" onclick="toggleDropdown()" class="w-full border border-orange-200 p-2 rounded bg-white text-sm font-bold text-slate-700 cursor-pointer flex justify-between items-center hover:border-orange-400">
+                          <span id="selectedLabel" class="truncate">-- Operasional Kantor (Umum) --</span>
+                          <i class="fas fa-chevron-down text-xs text-orange-400"></i>
+                      </div>
 
-      <div>
-        <label class="block text-sm font-bold text-gray-700 mb-1">Jumlah (Rp)</label>
-        <input type="number" id="jumlah" class="w-full border p-3 rounded-xl text-lg font-bold" placeholder="0">
-      </div>
+                      <div id="dropdownContent" class="hidden absolute z-50 w-full bg-white border border-slate-200 shadow-xl rounded-lg mt-1 max-h-60 overflow-y-auto p-2 left-0">
+                          <label class="flex items-center gap-2 p-2 hover:bg-orange-50 rounded cursor-pointer border-b border-slate-100">
+                              <input type="checkbox" class="accent-orange-600 w-4 h-4" onchange="pilihProyek('UMUM', this)" checked id="chk-umum">
+                              <span class="text-sm font-bold text-slate-600">Operasional Kantor (Non-Proyek)</span>
+                          </label>
+                          
+                          <div id="projectListContainer" class="space-y-1 mt-1"></div>
+                      </div>
+                  </div>
 
-      <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-          <div class="flex items-center gap-3 mb-2">
-              <input type="checkbox" id="chkGiro" class="w-5 h-5 rounded cursor-pointer" onchange="toggleGiro()">
-              <label for="chkGiro" class="text-sm font-bold text-indigo-900 cursor-pointer">Bayar pakai Cek / Giro?</label>
+                  <div>
+                      <label class="block text-xs font-bold text-slate-500 mb-1">Sumber Dana</label>
+                      <select id="akunKas" class="w-full border p-2 rounded bg-white outline-none focus:border-red-500 text-sm">
+                          <option value="">-- Pilih Kas/Bank --</option>
+                      </select>
+                  </div>
+
+                  <div>
+                      <label class="block text-xs font-bold text-slate-500 mb-1">Nominal (Rp)</label>
+                      <input type="number" id="jumlah" class="w-full border p-2 rounded font-bold text-lg text-right outline-none focus:border-red-500" placeholder="0">
+                  </div>
+
+                  <div>
+                      <label class="block text-xs font-bold text-slate-500 mb-1">Keterangan</label>
+                      <textarea id="keterangan" class="w-full border p-2 rounded text-sm outline-none focus:border-red-500" rows="2" placeholder="Detail transaksi..."></textarea>
+                  </div>
+
+                  <button onclick="simpanDraft()" class="w-full bg-slate-800 text-white font-bold py-3 rounded-lg shadow hover:bg-slate-700 transition flex justify-center gap-2">
+                      <i class="fas fa-save"></i> SIMPAN DRAFT
+                  </button>
+                  <p class="text-[10px] text-center text-slate-400 italic mt-2">*Data akan masuk antrian verifikasi Finance.</p>
+              </div>
           </div>
-          <div id="panelGiro" class="hidden space-y-3 mt-3 border-t border-indigo-200 pt-3">
-              <input type="text" id="nomorCek" class="w-full border p-2 rounded-lg text-sm" placeholder="No Cek/Ref">
-              <input type="date" id="tglCair" class="w-full border p-2 rounded-lg text-sm">
+      </div>
+
+      <div class="lg:col-span-8">
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
+                  <h2 class="font-bold text-slate-700"><i class="fas fa-list-check text-blue-600 mr-2"></i>Antrian Verifikasi Finance</h2>
+                  <button onclick="loadDraft()" class="text-xs bg-white border px-3 py-1 rounded hover:bg-slate-50"><i class="fas fa-sync-alt"></i> Refresh</button>
+              </div>
+              
+              <div class="overflow-x-auto">
+                  <table class="w-full text-left text-sm whitespace-nowrap">
+                      <thead class="bg-slate-100 text-slate-500 font-bold text-xs uppercase">
+                          <tr>
+                              <th class="p-3">Tanggal</th>
+                              <th class="p-3">Keterangan & Proyek</th>
+                              <th class="p-3">Akun Biaya (Edit jika salah)</th>
+                              <th class="p-3 text-right">Nominal</th>
+                              <th class="p-3 text-center">Aksi</th>
+                          </tr>
+                      </thead>
+                      <tbody id="listDraft" class="divide-y divide-slate-100 text-slate-700">
+                          <tr><td colspan="5" class="p-8 text-center text-slate-400">Memuat data...</td></tr>
+                      </tbody>
+                  </table>
+              </div>
           </div>
       </div>
 
-      <textarea id="keterangan" rows="2" class="w-full border p-3 rounded-xl" placeholder="Keterangan..."></textarea>
-
-      <button onclick="simpanTransaksi()" id="btnSimpan" class="w-full btn-gradient text-white font-bold py-4 rounded-xl shadow-lg">SIMPAN</button>
-
-  </main>
+  </div>
 
   <script>
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
+    const fmt = (n) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR'}).format(n);
+    let selectedProjects = [];
+    let projectHierarchy = {};
 
+    function toggleDropdown() {
+        const dropdown = document.getElementById("dropdownContent");
+        dropdown.classList.toggle("hidden");
+    }
+
+    function pilihProyek(type, el) {
+        if(type === 'UMUM' && el.checked) {
+            document.querySelectorAll('.chk-proyek').forEach(c => c.checked = false);
+            document.querySelectorAll('.chk-batch').forEach(c => c.checked = false);
+        }
+        updateSelection();
+    }
+
+    function pilihBatch(kategori, el) {
+        const chkUmum = document.getElementById('chk-umum');
+        if(chkUmum) chkUmum.checked = false;
+        const checkboxes = document.querySelectorAll(`.chk-proyek[data-group="${kategori}"]`);
+        checkboxes.forEach(chk => chk.checked = el.checked);
+        updateSelection();
+    }
+
+    function updateSelection() {
+        const chkUmum = document.getElementById('chk-umum');
+        const checked = document.querySelectorAll('.chk-proyek:checked');
+        const label = document.getElementById("selectedLabel");
+        selectedProjects = [];
+
+        if(checked.length > 0) {
+            if(chkUmum) chkUmum.checked = false;
+            checked.forEach(c => selectedProjects.push(c.value));
+            if(label) {
+                label.innerText = `${selectedProjects.length} Blok Dipilih`;
+                label.classList.add("text-orange-700");
+            }
+        } else {
+            if(chkUmum) chkUmum.checked = true;
+            if(label) {
+                label.innerText = "-- Operasional Kantor (Umum) --";
+                label.classList.remove("text-orange-700");
+            }
+        }
+    }
+
+
+    document.addEventListener("click", (event) => {
+        const dropdown = document.getElementById("dropdownContent");
+        const dropdownBtn = document.getElementById("dropdownBtn");
+        if(!dropdown || !dropdownBtn) return;
+        if(!dropdown.classList.contains("hidden") && !dropdown.contains(event.target) && !dropdownBtn.contains(event.target)) {
+            dropdown.classList.add("hidden");
+        }
+    });
+
+    // --- INIT ---
     document.getElementById("tanggal").valueAsDate = new Date();
+    updateSelection();
     
-    // LOAD DATA
     async function init() {
-        // 1. Load Akun
-        const { data: akun } = await client.from('master_akun').select('*').order('nama_akun');
+        await loadMasterData(); // Load Akun & Proyek
+        loadDraft(); // Load Tabel Kanan
+    }
+
+    let masterAkunOptions = ""; // Cache untuk dropdown di tabel
+
+    async function loadMasterData() {
+        console.log("Memulai load data...");
+
+        // 1. LOAD AKUN
+        const { data: akun, error: errAkun } = await client.from('master_akun').select('nama_akun').order('nama_akun');
+        
+        if (errAkun) {
+            console.error("Error Akun:", errAkun);
+            alert("Gagal load Akun: " + errAkun.message);
+        }
+
         const selBiaya = document.getElementById("akunBiaya");
         const selKas = document.getElementById("akunKas");
-        selBiaya.innerHTML = '<option value="">-- Pilih Akun --</option>';
-        selKas.innerHTML = '<option value="">-- Pilih Sumber --</option>';
         
+        selBiaya.innerHTML = '<option value="">-- Pilih Akun Biaya --</option>';
+        selKas.innerHTML = '<option value="">-- Pilih Sumber Dana --</option>';
+        masterAkunOptions = `<option value="">-- Pilih --</option>`; 
+
         if(akun) {
             akun.forEach(a => {
                 const n = a.nama_akun;
-                if(n.toLowerCase().match(/kas|bank|mandiri|bca/)) selKas.innerHTML += `<option value="${n}">${n}</option>`;
+                masterAkunOptions += `<option value="${n}">${n}</option>`; 
+                if(n.match(/kas|bank|mandiri|bca/i)) selKas.innerHTML += `<option value="${n}">${n}</option>`;
                 else selBiaya.innerHTML += `<option value="${n}">${n}</option>`;
             });
         }
 
-        // 2. Load Proyek (Untuk HPP)
-        const { data: proyek } = await client.from('master_proyek').select('nama_proyek, kategori').eq('status', 'BERJALAN');
-        const selProyek = document.getElementById("pilihProyek");
-        if(proyek) {
+        // 2. LOAD PROYEK (DBG)
+        console.log("Mengambil data proyek...");
+        
+        const { data: proyek, error: errProyek } = await client.from('master_proyek')
+            .select('*')
+            .order('nama_proyek');
+
+        if (errProyek) {
+            console.error("Error Proyek:", errProyek);
+            alert("Gagal load Proyek: " + errProyek.message);
+            return;
+        }
+
+        console.log("Data Proyek ditemukan:", proyek);
+
+        const container = document.getElementById("projectListContainer");
+        const labelJumlah = document.getElementById("selectedLabel");
+        
+        if (!proyek || proyek.length === 0) {
+            if(container) {
+                container.innerHTML = `<div class="p-2 text-xs text-red-500 italic">Data Proyek Kosong di Database</div>`;
+            }
+            return;
+        }
+
+        if(container) {
+            container.innerHTML = "";
+            projectHierarchy = {};
+            selectedProjects = [];
+
+            const umumCheckbox = document.getElementById("chk-umum");
+            if(umumCheckbox) umumCheckbox.checked = true;
+            if(labelJumlah) {
+                labelJumlah.innerText = "-- Operasional Kantor (Umum) --";
+                labelJumlah.classList.remove("text-orange-700");
+            }
+
+            const groups = {};
             proyek.forEach(p => {
-                selProyek.innerHTML += `<option value="${p.nama_proyek}">${p.nama_proyek} [${p.kategori}]</option>`;
+                const kategori = p.kategori || "Cluster Umum"; 
+                if(!groups[kategori]) groups[kategori] = [];
+                
+                if (p.nama_proyek) {
+                    groups[kategori].push(p.nama_proyek);
+                }
             });
+
+            for(const [kategori, blokList] of Object.entries(groups)) {
+                projectHierarchy[kategori] = blokList;
+                container.innerHTML += `
+                    <div class="mt-2">
+                        <label class="flex items-center gap-2 px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded cursor-pointer font-bold text-xs text-slate-700">
+                            <input type="checkbox" class="chk-batch accent-orange-600" onchange='pilihBatch("${kategori}", this)'>
+                            SELECT ALL - ${kategori} (${blokList.length} Unit)
+                        </label>
+                        <div class="ml-4 mt-1 border-l-2 border-slate-200 pl-2 space-y-1">
+                            ${blokList.map(nama => `
+                                <label class="flex items-center gap-2 p-1 hover:bg-orange-50 rounded cursor-pointer">
+                                    <input type="checkbox" value="${nama}" data-group="${kategori}" class="chk-proyek accent-orange-600 w-4 h-4" onchange="updateSelection()">
+                                    <span class="text-xs text-slate-600">${nama}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
         }
     }
-    init();
 
-    function toggleGiro() {
-        const c = document.getElementById("chkGiro").checked;
-        document.getElementById("panelGiro").classList.toggle("hidden", !c);
-    }
-
-    async function simpanTransaksi() {
+    // --- 1. SIMPAN DRAFT (INPUTER) ---
+    async function simpanDraft() {
         const tgl = document.getElementById("tanggal").value;
         const akunB = document.getElementById("akunBiaya").value;
         const akunK = document.getElementById("akunKas").value;
-        const proyek = document.getElementById("pilihProyek").value; // Ambil Proyek
+        const chkUmum = document.getElementById('chk-umum');
+        let proyekString = null;
+        if(!chkUmum || !chkUmum.checked) {
+            if(selectedProjects.length === 0) {
+                return alert("Pilih minimal 1 blok proyek atau pilih Operasional Kantor!");
+            }
+            proyekString = selectedProjects.join(",");
+        }
         const jml = Number(document.getElementById("jumlah").value);
-        let ket = document.getElementById("keterangan").value;
+        const ket = document.getElementById("keterangan").value;
+
+        if(!tgl || !akunB || !akunK || jml <= 0) return alert("Data belum lengkap!");
+
+        // Simpan ke tabel 'transaksi' dengan status 'PENDING' (Belum masuk Jurnal)
+        // Kita gunakan kolom 'status' (Perlu ditambahkan di database jika belum ada, atau pakai logika flag)
+        // Di sini saya asumsikan kita pakai tabel 'transaksi' biasa, tapi kita filter nanti.
+        // Agar rapi, idealnya ada kolom 'is_posted'. Jika belum ada, kita pakai 'keterangan' flag sementara atau buat tabel baru.
+        // UNTUK KEMUDAHAN ANDA: Saya pakai tabel 'transaksi' tapi dengan flag khusus di kolom 'nomor_bukti' atau sejenisnya.
+        // Tapi cara paling benar adalah tambah kolom status.
         
-        const isCek = document.getElementById("chkGiro").checked;
-        const noCek = document.getElementById("nomorCek").value;
-        const tglCair = document.getElementById("tglCair").value;
+        // SAYA AKAN PAKAI TABEL 'transaksi' dengan kolom 'jenis_transaksi' = 'DRAFT_KELUAR' 
+        // Nanti saat posting baru diubah jadi 'KELUAR'
+        
+        const { error } = await client.from('transaksi').insert([{
+            tanggal: tgl,
+            jenis_transaksi: 'DRAFT_KELUAR', // <--- FLAG PENTING: DRAFT
+            akun: akunB,
+            bank_sumber: akunK,
+            jumlah: jml,
+            keterangan: ket,
+            nama_proyek: proyekString
+        }]);
 
-        if(!tgl || !akunB || !akunK || jml <= 0) return alert("Lengkapi data!");
-        if(isCek && (!noCek || !tglCair)) return alert("Data Cek kurang lengkap!");
-
-        if(isCek) ket += ` (Ref: ${noCek})`;
-        if(proyek) ket += ` [Proyek: ${proyek}]`; // Tempel nama proyek di ket juga biar jelas
-
-        if(!confirm("Simpan transaksi?")) return;
-
-        try {
-            const ref = "OUT-" + Date.now();
-            
-            // 1. JURNAL UMUM
-            await client.from('jurnal_umum').insert([
-                { tanggal: tgl, nomor_referensi: ref, keterangan: ket, nama_akun: akunB, debit: jml, kredit: 0 },
-                { tanggal: tgl, nomor_referensi: ref, keterangan: ket, nama_akun: akunK, debit: 0, kredit: jml }
-            ]);
-
-            // 2. TRANSAKSI (Dengan kolom nama_proyek)
-            const tglFinal = isCek ? tglCair : tgl;
-            const { error } = await client.from('transaksi').insert([{
-                tanggal: tglFinal,
-                jenis_transaksi: 'KELUAR',
-                akun: akunB,
-                bank_sumber: akunK,
-                jumlah: jml,
-                keterangan: ket,
-                nama_proyek: proyek || null // KUNCI UTAMA: Simpan nama proyek
-            }]);
-
-            if(error) throw error;
-            alert("✅ Tersimpan!");
-            location.reload();
-
-        } catch (e) { alert("Error: " + e.message); }
+        if(error) alert("Gagal: " + error.message);
+        else {
+            alert("✅ Draft tersimpan! Menunggu verifikasi Finance.");
+            // Reset Form
+            document.getElementById("jumlah").value = "";
+            document.getElementById("keterangan").value = "";
+            loadDraft();
+        }
     }
+
+    // --- 2. LOAD DAFTAR APPROVAL (FINANCE) ---
+    async function loadDraft() {
+        const tbody = document.getElementById("listDraft");
+        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-500"></i></td></tr>`;
+
+        const { data, error } = await client
+            .from('transaksi')
+            .select('*')
+            .eq('jenis_transaksi', 'DRAFT_KELUAR') // Hanya ambil yg draft
+            .order('tanggal', { ascending: false });
+
+        if(!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 italic">Tidak ada antrian verifikasi.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = "";
+        data.forEach(tr => {
+            const proyekBadge = tr.nama_proyek ? `<span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[10px] font-bold border border-orange-200 block w-fit mt-1">${tr.nama_proyek}</span>` : "";
+            
+            // Dropdown Akun di dalam Tabel (Agar Finance bisa koreksi)
+            // Kita inject value saat ini sebagai selected
+            const dropdownAkun = `<select onchange="updateAkunDraft(${tr.id}, this.value)" class="border border-slate-300 rounded p-1 text-xs w-full bg-white font-bold text-slate-700">
+                                    ${masterAkunOptions.replace(`value="${tr.akun}"`, `value="${tr.akun}" selected`)}
+                                  </select>`;
+
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-50 border-b transition">
+                    <td class="p-3 text-xs text-slate-500">${new Date(tr.tanggal).toLocaleDateString('id-ID')}</td>
+                    <td class="p-3">
+                        <div class="font-bold text-slate-700 text-sm">${tr.keterangan}</div>
+                        ${proyekBadge}
+                        <div class="text-[10px] text-slate-400 mt-0.5">Sumber: ${tr.bank_sumber}</div>
+                    </td>
+                    <td class="p-3 w-48">${dropdownAkun}</td>
+                    <td class="p-3 text-right font-bold text-slate-800">${fmt(tr.jumlah)}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="postingJurnal(${tr.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded shadow text-xs font-bold transition transform active:scale-95 flex items-center gap-1 mx-auto">
+                            <i class="fas fa-check"></i> POST
+                        </button>
+                        <button onclick="hapusDraft(${tr.id})" class="text-red-400 hover:text-red-600 text-[10px] mt-2 underline">Hapus</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // --- 3. FITUR EDIT AKUN DI TABEL ---
+    async function updateAkunDraft(id, newAkun) {
+        await client.from('transaksi').update({ akun: newAkun }).eq('id', id);
+        // Tidak perlu reload agar cepat, user sudah lihat perubahannya di dropdown
+    }
+
+    // --- 4. POSTING KE JURNAL (EKSEKUSI FINAL) ---
+    async function postingJurnal(id) {
+        if(!confirm("Yakin posting data ini? Sistem akan membagi rata biaya ke proyek yang dipilih.")) return;
+
+        const { data: tr } = await client.from('transaksi').select('*').eq('id', id).single();
+        if(!tr) return;
+
+        const refNo = "OUT-" + tr.id;
+        let jurnalPayload = [];
+
+        if (tr.nama_proyek && tr.nama_proyek.includes(',')) {
+            const listProyek = tr.nama_proyek.split(',').map(p => p.trim()).filter(Boolean);
+            const nominalPerProyek = tr.jumlah / listProyek.length;
+
+            listProyek.forEach(p => {
+                jurnalPayload.push({
+                    tanggal: tr.tanggal,
+                    nomor_referensi: refNo,
+                    keterangan: `${tr.keterangan} [Alokasi: ${p}]`,
+                    nama_akun: tr.akun,
+                    debit: nominalPerProyek,
+                    kredit: 0,
+                    project_code: p
+                });
+            });
+        } else {
+            jurnalPayload.push({
+                tanggal: tr.tanggal,
+                nomor_referensi: refNo,
+                keterangan: tr.nama_proyek ? `${tr.keterangan} [${tr.nama_proyek}]` : tr.keterangan,
+                nama_akun: tr.akun,
+                debit: tr.jumlah,
+                kredit: 0
+            });
+        }
+
+        jurnalPayload.push({
+            tanggal: tr.tanggal,
+            nomor_referensi: refNo,
+            keterangan: tr.keterangan,
+            nama_akun: tr.bank_sumber,
+            debit: 0,
+            kredit: tr.jumlah
+        });
+
+        const { error: errJ } = await client.from('jurnal_umum').insert(jurnalPayload);
+        if(errJ) { alert("Gagal Jurnal: " + errJ.message); return; }
+
+        await client.from('transaksi').update({ jenis_transaksi: 'KELUAR' }).eq('id', id);
+        alert(`✅ Berhasil! Biaya dibagi ke ${jurnalPayload.length - 1} alokasi.`);
+        loadDraft();
+    }
+
+    async function hapusDraft(id) {
+        if(confirm("Hapus draft ini?")) {
+            await client.from('transaksi').delete().eq('id', id);
+            loadDraft();
+        }
+    }
+
+    init();
   </script>
 </body>
 </html>

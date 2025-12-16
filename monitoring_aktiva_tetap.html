@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <script>
+  const izin = sessionStorage.getItem("izin_akses");
+  if (izin !== "finance" && izin !== "superadmin") {
+    alert("⛔ Anda tidak memiliki akses ke Finance!");
+    window.location.href = "login_internal.html";
+  }
+  </script>
+  <meta charset="UTF-8" />
+  <title>Monitoring Aktiva Tetap</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f4f6f8;
+      color: #0f172a;
+    }
+    header {
+      padding: 20px 28px;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .header-text h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #0f172a;
+    }
+    .header-text small {
+      color: #475467;
+    }
+    .home-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      box-shadow: 0 8px 14px rgba(37, 99, 235, 0.25);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .home-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 18px rgba(37, 99, 235, 0.35);
+    }
+    .container {
+      max-width: 1100px;
+      margin: 32px auto;
+      padding: 0 24px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .summary-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .summary-card span {
+      font-size: 32px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .summary-card small {
+      color: #475467;
+      font-size: 13px;
+    }
+    .section-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .section-card h2 {
+      margin: 0;
+      font-size: 20px;
+      color: #0f172a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    table thead {
+      background: #1d4ed8;
+      color: #fff;
+    }
+    table th,
+    table td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+    }
+    table tbody tr:hover {
+      background: #eef2ff;
+    }
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    label {
+      font-size: 12px;
+      color: #475467;
+      margin-bottom: 6px;
+      display: block;
+      font-weight: 600;
+    }
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #cbd5f5;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.15s ease;
+    }
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #2563eb;
+    }
+    .form-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(22, 163, 74, 0.3);
+    }
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #1f2933;
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+      color: #475467;
+    }
+    .legend span {
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5f5;
+    }
+    @media (max-width: 600px) {
+      header,
+      .container {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-row">
+      <div class="header-text">
+        <h1>Monitoring Aktiva Tetap</h1>
+        <small>Kontrol register, depresiasi, dan pemeliharaan aset perusahaan</small>
+      </div>
+      <button class="home-btn" type="button" onclick="window.location.href='dashboard_finance.html'">Kembali ke Dashboard</button>
+    </div>
+  </header>
+  <main class="container">
+    <section class="summary-grid">
+      <article class="summary-card">
+        <span>128</span>
+        <small>Jumlah aktiva tetap terdaftar</small>
+      </article>
+      <article class="summary-card">
+        <span>Rp 24,5M</span>
+        <small>Nilai buku bersih keseluruhan</small>
+      </article>
+      <article class="summary-card">
+        <span>Rp 320J</span>
+        <small>Estimasi depresiasi bulan berjalan</small>
+      </article>
+      <article class="summary-card">
+        <span>4</span>
+        <small>Aset dalam proses pemeliharaan</small>
+      </article>
+    </section>
+
+    <section class="section-card">
+      <h2>Daftar Aktiva Tetap</h2>
+      <div class="legend">
+        <span>Keterangan: Aset siap digunakan</span>
+        <span>Keterangan: Aset dalam perbaikan</span>
+        <span>Keterangan: Aset akan dihentikan</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Kode</th>
+            <th>Nama Aktiva</th>
+            <th>Kategori</th>
+            <th>Tanggal Perolehan</th>
+            <th>Nilai Perolehan</th>
+            <th>Nilai Buku</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>AT-001</td>
+            <td>Gedung Kantor Utama</td>
+            <td>Bangunan</td>
+            <td>03 Jan 2020</td>
+            <td>Rp 12.000.000.000</td>
+            <td>Rp 9.800.000.000</td>
+            <td>Aktif</td>
+          </tr>
+          <tr>
+            <td>AT-023</td>
+            <td>Mesin Mixer Beton</td>
+            <td>Mesin</td>
+            <td>17 Sep 2021</td>
+            <td>Rp 650.000.000</td>
+            <td>Rp 410.000.000</td>
+            <td>Aktif</td>
+          </tr>
+          <tr>
+            <td>AT-045</td>
+            <td>Kendaraan Dump Truck</td>
+            <td>Kendaraan</td>
+            <td>05 Mei 2022</td>
+            <td>Rp 980.000.000</td>
+            <td>Rp 720.000.000</td>
+            <td>Perawatan</td>
+          </tr>
+          <tr>
+            <td>AT-061</td>
+            <td>Komputer Server</td>
+            <td>Peralatan IT</td>
+            <td>02 Feb 2023</td>
+            <td>Rp 215.000.000</td>
+            <td>Rp 195.000.000</td>
+            <td>Aktif</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section-card">
+      <h2>Form Pengontrolan Aktiva</h2>
+      <p style="margin: 0; color: #475467; font-size: 14px;">Catat penambahan, pemindahan, atau permintaan pemeliharaan aktiva.</p>
+      <form>
+        <div>
+          <label for="kode">Kode Aktiva</label>
+          <input id="kode" type="text" placeholder="AT-0XX" />
+        </div>
+        <div>
+          <label for="nama">Nama Aktiva</label>
+          <input id="nama" type="text" placeholder="Contoh: Crane 5 Ton" />
+        </div>
+        <div>
+          <label for="kategori">Kategori</label>
+          <select id="kategori">
+            <option>Bangunan</option>
+            <option>Mesin</option>
+            <option>Kendaraan</option>
+            <option>Peralatan IT</option>
+            <option>Inventaris</option>
+          </select>
+        </div>
+        <div>
+          <label for="perolehan">Tanggal Perolehan</label>
+          <input id="perolehan" type="date" />
+        </div>
+        <div>
+          <label for="nilai">Nilai Perolehan</label>
+          <input id="nilai" type="number" placeholder="0" />
+        </div>
+        <div>
+          <label for="umur">Umur Ekonomis (tahun)</label>
+          <input id="umur" type="number" placeholder="0" />
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-secondary" type="button" onclick="window.location.href='dashboard_finance.html'">Batal</button>
+          <button class="btn btn-primary" type="button">Simpan / Update</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="section-card">
+      <h2>Jadwal Depresiasi &amp; Pemeliharaan</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Aktiva</th>
+            <th>Depresiasi Per Bulan</th>
+            <th>Sisa Umur</th>
+            <th>Next Maintenance</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Gedung Kantor Utama</td>
+            <td>Rp 30.000.000</td>
+            <td>12 Bulan</td>
+            <td>12 Apr 2025</td>
+            <td><button class="btn btn-secondary" type="button">Rencana Maintenance</button></td>
+          </tr>
+          <tr>
+            <td>Mesin Mixer Beton</td>
+            <td>Rp 12.000.000</td>
+            <td>24 Bulan</td>
+            <td>06 Jan 2025</td>
+            <td><button class="btn btn-secondary" type="button">Pantau</button></td>
+          </tr>
+          <tr>
+            <td>Kendaraan Dump Truck</td>
+            <td>Rp 18.000.000</td>
+            <td>30 Bulan</td>
+            <td>18 Sep 2024</td>
+            <td><button class="btn btn-secondary" type="button">Jadwalkan</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

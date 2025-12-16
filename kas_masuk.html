@@ -3,189 +3,382 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kas Masuk - Finance</title>
+  <title>Kas Masuk & Approval</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
-    body { font-family: "Segoe UI", sans-serif; background: #f0fdf4; } /* Nuansa Hijau Segar */
-    .btn-gradient { background: linear-gradient(135deg, #16a34a, #15803d); }
-    .btn-gradient:hover { background: linear-gradient(135deg, #15803d, #14532d); }
+    body { background-color: #f0fdf4; font-family: "Segoe UI", sans-serif; padding-bottom: 80px; }
+    /* Tema Hijau untuk Pemasukan */
+    .bg-theme { background-color: #16a34a; } 
+    .text-theme { color: #16a34a; }
+    .border-theme { border-color: #16a34a; }
+    .hover-theme:hover { background-color: #15803d; }
+    /* Tweaking Select2 agar mirip input Tailwind */
+    .select2-container .select2-selection--single {
+        height: 42px !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 0.5rem !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 40px !important;
+    }
   </style>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </head>
-<body class="p-6 text-gray-800">
+<body>
 
-  <header class="max-w-xl mx-auto mb-6 flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
-    <div>
-      <h1 class="text-xl font-bold text-gray-900">Kas Masuk</h1>
-      <p class="text-xs text-gray-500">Catat Pendapatan & Penerimaan Dana</p>
-    </div>
-    <a href="dashboard_operasional.html" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-full text-sm font-bold transition">
-      <i class="fas fa-arrow-left mr-1"></i> Dashboard
-    </a>
-  </header>
-
-  <main class="max-w-xl mx-auto bg-white p-8 rounded-2xl shadow-lg">
-    
-    <div class="space-y-5">
-      
-      <div>
-        <label class="block text-sm font-bold text-gray-700 mb-1">Tanggal Terima</label>
-        <input type="date" id="tanggal" class="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-green-500 outline-none bg-green-50 text-gray-800 font-bold">
-      </div>
-
-      <div class="grid grid-cols-1 gap-4">
-        
-        <div class="bg-green-50 p-4 rounded-xl border border-green-200">
-            <label class="block text-xs font-bold text-green-800 mb-1 uppercase"><i class="fas fa-wallet mr-1"></i> Masuk ke Rekening (Debit)</label>
-            <select id="akunTarget" class="w-full border p-2 rounded-lg font-bold text-gray-700 bg-white focus:ring-2 focus:ring-green-500">
-              <option value="">-- Memuat Bank... --</option>
-              </select>
+  <nav class="bg-white border-b border-green-100 px-6 py-4 sticky top-0 z-40 shadow-sm flex justify-between items-center">
+    <div class="flex items-center gap-3">
+        <div class="bg-green-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg shadow-green-200">
+            <i class="fas fa-wallet text-lg"></i>
         </div>
-
         <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Sumber Pendapatan (Kredit)</label>
-            <select id="akunSumber" class="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-green-500 bg-white">
-              <option value="">-- Memuat Akun... --</option>
-              </select>
-            <p class="text-[10px] text-gray-400 mt-1 ml-1">*Pilih Pendapatan Usaha, Modal, atau Lain-lain</p>
+            <h1 class="text-lg font-bold text-slate-800 leading-tight">Kas Masuk & Verifikasi</h1>
+            <p class="text-xs text-slate-500">Terima Dana -> Cek Mutasi -> Validasi</p>
         </div>
-
-      </div>
-
-      <div>
-        <label class="block text-sm font-bold text-gray-700 mb-1">Jumlah Diterima (Rp)</label>
-        <input type="number" id="jumlah" class="w-full border border-green-300 p-3 rounded-xl focus:ring-2 focus:ring-green-500 text-2xl font-bold text-green-700 placeholder-gray-300 text-right" placeholder="0">
-      </div>
-
-      <div>
-        <label class="block text-sm font-bold text-gray-700 mb-1">Keterangan</label>
-        <textarea id="keterangan" rows="2" class="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-green-500" placeholder="Contoh: DP Rumah Blok A1 a.n Bpk Budi"></textarea>
-      </div>
-
-      <div id="statusBox" class="hidden p-3 rounded-lg text-sm font-bold text-center"></div>
-
-      <button id="btnSimpan" onclick="simpanTransaksi()" class="w-full btn-gradient text-white font-bold py-4 rounded-xl shadow-lg transition transform hover:-translate-y-1 flex justify-center items-center gap-2">
-        <i class="fas fa-download"></i> SIMPAN PENERIMAAN
-      </button>
-
     </div>
-  </main>
+    <a href="dashboard_operasional.html" class="bg-slate-100 text-slate-500 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-200 transition">
+        <i class="fas fa-arrow-left"></i>
+    </a>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <div class="lg:col-span-4 space-y-6">
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-green-100 sticky top-24">
+              <h2 class="font-bold text-slate-800 border-b pb-2 mb-4 flex items-center gap-2">
+                  <i class="fas fa-edit text-green-600"></i> Input Penerimaan
+              </h2>
+              
+              <div class="space-y-4">
+                  <div>
+                      <label class="block text-xs font-bold text-slate-500 mb-1">Tanggal Terima</label>
+                      <input type="date" id="tanggal" class="w-full border p-2 rounded bg-green-50 font-bold text-slate-700 outline-none focus:border-green-500">
+                  </div>
+
+                  <div class="bg-green-50 p-3 rounded border border-green-200">
+                      <label class="block text-xs font-bold text-green-800 mb-1">Masuk ke Rekening (Debit)</label>
+                      <select id="akunTarget" class="w-full border border-green-200 p-2 rounded bg-white outline-none focus:border-green-500 text-sm font-bold text-slate-700">
+                          <option value="">-- Pilih Bank/Kas --</option>
+                      </select>
+                  </div>
+
+                  <div>
+                      <label class="block text-xs font-bold text-slate-500 mb-1">Sumber Pendapatan (Kredit)</label>
+                      <select id="akunSumber" class="w-full border p-2 rounded bg-white outline-none focus:border-green-500 text-sm">
+                          <option value="">-- Pilih Akun Pendapatan --</option>
+                      </select>
+                  </div>
+
+                  <div>
+                      <label class="block text-xs font-bold text-slate-500 mb-1">Terkait Proyek (Opsional)</label>
+                      <select id="pilihProyek" class="w-full border p-2 rounded bg-white outline-none focus:border-green-500 text-sm">
+                          <option value="">-- Umum / Non Proyek --</option>
+                      </select>
+                  </div>
+
+                  <div>
+                      <label class="block text-xs font-bold text-slate-500 mb-1">Nominal (Rp)</label>
+                      <input type="number" id="jumlah" class="w-full border p-2 rounded font-bold text-lg text-right outline-none focus:border-green-500 text-green-700" placeholder="0">
+                  </div>
+
+                  <div>
+                      <label class="block text-xs font-bold text-slate-500 mb-1">Keterangan</label>
+                      <textarea id="keterangan" class="w-full border p-2 rounded text-sm outline-none focus:border-green-500" rows="2" placeholder="Contoh: Booking Fee Blok A1..."></textarea>
+                  </div>
+
+                  <button onclick="simpanDraft()" class="w-full bg-slate-800 text-white font-bold py-3 rounded-lg shadow hover:bg-slate-700 transition flex justify-center gap-2">
+                      <i class="fas fa-paper-plane"></i> SIMPAN DRAFT
+                  </button>
+                  <p class="text-[10px] text-center text-slate-400 italic mt-2">*Data masuk antrian cek Finance sebelum dijurnal.</p>
+              </div>
+          </div>
+      </div>
+
+      <div class="lg:col-span-8">
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div class="p-4 border-b bg-green-50 flex justify-between items-center">
+                  <h2 class="font-bold text-slate-700"><i class="fas fa-list-check text-green-600 mr-2"></i>Antrian Verifikasi Dana Masuk</h2>
+                  <button onclick="loadDraft()" class="text-xs bg-white border px-3 py-1 rounded hover:bg-green-100"><i class="fas fa-sync-alt"></i> Refresh</button>
+              </div>
+              
+              <div class="overflow-x-auto">
+                  <table class="w-full text-left text-sm whitespace-nowrap">
+                      <thead class="bg-slate-100 text-slate-500 font-bold text-xs uppercase">
+                          <tr>
+                              <th class="p-3">Tanggal & Info</th>
+                              <th class="p-3">Rekening Penerima (Debit)</th>
+                              <th class="p-3">Sumber Pendapatan (Kredit)</th>
+                              <th class="p-3 text-right">Nominal</th>
+                              <th class="p-3 text-center">Aksi</th>
+                          </tr>
+                      </thead>
+                      <tbody id="listDraft" class="divide-y divide-slate-100 text-slate-700">
+                          <tr><td colspan="5" class="p-8 text-center text-slate-400">Memuat data...</td></tr>
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+
+  </div>
 
   <script>
-    // --- SETUP KONEKSI SUPABASE ---
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
+    const fmt = (n) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR'}).format(n);
 
-    // Set Default Tanggal
+    // Cache Options untuk Dropdown di Tabel
+    let optBank = "";
+    let optPendapatan = "";
+
+    // --- 1. INIT & LOAD DATA ---
     document.getElementById("tanggal").valueAsDate = new Date();
     
-    // 1. LOAD MASTER AKUN
-    async function loadAkun() {
-      const { data } = await client.from('master_akun').select('nama_akun').order('nama_akun');
-      
-      const selTarget = document.getElementById("akunTarget"); // Bank/Kas (Debit)
-      const selSumber = document.getElementById("akunSumber"); // Pendapatan (Kredit)
-      
-      // Reset
-      selTarget.innerHTML = '<option value="">-- Pilih Rekening Penerima --</option>';
-      selSumber.innerHTML = '<option value="">-- Pilih Sumber Dana --</option>';
-
-      if(data) {
-        data.forEach(akun => {
-            const n = akun.nama_akun;
-            const lower = n.toLowerCase();
-
-            // LOGIKA PEMISAHAN:
-            // Akun yang mengandung kata "Kas", "Bank", "Mandiri", "BCA" masuk ke Target (Debit)
-            if(lower.includes('kas') || lower.includes('bank') || lower.includes('mandiri') || lower.includes('bca')) {
-                selTarget.innerHTML += `<option value="${n}">${n}</option>`;
-            } else {
-                // Sisanya (Pendapatan, Modal, Piutang, dll) masuk ke Sumber (Kredit)
-                selSumber.innerHTML += `<option value="${n}">${n}</option>`;
-            }
-        });
-      }
+    async function init() {
+        await loadMasterData();
+        loadDraft();
     }
-    loadAkun();
 
-    // 2. SIMPAN TRANSAKSI (INTEGRASI AKUNTANSI)
-    async function simpanTransaksi() {
-      const btn = document.getElementById("btnSimpan");
-      const statusBox = document.getElementById("statusBox");
+    async function loadMasterData() {
+        console.log("Memulai Load Data...");
 
-      const tgl = document.getElementById("tanggal").value;
-      const akunDb = document.getElementById("akunTarget").value; // Debit (Bank)
-      const akunCr = document.getElementById("akunSumber").value; // Kredit (Pendapatan)
-      const jum = Number(document.getElementById("jumlah").value);
-      const ket = document.getElementById("keterangan").value;
+        const { data: akun, error: errAkun } = await client
+            .from('master_akun')
+            .select('nama_akun, kategori')
+            .order('kode_akun', { ascending: true });
 
-      // Validasi
-      if(!tgl || !akunDb || !akunCr || jum <= 0) {
-        alert("Mohon lengkapi semua data transaksi!"); return;
-      }
-      if(!confirm(`Terima dana Rp ${jum.toLocaleString()} ke ${akunDb}?`)) return;
+        if (errAkun) {
+            console.error(errAkun);
+            return alert("Gagal mengambil data akun.");
+        }
+            
+        const selTarget = document.getElementById("akunTarget"); 
+        const selSumber = document.getElementById("akunSumber"); 
+        
+        selTarget.innerHTML = '<option value="">-- Pilih Bank/Kas --</option>';
+        selSumber.innerHTML = '<option value="">-- Pilih Sumber --</option>';
 
-      // UI Loading
-      btn.disabled = true;
-      btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`;
+        let htmlBank = "";
+        let htmlPendapatan = "";
+        let htmlKewajiban = "";
+        let htmlModal = "";
+        let htmlLain = "";
+        
+        optBank = "";      
+        optPendapatan = ""; 
 
-      try {
-        const refNo = "IN-" + Date.now(); // ID Referensi Unik
+        if(akun) {
+            akun.forEach(a => {
+                const n = a.nama_akun;
+                const kat = a.kategori ? a.kategori.toLowerCase() : "";
+                
+                if(n.match(/kas|bank|mandiri|bca|bri|bni|btn/i)) {
+                    const opt = `<option value="${n}">${n}</option>`;
+                    htmlBank += opt;
+                    optBank += opt; 
+                } else {
+                    const opt = `<option value="${n}">${n}</option>`;
+                    if (kat.includes('pendapatan') || kat.includes('sales')) htmlPendapatan += opt;
+                    else if (kat.includes('kewajiban') || kat.includes('hutang')) htmlKewajiban += opt;
+                    else if (kat.includes('modal') || kat.includes('ekuitas')) htmlModal += opt;
+                    else htmlLain += opt;
+                    optPendapatan += opt; 
+                }
+            });
+        }
 
-        // A. JURNAL UMUM (PENTING: Agar Laporan Keuangan Update)
-        // Debit: Kas/Bank (Harta Bertambah)
-        // Kredit: Pendapatan/Modal (Bertambah)
-        const jurnalData = [
+        selTarget.innerHTML += htmlBank;
+        selSumber.innerHTML += `
+            <optgroup label="--- PENDAPATAN (SALES) ---">${htmlPendapatan}</optgroup>
+            <optgroup label="--- KEWAJIBAN / TITIPAN (HUTANG) ---">${htmlKewajiban}</optgroup>
+            <optgroup label="--- EKUITAS (MODAL) ---">${htmlModal}</optgroup>
+            <optgroup label="--- LAINNYA ---">${htmlLain}</optgroup>
+        `;
+
+        const { data: proyek } = await client.from('master_proyek').select('nama_proyek').eq('status', 'BERJALAN').order('nama_proyek');
+        const selProyek = document.getElementById("pilihProyek");
+        if(proyek) {
+            selProyek.innerHTML = '<option value="">-- Umum / Non Proyek --</option>'; 
+            proyek.forEach(p => {
+                selProyek.innerHTML += `<option value="${p.nama_proyek}">${p.nama_proyek}</option>`;
+            });
+        }
+
+        setTimeout(() => {
+            console.log("Mengaktifkan Select2...");
+
+            if ($('#akunSumber').data('select2')) $('#akunSumber').select2('destroy');
+            if ($('#akunTarget').data('select2')) $('#akunTarget').select2('destroy');
+            if ($('#pilihProyek').data('select2')) $('#pilihProyek').select2('destroy');
+
+            $('#akunSumber').select2({
+                placeholder: "-- Ketik untuk mencari akun --",
+                allowClear: true,
+                width: '100%'
+            });
+
+            $('#akunTarget').select2({
+                placeholder: "-- Pilih Bank --",
+                width: '100%'
+            });
+
+            $('#pilihProyek').select2({
+                placeholder: "-- Cari Proyek --",
+                width: '100%'
+            });
+            
+        }, 100);
+    }
+
+    // --- 2. SIMPAN DRAFT (INPUT) ---
+    async function simpanDraft() {
+        const tgl = document.getElementById("tanggal").value;
+        const akunDb = document.getElementById("akunTarget").value; // Bank
+        const akunCr = document.getElementById("akunSumber").value; // Pendapatan
+        const proyek = document.getElementById("pilihProyek").value;
+        const jml = Number(document.getElementById("jumlah").value);
+        const ket = document.getElementById("keterangan").value;
+
+        if(!tgl || !akunDb || !akunCr || jml <= 0) return alert("Data belum lengkap!");
+
+        // INSERT KE TRANSAKSI DENGAN STATUS 'DRAFT_MASUK'
+        const { error } = await client.from('transaksi').insert([{
+            tanggal: tgl,
+            jenis_transaksi: 'DRAFT_MASUK', // <--- FLAG KHUSUS
+            akun: akunCr,        // Disimpan: Sumber Pendapatan (Kredit)
+            bank_sumber: akunDb, // Disimpan: Bank Penerima (Debit)
+            nama_proyek: proyek || null,
+            jumlah: jml,
+            keterangan: ket
+        }]);
+
+        if(error) alert("Error: " + error.message);
+        else {
+            alert("✅ Draft Penerimaan tersimpan! Segera verifikasi.");
+            document.getElementById("jumlah").value = "";
+            document.getElementById("keterangan").value = "";
+            loadDraft();
+        }
+    }
+
+    // --- 3. LOAD TABEL DRAFT (VERIFIKASI) ---
+    async function loadDraft() {
+        const tbody = document.getElementById("listDraft");
+        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-green-500"></i></td></tr>`;
+
+        // Ambil hanya yang DRAFT_MASUK
+        const { data, error } = await client
+            .from('transaksi')
+            .select('*')
+            .eq('jenis_transaksi', 'DRAFT_MASUK')
+            .order('tanggal', { ascending: false });
+
+        if(!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 italic">Tidak ada antrian penerimaan dana.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = "";
+        data.forEach(tr => {
+            const badgeProyek = tr.nama_proyek ? `<span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-bold border border-blue-200 mt-1 inline-block">${tr.nama_proyek}</span>` : "";
+
+            // Dropdown Edit di Tabel (Supaya Finance bisa koreksi kalau Admin salah pilih akun)
+            const ddBank = `<select onchange="updateDraft(${tr.id}, 'bank_sumber', this.value)" class="w-full text-xs border border-green-200 rounded p-1 bg-green-50 font-bold text-green-800">
+                                ${optBank.replace(`value="${tr.bank_sumber}"`, `value="${tr.bank_sumber}" selected`)}
+                            </select>`;
+            
+            const ddSumber = `<select onchange="updateDraft(${tr.id}, 'akun', this.value)" class="w-full text-xs border border-slate-200 rounded p-1 bg-white text-slate-700">
+                                ${optPendapatan.replace(`value="${tr.akun}"`, `value="${tr.akun}" selected`)}
+                              </select>`;
+
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-50 border-b transition">
+                    <td class="p-3">
+                        <div class="text-xs text-slate-500 mb-1">${new Date(tr.tanggal).toLocaleDateString('id-ID')}</div>
+                        <div class="font-bold text-slate-700 text-sm">${tr.keterangan}</div>
+                        ${badgeProyek}
+                    </td>
+                    <td class="p-3 w-40">${ddBank}</td>
+                    <td class="p-3 w-40">${ddSumber}</td>
+                    <td class="p-3 text-right font-bold text-green-600">${fmt(tr.jumlah)}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="postingJurnal(${tr.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded shadow text-xs font-bold transition flex items-center gap-1 mx-auto mb-2 w-full justify-center">
+                            <i class="fas fa-check-circle"></i> TERIMA
+                        </button>
+                        <button onclick="hapusDraft(${tr.id})" class="text-red-400 hover:text-red-600 text-[10px] underline">Hapus</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // --- 4. UPDATE EDIT DI TEMPAT ---
+    async function updateDraft(id, col, val) {
+        await client.from('transaksi').update({ [col]: val }).eq('id', id);
+        // Tidak perlu reload agar UX lancar
+    }
+
+    // --- 5. POSTING (EKSEKUSI FINAL) ---
+    async function postingJurnal(id) {
+        if(!confirm("Validasi data ini? Saldo Kas akan bertambah.")) return;
+
+        // Ambil Data Latest
+        const { data: tr } = await client.from('transaksi').select('*').eq('id', id).single();
+        if(!tr) return;
+
+        const refNo = "IN-" + tr.id;
+        
+        // Buat Jurnal Umum (DEBIT BANK, KREDIT PENDAPATAN)
+        const jurnalPayload = [
             {
-                tanggal: tgl,
-                nomor_referensi: refNo, // Wajib ada sesuai perbaikan DB sebelumnya
-                keterangan: ket,
-                nama_akun: akunDb,
-                debit: jum,
-                kredit: 0
+                tanggal: tr.tanggal,
+                nomor_referensi: refNo,
+                keterangan: tr.nama_proyek ? `${tr.keterangan} [${tr.nama_proyek}]` : tr.keterangan,
+                nama_akun: tr.bank_sumber, // DEBIT: Bank/Kas bertambah
+                debit: tr.jumlah,
+                kredit: 0,
+                project_code: tr.nama_proyek
             },
             {
-                tanggal: tgl,
+                tanggal: tr.tanggal,
                 nomor_referensi: refNo,
-                keterangan: ket,
-                nama_akun: akunCr,
+                keterangan: tr.nama_proyek ? `${tr.keterangan} [${tr.nama_proyek}]` : tr.keterangan,
+                nama_akun: tr.akun, // KREDIT: Pendapatan bertambah
                 debit: 0,
-                kredit: jum
+                kredit: tr.jumlah,
+                project_code: tr.nama_proyek
             }
         ];
 
-        const { error: errJurnal } = await client.from('jurnal_umum').insert(jurnalData);
-        if(errJurnal) throw new Error("Gagal Jurnal: " + errJurnal.message);
-
-        // B. TRANSAKSI (Untuk Laporan Cashflow Sederhana & Rekonsiliasi)
-        const { error: errTrans } = await client.from('transaksi').insert([{
-            tanggal: tgl,
-            jenis_transaksi: 'MASUK',
-            akun: akunCr,        // Akun Lawan (Sumber)
-            bank_sumber: akunDb, // Bank Penerima
-            jumlah: jum,
-            keterangan: ket
-        }]);
-        if(errTrans) throw new Error("Gagal Transaksi: " + errTrans.message);
-
-        // Sukses
-        statusBox.className = "p-3 rounded-lg text-sm font-bold text-center bg-green-100 text-green-700 block mb-3";
-        statusBox.innerHTML = `✅ Berhasil! Uang masuk tercatat.<br><span class='text-xs font-normal'>Ref: ${refNo}</span>`;
+        // Eksekusi
+        const { error: errJ } = await client.from('jurnal_umum').insert(jurnalPayload);
         
-        setTimeout(() => {
-            location.reload();
-        }, 1500);
-
-      } catch (e) {
-        console.error(e);
-        statusBox.className = "p-3 rounded-lg text-sm font-bold text-center bg-red-100 text-red-700 block mb-3";
-        statusBox.innerText = "❌ Error: " + e.message;
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-download"></i> SIMPAN PENERIMAAN`;
-      }
+        if(errJ) {
+            alert("Gagal Posting Jurnal: " + errJ.message);
+        } else {
+            // Update Status Transaksi jadi 'MASUK' (Final)
+            await client.from('transaksi').update({ jenis_transaksi: 'MASUK' }).eq('id', id);
+            alert("✅ Dana berhasil divalidasi dan dijurnal!");
+            loadDraft();
+        }
     }
+
+    // --- 6. HAPUS DRAFT ---
+    async function hapusDraft(id) {
+        if(confirm("Yakin menghapus draft ini?")) {
+            await client.from('transaksi').delete().eq('id', id);
+            loadDraft();
+        }
+    }
+
+    init();
   </script>
 </body>
 </html>
