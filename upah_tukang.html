@@ -3,645 +3,526 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Upah Tukang - Siteplan & Progress</title>
+  <title>Keuangan Upah Tukang</title>
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
   
   <style>
-    /* GAYA CSS ASLI ANDA (DIPERTAHANKAN) */
-    :root { --bg: #f4f6f9; --text: #0f172a; --accent: #22c55e; }
-    body { font-family: "Segoe UI", sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
     
-    /* HEADER */
-    header { padding: 15px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+    /* TABLE STYLES */
+    .table-container { border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); background: white; border-radius: 8px; overflow: hidden; }
+    .th-excel { background-color: #f8fafc; color: #475569; font-weight: 800; border-bottom: 2px solid #e2e8f0; text-align: center; padding: 12px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .td-excel { border-bottom: 1px solid #f1f5f9; padding: 10px 12px; color: #334155; vertical-align: middle; font-size: 0.85rem; }
     
-    /* LAYOUT UTAMA */
-    main { display: flex; flex: 1; overflow: hidden; }
-    
-    /* KIRI: SITEPLAN */
-    .panel-kiri { flex: 1; background: #e2e8f0; position: relative; overflow: auto; display: flex; align-items: center; justify-content: center; }
-    
-    /* CSS KHUSUS UNTUK SVG ANDA */
-    svg { width: 100%; height: auto; display: block; max-height: 100%; }
-    
-    /* INTERAKSI BLOK (PENTING) */
-    svg [data-unit-id] { 
-        cursor: pointer; 
-        transition: all 0.2s ease; 
-        vector-effect: non-scaling-stroke;
-        fill: #fff; /* Warna Dasar Blok */
-        stroke: #200;
-        stroke-width: 1px; /* Sesuaikan tebal garis */
-    }
-    svg [data-unit-id]:hover { 
-        fill: #fcd34d !important; /* Warna Kuning saat disentuh */
-        filter: drop-shadow(0 0 5px rgba(0,0,0,0.3));
-    }
-    svg [data-unit-id].selected { 
-        fill: #22c55e !important; /* Warna Hijau saat dipilih */
-        stroke: #14532d !important;
-        stroke-width: 2px !important;
-    }
-    /* Blok yang sudah LUNAS semua itemnya (Opsional Logic) */
-    svg [data-unit-id][data-status="full_lunas"] { fill: #dcfce7 !important; stroke: #166534 !important; }
+    /* ROWS COLOR */
+    .row-group-header { background-color: #f1f5f9; font-weight: bold; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; color: #64748b; }
+    .row-subtotal { background-color: #22c55e !important; color: white !important; font-weight: bold; }
+    .row-grandtotal { background-color: #fffbeb; font-weight: 800; border-top: 2px solid #f59e0b; font-size: 1rem; color: #b45309; }
+    .row-blok-header { background-color: #0f172a; color: white; font-weight: bold; text-align: left; padding-left: 15px; }
 
-    /* KANAN: DETAIL */
-    .panel-kanan { width: 420px; background: white; border-left: 1px solid #d1d5db; display: flex; flex-direction: column; z-index: 20; box-shadow: -5px 0 15px rgba(0,0,0,0.05); }
-    
-    .table-container { flex: 1; overflow-y: auto; }
-    th { position: sticky; top: 0; background: #f8fafc; z-index: 5; }
-    
-    /* BUTTON CAIRKAN */
-    .btn-cair { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; transition: 0.2s; }
-    .btn-cair:disabled { background: #cbd5e1; cursor: not-allowed; }
-    .btn-cair:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(34,197,94,0.3); }
+    /* BUTTONS */
+    .btn-action { padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; transition: 0.2s; display: inline-flex; items-center; gap: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor: pointer; }
+    .btn-ajukan { background: #3b82f6; color: white; } .btn-ajukan:hover { background: #2563eb; }
+    .btn-back { background: #475569; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; }
 
-    /* RESPONSIVE HP */
-    @media (max-width: 768px) {
-        main { flex-direction: column; }
-        .panel-kiri { height: 45vh; flex: none; border-bottom: 4px solid #cbd5e1; }
-        .panel-kanan { width: 100%; height: 55vh; flex: none; }
-    }
-  
-    /* PENGAJUAN: tombol & status */
-    .btn-ajukan { background: #22c55e; color: white; transition: 0.2s; }
-    .btn-ajukan:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34,197,94,0.25); }
-    .btn-ajukan:disabled { background: #cbd5e1; cursor: not-allowed; color: #64748b; }
-    .row-lunas { background: #f1f5f9 !important; color: #64748b; }
+    /* TAB NAV - HIGH CONTRAST */
+    .tab-btn { flex: 1; padding: 14px; text-align: center; font-weight: 700; border-bottom: 4px solid transparent; color: #94a3b8; cursor: pointer; background: #fff; transition: all 0.2s; font-size: 0.9rem; border-right: 1px solid #f1f5f9; }
+    .tab-btn.active-blue { background: #2563eb; color: white; border-bottom-color: #1e40af; }
+    .tab-btn.active-green { background: #16a34a; color: white; border-bottom-color: #15803d; }
+    .tab-btn.active-purple { background: #9333ea; color: white; border-bottom-color: #7e22ce; }
+    .tab-btn:hover:not(.active-blue):not(.active-green):not(.active-purple) { background: #f8fafc; color: #64748b; }
 
-</style>
-</head>
-<body>
+    /* INPUTS */
+    .input-date { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 8px; font-size: 0.85rem; width: 100%; text-align: center; font-weight: 600; color: #334155; }
+    .chk-big { width: 18px; height: 18px; cursor: pointer; accent-color: #16a34a; }
 
-  <header class="flex flex-col gap-3">
-    <div class="flex justify-between items-center">
-      <div>
-        <h1 class="text-lg font-bold text-gray-800"><i class="fas fa-hard-hat text-green-600 mr-2"></i>Upah Tukang</h1>
-        <p class="text-xs text-gray-500">Klik blok pada gambar untuk opname</p>
-      </div>
-      <a href="dashboard_operasional.html" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-full text-xs font-bold transition">
-          <i class="fas fa-arrow-left mr-1"></i> Dashboard
-      </a>
-    </div>
-    <nav class="flex items-center gap-3 text-xs">
-  <button id="tabPengajuan" data-tab="pengajuan" class="px-4 py-2 bg-white border border-gray-200 rounded-full font-semibold text-gray-600 hover:border-green-500 hover:text-green-600 transition">Pengajuan</button>
-  <button id="tabPembayaran" data-tab="pembayaran" class="px-4 py-2 bg-white border border-gray-200 rounded-full font-semibold text-gray-600 hover:border-blue-500 hover:text-blue-600 transition">Pembayaran</button>
-</nav>
-  </header>
+    /* MULTI SELECT DROPDOWN */
+    .multiselect { position: relative; width: 100%; }
+    .selectBox { position: relative; }
+    .selectBox select { width: 100%; font-weight: bold; border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; cursor: pointer; appearance: none; background: white; color: #475569; outline: none; }
+    .overSelect { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+    .checkboxes { display: none; border: 1px solid #cbd5e1; border-top: none; background: white; max-height: 200px; overflow-y: auto; position: absolute; width: 100%; z-index: 50; border-radius: 0 0 6px 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .checkboxes label { display: block; padding: 8px 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 0.85rem; color: #334155; }
+    .checkboxes label:hover { background-color: #f1f5f9; }
+    .checkboxes input { margin-right: 8px; accent-color: #9333ea; }
+    .display-selected { position: absolute; top: 0; right: 30px; height: 100%; display: flex; align-items: center; font-size: 0.75rem; color: #9333ea; font-weight: bold; pointer-events: none; }
 
-  <main>
-    <div class="panel-kiri" id="panzoom-container">
-      
-      <svg xml:space="preserve" width="297mm" height="210mm" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd" viewBox="0 0 29700 21000">
- <defs>
-  <style type="text/css">
-   
-    .str0 {stroke:#363333;stroke-width:35.28;stroke-miterlimit:22.9256}
-    .str1 {stroke:#373435;stroke-width:17.64;stroke-miterlimit:22.9256}
-    .fil2 {fill:none}
-    .fil1 {fill:#FEFEFE}
-    .fil3 {fill:#FFF212}
-    .fil4 {fill:#A8CF45}
-    .fil5 {fill:#6B809B}
-    .fil6 {fill:#5CA47A}
-    .fil0 {fill:#5CA47A}
-   
+    /* FLOATING ACTION BAR */
+    #actionBar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-top: 1px solid #cbd5e1; padding: 15px; box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.1); z-index: 50; display: none; justify-content: center; }
   </style>
- </defs>
- <g id="Layer_x0020_1">
-  <metadata id="CorelCorpID_0Corel-Layer" />
-  <path class="fil0" d="M26585.05 2731.37c-20.8,114.84 -388.6,1032.8 -388.6,1032.8l-312.27 555.04 -1246.48 106.83 -1273.83 323.56 -1612.15 38.65 -2195.44 647.55 -1378.17 -72.79 -2044.86 -254.49 -3327.15 -0.92 -1342.51 -58.24 -1405.95 -402.29 -640.18 127.2 -1280.92 254.55 -881.65 879.47 -1544.84 377.41 -1381.55 -218.46 -611.95 1882.29c0,0 -1084.7,375.83 -1057.1,350.92 27.59,-24.91 -1341.16,-15.2 -1341.16,-15.2l-515.09 243.21 404.77 1328.12 636.27 366.56 989.79 -689.68 581.54 800 1611.29 665.8 2545.49 1114.01 405.64 623.67 2004.33 517.27 2532.03 1046.26 1855.37 476.45 1137.89 55.6 2567.69 22.79 522.29 2628.36 2310.65 1135.17 1140.51 -490.04 1706.4 -1132.09 431.17 -4853.17 0 0 1683.27 379.49 412.07 338.79 825.7 1505.35 873.31 -3163.83 -1222.2 -6232.46 1009.74 -1448.62 -1183.16 -790.89z" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22314.1 9426.76)" width="4445" height="8890" data-unit-id="C1" data-status="ready-stok" data-progress="0" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21033.7 9681.19)" width="4445" height="8890" data-unit-id="C9" data-progress="20" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21161 10321.4)" width="4445" height="8890" data-unit-id="C10" data-progress="40" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21288.2 10961.6)" width="4445" height="8890" data-unit-id="C11" data-progress="60" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21415.4 11601.7)" width="4445" height="8890" data-unit-id="C12" data-progress="80" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21542.6 12241.9)" width="4445" height="8890" data-unit-id="C13" data-progress="100" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21669.8 12882.1)" width="4445" height="8890" data-unit-id="C14" data-progress="19" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21797 13522.3)" width="4445" height="8890" data-unit-id="C15" data-progress="39" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21924.2 14162.4)" width="4445" height="8890" data-unit-id="C16" data-progress="59" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22051.5 14802.6)" width="4445" height="8890" data-unit-id="C17" data-progress="79" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22178.7 15442.8)" width="4445" height="8890" data-unit-id="C18" data-progress="99" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22305.9 16083)" width="4445" height="8890" data-unit-id="C19" data-progress="18" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22433.1 16723.2)" width="4445" height="8890" data-unit-id="C20" data-progress="38" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22441.3 10066.9)" width="4445" height="8890" data-unit-id="C2" data-progress="58" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22568.5 10707.1)" width="4445" height="8890" data-unit-id="C3" data-progress="78" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22695.7 11347.3)" width="4445" height="8890" data-unit-id="C4" data-progress="98" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22823 11987.5)" width="4445" height="8890" data-unit-id="C5" data-progress="17" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25213.3 7296.06)" width="4445" height="8890" data-unit-id="A4" data-progress="37" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23933 7550.49)" width="4445" height="8890" data-unit-id="A7" data-progress="57" />
-  <rect class="fil1 " transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23805.8 6910.31)" width="4445" height="8890" data-unit-id="A6" data-progress="77" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23678.6 6270.13)" width="4445" height="8890" data-unit-id="A5" data-progress="97" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25086.1 6655.88)" width="4445" height="8890" data-unit-id="A3" data-progress="16" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24958.9 6015.7)" width="4445" height="8890" data-unit-id="A2" data-progress="36" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24831.7 5375.52)" width="4445" height="8890" data-unit-id="A1" data-progress="56" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 26030.2 11354.6)" width="4445" height="8890" data-unit-id="B5" data-progress="76" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25903 10714.4)" width="4445" height="8890" data-unit-id="B4" data-progress="96" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25775.7 10074.3)" width="4445" height="8890" data-unit-id="B3" data-progress="15" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25648.5 9434.07)" width="4445" height="8890" data-unit-id="B2" data-progress="35" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25521.3 8793.89)" width="4445" height="8890" data-unit-id="B1" data-progress="55" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24241 9048.32)" width="4445" height="8890" data-unit-id="B6" data-progress="75" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24368.2 9688.5)" width="4445" height="8890" data-unit-id="B7" data-progress="95" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24495.4 10328.7)" width="4445" height="8890" data-unit-id="B8" data-progress="14" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24622.6 10968.9)" width="4445" height="8890" data-unit-id="B9" data-progress="34" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24749.8 11609)" width="4445" height="8890" data-unit-id="B10" data-progress="54" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19114.6 10060.9)" width="4445" height="8890" data-unit-id="D1" data-progress="74" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 17834.3 10315.3)" width="4445" height="8890" data-unit-id="D14" data-progress="94" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 17961.5 10955.5)" width="4445" height="8890" data-unit-id="D15" data-progress="13" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18088.7 11595.7)" width="4445" height="8890" data-unit-id="D16" data-progress="33" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18215.9 12235.8)" width="4445" height="8890" data-unit-id="D17" data-progress="53" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18343.1 12876)" width="4445" height="8890" data-unit-id="D18" data-progress="73" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18470.3 13516.2)" width="4445" height="8890" data-unit-id="D19" data-progress="93" />
-  <rect class="fil1" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18597.5 14156.4)" width="4445" height="8890" data-unit-id="D20" data-progress="12" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18724.7 14796.6)" width="4445" height="8890" data-unit-id="D21" data-progress="32" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18852 15436.7)" width="4445" height="8890" data-unit-id="D22" data-progress="52" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18979.2 16076.9)" width="4445" height="8890" data-unit-id="D23" data-progress="72" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19106.4 16717.1)" width="4445" height="8890" data-unit-id="D24" data-progress="92" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19233.6 17357.3)" width="4445" height="8890" data-unit-id="D25" data-progress="11" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19241.8 10701.1)" width="4445" height="8890" data-unit-id="D2" data-progress="31" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19369 11341.2)" width="4445" height="8890" data-unit-id="D3" data-progress="51" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19496.3 11981.4)" width="4445" height="8890" data-unit-id="D4" data-progress="71" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19623.5 12621.6)" width="4445" height="8890" data-unit-id="D5" data-progress="91" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19750.7 13261.8)" width="4445" height="8890" data-unit-id="D6" data-progress="10" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19877.9 13902)" width="4445" height="8890" data-unit-id="D7" data-progress="30" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20005.1 14542.1)" width="4445" height="8890" data-unit-id="D8" data-progress="50" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20132.3 15182.3)" width="4445" height="8890" data-unit-id="D9" data-progress="70" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20259.5 15822.5)" width="4445" height="8890" data-unit-id="D10" data-progress="90" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20386.7 16462.7)" width="4445" height="8890" data-unit-id="D11" data-progress="9" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20514 17102.9)" width="4445" height="8890" data-unit-id="D12" data-progress="29" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20641.2 17743)" width="4445" height="8890" data-unit-id="D13" data-progress="49" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20768.4 18383.2)" width="4445" height="8890" data-unit-id="D13A" data-progress="69" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15915.2 10697.8)" width="4445" height="8890" data-unit-id="G1" data-progress="89" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14634.8 10952.2)" width="4445" height="8890" data-unit-id="G8" data-progress="8" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14762 11592.4)" width="4445" height="8890" data-unit-id="G9" data-progress="28" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14889.2 12232.6)" width="4445" height="8890" data-unit-id="G10" data-progress="48" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15016.4 12872.8)" width="4445" height="8890" data-unit-id="G11" data-progress="68" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15143.7 13512.9)" width="4445" height="8890" data-unit-id="G12" data-progress="88" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15270.9 14153.1)" width="4445" height="8890" data-unit-id="G13" data-progress="7" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16042.4 11338)" width="4445" height="8890" data-unit-id="G2" data-progress="27" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16169.6 11978.2)" width="4445" height="8890" data-unit-id="G3" data-progress="47" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16296.8 12618.3)" width="4445" height="8890" data-unit-id="G4" data-progress="67" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16424 13258.5)" width="4445" height="8890" data-unit-id="G5" data-progress="87" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16551.2 13898.7)" width="4445" height="8890" data-unit-id="G6" data-progress="6" />
-  <rect class="fil1 str0" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16678.4 14538.9)" width="4445" height="8890" data-unit-id="G7" data-progress="26" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18687 7923.74)" width="4445" height="8890" data-unit-id="E4" data-progress="46" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17406.6 8178.16)" width="4445" height="8890" data-unit-id="E9" data-progress="66" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17279.4 7537.98)" width="4445" height="8890" data-unit-id="E8" data-progress="86" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17152.2 6897.8)" width="4445" height="8890" data-unit-id="E7" data-progress="5" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17025 6257.62)" width="4445" height="8890" data-unit-id="E6" data-progress="25" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 16897.8 5617.44)" width="4445" height="8890" data-unit-id="E5" data-progress="45" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18559.8 7283.56)" width="4445" height="8890" data-unit-id="E3" data-progress="65" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18432.5 6643.38)" width="4445" height="8890" data-unit-id="E2" data-progress="85" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18305.3 6003.2)" width="4445" height="8890" data-unit-id="E1" data-progress="4" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15489 8563.84)" width="4445" height="8890" data-unit-id="F6" data-progress="24" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14208.6 8818.27)" width="4445" height="8890" data-unit-id="F13" data-progress="44" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14081.4 8178.09)" width="4445" height="8890" data-unit-id="F12" data-progress="64" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13954.2 7537.91)" width="4445" height="8890" data-unit-id="F11" data-progress="84" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13827 6897.73)" width="4445" height="8890" data-unit-id="F10" data-progress="3" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13699.7 6257.55)" width="4445" height="8890" data-unit-id="F9" data-progress="23" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13572.5 5617.37)" width="4445" height="8890" data-unit-id="F8" data-progress="43" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15361.7 7923.66)" width="4445" height="8890" data-unit-id="F5" data-progress="63" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15234.5 7283.48)" width="4445" height="8890" data-unit-id="F4" data-progress="83" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15107.3 6643.3)" width="4445" height="8890" data-unit-id="F3" data-progress="2" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14980.1 6003.12)" width="4445" height="8890" data-unit-id="F2" data-progress="22" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14852.9 5362.94)" width="4445" height="8890" data-unit-id="F1" data-progress="42" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12289 9203.1)" width="4445" height="8890" data-unit-id="H7" data-progress="62" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10817.8 8497.26)" width="4445" height="8890" data-unit-id="H13" data-progress="82" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10690.6 7857.08)" width="4445" height="8890" data-unit-id="H12" data-progress="1" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10563.4 7216.9)" width="4445" height="8890" data-unit-id="H11" data-progress="21" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10436.2 6576.72)" width="4445" height="8890" data-unit-id="H10" data-progress="41" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10309 5936.54)" width="4445" height="8890" data-unit-id="H9" data-progress="61" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10181.8 5296.36)" width="4445" height="8890" data-unit-id="H8" data-progress="81" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12161.8 8562.92)" width="4445" height="8890" data-unit-id="H6" data-progress="0" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12034.6 7922.74)" width="4445" height="8890" data-unit-id="H5" data-progress="20" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11907.4 7282.56)" width="4445" height="8890" data-unit-id="H4" data-progress="40" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11780.2 6642.38)" width="4445" height="8890" data-unit-id="H3" data-progress="60" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11652.9 6002.2)" width="4445" height="8890" data-unit-id="H2" data-progress="80" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11525.7 5362.02)" width="4445" height="8890" data-unit-id="H1" data-progress="100" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 3751.47 10046)" width="4445" height="8890" data-unit-id="J20" data-progress="19" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4348.84 10309)" width="4445" height="8890" data-unit-id="J19" data-progress="39" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4946.21 10572)" width="4445" height="8890" data-unit-id="J18" data-progress="59" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6738.33 11360.9)" width="4445" height="8890" data-unit-id="J15" data-progress="79" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7335.7 11623.9)" width="4445" height="8890" data-unit-id="J14" data-progress="99" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7933.07 11886.9)" width="4445" height="8890" data-unit-id="J13" data-progress="18" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8530.44 12149.9)" width="4445" height="8890" data-unit-id="J12" data-progress="38" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9127.81 12412.9)" width="4445" height="8890" data-unit-id="J11" data-progress="58" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9725.18 12675.9)" width="4445" height="8890" data-unit-id="I1" data-progress="78" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 10322.6 12938.9)" width="4445" height="8890" data-unit-id="I2" data-progress="98" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 10919.9 13201.8)" width="4445" height="8890" data-unit-id="I3" data-progress="17" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 11517.3 13464.8)" width="4445" height="8890" data-unit-id="I4" data-progress="37" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 12114.7 13727.8)" width="4445" height="8890" data-unit-id="I5" data-progress="57" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 12712 13990.8)" width="4445" height="8890" data-unit-id="I6" data-progress="77" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 13309.4 14253.8)" width="4445" height="8890" data-unit-id="I7" data-progress="97" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 13906.8 14516.8)" width="4445" height="8890" data-unit-id="I8" data-progress="16" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5543.58 10835)" width="4445" height="8890" data-unit-id="J17" data-progress="36" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6140.95 11098)" width="4445" height="8890" data-unit-id="J16" data-progress="56" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4632.22 8042.22)" width="4445" height="8890" data-unit-id="J9" data-progress="76" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5229.6 8305.21)" width="4445" height="8890" data-unit-id="J8" data-progress="96" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5826.97 8568.19)" width="4445" height="8890" data-unit-id="J7" data-progress="15" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6424.34 8831.18)" width="4445" height="8890" data-unit-id="J6" data-progress="35" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7021.71 9094.16)" width="4445" height="8890" data-unit-id="J5" data-progress="55" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7619.08 9357.15)" width="4445" height="8890" data-unit-id="J4" data-progress="75" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8216.45 9620.13)" width="4445" height="8890" data-unit-id="J3" data-progress="95" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8813.82 9883.12)" width="4445" height="8890" data-unit-id="J2" data-progress="14" />
-  <rect class="fil1 str0" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9411.19 10146.1)" width="4445" height="8890" data-unit-id="J1" data-progress="34" />
-  <path class="fil2 str0" d="M20906.54 9041.02l2566.6 -510.02m640.2 -127.22l2560.71 -508.86" />
-  <path class="fil2 str0" d="M9867.44 10347.36l1.07 -0.21 631.43 -125.48 -631.43 125.48 -1.07 0.21zm10875.38 -2161.1l2560.72 -508.85m640.18 -127.21l2560.72 -508.85" />
-  <line class="fil2 str0" x1="27947.01" y1="10952.07" x2="26758.46" y2="4970.88" />
-  <path class="fil2 str0" d="M24750.25 11608.95l-636.92 -3205.18m-169.61 -853.57l-382 -1922.32" />
-  <g>
-   <path class="fil3" d="M22438.99 16722l-1526.56 -7682.16 1526.56 7682.16zm-1696.17 -8535.74l-509.85 -2565.73 2560.71 -508.87 509.86 2565.75 -2560.72 508.85z" />
-  </g>
-  <path class="fil2 str0" d="M19237.77 17356.46l-1526.55 -7682.16m-169.3 -851.97l-637.14 -3206.28" />
-  <path class="fil2 str0" d="M27189.37 10488.18l-515.32 -2593.26m-169.61 -853.57l-509.85 -2565.74" />
-  <path class="fil2 str0" d="M23988.47 11124.25l-515.32 -2593.26m-169.61 -853.58l-509.85 -2565.74" />
-  <line class="fil2 str0" x1="21733.84" y1="16522.26" x2="20272.25" y2="9167.05" />
-  <line class="fil2 str0" x1="18597.59" y1="17483.67" x2="17071.35" y2="9803.12" />
-  <path class="fil2 str0" d="M15273.81 14152.53l-763.28 -3841.08m-169.51 -853.05l-763.47 -3842.03" />
-  <line class="fil2 str0" x1="14633.63" y1="14279.74" x2="14441.29" y2="13311.8" />
-  <path class="fil2 str0" d="M11527.31 12042.95l-3.05 -15.33m-574.5 -2891.12l-892.12 -4489.44" />
-  <path class="fil2 str0" d="M10798.05 11721.9l-3.04 -15.33m-295.07 -1484.9l-1082.48 -5447.39" />
-  <path class="fil2 str0" d="M21733.84 16522.26l-4.75 -2.09m-2912.27 -1282.09l-4.76 -2.1m-3641.52 -1603.13l-3.35 -1.48m-725.9 -319.57l-10784.57 -4747.77" />
-  <path class="fil2 str0" d="M22256.03 15801.29l-6.72 -2.96m-722.53 -318.09l-4.76 -2.09m-2912.27 -1282.09l-4.75 -2.1m-724.5 -318.95l-3.35 -1.47m-2913.67 -1282.71l-3.36 -1.48" />
-  <line class="fil2 str0" x1="9867.44" y1="10347.36" x2="9411.19" y2="10146.1" />
-  <rect class="fil1 str0" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 8136.54 5028.81)" width="4445" height="8890" data-unit-id="J10" data-progress="54" />
-  <line class="fil2 str0" x1="10945.04" y1="9137.44" x2="12416.22" y2="9843.28" />
-  <circle class="fil4 str0" transform="matrix(0.106697 -0.0212022 0.0212022 0.106697 13330.9 11321.1)" r="4762.5" />
-  <polygon class="fil5 str1" points="27630.41,3527.45 26758.47,4970.88 27947.01,10952.07 27310.53,11100.18 26674.05,7894.92 24113.74,8408.14 24750.25,11608.94 24103.32,11733.06 23467.25,8532.16 20906.53,9041.01 22629.48,17743.52 22048.75,18128.8 20272.26,9167.06 17711.22,9674.29 19237.77,17356.45 18597.59,17483.67 17068.31,9803.18 14507.59,10312.04 15273.81,14152.53 14633.63,14279.74 14441.28,13311.8 3680.07,8588.3 4034.85,7779.24 9868.5,10347.14 10499.95,10221.67 9417.46,4774.27 10057.64,4647.07 10945.05,9137.45 12416.22,9843.28 13696.58,9588.86 12806.1,5107.6 13504.88,5107.8 13577.55,5616.36 14335.81,9458.45 16896.53,8949.6 16133.25,5108.52 16849.13,5197.62 16904.77,5616.04 17533.82,8818.34 20094.54,8309.49 19585.69,5748.77 20232.97,5620.53 20742.81,8186.27 23303.54,7677.41 22793.68,5111.66 23363.87,4749.6 23943.72,7550.2 26493.7,7041.64 25884.18,4319.21 26239.19,3656.91 26585.05,2731.37 " />
-  <circle class="fil6 str1" cx="13003.06" cy="11264.92" r="715.25" />
- </g>
-        </svg>
-          <div class="flex flex-col items-center justify-center h-full text-gray-400">
-          </div>
-      </div>
+</head>
+<body class="min-h-screen pb-32" onclick="closeMultiSelect(event)">
 
-      </div>
-
-    <div class="panel-kanan relative">
-      
-      <div id="loading" class="absolute inset-0 bg-white/90 z-50 hidden flex flex-col items-center justify-center">
-        <i class="fas fa-circle-notch fa-spin fa-3x text-green-600 mb-3"></i>
-        <span class="text-gray-600 font-bold animate-pulse">Memuat Data...</span>
-      </div>
-
-      <div class="p-4 border-b bg-gray-50">
-        <h2 id="judulBlok" class="text-xl font-bold text-gray-800">Pilih Blok</h2>
-        <p id="subJudul" class="text-xs text-gray-500">Sentuh gambar siteplan</p>
-      </div>
-
-      <div class="table-container p-0">
-        <table class="w-full text-sm text-left">
-          <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b">
-  <tr>
-    <th class="px-4 py-3 w-12 text-center" id="colStatus">Status</th>
-    <th class="px-4 py-3">Pekerjaan</th>
-    <th class="px-4 py-3 w-20 text-center">Bobot</th>
-    <th class="px-4 py-3 text-right">Nilai (Rp)</th>
-    <th class="px-4 py-3 w-28 text-center" id="colAksi">Aksi</th>
-  </tr>
-</thead>
-          <tbody id="tabelBody">
-            <tr>
-                <td colspan="5" class="p-8 text-center text-gray-400">
-                    <i class="fas fa-hand-pointer fa-2x mb-2"></i><br>
-                    Belum ada blok yang dipilih.
-                </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div id="footerPengajuan" class="p-4 border-t bg-white shadow-[0_-5px_15px_rgba(0,0,0,0.05)] hidden">
-  <div class="text-xs text-gray-500">
-    <i class="fas fa-info-circle text-green-600 mr-1"></i>
-    Mode <b>Pengajuan</b>: klik tombol <span class="font-bold text-green-700">AJUKAN</span> pada pekerjaan yang belum terbayar.
-  </div>
-</div>
-
-<div id="footerPembayaran" class="p-4 border-t bg-white shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
-        <div class="flex justify-between items-center mb-3">
-            <span class="text-xs font-bold text-gray-500 uppercase">Total Cair</span>
-            <span class="text-xl font-extrabold text-green-600" id="totalDisplay">Rp 0</span>
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 shadow-sm">
+    <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+        <div class="flex items-center gap-4 w-full md:w-auto">
+            <a href="siteplan.html" class="btn-back hover:bg-slate-700 shadow"><i class="fas fa-map"></i> Siteplan</a>
+            <div>
+                <h1 class="font-bold text-slate-800 text-lg">Keuangan Upah</h1>
+                <p class="text-[10px] text-slate-500 font-mono" id="statusPage">Kelola Pembayaran</p>
+            </div>
         </div>
-        <button id="btnCairkan" onclick="simpanPembayaran()" disabled class="btn-cair w-full py-3 rounded-lg font-bold shadow-lg flex items-center justify-center gap-2">
-            <i class="fas fa-check-circle"></i> CAIRKAN DANA
-        </button>
-      </div>
+        
+        <div id="dropdownContainer" class="w-full md:w-auto">
+            <select id="pilihProyek" onchange="gantiProyek()" class="bg-blue-50 border border-blue-200 text-blue-900 text-sm rounded-lg font-bold w-full md:w-64 p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                <option value="">-- Pilih Proyek --</option>
+            </select>
+        </div>
     </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto mt-6 px-2 md:px-4">
+
+    <div class="flex bg-white rounded-t-xl border border-b-0 border-slate-200 overflow-hidden shadow-sm">
+        <button onclick="setTab('pengajuan')" class="tab-btn active-blue" id="tabPengajuan">
+            <i class="fas fa-hard-hat mr-2"></i>Pengajuan
+        </button>
+        <button onclick="setTab('pembayaran')" class="tab-btn" id="tabPembayaran">
+            <i class="fas fa-money-bill-wave mr-2"></i>Pembayaran
+        </button>
+        <button onclick="setTab('lunas')" class="tab-btn" id="tabLunas">
+            <i class="fas fa-file-invoice mr-2"></i>Laporan / History
+        </button>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-b-xl shadow-lg p-0 min-h-[500px]">
+        
+        <div id="panelFilter" class="hidden p-6 bg-purple-50 border-b border-purple-100">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div class="md:col-span-5">
+                    <label class="block text-xs font-bold text-purple-800 uppercase mb-2">Pilih Proyek (Multiple)</label>
+                    <div class="multiselect" id="multiSelectContainer">
+                        <div class="selectBox" onclick="toggleMultiSelect(event)">
+                            <select>
+                                <option>-- Klik untuk Pilih Proyek --</option>
+                            </select>
+                            <div class="overSelect"></div>
+                            <div class="display-selected" id="displaySelectedCount">0 Terpilih</div>
+                            <div class="absolute right-3 top-3 pointer-events-none text-slate-400"><i class="fas fa-chevron-down"></i></div>
+                        </div>
+                        <div id="checkboxes" class="checkboxes custom-scroll">
+                            </div>
+                    </div>
+                    <div class="mt-2 flex gap-2">
+                        <button onclick="selectAllProyek(true)" class="text-[10px] text-purple-600 font-bold hover:underline">Pilih Semua</button>
+                        <button onclick="selectAllProyek(false)" class="text-[10px] text-red-600 font-bold hover:underline">Reset</button>
+                    </div>
+                </div>
+
+                <div class="md:col-span-4">
+                    <label class="block text-xs font-bold text-purple-800 uppercase mb-2">Periode Pembayaran</label>
+                    <div class="flex items-center gap-2 mb-3">
+                        <input type="date" id="filterStart" class="input-date">
+                        <span class="text-slate-400">-</span>
+                        <input type="date" id="filterEnd" class="input-date">
+                    </div>
+                </div>
+                <div class="md:col-span-3 flex flex-col gap-2 justify-end">
+                    <button onclick="loadHistoryData()" class="bg-purple-600 text-white py-2 px-4 rounded-lg font-bold shadow hover:bg-purple-700 transition flex justify-center items-center gap-2">
+                        <i class="fas fa-search"></i> Tampilkan
+                    </button>
+                    <button onclick="downloadPDF()" id="btnDownloadPDF" disabled class="bg-red-600 text-white py-2 px-4 rounded-lg font-bold shadow hover:bg-red-700 transition flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-file-pdf"></i> PDF Laporan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+                <thead id="tableHead" class="bg-slate-100">
+                    </thead>
+                <tbody id="tabelBody">
+                    <tr><td class="p-10 text-center text-slate-400">Silakan pilih data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
   </main>
 
-    <script>
-  // ====== KONFIGURASI MASTER RAB (ada Bobot) ======
-  const MASTER_RAB = [
-    { k:"1", n:"Bowplank", b:1, h:145000 },
-    { k:"1", n:"Pondasi", b:3, h:435000 },
-    { k:"1", n:"Sloof", b:3, h:435000 },
-    { k:"1", n:"Kolom", b:3, h:435000 },
-    { k:"1", n:"Urugan Tanah", b:1, h:145000 },
+  <div id="actionBar">
+      <div class="max-w-6xl w-full flex justify-between items-center px-4">
+          <div>
+              <span class="block text-xs font-bold text-slate-500 uppercase">Total Dipilih</span>
+              <span class="text-xl font-black text-green-600" id="totalBayarLabel">Rp 0</span>
+              <span class="text-xs text-slate-400 ml-2" id="countBayarLabel">(0 Item)</span>
+          </div>
+          <button onclick="prosesBayarMassal()" id="btnBayarMassal" disabled class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition flex items-center gap-2 transform active:scale-95">
+              <i class="fas fa-money-bill-wave"></i> BAYAR TERPILIH
+          </button>
+      </div>
+  </div>
 
-    { k:"2", n:"Pasangan Batu Rata Kusen", b:7, h:1015000 },
-    { k:"2", n:"Ringbalk", b:4, h:580000 },
-    { k:"2", n:"Kuda-kuda", b:3, h:435000 },
-    { k:"2", n:"Tiang Cor", b:1, h:145000 },
+<script>
+    // --- KONFIGURASI SUPABASE ---
+    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    const fmt = (n) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(n);
+    const getToday = () => new Date().toISOString().split('T')[0];
 
-    { k:"3", n:"Plesteran Luar Dalam", b:10, h:1885000 },
-    { k:"3", n:"Topi-Topi", b:3, h:290000 },
-    { k:"3", n:"Carport", b:2, h:290000 },
-    { k:"3", n:"Drainase", b:5, h:500000 },
+    // --- DATA MASTER ---
+    const MASTER_DATA = [
+        { id: 1, items: [{n:"Bowplank",b:1,p:145000},{n:"Pondasi",b:3,p:435000},{n:"Sloof",b:3,p:435000},{n:"Kolom",b:3,p:435000},{n:"Urugan Tanah",b:1,p:145000}]},
+        { id: 2, items: [{n:"Pasangan Batu Rata Kusen",b:7,p:1015000},{n:"Ringbalk",b:4,p:580000},{n:"Kuda-kuda",b:3,p:435000},{n:"Tiang Cor",b:1,p:145000}]},
+        { id: 3, items: [{n:"Plesteran Luar Dalam",b:10,p:1885000},{n:"Topi-Topi",b:3,p:290000},{n:"Carport",b:2,p:290000},{n:"Drainase",b:5,p:500000}]},
+        { id: 4, items: [{n:"Rangka Atap",b:8,p:1015000},{n:"Pemasangan Listplank",b:2,p:145000},{n:"Palfond",b:5,p:725000},{n:"Pasangan Tegel Luar Dalam",b:7,p:1450000},{n:"Plamour Luar dalam dan Acian",b:2,p:435000},{n:"WC",b:8,p:935000},{n:"Pemasangan Cover Dinding Fasad",b:1,p:145000}]},
+        { id: 5, items: [{n:"Pengecetan dinding Luar dalam",b:7,p:725000},{n:"Pengecetan Kuseng",b:4,p:580000},{n:"Finishing",b:10,p:3110000}]}
+    ];
 
-    { k:"4", n:"Rangka Atap", b:8, h:1015000 },
-    { k:"4", n:"Pemasangan Listplank", b:2, h:145000 },
-    { k:"4", n:"Plafond", b:5, h:725000 },
-    { k:"4", n:"Pasangan Tegel Luar Dalam", b:7, h:1450000 },
-    { k:"4", n:"Plamour Luar dalam dan Acian", b:2, h:435000 },
-    { k:"4", n:"WC", b:8, h:935000 },
-    { k:"4", n:"Pemasangan Cover Dinding Fasad", b:1, h:145000 },
+    let itemMeta = {};
+    MASTER_DATA.forEach(g => { g.items.forEach(i => { itemMeta[i.n] = { grup: g.id, bobot: i.b }; }); });
 
-    { k:"5", n:"Pengecetan dinding Luar dalam", b:7, h:725000 },
-    { k:"5", n:"Pengecetan Kuseng", b:4, h:580000 },
-    { k:"5", n:"Finishing", b:10, h:3110000 },
-  ];
+    // STATE
+    let activeProyek = "";
+    let activeTab = "pengajuan";
+    let historyDataRaw = [];
+    let inboxData = [];
+    let multiSelectOpen = false;
 
-  // ====== FORMAT ======
-  const fmt = (n) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(n);
+    document.addEventListener("DOMContentLoaded", async () => {
+        const today = new Date();
+        document.getElementById('filterEnd').value = getToday();
+        document.getElementById('filterStart').value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
 
-  // ====== STATE ======
-  window.activeTab = window.activeTab || "pengajuan";
-  window.activeKavling = window.activeKavling || null;
-  window.selectedItems = window.selectedItems || [];
-  let blocks = [];
-
-  const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-  const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
-  const client = supabase.createClient(supabaseUrl, supabaseKey);
-
-  function setTab(tab){
-    window.activeTab = tab;
-    const btnPengajuan = document.getElementById("tabPengajuan");
-    const btnPembayaran = document.getElementById("tabPembayaran");
-    if(btnPengajuan && btnPembayaran){
-      btnPengajuan.classList.toggle("border-green-500", tab==="pengajuan");
-      btnPengajuan.classList.toggle("text-green-600", tab==="pengajuan");
-      btnPembayaran.classList.toggle("border-blue-500", tab==="pembayaran");
-      btnPembayaran.classList.toggle("text-blue-600", tab==="pembayaran");
-    }
-    document.getElementById("footerPengajuan")?.classList.toggle("hidden", tab!=="pengajuan");
-    document.getElementById("footerPembayaran")?.classList.toggle("hidden", tab!=="pembayaran");
-    if(window.activeKavling) bukaDetailBlok(window.activeKavling);
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("tabPengajuan")?.addEventListener("click", ()=>setTab("pengajuan"));
-    document.getElementById("tabPembayaran")?.addEventListener("click", ()=>setTab("pembayaran"));
-    setTab("pengajuan");
-
-    const panelKiri = document.querySelector(".panel-kiri");
-    const tooltip = document.createElement("div");
-    tooltip.id = "unitTooltip";
-    tooltip.className =
-      "absolute hidden px-2 py-1 text-xs font-bold rounded-md shadow bg-slate-900 text-white pointer-events-none z-50";
-    panelKiri?.appendChild(tooltip);
-
-    const showTip = (e, text) => {
-      if (!panelKiri) return;
-      tooltip.textContent = text;
-      tooltip.classList.remove("hidden");
-      const rect = panelKiri.getBoundingClientRect();
-      tooltip.style.left = (e.clientX - rect.left + 12) + "px";
-      tooltip.style.top  = (e.clientY - rect.top  + 12) + "px";
-    };
-    const hideTip = () => tooltip.classList.add("hidden");
-
-    blocks = Array.from(document.querySelectorAll('[data-unit-id]'));
-    blocks.forEach(el=>{
-      const id = el.getAttribute("data-unit-id") || "";
-      el.addEventListener("mouseenter", (e)=> showTip(e, id));
-      el.addEventListener("mousemove",  (e)=> showTip(e, id));
-      el.addEventListener("mouseleave", hideTip);
-
-      el.addEventListener("click", ()=>{
-        document.querySelectorAll('[data-unit-id]').forEach(b=>b.classList.remove('selected'));
-        el.classList.add('selected');
-        bukaDetailBlok(id);
-      });
-    });
-  });
-
-  async function cekBlokTerdaftarDiProyek(kavling) {
-    try {
-      const { data, error } = await client.from("daftar_proyek").select("kavling").eq("kavling", kavling).limit(1);
-      if(error) throw error;
-      return data && data.length > 0;
-    } catch (e) {
-      console.warn("cekBlokTerdaftarDiProyek fallback:", e?.message || e);
-      return true;
-    }
-  }
-
-  async function bukaDetailBlok(kavling) {
-    if (!kavling) return;
-
-    window.activeKavling = kavling;
-    window.selectedItems = window.selectedItems || [];
-
-    document.getElementById("judulBlok").textContent = "Blok " + kavling;
-    document.getElementById("subJudul").textContent = "Memuat data...";
-
-    window.canAjukan = true;
-    renderTabel({ lunasSet: new Set(), diajukanSet: new Set() });
-
-    const terdaftar = await cekBlokTerdaftarDiProyek(kavling);
-    window.canAjukan = !!terdaftar;
-
-    if (!terdaftar) {
-      document.getElementById("subJudul").textContent =
-        'Blok belum ada di "daftar_proyek" (tombol ajukan dimatikan).';
-      renderTabel({ lunasSet: new Set(), diajukanSet: new Set() });
-      return;
-    }
-
-    document.getElementById("loading")?.classList.remove("hidden");
-
-    try {
-      const { data: bayarRows, error: bayarErr } = await client
-        .from("pembayaran_upah")
-        .select("nama_pekerjaan")
-        .eq("blok", kavling);
-
-      if (bayarErr) throw bayarErr;
-
-      const lunasSet = new Set((bayarRows || []).map(r => r.nama_pekerjaan));
-
-      let diajukanSet = new Set();
-      try {
-        const { data: ajukanRows, error: ajukanErr } = await client
-          .from("pengajuan_upah")
-          .select("nama_pekerjaan,status")
-          .eq("blok", kavling);
-
-        if (ajukanErr) throw ajukanErr;
-
-        (ajukanRows || []).forEach(r => {
-          if ((r.status || "").toUpperCase() === "DIAJUKAN") diajukanSet.add(r.nama_pekerjaan);
-        });
-      } catch (e) {
-        console.warn("pengajuan_upah belum ada / error:", e?.message || e);
-      }
-
-      renderTabel({ lunasSet, diajukanSet });
-
-      document.getElementById("subJudul").textContent =
-        `Lunas: ${lunasSet.size}/${MASTER_RAB.length} | Diajukan: ${diajukanSet.size}`;
-
-      const el = document.querySelector(`[data-unit-id="${CSS.escape(kavling)}"]`);
-      if (el) {
-        if (lunasSet.size >= MASTER_RAB.length) el.setAttribute("data-status", "full_lunas");
-        else el.removeAttribute("data-status");
-      }
-    } catch (err) {
-      console.error(err);
-      document.getElementById("subJudul").textContent =
-        "Gagal baca database (menampilkan master bobot saja).";
-    } finally {
-      document.getElementById("loading")?.classList.add("hidden");
-    }
-  }
-
-  function renderTabel({lunasSet, diajukanSet}){
-    const tbody = document.getElementById('tabelBody');
-    if(!tbody) return;
-    const canAjukan = window.canAjukan !== false;
-    tbody.innerHTML = "";
-    let curr="";
-    MASTER_RAB.forEach((item, idx)=>{
-      if(item.k !== curr){
-        curr = item.k;
-        tbody.innerHTML += `
-          <tr class="bg-gray-50 border-t">
-            <td colspan="5" class="px-4 py-2 font-bold text-gray-700">Tahap ${curr}</td>
-          </tr>`;
-      }
-      const isLunas = lunasSet.has(item.n);
-      const isDiajukan = diajukanSet.has(item.n);
-      let statusCell="", aksiCell="";
-      if(window.activeTab==="pengajuan"){
-        if(isLunas){
-          statusCell = `<span class="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-1 rounded-full">LUNAS</span>`;
-        }else if(isDiajukan){
-          statusCell = `<span class="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded-full">DIAJUKAN</span>`;
-          aksiCell = `<button class="px-3 py-2 rounded-lg text-xs font-bold bg-slate-200 text-slate-600" disabled>Menunggu</button>`;
-        }else{
-          statusCell = `<span class="text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-1 rounded-full">BELUM</span>`;
-          aksiCell = canAjukan
-            ? `<button class="btn-ajukan px-3 py-2 rounded-lg text-xs font-bold" onclick="ajukanPekerjaan(${idx})"><i class="fas fa-paper-plane mr-1"></i>AJUKAN</button>`
-            : `<button class="px-3 py-2 rounded-lg text-xs font-bold bg-slate-200 text-slate-600" disabled>Daftarkan dulu</button>`;
+        await loadDropdownProyek();
+        await loadMultiSelectProyek();
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const kavling = urlParams.get('kavling');
+        if(kavling) {
+            const select = document.getElementById('pilihProyek');
+            setTimeout(() => {
+                for(let i=0; i<select.options.length; i++){
+                    if(select.options[i].text.includes(kavling)){ select.selectedIndex = i; gantiProyek(); break; }
+                }
+            }, 500);
+        } else {
+            renderPengajuanView();
         }
-      }else{
-        if(isLunas) statusCell = `<i class="fa-solid fa-circle-check text-green-600 text-lg"></i>`;
-        else{
-          const checked = (window.selectedItems||[]).includes(idx) ? "checked" : "";
-          statusCell = `<input type="checkbox" class="chk-item w-5 h-5 accent-blue-600" data-idx="${idx}" ${checked}>`;
-        }
-      }
-      const rowGrey = window.activeTab==="pengajuan" && isLunas ? "row-lunas" : "";
-      tbody.innerHTML += `
-        <tr class="border-b ${rowGrey}">
-          <td class="px-4 py-3 text-center">${statusCell}</td>
-          <td class="px-4 py-3">${item.n}</td>
-          <td class="px-4 py-3 text-center font-bold">${item.b}%</td>
-          <td class="px-4 py-3 text-right font-mono text-gray-600">${fmt(item.h)}</td>
-          <td class="px-4 py-3 text-center">${window.activeTab==="pengajuan" ? aksiCell : ""}</td>
-        </tr>`;
     });
-    if(window.activeTab==="pembayaran"){
-      document.querySelectorAll(".chk-item").forEach(chk=>{
-        chk.addEventListener("change", (e)=>{
-          const i = parseInt(e.target.getAttribute("data-idx"), 10);
-          window.selectedItems = window.selectedItems||[];
-          if(e.target.checked){
-            if(!window.selectedItems.includes(i)) window.selectedItems.push(i);
-          } else {
-            window.selectedItems = window.selectedItems.filter(x=>x!==i);
-          }
-          hitungTotal();
+
+    // --- TAB NAVIGATION ---
+    function setTab(tab) {
+        activeTab = tab;
+        const btns = document.querySelectorAll('.tab-btn');
+        btns.forEach(b => b.className = 'tab-btn'); 
+
+        const ddContainer = document.getElementById('dropdownContainer');
+        const panelFilter = document.getElementById('panelFilter');
+        const actionBar = document.getElementById('actionBar');
+        const thead = document.getElementById('tableHead');
+        const tbody = document.getElementById('tabelBody');
+
+        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i></td></tr>`;
+
+        if(tab === 'pengajuan') {
+            document.getElementById('tabPengajuan').className = 'tab-btn active-blue';
+            ddContainer.style.display = 'block';
+            panelFilter.classList.add('hidden');
+            actionBar.style.display = 'none';
+            thead.innerHTML = `<tr><th class="th-excel w-12">No</th><th class="th-excel">Uraian Pekerjaan</th><th class="th-excel w-16">Bobot</th><th class="th-excel w-32">Nilai (Rp)</th><th class="th-excel w-32">Aksi</th></tr>`;
+            renderPengajuanView();
+        } 
+        else if(tab === 'pembayaran') {
+            document.getElementById('tabPembayaran').className = 'tab-btn active-green';
+            ddContainer.style.display = 'none'; 
+            panelFilter.classList.add('hidden');
+            actionBar.style.display = 'flex'; 
+            thead.innerHTML = `<tr><th class="th-excel w-10"><input type="checkbox" onchange="toggleAllBayar(this)" class="chk-big"></th><th class="th-excel w-12">Tahap</th><th class="th-excel">Uraian Pekerjaan</th><th class="th-excel w-16">Bobot</th><th class="th-excel w-32">Nilai (Rp)</th><th class="th-excel w-32">Tgl Bayar</th></tr>`;
+            renderPembayaranGlobal();
+        } 
+        else { 
+            document.getElementById('tabLunas').className = 'tab-btn active-purple';
+            ddContainer.style.display = 'none'; 
+            panelFilter.classList.remove('hidden');
+            actionBar.style.display = 'none';
+            thead.innerHTML = `<tr><th class="th-excel">Proyek</th><th class="th-excel">Tgl Cair</th><th class="th-excel">No Urut</th><th class="th-excel">Pekerjaan</th><th class="th-excel">Bobot</th><th class="th-excel text-right">Total Cair</th></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-slate-400 italic">Gunakan filter di atas untuk menampilkan laporan.</td></tr>`;
+        }
+    }
+
+    // --- MULTI SELECT DROPDOWN LOGIC ---
+    function toggleMultiSelect(e) {
+        e.stopPropagation();
+        const checkboxes = document.getElementById("checkboxes");
+        if (!multiSelectOpen) {
+            checkboxes.style.display = "block";
+            multiSelectOpen = true;
+        } else {
+            checkboxes.style.display = "none";
+            multiSelectOpen = false;
+        }
+    }
+
+    function closeMultiSelect(e) {
+        if (multiSelectOpen && !e.target.closest('#multiSelectContainer')) {
+            document.getElementById("checkboxes").style.display = "none";
+            multiSelectOpen = false;
+        }
+    }
+
+    function updateMultiSelectDisplay() {
+        const checked = document.querySelectorAll('.proyek-checkbox:checked');
+        const count = checked.length;
+        document.getElementById("displaySelectedCount").innerText = count > 0 ? `${count} Proyek Terpilih` : "0 Terpilih";
+    }
+
+    async function loadMultiSelectProyek() {
+        const container = document.getElementById("checkboxes");
+        const { data } = await client.from('master_proyek').select('nama_proyek').order('nama_proyek', {ascending: true});
+        container.innerHTML = "";
+        if(data) {
+            data.forEach(p => {
+                container.innerHTML += `<label><input type="checkbox" value="${p.nama_proyek}" class="proyek-checkbox" onchange="updateMultiSelectDisplay()"> ${p.nama_proyek}</label>`;
+            });
+        }
+    }
+
+    function selectAllProyek(check) {
+        document.querySelectorAll('.proyek-checkbox').forEach(cb => cb.checked = check);
+        updateMultiSelectDisplay();
+    }
+
+    // --- DATA LOADERS ---
+    async function loadDropdownProyek() {
+        const select = document.getElementById("pilihProyek");
+        const { data } = await client.from('master_proyek').select('nama_proyek').order('created_at', {ascending: false});
+        select.innerHTML = `<option value="">-- Pilih Proyek --</option>`;
+        if(data) data.forEach(p => select.innerHTML += `<option value="${p.nama_proyek}">${p.nama_proyek}</option>`);
+    }
+
+    function gantiProyek() {
+        activeProyek = document.getElementById("pilihProyek").value;
+        if(activeTab === 'pengajuan') renderPengajuanView();
+    }
+
+    // --- TAB 1: PENGAJUAN ---
+    async function renderPengajuanView() {
+        const tbody = document.getElementById("tabelBody");
+        if(!activeProyek) { tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400">Pilih Proyek Di Atas ↗️</td></tr>`; return; }
+        
+        const { data: pengajuan } = await client.from('pengajuan_upah').select('nama_pekerjaan, status').eq('kavling', activeProyek);
+        const { data: transaksi } = await client.from('transaksi_upah').select('nama_pekerjaan').eq('kavling', activeProyek);
+        let statusMap = {};
+        if(pengajuan) pengajuan.forEach(p => { if(p.status === 'DIAJUKAN') statusMap[p.nama_pekerjaan] = 'DIAJUKAN'; });
+        if(transaksi) transaksi.forEach(t => statusMap[t.nama_pekerjaan] = 'LUNAS');
+        
+        tbody.innerHTML = "";
+        let totalBobot = 0, totalRp = 0;
+        MASTER_DATA.forEach(g => {
+            let subB=0, subRp=0;
+            tbody.innerHTML += `<tr class="row-group-header"><td class="text-center py-2">NO ${g.id}</td><td colspan="4"></td></tr>`;
+            g.items.forEach(i => {
+                subB+=i.b; subRp+=i.p;
+                const st = statusMap[i.n];
+                let btn = st==='LUNAS' ? `<span class="text-green-600 font-bold text-xs"><i class="fas fa-check"></i> SELESAI</span>` : (st==='DIAJUKAN' ? `<span class="text-amber-600 font-bold text-xs"><i class="fas fa-clock"></i> DIPROSES</span>` : `<button onclick="ajukanItem('${i.n}',${i.p},${i.b},'${g.id}')" class="btn-action btn-ajukan">Ajukan</button>`);
+                tbody.innerHTML += `<tr class="border-b ${st==='LUNAS'?'bg-green-50 opacity-60':''}"><td class="td-excel text-center">${g.id}</td><td class="td-excel">${i.n}</td><td class="td-excel text-center">${i.b}%</td><td class="td-excel text-right">${fmt(i.p)}</td><td class="td-excel text-center">${btn}</td></tr>`;
+            });
+            totalBobot+=subB; totalRp+=subRp;
+            tbody.innerHTML += `<tr class="row-subtotal"><td></td><td class="text-center">TOTAL</td><td class="text-center">${subB}%</td><td class="text-right px-2">${fmt(subRp)}</td><td></td></tr>`;
         });
-      });
-      hitungTotal();
+        tbody.innerHTML += `<tr class="row-grandtotal"><td colspan="2" class="text-center py-3">GRAND TOTAL</td><td class="text-center py-3">${totalBobot}%</td><td class="text-right px-2">${fmt(totalRp)}</td><td></td></tr>`;
     }
-  }
 
-  function hitungTotal(){
-    const indexes = window.selectedItems || [];
-    let total=0;
-    indexes.forEach(i=> total += MASTER_RAB[i]?.h || 0);
-    const display = document.getElementById('totalDisplay');
-    if(display) display.innerText = fmt(total);
-    const btn = document.getElementById('btnCairkan');
-    if(btn){
-      btn.disabled = total<=0;
-      btn.innerHTML = total>0 ? `<i class="fas fa-money-bill-wave"></i> CAIRKAN ${fmt(total)}` : `<i class="fas fa-check-circle"></i> CAIRKAN DANA`;
+    async function ajukanItem(nama, nilai, bobot, tahap) {
+        if(!confirm(`Ajukan "${nama}"?`)) return;
+        const {error} = await client.from('pengajuan_upah').insert([{kavling:activeProyek, tahap, nama_pekerjaan:nama, bobot, nilai, status:'DIAJUKAN', tanggal_ajukan:new Date()}]);
+        if(!error) renderPengajuanView(); else alert(error.message);
     }
-  }
-  window.hitungTotal = hitungTotal;
 
-  async function ajukanPekerjaan(idx){
-    const kavling = window.activeKavling;
-    if(!kavling) return;
-    const ok = await cekBlokTerdaftarDiProyek(kavling);
-    if(!ok){
-      alert(`Blok ${kavling} belum terdaftar di "daftar_proyek".
-Tambahkan dulu blok ini agar bisa diajukan.`);
-      return;
-    }
-    const item = MASTER_RAB[idx];
-    if(!item) return;
-    if(!confirm(`Ajukan "${item.n}" (Bobot ${item.b}%) untuk Blok ${kavling}?`)) return;
-    document.getElementById('loading')?.classList.remove('hidden');
-    try{
-      const payload = {
-        kavling,
-        tahap: item.k,
-        nama_pekerjaan: item.n,
-        bobot: item.b,
-        nilai: item.h,
-        status: "DIAJUKAN",
-        tanggal_ajukan: new Date()
-      };
-      const { error } = await client.from("pengajuan_upah").insert(payload);
-      if(error) throw error;
-      alert("✅ Pengajuan tersimpan.");
-      bukaDetailBlok(kavling);
-    }catch(e){
-      alert("Gagal ajukan: " + (e?.message||e));
-      document.getElementById('loading')?.classList.add('hidden');
-    }
-  }
-  window.ajukanPekerjaan = ajukanPekerjaan;
+    // --- TAB 2: PEMBAYARAN MASSAL ---
+    async function renderPembayaranGlobal() {
+        const tbody = document.getElementById("tabelBody");
+        const { data: list } = await client.from('pengajuan_upah').select('*').eq('status','DIAJUKAN').order('kavling');
+        tbody.innerHTML = "";
+        inboxData = list || [];
+        updateTotalBayar(); 
 
-  async function simpanPembayaran(){
-    const kavling = window.activeKavling;
-    if(!kavling) return;
-    if(!confirm(`Konfirmasi pencairan dana sebesar ${document.getElementById('totalDisplay').innerText} untuk ${kavling}?`)) return;
-    document.getElementById('loading')?.classList.remove('hidden');
-    try{
-      const payload = window.selectedItems.map(item=>({
-        kavling,
-        nama_pekerjaan: item.n,
-        nilai_bayar: item.h,
-        status: 'LUNAS',
-        tanggal_bayar: new Date()
-      }));
-      const { error } = await client.from('transaksi_upah').insert(payload);
-      if(error) throw error;
-      alert("✅ Sukses! Data pembayaran tersimpan.");
-      bukaDetailBlok(kavling);
-    }catch(err){
-      alert("Gagal simpan pembayaran: " + (err?.message||err));
-      document.getElementById('loading')?.classList.add('hidden');
+        if(inboxData.length===0) { tbody.innerHTML=`<tr><td colspan="6" class="p-12 text-center text-slate-400">Tidak ada tagihan masuk.</td></tr>`; return; }
+        
+        let curKav = "";
+        inboxData.forEach((item, idx) => {
+            if(item.kavling !== curKav) {
+                curKav = item.kavling;
+                tbody.innerHTML += `<tr class="row-blok-header"><td colspan="6" class="py-2"><i class="fas fa-home text-yellow-400 mr-2"></i> ${curKav}</td></tr>`;
+            }
+            tbody.innerHTML += `
+                <tr class="bg-white border-b hover:bg-green-50">
+                    <td class="td-excel text-center">
+                        <input type="checkbox" class="chk-bayar chk-big" data-idx="${idx}" onchange="updateTotalBayar()">
+                    </td>
+                    <td class="td-excel text-center text-slate-400">${item.tahap}</td>
+                    <td class="td-excel font-bold">${item.nama_pekerjaan}</td>
+                    <td class="td-excel text-center">${item.bobot}%</td>
+                    <td class="td-excel text-right font-mono text-green-700">${fmt(item.nilai)}</td>
+                    <td class="p-1"><input type="date" id="date_${idx}" value="${getToday()}" class="input-date"></td>
+                </tr>`;
+        });
     }
-  }
-  window.simpanPembayaran = simpanPembayaran;
+
+    function toggleAllBayar(source) {
+        document.querySelectorAll('.chk-bayar').forEach(cb => cb.checked = source.checked);
+        updateTotalBayar();
+    }
+
+    function updateTotalBayar() {
+        let total = 0; let count = 0;
+        document.querySelectorAll('.chk-bayar:checked').forEach(cb => {
+            const idx = cb.getAttribute('data-idx');
+            total += inboxData[idx].nilai;
+            count++;
+        });
+        document.getElementById('totalBayarLabel').innerText = fmt(total);
+        document.getElementById('countBayarLabel').innerText = `(${count} Item)`;
+        
+        const btn = document.getElementById('btnBayarMassal');
+        if(count > 0) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-check-double"></i> BAYAR (${count}) ITEM`;
+        } else {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-money-bill-wave"></i> BAYAR TERPILIH`;
+        }
+    }
+
+    async function prosesBayarMassal() {
+        const checked = document.querySelectorAll('.chk-bayar:checked');
+        if(checked.length === 0) return;
+        if(!confirm(`Yakin memproses pembayaran untuk ${checked.length} item terpilih?`)) return;
+
+        document.getElementById('btnBayarMassal').disabled = true;
+        document.getElementById('btnBayarMassal').innerText = "Memproses...";
+
+        try {
+            const inserts = [];
+            const idsToDelete = [];
+            checked.forEach(cb => {
+                const idx = cb.getAttribute('data-idx');
+                const item = inboxData[idx];
+                const tgl = document.getElementById(`date_${idx}`).value;
+                inserts.push({
+                    kavling: item.kavling, nama_pekerjaan: item.nama_pekerjaan,
+                    nilai_bayar: item.nilai, status: 'LUNAS', tanggal_bayar: tgl
+                });
+                idsToDelete.push(item.id);
+            });
+
+            const { error: errIns } = await client.from('transaksi_upah').insert(inserts);
+            if(errIns) throw errIns;
+            const { error: errDel } = await client.from('pengajuan_upah').delete().in('id', idsToDelete);
+            if(errDel) throw errDel;
+
+            alert("✅ Pembayaran Berhasil Diproses!");
+            renderPembayaranGlobal();
+        } catch (e) {
+            alert("Gagal: " + e.message);
+            document.getElementById('btnBayarMassal').disabled = false;
+        }
+    }
+
+    // --- TAB 3: HISTORY ---
+    async function loadHistoryData() {
+        const tbody = document.getElementById("tabelBody");
+        const start = document.getElementById("filterStart").value;
+        const end = document.getElementById("filterEnd").value;
+        const selectedProyek = Array.from(document.querySelectorAll('.proyek-checkbox:checked')).map(cb => cb.value);
+
+        if(selectedProyek.length === 0) { alert("Pilih minimal satu proyek!"); return; }
+
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-purple-500"></i> Mengambil data...</td></tr>`;
+
+        const { data, error } = await client.from('transaksi_upah').select('*').in('kavling', selectedProyek).gte('tanggal_bayar', start).lte('tanggal_bayar', end).order('tanggal_bayar', {ascending: true});
+
+        if(error) { tbody.innerHTML = `<tr><td colspan="6" class="text-red-500 text-center">Error: ${error.message}</td></tr>`; return; }
+        
+        historyDataRaw = data || [];
+        if(historyDataRaw.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Tidak ada data.</td></tr>`;
+            document.getElementById('btnDownloadPDF').disabled = true;
+            return;
+        }
+
+        document.getElementById('btnDownloadPDF').disabled = false;
+        tbody.innerHTML = "";
+        let grandTotal = 0;
+
+        historyDataRaw.forEach(item => {
+            const meta = itemMeta[item.nama_pekerjaan] || { grup: '-', bobot: 0 };
+            grandTotal += item.nilai_bayar;
+            tbody.innerHTML += `<tr class="hover:bg-purple-50 border-b transition"><td class="td-excel font-bold text-slate-700">${item.kavling}</td><td class="td-excel text-center">${new Date(item.tanggal_bayar).toLocaleDateString('id-ID')}</td><td class="td-excel text-center text-slate-500 font-mono">Tahap ${meta.grup}</td><td class="td-excel">${item.nama_pekerjaan}</td><td class="td-excel text-center">${meta.bobot}%</td><td class="td-excel text-right font-bold text-purple-700">${fmt(item.nilai_bayar)}</td></tr>`;
+        });
+
+        tbody.innerHTML += `<tr class="row-grandtotal"><td colspan="5" class="p-3 text-right uppercase tracking-wider">Total Pembayaran</td><td class="p-3 text-right">${fmt(grandTotal)}</td></tr>`;
+    }
+
+    async function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const start = document.getElementById("filterStart").value;
+        const end = document.getElementById("filterEnd").value;
+        
+        doc.setFontSize(14); doc.setFont("helvetica", "bold");
+        doc.text("PT. NUSANTARA LAND DEVELOPMENT", 105, 15, { align: "center" });
+        doc.setFontSize(9); doc.setFont("helvetica", "normal");
+        doc.text("Jl. CitraLand City, Centre Point of Indonesia (CPI), Makassar, Indonesia", 105, 20, { align: "center" });
+        doc.setLineWidth(0.5); doc.line(14, 25, 196, 25);
+        
+        doc.setFontSize(12); doc.setFont("helvetica", "bold");
+        doc.text("LAPORAN PEMBAYARAN UPAH TUKANG", 105, 33, { align: "center" });
+        doc.setFontSize(10); doc.setFont("helvetica", "normal");
+        doc.text(`Periode: ${new Date(start).toLocaleDateString('id-ID')} s/d ${new Date(end).toLocaleDateString('id-ID')}`, 105, 38, { align: "center" });
+
+        let body = [];
+        let grandTotal = 0;
+        historyDataRaw.sort((a,b) => a.kavling.localeCompare(b.kavling) || new Date(a.tanggal_bayar) - new Date(b.tanggal_bayar));
+        let currentBlok = ""; let subTotal = 0;
+
+        historyDataRaw.forEach((item, index) => {
+            const meta = itemMeta[item.nama_pekerjaan] || { grup: '-', bobot: 0 };
+            if(item.kavling !== currentBlok) {
+                if(currentBlok !== "") {
+                    body.push([{ content: `Subtotal ${currentBlok}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 253, 244] } }, { content: fmt(subTotal), styles: { fontStyle: 'bold', halign: 'right' } }, { content: '', styles: { fillColor: [240, 253, 244] } }]);
+                    subTotal = 0;
+                }
+                currentBlok = item.kavling;
+                body.push([{ content: currentBlok, colSpan: 6, styles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold' } }]);
+            }
+            subTotal += item.nilai_bayar; grandTotal += item.nilai_bayar;
+            body.push([new Date(item.tanggal_bayar).toLocaleDateString('id-ID'), `Tahap ${meta.grup}`, item.nama_pekerjaan, `${meta.bobot}%`, fmt(item.nilai_bayar), '']);
+            if(index === historyDataRaw.length - 1) {
+                body.push([{ content: `Subtotal ${currentBlok}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 253, 244] } }, { content: fmt(subTotal), styles: { fontStyle: 'bold', halign: 'right' } }, { content: '', styles: { fillColor: [240, 253, 244] } }]);
+            }
+        });
+
+        body.push([{ content: 'GRAND TOTAL PERIODE INI', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [254, 240, 138], fontSize: 10 } }, { content: fmt(grandTotal), styles: { fontStyle: 'bold', fillColor: [254, 240, 138], fontSize: 10, halign: 'right' } }, { content: '', styles: { fillColor: [254, 240, 138] } }]);
+
+        doc.autoTable({
+            startY: 45,
+            head: [['Tanggal', 'No. Urut', 'Uraian Pekerjaan', 'Bobot', 'Nilai Cair (Rp)', 'Check']],
+            body: body,
+            theme: 'grid',
+            headStyles: { fillColor: [51, 65, 85], textColor: 255, fontStyle: 'bold' },
+            columnStyles: { 0: {halign:'center'}, 1: {halign:'center'}, 3: {halign:'center'}, 4: {halign:'right', cellWidth: 45}, 5: {cellWidth: 15} },
+            styles: { fontSize: 8, cellPadding: 2 },
+            margin: { left: 14, right: 14 }
+        });
+
+        let finalY = doc.lastAutoTable.finalY + 15;
+        if(finalY > 250) { doc.addPage(); finalY = 20; }
+        doc.text("Disiapkan Oleh,", 14, finalY); doc.text("( Admin Keuangan )", 14, finalY+25);
+        doc.text("Diperiksa Oleh,", 90, finalY); doc.text("( Site Manager )", 90, finalY+25);
+        doc.text("Disetujui Oleh,", 160, finalY+5); doc.setFont("helvetica", "bold"); doc.text("Direktur Utama", 160, finalY+25);
+        
+        doc.save("Laporan_Upah.pdf");
+    }
 </script>
 </body>
 </html>

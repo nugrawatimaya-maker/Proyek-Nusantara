@@ -53,84 +53,52 @@
         </a>
 </header>
 <section class="p-4 sm:p-6 bg-slate-50 border-t border-slate-200">
-<div class="grid grid-cols-1 gap-6">
-<div class="lg:col-span-8 flex flex-col gap-4">
-<div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
-<div>
-<h2 class="text-xl font-extrabold text-slate-800 tracking-tight">PT. NUSANTARA LAND DEVELOPMENT</h2>
-<p class="text-xs text-slate-500 font-medium">Siteplan Interactive View</p>
-</div>
-<div class="relative w-full sm:w-64">
-<div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
-<i class="fa-solid fa-filter text-xs"></i>
-</div>
-<select class="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block" id="filterOverlay">
-<option value="all">👁️ Tampilkan Semua</option>
-<optgroup label="Filter Warna (Overlay)">
-<option value="not-planning">⚪ Not Planning / Belum Dijual</option>
-<option value="open-booking">🟢 Open Booking</option>
-<option value="booking-unit">🟠 Booking Unit (Berkas Proses)</option>
-<option value="sold-out">🔴 Sold Out</option>
-</optgroup>
-</select>
-</div>
-</div>
-<!-- ===== DASHBOARD PROGRES MARKETING (TAMPIL DULUAN) ===== -->
-<div class="bg-white border border-slate-200 rounded-2xl shadow-inner overflow-hidden mb-4" id="marketingProgressCard">
-<div class="p-4 border-b bg-slate-50 flex items-start justify-between gap-3">
-<div>
-<div class="font-bold text-slate-800 text-lg">📋 Progres Marketing</div>
-<div class="text-xs text-slate-500">Update 3 hari terakhir + estimasi progres besok</div>
-</div>
-<div class="flex gap-2">
-<button class="px-3 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold" id="btnRefreshProgress">
-        🔄 Refresh
+<div class="flex flex-col gap-4">
+  <div class="bg-white border border-slate-200 rounded-xl p-4 shadow">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Siteplan</h2>
+        <p class="text-xs text-slate-500">Tampilan peta blok dengan legenda status</p>
+      </div>
+      <div class="flex gap-2">
+        <span class="chip bg-slate-100 text-slate-700">Not Planning</span>
+        <span class="chip bg-sky-100 text-sky-700">Open Booking</span>
+        <span class="chip bg-orange-100 text-orange-700">Booking Unit</span>
+        <span class="chip bg-red-100 text-red-700">Sold Out</span>
+      </div>
+    </div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-inner overflow-hidden relative" id="siteplanCard">
+    <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
+      <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600" id="btnFit" title="Fit to Screen">
+        <i class="fa-solid fa-compress"></i>
       </button>
-<button class="px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold" id="btnOpenSiteplan">
-        🗺️ Buka Siteplan
+      <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600" id="btnResetView" title="Reset Zoom">
+        <i class="fa-solid fa-rotate-left"></i>
       </button>
-</div>
-</div>
-<div class="p-4 overflow-auto">
-<table class="min-w-[900px] w-full text-left border-collapse text-sm">
-<thead><tr class="text-slate-600"><th class="bg-slate-100 p-2 w-28 rounded-l-lg">Daftar Blok</th><th class="bg-slate-100 p-2 w-36">Nama User</th><th class="bg-slate-100 p-2 w-36">PIC/Marketing</th><th class="bg-slate-100 p-2 w-32">Bank Proses</th><th class="bg-slate-100 p-2 w-44">Lama Progres Berkas</th><th class="bg-slate-100 p-2">Laporan Progres Kemarin</th><th class="bg-slate-100 p-2 rounded-r-lg">Laporan Progres Hari Ini</th></tr></thead>
-<tbody id="marketingProgressBody">
-<tr><td class="p-4 text-center text-slate-500" colspan="7">Memuat data...</td></tr>
-</tbody>
-</table>
-</div>
-</div>
-<div class="hidden bg-white border border-slate-200 rounded-2xl shadow-inner overflow-hidden relative" id="siteplanCard">
-<div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
-<button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600" id="btnFit" title="Fit to Screen">
-<i class="fa-solid fa-compress"></i>
-</button>
-<button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600" id="btnResetView" title="Reset Zoom">
-<i class="fa-solid fa-rotate-left"></i>
-</button>
-</div>
-<div id="mapWrap">
-<div class="hidden fixed z-50 pointer-events-none bg-slate-900/90 text-white text-xs px-3 py-2 rounded-lg shadow-xl backdrop-blur-sm border border-slate-700 transform -translate-x-1/2 -translate-y-full mt-[-10px]" id="mapTooltip">
-<div class="font-bold mb-1 text-xs" id="tipTitle">Blok</div>
-<div class="flex items-center gap-2">
-<span class="w-2 h-2 rounded-full bg-white" id="tipDot"></span>
-<span class="text-slate-200 capitalize" id="tipSub"></span>
-</div>
-</div>
-<svg id="siteplanSvg" preserveaspectratio="xMidYMid meet" viewbox="0 0 29700 21000" xml:space="preserve">
-<defs>
-<style type="text/css">
-                        .str0 {stroke:#363333;stroke-width:35.28;stroke-miterlimit:22.9256}
-                        .str1 {stroke:#373435;stroke-width:35.64;stroke-miterlimit:22.9256}
-                        .fil2 {fill:none}
-                        .fil1 {fill:#FEFEFE} 
-                        .fil3 {fill:#FFF212}
-                        .fil4 {fill:#A8CF45}
-                        .fil5 {fill:#6B809B}
-                        .fil6 {fill:#5CA47A}
-                        .fil0 {fill:#5CA47A}
-                      </style>
-</defs>
+    </div>
+    <div id="mapWrap">
+      <div class="hidden fixed z-50 pointer-events-none bg-slate-900/90 text-white text-xs px-3 py-2 rounded-lg shadow-xl backdrop-blur-sm border border-slate-700 transform -translate-x-1/2 -translate-y-full mt-[-10px]" id="mapTooltip">
+        <div class="font-bold mb-1 text-xs" id="tipTitle">Blok</div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-white" id="tipDot"></span>
+          <span class="text-slate-200 capitalize" id="tipSub"></span>
+        </div>
+      </div>
+      <svg id="siteplanSvg" preserveaspectratio="xMidYMid meet" viewbox="0 0 29700 21000" xml:space="preserve">
+        <defs>
+          <style type="text/css">
+            .str0 {stroke:#363333;stroke-width:35.28;stroke-miterlimit:22.9256}
+            .str1 {stroke:#373435;stroke-width:35.64;stroke-miterlimit:22.9256}
+            .fil2 {fill:none}
+            .fil1 {fill:#FEFEFE} 
+            .fil3 {fill:#FFF212}
+            .fil4 {fill:#A8CF45}
+            .fil5 {fill:#6B809B}
+            .fil6 {fill:#5CA47A}
+            .fil0 {fill:#5CA47A}
+          </style>
+        </defs>
 <g id="Layer_x0020_1">
 <path class="fil0" d="M26585.05 2731.37c-20.8,114.84 -388.6,1032.8 -388.6,1032.8l-312.27 555.04 -1246.48 106.83 -1273.83 323.56 -1612.15 38.65 -2195.44 647.55 -1378.17 -72.79 -2044.86 -254.49 -3327.15 -0.92 -1342.51 -58.24 -1405.95 -402.29 -640.18 127.2 -1280.92 254.55 -881.65 879.47 -1544.84 377.41 -1381.55 -218.46 -611.95 1882.29c0,0 -1084.7,375.83 -1057.1,350.92 27.59,-24.91 -1341.16,-15.2 -1341.16,-15.2l-515.09 243.21 404.77 1328.12 636.27 366.56 989.79 -689.68 581.54 800 1611.29 665.8 2545.49 1114.01 405.64 623.67 2004.33 517.27 2532.03 1046.26 1855.37 476.45 1137.89 55.6 2567.69 22.79 522.29 2628.36 2310.65 1135.17 1140.51 -490.04 1706.4 -1132.09 431.17 -4853.17 0 0 1683.27 379.49 412.07 338.79 825.7 1505.35 873.31 -3163.83 -1222.2 -6232.46 1009.74 -1448.62 -1183.16 -790.89z"></path>
 <rect class="fil1" data-progress="0" data-status="ready-stok" data-unit-id="C1" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22314.1 9426.76)" width="4445"></rect>
