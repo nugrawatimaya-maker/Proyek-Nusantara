@@ -55,10 +55,24 @@
   </div>
 
   <div class="max-w-7xl mx-auto bg-white rounded-lg shadow overflow-hidden mb-10 border-l-4 border-blue-600">
-    <div class="p-4 bg-blue-50 border-b border-blue-100 flex justify-between items-center">
-        <h3 class="font-bold text-blue-800"><i class="fas fa-history mr-2"></i>Riwayat PO Terbit (Arsip)</h3>
-        <button onclick="loadRiwayatPO()" class="text-xs text-blue-600 hover:underline"><i class="fas fa-sync"></i> Refresh</button>
+    <div class="p-4 bg-blue-50 border-b border-blue-100 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-2">
+            <h3 class="font-bold text-blue-800"><i class="fas fa-history mr-2"></i>Arsip PO</h3>
+        </div>
+
+        <div class="flex items-center gap-2 bg-white p-2 rounded shadow-sm border">
+            <span class="text-xs font-bold text-gray-500">Periode:</span>
+            <input type="date" id="filterMulai" class="border rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+            <span class="text-xs text-gray-400">s/d</span>
+            <input type="date" id="filterAkhir" class="border rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+            
+            <button onclick="cariRiwayat()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded text-xs font-bold transition flex items-center gap-2">
+                <i class="fas fa-search"></i> Tampilkan
+            </button>
+        </div>
+
     </div>
+
     <table class="w-full text-left border-collapse">
       <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold">
         <tr>
@@ -67,11 +81,11 @@
           <th class="p-4 text-center">Jml Item</th>
           <th class="p-4 text-right">Grand Total</th>
           <th class="p-4 text-center">Status</th>
-          <th class="p-4 text-center">Cetak</th>
+          <th class="p-4 text-center">Aksi</th>
         </tr>
       </thead>
       <tbody id="tabelRiwayat" class="text-sm divide-y divide-gray-100">
-        <tr><td colspan="6" class="p-6 text-center text-gray-400">Memuat riwayat...</td></tr>
+        <tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Silakan pilih tanggal dan klik 'Tampilkan' untuk melihat arsip.</td></tr>
       </tbody>
     </table>
   </div>
@@ -143,10 +157,14 @@
     let batchData = [];
 
     // --- INIT ---
-    async function init() {
-        await loadVendors();
+    function init() {
+        loadVendors();
         loadPendingRequests();
-        loadRiwayatPO();
+
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        document.getElementById("filterAkhir").value = today.toISOString().split('T')[0];
+        document.getElementById("filterMulai").value = firstDay.toISOString().split('T')[0];
     }
     
     // 1. LOAD DATA
@@ -329,8 +347,12 @@
             };
             generatePOPdf(pdfData);
 
-            alert("✅ PO Berhasil Diterbitkan & PDF sedang didownload.");
-            location.reload();
+            alert("✅ PO Berhasil Diterbitkan! PDF sedang didownload.");
+            tutupModalBatch();
+            document.querySelectorAll('.chk-item').forEach(c => c.checked = false);
+            cekCentang();
+            await loadPendingRequests();
+            await cariRiwayat();
 
         } catch (e) {
             alert("Gagal: " + e.message);
@@ -418,11 +440,11 @@
         
         // Kiri (Dibuat)
         doc.text("Dibuat Oleh,", 30, finalY);
-        doc.text("( Admin Finance )", 30, finalY + 25);
+        doc.text("( Sri Wahyuni )", 30, finalY + 25);
 
         // Kanan (Disetujui)
         doc.text("Disetujui Oleh,", 140, finalY);
-        doc.text("( Manager Operasional )", 140, finalY + 25);
+        doc.text("( Direktur )", 140, finalY + 25);
 
         // Footer Note
         doc.setFontSize(8); doc.setFont("helvetica", "italic");
@@ -431,18 +453,33 @@
         doc.save(`${data.noPO}_${data.vendor}.pdf`);
     }
 
-    // 6. FUNGSI REPRINT (CETAK ULANG DARI RIWAYAT)
-    async function loadRiwayatPO() {
-        const { data } = await client.from('purchase_order').select('*').order('created_at', { ascending: false });
+    async function cariRiwayat() {
+        const tglMulai = document.getElementById("filterMulai").value;
+        const tglAkhir = document.getElementById("filterAkhir").value;
         const tbody = document.getElementById("tabelRiwayat");
-        tbody.innerHTML = "";
-        
-        if (!data || data.length === 0) {
-             tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">Belum ada PO.</td></tr>`;
-             return;
+
+        if(!tglMulai || !tglAkhir) { alert("Harap pilih periode tanggal!"); return; }
+
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-blue-500"></i> Mengambil data dari server...</td></tr>`;
+
+        const { data, error } = await client
+            .from('purchase_order')
+            .select('nomor_po, created_at, nama_vendor, jatuh_tempo, status, total_harga, req_id')
+            .gte('created_at', `${tglMulai} 00:00:00`)
+            .lte('created_at', `${tglAkhir} 23:59:59`)
+            .order('created_at', { ascending: false });
+
+        if(error) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500">Error: ${error.message}</td></tr>`;
+            return;
         }
 
-        // Grouping Data per Nomor PO
+        tbody.innerHTML = "";
+        if(!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 bg-gray-50 italic">Tidak ditemukan PO pada periode ${tglMulai} s/d ${tglAkhir}.</td></tr>`;
+            return;
+        }
+
         const groups = {};
         data.forEach(row => {
             if(!groups[row.nomor_po]) groups[row.nomor_po] = { 
@@ -451,68 +488,119 @@
                 tempo: row.jatuh_tempo, 
                 status: row.status, 
                 grandTotal: 0, 
-                items: [] 
+                itemsCount: 0 
             };
             groups[row.nomor_po].grandTotal += row.total_harga;
-            groups[row.nomor_po].items.push(row);
+            groups[row.nomor_po].itemsCount += 1;
         });
 
         Object.keys(groups).forEach(noPO => {
             const g = groups[noPO];
-            // Encode data untuk tombol reprint
-            const btnData = encodeURIComponent(JSON.stringify(g)); 
             
             tbody.innerHTML += `
-                <tr class="hover:bg-blue-50 border-b">
-                    <td class="p-4 font-bold text-gray-800">${noPO} <br> <span class="text-xs text-gray-500 font-normal">${new Date(g.tgl).toLocaleDateString()}</span></td>
-                    <td class="p-4">${g.vendor}</td>
-                    <td class="p-4 text-center"><span class="bg-gray-100 px-2 py-1 rounded text-xs font-bold border">${g.items.length} Item</span></td>
+                <tr class="hover:bg-blue-50 border-b group transition">
+                    <td class="p-4 font-bold text-gray-800">${noPO} <br> <span class="text-xs text-gray-500 font-normal">${new Date(g.tgl).toLocaleDateString('id-ID')}</span></td>
+                    <td class="p-4 text-gray-700">${g.vendor}</td>
+                    <td class="p-4 text-center"><span class="bg-gray-100 px-2 py-1 rounded text-xs font-bold border">${g.itemsCount} Item</span></td>
                     <td class="p-4 text-right font-bold font-mono text-green-700">${fmt(g.grandTotal)}</td>
-                    <td class="p-4 text-center"><span class="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded">${g.status}</span></td>
-                    <td class="p-4 text-center">
-                        <button onclick='reprintPO("${btnData}")' class="bg-gray-800 text-white px-3 py-1 rounded text-xs hover:bg-black transition shadow">
-                            <i class="fas fa-file-pdf"></i> Download
+                    <td class="p-4 text-center"><span class="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded border border-green-200">${g.status}</span></td>
+                    <td class="p-4 text-center flex justify-center gap-2">
+                        <button onclick='fetchDetailAndPrint("${noPO}", event)' class="bg-gray-800 text-white px-3 py-1 rounded text-xs hover:bg-black transition shadow" title="Download PDF">
+                            <i class="fas fa-file-pdf"></i>
+                        </button>
+                        <button onclick='hapusPO("${noPO}")' class="bg-white text-red-600 border border-red-200 px-3 py-1 rounded text-xs hover:bg-red-50 transition shadow" title="Hapus Permanen">
+                            <i class="fas fa-trash-alt"></i>
                         </button>
                     </td>
                 </tr>`;
         });
     }
 
-    // Ambil detail nama barang dari inventory_req karena di tabel PO cuma ada harga & total
-    async function reprintPO(encodedData) {
-        const g = JSON.parse(decodeURIComponent(encodedData));
-        
-        // Kita butuh nama barang & satuan. Di tabel PO, data itu tidak disimpan langsung (hanya ID req).
-        // Jadi kita fetch ulang nama barang dari inventory_req
-        const reqIds = g.items.map(i => i.req_id);
-        const { data: reqData } = await client.from('inventory_req').select('id, nama_barang, satuan').in('id', reqIds);
-        
-        const mapInfo = {};
-        if(reqData) reqData.forEach(d => mapInfo[d.id] = d);
+    async function hapusPO(nomorPO) {
+        if(!confirm(`⚠️ PERINGATAN KERAS:\n\nAnda akan menghapus ${nomorPO}.\n\nData permintaan barang ini akan DIHAPUS PERMANEN dan TIDAK AKAN KEMBALI ke antrian.\n\nApakah Anda yakin?`)) return;
 
-        // Reconstruct Item Data untuk PDF Generator
-        const itemsFormatted = g.items.map(i => {
-            const info = mapInfo[i.req_id] || { nama_barang: 'Item (Terhapus)', satuan: 'Unit' };
-            return {
-                nama: info.nama_barang,
-                qty: i.total_harga / i.harga_satuan, // Hitung balik qty
-                satuan: info.satuan,
-                harga: i.harga_satuan,
-                total: i.total_harga
+        try {
+            const { data: poItems } = await client.from('purchase_order').select('req_id').eq('nomor_po', nomorPO);
+            
+            if (poItems && poItems.length > 0) {
+                const reqIds = poItems.map(item => item.req_id).filter(Boolean);
+
+                const { error: errDeletePO } = await client.from('purchase_order').delete().eq('nomor_po', nomorPO);
+                if(errDeletePO) throw new Error("Gagal menghapus data PO: " + errDeletePO.message);
+
+                const { error: errDeleteReq } = await client.from('inventory_req')
+                    .delete()
+                    .in('id', reqIds);
+                
+                if(errDeleteReq) throw new Error("Gagal menghapus data Request: " + errDeleteReq.message);
+            } else {
+                await client.from('purchase_order').delete().eq('nomor_po', nomorPO);
+            }
+
+            alert("✅ PO dan Permintaan Barang terkait telah DIHAPUS PERMANEN.");
+            cariRiwayat();
+            loadPendingRequests();
+        } catch (err) {
+            alert("Terjadi kesalahan: " + err.message);
+        }
+    }
+
+    async function fetchDetailAndPrint(nomorPO, event) {
+        const btn = event?.currentTarget || (event?.target && event.target.closest('button'));
+        const originalContent = btn?.innerHTML;
+        if(btn) {
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+            btn.disabled = true;
+        }
+
+        try {
+            const { data: poData } = await client.from('purchase_order').select('*').eq('nomor_po', nomorPO);
+            if(!poData || poData.length === 0) throw new Error("Data PO tidak ditemukan");
+
+            const reqIds = poData.map(i => i.req_id).filter(Boolean);
+            let reqData = [];
+            if(reqIds.length > 0) {
+                const res = await client.from('inventory_req').select('id, nama_barang, satuan').in('id', reqIds);
+                if(res.error) throw new Error("Gagal mengambil data request");
+                reqData = res.data || [];
+            }
+
+            const mapInfo = {};
+            reqData.forEach(d => mapInfo[d.id] = d);
+
+            const itemsFormatted = poData.map(i => {
+                const info = mapInfo[i.req_id] || { nama_barang: 'Item (Terhapus)', satuan: 'Unit' };
+                const price = Number(i.harga_satuan) || 0;
+                const total = Number(i.total_harga) || 0;
+                return {
+                    nama: info.nama_barang,
+                    qty: price > 0 ? total / price : 0,
+                    satuan: info.satuan,
+                    harga: price,
+                    total: total
+                };
+            });
+
+            const grandTotal = itemsFormatted.reduce((sum, item) => sum + item.total, 0);
+            const pdfData = {
+                noPO: nomorPO,
+                tgl: poData[0].created_at,
+                vendor: poData[0].nama_vendor,
+                vendorAlamat: "",
+                tempo: poData[0].jatuh_tempo,
+                items: itemsFormatted,
+                grandTotal: grandTotal
             };
-        });
 
-        const pdfData = {
-            noPO: g.items[0].nomor_po,
-            tgl: g.tgl,
-            vendor: g.vendor,
-            vendorAlamat: "", // Bisa fetch lagi ke master vendor kalau mau perfect, sementara kosong
-            tempo: g.tempo,
-            items: itemsFormatted,
-            grandTotal: g.grandTotal
-        };
-
-        generatePOPdf(pdfData);
+            generatePOPdf(pdfData);
+        } catch (err) {
+            alert("Gagal print: " + err.message);
+        } finally {
+            if(btn) {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        }
     }
 
     init();
