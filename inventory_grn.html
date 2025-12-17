@@ -33,6 +33,7 @@
     const formatRupiah = (n) => new Intl.NumberFormat('id-ID', {style: 'currency', currency: 'IDR'}).format(n);
 
     // 1. LOAD DATA PO
+    // --- GANTI FUNGSI loadOpenPO DENGAN INI ---
     async function loadOpenPO() {
       try {
         const { data, error } = await client
@@ -46,7 +47,14 @@
         container.innerHTML = "";
 
         if (!data || data.length === 0) {
-            container.innerHTML = `<div class="bg-white p-8 rounded shadow text-center text-gray-500 font-bold">✅ Tidak ada barang yang sedang ditunggu.</div>`;
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-10 bg-white rounded-2xl shadow-sm border border-gray-100 text-center">
+                    <div class="bg-green-50 p-4 rounded-full mb-3">
+                        <i class="fas fa-check-circle text-3xl text-green-500"></i>
+                    </div>
+                    <h3 class="font-bold text-gray-800">Semua Beres!</h3>
+                    <p class="text-sm text-gray-500 mt-1">Tidak ada barang yang sedang ditunggu kedatangannya.</p>
+                </div>`;
             return;
         }
 
@@ -56,62 +64,108 @@
             const jumlahOrder = req ? req.jumlah : 0;
             const satuan = req ? req.satuan : "";
             const hargaPO = po.harga_satuan || 0; 
-
-            // Hitung estimasi TOP (Selisih jatuh tempo - hari ini)
-            const today = new Date();
-            const dueDate = new Date(po.jatuh_tempo);
-            const diffTime = Math.abs(dueDate - today);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            // Format Tanggal Cantik (Cth: 17 Des 2025)
+            const tglPO = new Date(po.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
             container.innerHTML += `
-            <div class="bg-white rounded-lg shadow-md overflow-hidden border-l-4 border-green-500 mb-6">
-                <div class="p-6">
-                    <div class="flex justify-between mb-4">
-                      <div><h3 class="text-xl font-bold">${po.nomor_po}</h3><p class="text-sm text-gray-500">Vendor: <strong>${po.nama_vendor}</strong></p></div>
-                      <div class="text-right"><span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">Jatuh Tempo: ${po.jatuh_tempo}</span></div>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-5 transition transform hover:scale-[1.01]">
+                
+                <div class="bg-gray-50 px-5 py-3 border-b border-gray-100 flex justify-between items-center">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Nomor PO</span>
+                        <h3 class="text-lg font-bold text-blue-700 leading-none">${po.nomor_po}</h3>
                     </div>
-                    
-                    <div class="bg-gray-50 p-4 rounded mb-4 border">
-                      <p class="font-bold text-gray-800 text-lg">${namaBarang}</p>
-                      <p class="text-sm text-gray-600">Order: ${jumlahOrder} ${satuan} @ ${formatRupiah(hargaPO)}</p>
+                    <div class="text-right">
+                        <div class="text-[10px] font-bold text-gray-400"><i class="far fa-calendar-alt mr-1"></i>Tanggal PO</div>
+                        <div class="text-sm font-bold text-gray-700">${tglPO}</div>
+                    </div>
+                </div>
+
+                <div class="p-5">
+                    <div class="flex items-start gap-3 mb-4">
+                        <div class="bg-blue-100 text-blue-600 w-10 h-10 rounded-lg flex items-center justify-center shrink-0">
+                            <i class="fas fa-box-open"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-lg leading-tight">${namaBarang}</h4>
+                            <p class="text-sm text-gray-500 mt-1">Vendor: <span class="font-semibold text-gray-700">${po.nama_vendor}</span></p>
+                            <div class="mt-2 inline-flex items-center px-2 py-1 rounded bg-yellow-50 border border-yellow-200 text-xs font-bold text-yellow-700">
+                                Order: ${jumlahOrder} ${satuan}
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="bg-green-50 p-4 rounded border border-green-200">
-                      <h4 class="font-bold text-green-800 mb-3 border-b border-green-200 pb-1">Verifikasi Penerimaan & Nota</h4>
-                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div>
-                            <label class="text-xs font-bold text-gray-600 block mb-1">Jumlah Fisik</label>
-                            <input type="number" id="qty-${po.id}" value="${jumlahOrder}" class="w-full border p-2 rounded font-bold">
-                          </div>
-                          <div>
-                            <label class="text-xs font-bold text-gray-600 block mb-1">Kondisi</label>
-                            <select id="kondisi-${po.id}" class="w-full border p-2 rounded"><option value="Bagus">✅ Bagus</option><option value="Rusak">❌ Rusak</option></select>
-                          </div>
-                          <div>
-                            <label class="text-xs font-bold text-red-600 block mb-1">Harga Sesuai Nota</label>
-                            <input type="number" id="harga-${po.id}" value="${hargaPO}" class="w-full border-2 border-red-200 p-2 rounded font-bold bg-white text-gray-800 focus:ring-red-500">
-                          </div>
-                      </div>
-                      <div class="mb-4">
-                        <label class="text-xs font-bold text-green-800 block mb-1">Upload Foto Nota (Wajib)</label>
-                        <input type="file" id="nota-${po.id}" class="w-full bg-white text-sm border p-1 rounded">
-                      </div>
-                      <div class="space-y-2">
-                        <button onclick="prosesGRN(${po.id}, '${po.nomor_po}', ${hargaPO}, '${namaBarang}', '${po.nama_vendor}')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow">
-                            ✅ Terima Barang & Catat Hutang
-                        </button>
-                        <button onclick="batalkanPO(${po.id}, '${po.nomor_po}')" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded shadow">
-                            <i class="fas fa-ban"></i> Batalkan PO
-                        </button>
-                      </div>
+                    <button onclick="alert('Fitur download PDF PO (Reprint) akan dipanggil di sini')" class="w-full mb-4 flex items-center justify-center gap-2 border border-dashed border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 py-2 rounded-lg text-sm font-bold transition">
+                        <i class="fas fa-file-pdf"></i> Lihat / Download PDF PO
+                    </button>
+
+                    <hr class="border-gray-100 mb-4">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Jumlah Fisik Diterima</label>
+                            <input type="number" id="qty-${po.id}" value="${jumlahOrder}" class="w-full border border-gray-300 p-3 rounded-xl font-bold text-gray-800 focus:ring-2 focus:ring-green-500 outline-none text-center bg-gray-50 focus:bg-white transition" placeholder="0">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Kondisi Barang</label>
+                            <select id="kondisi-${po.id}" class="w-full border border-gray-300 p-3 rounded-xl bg-white font-semibold text-gray-700 focus:ring-2 focus:ring-green-500 outline-none">
+                                <option value="Bagus">✅ Kondisi Bagus</option>
+                                <option value="Rusak">❌ Ada Kerusakan</option>
+                                <option value="Kurang">⚠️ Jumlah Kurang</option>
+                            </select>
+                        </div>
                     </div>
+
+                    <div class="mb-4">
+                         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Harga di Nota (Per Satuan)</label>
+                         <div class="relative">
+                            <span class="absolute left-3 top-3 text-gray-400 font-bold">Rp</span>
+                            <input type="number" id="harga-${po.id}" value="${hargaPO}" class="w-full border border-gray-300 p-3 pl-10 rounded-xl font-mono font-bold text-gray-800 focus:ring-2 focus:ring-green-500 outline-none">
+                         </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Foto Nota / Surat Jalan</label>
+                        <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition group">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <i class="fas fa-camera text-gray-400 group-hover:text-green-500 text-xl mb-1"></i>
+                                <p class="text-xs text-gray-500 group-hover:text-gray-700"><span class="font-bold">Klik Upload</span> atau ambil foto</p>
+                            </div>
+                            <input type="file" id="nota-${po.id}" class="hidden" onchange="previewFile(this)" />
+                        </label>
+                        <p id="filename-${po.id}" class="text-[10px] text-green-600 mt-1 text-center font-bold hidden truncate"></p>
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                        <button onclick="prosesGRN(${po.id}, '${po.nomor_po}', ${hargaPO}, '${namaBarang}', '${po.nama_vendor}')" class="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-green-200 transform active:scale-95 transition flex items-center justify-center gap-2">
+                            <i class="fas fa-check-circle"></i> Terima Barang
+                        </button>
+                        
+                        <button onclick="batalkanPO(${po.id}, '${po.nomor_po}')" class="w-full bg-white text-red-500 border border-red-100 font-bold py-3 rounded-xl hover:bg-red-50 transition">
+                            Batalkan Pesanan
+                        </button>
+                    </div>
+
                 </div>
             </div>`;
         });
       } catch (err) { alert("Error: " + err.message); }
     }
 
-    // 2. PROSES GRN + JURNAL OTOMATIS
+    // Fungsi Tambahan untuk Preview Nama File
+    function previewFile(input) {
+        const id = input.id.split('-')[1];
+        const label = document.getElementById(`filename-${id}`);
+        if(input.files && input.files[0]) {
+            label.innerText = "📄 File dipilih: " + input.files[0].name;
+            label.classList.remove('hidden');
+        } else {
+            label.classList.add('hidden');
+        }
+    }
+
+    // --- UPDATE FUNGSI PROSES GRN (DENGAN UPLOAD FOTO) ---
     async function prosesGRN(id, noPO, hargaLama, namaBarang, namaVendor) {
       try {
           const qty = Number(document.getElementById(`qty-${id}`).value);
@@ -119,23 +173,54 @@
           const kondisi = document.getElementById(`kondisi-${id}`).value;
           const fileInput = document.getElementById(`nota-${id}`);
 
+          // VALIDASI INPUT
           if(qty <= 0 || hargaBaru <= 0) return alert("Jumlah dan Harga tidak boleh 0!");
-          if(fileInput.files.length === 0) return alert("Wajib upload nota!");
+          if(fileInput.files.length === 0) return alert("⚠️ Wajib upload foto Nota/Surat Jalan sebagai bukti!");
 
+          // KONFIRMASI
           if(hargaBaru !== hargaLama) {
               if(!confirm(`⚠️ PERHATIAN: Harga Nota BERBEDA dengan PO!\n\nPO: ${formatRupiah(hargaLama)}\nNota: ${formatRupiah(hargaBaru)}\n\nLanjutkan update harga?`)) return;
           } else {
               if(!confirm("Terima barang dan catat sebagai Hutang Usaha?")) return;
           }
 
-          const namaFile = `Nota_${noPO}_${Date.now()}_${fileInput.files[0].name}`;
+          // TAMPILKAN LOADING
+          const btn = event.currentTarget; // Tombol yang diklik
+          const txtAwal = btn.innerHTML;
+          btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Uploading...`;
+          btn.disabled = true;
+
+          // 1. PROSES UPLOAD FILE KE SUPABASE STORAGE
+          const file = fileInput.files[0];
+          const fileExt = file.name.split('.').pop();
+          const fileName = `Nota_${noPO}_${Date.now()}.${fileExt}`;
+          const filePath = `${fileName}`; // Simpan di root bucket
+
+          const { data: uploadData, error: uploadError } = await client
+              .storage
+              .from('nota-grn') // Pastikan nama bucket ini sudah dibuat di Supabase
+              .upload(filePath, file);
+
+          if (uploadError) throw new Error("Gagal Upload Gambar: " + uploadError.message);
+
+          // Ambil URL Publik agar bisa dilihat nanti
+          const { data: urlData } = client.storage.from('nota-grn').getPublicUrl(filePath);
+          const linkFoto = urlData.publicUrl;
+
+          // 2. SIMPAN DATA KE DATABASE (Pake Link Foto)
           const totalTagihan = qty * hargaBaru;
 
           // A. Simpan GRN
-          await client.from('grn_terima').insert([{
-            po_id: id, jumlah_diterima: qty, kondisi_barang: kondisi,
-            nama_pemeriksa: "Gudang", tanggal_terima: new Date(), bukti_nota: namaFile
+          const { error: errGRN } = await client.from('grn_terima').insert([{
+            po_id: id, 
+            jumlah_diterima: qty, 
+            kondisi_barang: kondisi,
+            nama_pemeriksa: "Gudang", 
+            tanggal_terima: new Date(), 
+            bukti_nota: linkFoto // <--- KITA SIMPAN LINK LENGKAPNYA
           }]);
+          
+          if(errGRN) throw errGRN;
 
           // B. Update PO (Status jadi Tagihan)
           await client.from('purchase_order').update({ 
@@ -144,11 +229,7 @@
               total_harga: totalTagihan 
           }).eq('id', id);
 
-          // C. Update Stok Master
-          // Note: Logikanya ada di Stok Proyek, tapi bisa ditambahkan trigger database. 
-          // Di sini kita fokus ke Akuntansi.
-
-          // D. POSTING JURNAL OTOMATIS (Debit Persediaan, Kredit Hutang)
+          // C. POSTING JURNAL OTOMATIS
           const refJurnal = `GRN-${noPO}`;
           const jurnalData = [
               {
@@ -164,11 +245,16 @@
           const { error: errJurnal } = await client.from('jurnal_umum').insert(jurnalData);
           if(errJurnal) throw errJurnal;
 
-          alert("✅ Sukses! Barang diterima, Stok tercatat, dan Hutang Usaha diakui.");
-          loadOpenPO();
+          alert("✅ Sukses! Foto terupload, Barang diterima, & Hutang tercatat.");
+          loadOpenPO(); // Refresh Halaman
 
       } catch (e) {
-          alert("Gagal: " + e.message);
+          alert("❌ Gagal: " + e.message);
+          // Reset Tombol jika gagal
+          if(event && event.currentTarget) {
+             event.currentTarget.innerHTML = txtAwal;
+             event.currentTarget.disabled = false;
+          }
       }
     }
 
