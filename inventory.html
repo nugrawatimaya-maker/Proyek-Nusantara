@@ -7,6 +7,18 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.default.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+  <style>
+    /* Kustomisasi tampilan pilihan yang sudah dipilih dari Tom Select */
+    .ts-control .item {
+      background: #e0e7ff !important;
+      color: #3730a3 !important;
+      border: 1px solid #c7d2fe !important;
+      border-radius: 4px !important;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800 p-6">
 
@@ -73,7 +85,7 @@
 
             <div>
                 <label class="block text-xs font-bold text-blue-800 mb-1">Untuk Proyek / Lokasi</label>
-                <select id="pilihProyek" class="w-full border p-2 rounded bg-blue-50 focus:ring-2 focus:ring-blue-300 font-semibold text-blue-900 text-sm">
+                <select id="pilihProyek" multiple class="w-full border p-2 rounded bg-blue-50 focus:ring-2 focus:ring-blue-300 font-semibold text-blue-900 text-sm">
                     <option value="">-- Pilih Proyek --</option>
                     <option value="Gudang Utama">Gudang Utama (Stok)</option>
                 </select>
@@ -134,6 +146,7 @@
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
     let keranjang = [];
+    let selectProyekControl = null;
 
     // --- INIT ---
     async function init() {
@@ -171,7 +184,13 @@
     async function loadProyek() {
         const select = document.getElementById("pilihProyek");
         const { data } = await client.from('master_proyek').select('nama_proyek').eq('status', 'BERJALAN').order('nama_proyek');
-        
+
+        select.innerHTML = '';
+        const optGudang = document.createElement('option');
+        optGudang.value = "Gudang Utama";
+        optGudang.text = "Gudang Utama (Stok)";
+        select.appendChild(optGudang);
+
         if(data) {
             data.forEach(p => {
                 const opt = document.createElement('option');
@@ -180,6 +199,15 @@
                 select.appendChild(opt);
             });
         }
+
+        if (selectProyekControl) selectProyekControl.destroy();
+        selectProyekControl = new TomSelect("#pilihProyek", {
+            create: false,
+            sortField: { field: "text", direction: "asc" },
+            placeholder: "Ketik nama proyek...",
+            plugins: ['remove_button', 'dropdown_input'],
+            maxItems: null
+        });
     }
 
     // 3. LOGIKA TAMPILAN (Update: Tampilkan Info Stok)
@@ -233,29 +261,45 @@
       e.preventDefault();
       
       const mode = document.getElementById("pilihBarang").value;
-      const jumlah = document.getElementById("jumlah").value;
-      const proyek = document.getElementById("pilihProyek").value; 
+      const jumlah = parseFloat(document.getElementById("jumlah").value);
+      const listProyek = selectProyekControl ? selectProyekControl.getValue() : [];
       
       if (!mode) { alert("Pilih material dulu!"); return; }
-      if (jumlah <= 0) { alert("Jumlah harus lebih dari 0!"); return; }
-      if (!proyek) { alert("Pilih tujuan proyek!"); return; }
+      if (isNaN(jumlah) || jumlah <= 0) { alert("Jumlah harus lebih dari 0!"); return; }
+      if (listProyek.length === 0) { alert("Pilih minimal satu tujuan proyek!"); return; }
 
-      let item = {};
-      if (mode === "BARU") {
-         const namaBaru = document.getElementById("namaBaru").value.trim();
-         const satuanBaru = document.getElementById("satuanBaru").value;
-         if(!namaBaru) { alert("Isi nama material baru!"); return; }
-         item = { nama: namaBaru, jumlah: jumlah, satuan: satuanBaru, proyek: proyek, isNew: true };
-      } else {
-         item = { nama: mode, jumlah: jumlah, satuan: document.getElementById("satuanDisplay").value, proyek: proyek, isNew: false };
-      }
+      const satuanDisplay = document.getElementById("satuanDisplay").value;
+      const namaBaru = document.getElementById("namaBaru").value.trim();
+      if (mode === "BARU" && !namaBaru) { alert("Isi nama material baru!"); return; }
 
-      keranjang.push(item);
-      
+      listProyek.forEach(proyekNama => {
+          let item = {};
+          if (mode === "BARU") {
+             const satuanBaru = document.getElementById("satuanBaru").value;
+             item = { 
+                 nama: namaBaru, 
+                 jumlah, 
+                 satuan: satuanBaru, 
+                 proyek: proyekNama, 
+                 isNew: true 
+             };
+          } else {
+             item = { 
+                 nama: mode, 
+                 jumlah, 
+                 satuan: satuanDisplay, 
+                 proyek: proyekNama, 
+                 isNew: false 
+             };
+          }
+          keranjang.push(item);
+      });
+
       document.getElementById("pilihBarang").value = "";
       document.getElementById("jumlah").value = "";
       document.getElementById("satuanDisplay").value = "";
       document.getElementById("namaBaru").value = "";
+      if (selectProyekControl) selectProyekControl.clear();
       cekPilihan(); // Reset info stok
       renderKeranjang();
     });
