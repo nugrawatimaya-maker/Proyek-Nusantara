@@ -257,27 +257,65 @@
         const end = document.getElementById("tglSelesai").value;
         const typeDate = document.getElementById("tipeTanggal").value;
 
-        document.getElementById("listContainer").innerHTML = `<tr><td colspan="6" class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-indigo-600 text-2xl"></i><br><span class="text-xs text-slate-400 mt-2">Sinkronisasi Data...</span></td></tr>`;
+        document.getElementById("listContainer").innerHTML = `<tr><td colspan="6" class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-indigo-600 text-2xl"></i><br><span class="text-xs text-slate-400 mt-2">Sinkronisasi Data (Manual Link)...</span></td></tr>`;
 
-        // 1. Ambil Data PO
-        const { data, error } = await client
-            .from('purchase_order')
-            .select(`*, grn_terima ( tanggal_terima, bukti_nota )`)
-            .gte(typeDate, start)
-            .lte(typeDate, end)
-            .order('jatuh_tempo', { ascending: true });
+        try {
+            const { data: listPO, error: errPO } = await client
+                .from('purchase_order')
+                .select('*')
+                .gte(typeDate, start)
+                .lte(typeDate, end)
+                .order('jatuh_tempo', { ascending: true });
 
-        if(error) { alert("Error: " + error.message); return; }
-        rawData = data || [];
+            if(errPO) throw errPO;
+            
+            if(!listPO || listPO.length === 0) {
+                 document.getElementById("listContainer").innerHTML = `<tr><td colspan="6" class="p-10 text-center italic">Tidak ada data PO pada periode ini.</td></tr>`;
+                 rawData = []; return;
+            }
 
-        // 2. Ambil Status Jurnal (Untuk Ceklis Ungu)
-        const { data: jurnalList } = await client.from('jurnal_umum').select('nomor_referensi').ilike('nomor_referensi', 'INV-%');
-        postedSet = new Set(jurnalList ? jurnalList.map(j => j.nomor_referensi) : []);
+            const listIDs = listPO.map(p => p.id);
+            
+            const { data: listGRN, error: errGRN } = await client
+                .from('grn_terima')
+                .select('po_id, tanggal_terima, bukti_nota')
+                .in('po_id', listIDs);
 
-        // 3. Update Suggestion (Nama Vendor Saja)
-        updateSearchSuggestions();
+            if(errGRN) throw errGRN;
 
-        applyFilter();
+            const mapGRN = {};
+            if(listGRN) {
+                listGRN.forEach(g => {
+                    if(!mapGRN[g.po_id]) mapGRN[g.po_id] = [];
+                    mapGRN[g.po_id].push(g);
+                });
+            }
+
+            const validInvoiceData = listPO.filter(po => {
+                const dataGRN = mapGRN[po.id];
+                const punyaGRN = dataGRN && dataGRN.length > 0;
+                
+                if(punyaGRN) {
+                    po.grn_terima = dataGRN; 
+                }
+
+                const isLegacy = po.status === 'DITERIMA' || po.status === 'LUNAS';
+                return punyaGRN || isLegacy;
+            });
+
+            rawData = validInvoiceData;
+
+            const { data: jurnalList } = await client.from('jurnal_umum').select('nomor_referensi').ilike('nomor_referensi', 'INV-%');
+            postedSet = new Set(jurnalList ? jurnalList.map(j => j.nomor_referensi) : []);
+
+            updateSearchSuggestions();
+            applyFilter();
+
+        } catch (err) {
+            console.error(err);
+            alert("Terjadi kesalahan sistem: " + err.message);
+            document.getElementById("listContainer").innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">Gagal memuat data. Cek console.</td></tr>`;
+        }
     }
 
     // --- FUNGSI AUTO-SUGGESTION (VENDOR SAJA) ---
