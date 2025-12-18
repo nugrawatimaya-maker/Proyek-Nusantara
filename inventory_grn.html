@@ -5,18 +5,31 @@
   <title>Gudang - Penerimaan Barang (GRN)</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50 font-sans text-gray-800 p-6">
 
-  <div class="max-w-5xl mx-auto mb-6 flex justify-between items-center">
+  <div class="max-w-5xl mx-auto mb-6 flex flex-col gap-4">
     <div>
       <h1 class="text-2xl font-bold text-green-700">Penerimaan Barang (GRN)</h1>
       <p class="text-sm text-gray-500">Cek fisik barang, Validasi Harga & Posting Tagihan</p>
     </div>
-    <div class="space-x-4 text-sm">
-      <a href="tagihan_vendor.html" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 font-bold">Lihat Tagihan Vendor</a>
-      <span class="text-gray-300">|</span>
-      <a href="dashboard_operasional.html" class="text-gray-600 hover:underline">Kembali ke Dashboard</a>
+    <div class="flex flex-wrap gap-2">
+      <button onclick="document.getElementById('modalTambahItem')?.classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
+        <i class="fas fa-plus"></i> Item Baru
+      </button>
+      <a href="inventory_grn.html" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
+        <i class="fas fa-truck-loading"></i> Terima Barang
+      </a>
+      <button onclick="bukaModal('PAKAI')" class="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
+        <i class="fas fa-hard-hat"></i> Catat Pemakaian
+      </button>
+      <button onclick="cekAksesOpname()" class="bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
+        <i class="fas fa-lock text-yellow-300"></i> Opname (Admin)
+      </button>
+      <a href="dashboard_operasional.html" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
+        <i class="fas fa-arrow-left"></i> Dashboard
+      </a>
     </div>
   </div>
 
@@ -30,12 +43,10 @@
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
-    const formatRupiah = (n) => new Intl.NumberFormat('id-ID', {style: 'currency', currency: 'IDR'}).format(n);
 
-    // 1. LOAD DATA PO
-    // --- GANTI FUNGSI loadOpenPO DENGAN INI ---
     async function loadOpenPO() {
       try {
+        // PERBAIKAN: Menghapus barang_id dari inventory_req untuk menghindari error kolom tidak ditemukan
         const { data, error } = await client
             .from('purchase_order')
             .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
@@ -47,238 +58,98 @@
         container.innerHTML = "";
 
         if (!data || data.length === 0) {
-            container.innerHTML = `
-                <div class="flex flex-col items-center justify-center p-10 bg-white rounded-2xl shadow-sm border border-gray-100 text-center">
-                    <div class="bg-green-50 p-4 rounded-full mb-3">
-                        <i class="fas fa-check-circle text-3xl text-green-500"></i>
-                    </div>
-                    <h3 class="font-bold text-gray-800">Semua Beres!</h3>
-                    <p class="text-sm text-gray-500 mt-1">Tidak ada barang yang sedang ditunggu kedatangannya.</p>
-                </div>`;
+            container.innerHTML = `<div class="text-center p-10 bg-white rounded shadow text-gray-400 font-bold">Semua barang telah diterima.</div>`;
             return;
         }
 
         data.forEach(po => {
             const req = po.inventory_req;
-            const namaBarang = req ? req.nama_barang : "???";
-            const jumlahOrder = req ? req.jumlah : 0;
-            const satuan = req ? req.satuan : "";
-            const hargaPO = po.harga_satuan || 0; 
-            
-            // Format Tanggal Cantik (Cth: 17 Des 2025)
-            const tglPO = new Date(po.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            // Gunakan barang_id dari tabel purchase_order langsung
+            const bId = po.barang_id;
+            const tglPO = new Date(po.created_at).toLocaleDateString('id-ID');
 
             container.innerHTML += `
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-5 transition transform hover:scale-[1.01]">
-                
-                <div class="bg-gray-50 px-5 py-3 border-b border-gray-100 flex justify-between items-center">
-                    <div>
-                        <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Nomor PO</span>
-                        <h3 class="text-lg font-bold text-blue-700 leading-none">${po.nomor_po}</h3>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-[10px] font-bold text-gray-400"><i class="far fa-calendar-alt mr-1"></i>Tanggal PO</div>
-                        <div class="text-sm font-bold text-gray-700">${tglPO}</div>
-                    </div>
-                </div>
-
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-5">
                 <div class="p-5">
-                    <div class="flex items-start gap-3 mb-4">
-                        <div class="bg-blue-100 text-blue-600 w-10 h-10 rounded-lg flex items-center justify-center shrink-0">
-                            <i class="fas fa-box-open"></i>
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-bold text-blue-700">${po.nomor_po} - ${req?.nama_barang || 'Material'}</h3>
+                        <span class="text-[10px] font-bold text-gray-400 italic">ID Stok: ${bId || 'Tidak Ada'}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold uppercase text-gray-500">Fisik Diterima</label>
+                            <input type="number" id="qty-${po.id}" value="${req?.jumlah || 0}" class="w-full border p-2 rounded bg-gray-50 font-bold">
                         </div>
                         <div>
-                            <h4 class="font-bold text-gray-800 text-lg leading-tight">${namaBarang}</h4>
-                            <p class="text-sm text-gray-500 mt-1">Vendor: <span class="font-semibold text-gray-700">${po.nama_vendor}</span></p>
-                            <div class="mt-2 inline-flex items-center px-2 py-1 rounded bg-yellow-50 border border-yellow-200 text-xs font-bold text-yellow-700">
-                                Order: ${jumlahOrder} ${satuan}
-                            </div>
+                            <label class="text-xs font-bold uppercase text-gray-500">Harga Nota Satuan</label>
+                            <input type="number" id="harga-${po.id}" value="${po.harga_satuan}" class="w-full border p-2 rounded font-bold">
                         </div>
                     </div>
 
-                    <button onclick="alert('Fitur download PDF PO (Reprint) akan dipanggil di sini')" class="w-full mb-4 flex items-center justify-center gap-2 border border-dashed border-gray-300 text-gray-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 py-2 rounded-lg text-sm font-bold transition">
-                        <i class="fas fa-file-pdf"></i> Lihat / Download PDF PO
+                    <div class="mt-4">
+                        <label class="text-xs font-bold uppercase text-gray-500">Foto Bukti Nota</label>
+                        <input type="file" id="nota-${po.id}" class="w-full text-sm mt-1">
+                    </div>
+
+                    <button onclick="prosesGRN(${po.id}, '${po.nomor_po}', ${bId})" 
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl mt-6 shadow-md">
+                        Konfirmasi Terima Barang
                     </button>
-
-                    <hr class="border-gray-100 mb-4">
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Jumlah Fisik Diterima</label>
-                            <input type="number" id="qty-${po.id}" value="${jumlahOrder}" class="w-full border border-gray-300 p-3 rounded-xl font-bold text-gray-800 focus:ring-2 focus:ring-green-500 outline-none text-center bg-gray-50 focus:bg-white transition" placeholder="0">
-                        </div>
-                        <div>
-                            <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Kondisi Barang</label>
-                            <select id="kondisi-${po.id}" class="w-full border border-gray-300 p-3 rounded-xl bg-white font-semibold text-gray-700 focus:ring-2 focus:ring-green-500 outline-none">
-                                <option value="Bagus">✅ Kondisi Bagus</option>
-                                <option value="Rusak">❌ Ada Kerusakan</option>
-                                <option value="Kurang">⚠️ Jumlah Kurang</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                         <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Harga di Nota (Per Satuan)</label>
-                         <div class="relative">
-                            <span class="absolute left-3 top-3 text-gray-400 font-bold">Rp</span>
-                            <input type="number" id="harga-${po.id}" value="${hargaPO}" class="w-full border border-gray-300 p-3 pl-10 rounded-xl font-mono font-bold text-gray-800 focus:ring-2 focus:ring-green-500 outline-none">
-                         </div>
-                    </div>
-
-                    <div class="mb-6">
-                        <label class="text-xs font-bold text-gray-500 uppercase mb-1 block">Foto Nota / Surat Jalan</label>
-                        <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition group">
-                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                <i class="fas fa-camera text-gray-400 group-hover:text-green-500 text-xl mb-1"></i>
-                                <p class="text-xs text-gray-500 group-hover:text-gray-700"><span class="font-bold">Klik Upload</span> atau ambil foto</p>
-                            </div>
-                            <input type="file" id="nota-${po.id}" class="hidden" onchange="previewFile(this)" />
-                        </label>
-                        <p id="filename-${po.id}" class="text-[10px] text-green-600 mt-1 text-center font-bold hidden truncate"></p>
-                    </div>
-
-                    <div class="flex flex-col gap-3">
-                        <button onclick="prosesGRN(${po.id}, '${po.nomor_po}', ${hargaPO}, '${namaBarang}', '${po.nama_vendor}')" class="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-green-200 transform active:scale-95 transition flex items-center justify-center gap-2">
-                            <i class="fas fa-check-circle"></i> Terima Barang
-                        </button>
-                        
-                        <button onclick="batalkanPO(${po.id}, '${po.nomor_po}')" class="w-full bg-white text-red-500 border border-red-100 font-bold py-3 rounded-xl hover:bg-red-50 transition">
-                            Batalkan Pesanan
-                        </button>
-                    </div>
-
                 </div>
             </div>`;
         });
-      } catch (err) { alert("Error: " + err.message); }
+      } catch (err) { 
+          console.error(err);
+          document.getElementById("containerPO").innerHTML = `<p class="text-red-500 text-center font-bold">⚠️ Gagal koneksi: ${err.message}</p>`;
+      }
     }
 
-    // Fungsi Tambahan untuk Preview Nama File
-    function previewFile(input) {
-        const id = input.id.split('-')[1];
-        const label = document.getElementById(`filename-${id}`);
-        if(input.files && input.files[0]) {
-            label.innerText = "📄 File dipilih: " + input.files[0].name;
-            label.classList.remove('hidden');
-        } else {
-            label.classList.add('hidden');
+    async function prosesGRN(id, noPO, bId) {
+        if (!bId || bId === 0) {
+            alert("❌ ERROR: ID Material tidak ditemukan pada PO ini. Hubungi Admin.");
+            return;
         }
-    }
 
-    // --- UPDATE FUNGSI PROSES GRN (DENGAN UPLOAD FOTO) ---
-    async function prosesGRN(id, noPO, hargaLama, namaBarang, namaVendor) {
-      try {
-          const qty = Number(document.getElementById(`qty-${id}`).value);
-          const hargaBaru = Number(document.getElementById(`harga-${id}`).value);
-          const kondisi = document.getElementById(`kondisi-${id}`).value;
-          const fileInput = document.getElementById(`nota-${id}`);
+        const btn = event.currentTarget;
+        const qty = Number(document.getElementById(`qty-${id}`).value);
+        const fileInput = document.getElementById(`nota-${id}`);
 
-          // VALIDASI INPUT
-          if(qty <= 0 || hargaBaru <= 0) return alert("Jumlah dan Harga tidak boleh 0!");
-          if(fileInput.files.length === 0) return alert("⚠️ Wajib upload foto Nota/Surat Jalan sebagai bukti!");
+        if(qty <= 0) return alert("Jumlah fisik tidak boleh 0!");
+        if(fileInput.files.length === 0) return alert("Wajib upload foto nota!");
 
-          // KONFIRMASI
-          if(hargaBaru !== hargaLama) {
-              if(!confirm(`⚠️ PERHATIAN: Harga Nota BERBEDA dengan PO!\n\nPO: ${formatRupiah(hargaLama)}\nNota: ${formatRupiah(hargaBaru)}\n\nLanjutkan update harga?`)) return;
-          } else {
-              if(!confirm("Terima barang dan catat sebagai Hutang Usaha?")) return;
-          }
+        if(!confirm(`Konfirmasi penerimaan ${qty} unit?`)) return;
 
-          // TAMPILKAN LOADING
-          const btn = event.currentTarget; // Tombol yang diklik
-          const txtAwal = btn.innerHTML;
-          btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Uploading...`;
-          btn.disabled = true;
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
 
-          // 1. PROSES UPLOAD FILE KE SUPABASE STORAGE
-          const file = fileInput.files[0];
-          const fileExt = file.name.split('.').pop();
-          const fileName = `Nota_${noPO}_${Date.now()}.${fileExt}`;
-          const filePath = `${fileName}`; // Simpan di root bucket
+        try {
+            // A. UPLOAD FOTO
+            const file = fileInput.files[0];
+            const fileName = `Nota_PO_${noPO}_${Date.now()}.jpg`;
+            const { error: errUp } = await client.storage.from('nota grn').upload(fileName, file);
+            if(errUp) throw new Error("Gagal Upload Foto: " + errUp.message);
 
-          const { data: uploadData, error: uploadError } = await client
-              .storage
-              .from('nota-grn') // Pastikan nama bucket ini sudah dibuat di Supabase
-              .upload(filePath, file);
+            // B. AMBIL STOK LAMA
+            const { data: cur, error: errGet } = await client.from('master_stok').select('total_stok').eq('id', bId).single();
+            if(errGet) throw new Error("Material (ID: " + bId + ") tidak ditemukan di Master Stok.");
+            
+            // C. UPDATE MASTER_STOK
+            const stokLama = Number(cur.total_stok) || 0;
+            const { error: errUpdateStok } = await client.from('master_stok').update({ total_stok: stokLama + qty }).eq('id', bId);
+            if(errUpdateStok) throw errUpdateStok;
 
-          if (uploadError) throw new Error("Gagal Upload Gambar: " + uploadError.message);
+            // D. UPDATE STATUS PO
+            await client.from('purchase_order').update({ status: 'DITERIMA' }).eq('id', id);
 
-          // Ambil URL Publik agar bisa dilihat nanti
-          const { data: urlData } = client.storage.from('nota-grn').getPublicUrl(filePath);
-          const linkFoto = urlData.publicUrl;
+            alert("✅ BERHASIL!\nBarang diterima dan stok gudang telah ditambahkan.");
+            loadOpenPO();
 
-          // 2. SIMPAN DATA KE DATABASE (Pake Link Foto)
-          const totalTagihan = qty * hargaBaru;
-
-          // A. Simpan GRN
-          const { error: errGRN } = await client.from('grn_terima').insert([{
-            po_id: id, 
-            jumlah_diterima: qty, 
-            kondisi_barang: kondisi,
-            nama_pemeriksa: "Gudang", 
-            tanggal_terima: new Date(), 
-            bukti_nota: linkFoto // <--- KITA SIMPAN LINK LENGKAPNYA
-          }]);
-          
-          if(errGRN) throw errGRN;
-
-          // B. Update PO (Status jadi Tagihan)
-          await client.from('purchase_order').update({ 
-              status: 'DITERIMA', 
-              harga_satuan: hargaBaru, 
-              total_harga: totalTagihan 
-          }).eq('id', id);
-
-          // C. POSTING JURNAL OTOMATIS
-          const refJurnal = `GRN-${noPO}`;
-          const jurnalData = [
-              {
-                  tanggal: new Date(), nomor_referensi: refJurnal, keterangan: `Terima Barang: ${namaBarang} (${qty} x ${hargaBaru})`,
-                  nama_akun: 'Persediaan Material', debit: totalTagihan, kredit: 0
-              },
-              {
-                  tanggal: new Date(), nomor_referensi: refJurnal, keterangan: `Hutang Vendor: ${namaVendor}`,
-                  nama_akun: 'Hutang Usaha', debit: 0, kredit: totalTagihan
-              }
-          ];
-          
-          const { error: errJurnal } = await client.from('jurnal_umum').insert(jurnalData);
-          if(errJurnal) throw errJurnal;
-
-          alert("✅ Sukses! Foto terupload, Barang diterima, & Hutang tercatat.");
-          loadOpenPO(); // Refresh Halaman
-
-      } catch (e) {
-          alert("❌ Gagal: " + e.message);
-          // Reset Tombol jika gagal
-          if(event && event.currentTarget) {
-             event.currentTarget.innerHTML = txtAwal;
-             event.currentTarget.disabled = false;
-          }
-      }
-    }
-
-    async function batalkanPO(id, nomorPO) {
-      const alasan = prompt(`Mengapa PO ${nomorPO} dibatalkan?\n(Vendor Batal / Salah Input / Lainnya)`);
-      if (alasan === null) return;
-      if (alasan.trim() === "") return alert("Wajib mengisi alasan pembatalan!");
-      if (!confirm(`Yakin membatalkan pesanan ${nomorPO}? Data akan hilang dari antrian GRN.`)) return;
-
-      try {
-        const { error } = await client
-          .from('purchase_order')
-          .update({
-            status: 'BATAL',
-            catatan: `Dibatalkan di GRN: ${alasan}`
-          })
-          .eq('id', id);
-
-        if (error) throw error;
-        alert("✅ PO Berhasil Dibatalkan.");
-        loadOpenPO();
-      } catch (err) {
-        alert("Gagal membatalkan: " + err.message);
-      }
+        } catch (e) {
+            alert("❌ GAGAL: " + e.message);
+            btn.disabled = false;
+            btn.innerHTML = `Konfirmasi Terima Barang`;
+        }
     }
 
     loadOpenPO();

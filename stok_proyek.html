@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Gudang - Stok Proyek & Alokasi</title>
+  <title>Gudang Pro - Nusantara Land Development</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -10,24 +10,10 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <style>
-    thead th { position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1); }
-    .tabel-excel th { background-color: #f3f4f6; border: 1px solid #d1d5db; padding: 10px; font-size: 13px; }
-    .tabel-excel td { border: 1px solid #e5e7eb; padding: 8px 10px; font-size: 14px; }
-    .tabel-excel tr:hover { background-color: #f9fafb; }
-    .btn-edit { opacity: 0; transition: opacity 0.2s; cursor: pointer; }
-    tr:hover .btn-edit { opacity: 1; }
-    
-    /* Animasi Error */
-    .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
-    .shake { animation: shake 0.3s; }
-    @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
-    .select2-container .select2-selection--single {
-        height: 42px !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 0.5rem !important;
-        display: flex !important;
-        align-items: center !important;
-    }
+    thead th { position: sticky; top: 0; z-index: 10; background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 12px; font-size: 13px; color: #000000; font-weight: 800; text-transform: uppercase; }
+    .tabel-excel td { border: 1px solid #e2e8f0; padding: 10px; font-size: 14px; color: #1e293b; }
+    .tabel-excel tr:hover { background-color: #f8fafc; }
+    .select2-container .select2-selection--single { height: 42px !important; border-radius: 0.5rem !important; display: flex !important; align-items: center !important; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -37,290 +23,88 @@
   <div class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
     <div>
       <h1 class="text-2xl font-bold text-gray-800"><i class="fas fa-warehouse text-blue-600 mr-2"></i>Gudang & Alokasi Proyek</h1>
-      <p class="text-sm text-gray-500">Monitoring Material untuk Setiap Rumah/Proyek</p>
+      <p class="text-sm text-gray-500 font-medium tracking-wide text-blue-600">Terintegrasi Verifikasi Accounting</p>
     </div>
-    
-    <div class="flex gap-2">
-      <button onclick="document.getElementById('modalTambahItem').classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
-        <i class="fas fa-plus"></i> Item Baru
-      </button>
-
-      <a href="inventory_grn.html" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
-        <i class="fas fa-truck-loading"></i> Terima Barang
-      </a>
-      <button onclick="bukaModal('PAKAI')" class="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
-        <i class="fas fa-hard-hat"></i> Catat Pemakaian
-      </button>
-      <button onclick="bukaModalKartu()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
-        <i class="fas fa-list"></i> Lihat Kartu
-      </button>
-      <button onclick="downloadPDFKartu()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
-        <i class="fas fa-file-pdf"></i> Cetak Kartu
-      </button>
-      <button onclick="cekAksesOpname()" class="bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
-  <i class="fas fa-lock text-yellow-300"></i> Opname (Admin)
-</button>
-      <a href="dashboard_operasional.html" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
-        <i class="fas fa-arrow-left"></i> Dashboard
-      </a>
+    <div class="flex flex-wrap items-center gap-2">
+      <button onclick="document.getElementById('modalTambahItem').classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2"><i class="fas fa-plus"></i> Item Baru</button>
+      <a href="inventory_grn.html" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2"><i class="fas fa-truck-loading"></i> Terima Barang</a>
+      <button onclick="bukaModal('PAKAI')" class="bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2"><i class="fas fa-hard-hat"></i> Catat Pemakaian</button>
+      <button onclick="proteksiFitur('AUDIT')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2"><i class="fas fa-search-dollar"></i> Audit Selisih</button>
+      <button onclick="proteksiFitur('OPNAME')" class="bg-purple-700 hover:bg-purple-800 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2"><i class="fas fa-lock"></i> Opname (Admin)</button>
+      <a href="dashboard_operasional.html" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2 ml-auto"><i class="fas fa-arrow-left"></i> Dashboard</a>
     </div>
   </div>
 
-  <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-      <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500 flex justify-between items-center">
-          <div>
-              <p class="text-xs font-bold text-gray-500 uppercase">Total Nilai Persediaan (Estimasi)</p>
-              <h2 class="text-2xl font-bold text-gray-800" id="grandTotalAset">Rp 0</h2>
-          </div>
-          <i class="fas fa-coins text-blue-200 text-4xl"></i>
-      </div>
-
-      <div class="bg-white p-4 rounded shadow border-l-4 border-green-500 flex justify-between items-center">
-          <div>
-              <p class="text-xs font-bold text-gray-500 uppercase">Total Jenis Barang</p>
-              <h2 class="text-2xl font-bold text-gray-800" id="totalJenis">0 Item</h2>
-          </div>
-          <i class="fas fa-boxes text-green-200 text-4xl"></i>
-      </div>
-  </div>
-
-  <div class="bg-gray-50 border-b p-4 space-y-3">
-    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-      <h3 class="font-bold text-gray-700 text-lg flex items-center gap-2">
-        📦 Saldo Stok Material
-        <span id="rowCounter" class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">Loading...</span>
-      </h3>
-      <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-        <select id="filterStatus" onchange="terapkanFilter()" class="border border-gray-300 p-2 rounded text-sm font-bold text-gray-700 bg-white focus:ring-2 focus:ring-blue-500 outline-none">
-          <option value="ALL">📂 Semua Status</option>
-          <option value="ADA">✅ Ada Stok</option>
-          <option value="HABIS">❌ Stok Kosong</option>
-        </select>
-        <div class="relative">
-          <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
-          <input type="text" id="cariInput" onkeyup="terapkanFilter()" placeholder="Cari nama material..." class="pl-9 border border-gray-300 p-2 rounded text-sm w-48 focus:ring-2 focus:ring-blue-500 outline-none">
-        </div>
-      </div>
-    </div>
-    <div class="bg-blue-50 border border-blue-100 p-3 rounded-lg flex flex-col md:flex-row items-center gap-3 justify-end">
-      <span class="text-xs font-bold text-blue-800 uppercase"><i class="fas fa-print mr-1"></i> Laporan Mutasi:</span>
-      <input type="date" id="laporanStart" class="border border-blue-200 p-1.5 rounded text-sm font-bold text-slate-700">
-      <span class="text-gray-400 font-bold">-</span>
-      <input type="date" id="laporanEnd" class="border border-blue-200 p-1.5 rounded text-sm font-bold text-slate-700">
-        <button onclick="downloadLaporanMutasi(event)" class="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded shadow text-sm font-bold flex items-center gap-2 transition">
-            <i class="fas fa-file-pdf"></i> Download PDF
-        </button>
+  <div class="max-w-7xl mx-auto bg-white border p-4 rounded-t-xl shadow-sm mb-0">
+    <div class="flex justify-between items-center">
+      <h3 class="font-bold text-gray-700">📦 Stok Material <span id="rowCounter" class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full ml-2">Ketik untuk mencari...</span></h3>
+      <div class="relative"><i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i><input type="text" id="cariInput" onkeyup="terapkanFilter()" placeholder="Cari material..." class="pl-9 border p-2 rounded text-sm w-64 outline-none focus:ring-2 focus:ring-blue-500"></div>
     </div>
   </div>
 
-  <div class="max-w-7xl mx-auto bg-white rounded shadow mb-8 overflow-hidden flex flex-col" style="max-height: 500px;">
-    <div class="p-4 border-b bg-gray-50 flex justify-between items-center sticky top-0 z-20">
-      <h3 class="font-bold text-gray-700">📦 Saldo Stok Material</h3>
-      <input type="text" placeholder="Cari material..." class="border p-1 rounded text-sm px-2 w-64" onkeyup="filterTabel(this.value)">
-    </div>
-    <div class="overflow-auto flex-grow relative">
+  <div class="max-w-7xl mx-auto bg-white rounded-b-xl shadow-md overflow-hidden mb-8 border-x border-b">
+    <div class="overflow-auto max-h-[500px]">
       <table id="tabelSaldoStok" class="w-full text-left border-collapse tabel-excel">
-        <thead class="text-gray-700">
-          <tr>
-            <th class="w-10 text-center bg-gray-100">No</th>
-            <th class="bg-gray-100">Nama Material</th>
-            <th class="w-24 text-center bg-gray-100">Satuan</th>
-            <th class="w-32 text-right bg-blue-50">Sisa Stok</th>
-            <th class="w-32 text-right bg-gray-100">Harga Satuan (Est)</th>
-            <th class="w-40 text-right bg-green-50 font-bold">Total Nilai (Rp)</th>
-            <th class="w-24 text-center bg-gray-100">Status</th>
-            <th class="w-16 text-center bg-gray-100">Edit</th>
-          </tr>
-        </thead>
-        <tbody id="bodyStok"><tr><td colspan="8" class="text-center p-4">Memuat data...</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="max-w-7xl mx-auto bg-white rounded shadow overflow-hidden">
-    <div class="p-4 border-b bg-gray-50">
-      <h3 class="font-bold text-gray-700">📜 Riwayat Pemakaian & Alokasi Proyek</h3>
-    </div>
-    <div class="overflow-x-auto" style="max-height: 400px;">
-      <table class="w-full text-left border-collapse tabel-excel">
         <thead>
           <tr>
-            <th class="w-32">Tanggal</th>
-            <th>Barang</th>
-            <th>Alokasi Proyek / Keterangan</th>
-            <th class="w-32 text-right bg-green-50 text-green-800">Masuk (+)</th>
-            <th class="w-32 text-right bg-red-50 text-red-800">Keluar (-)</th>
+            <th class="w-12 text-center text-black">No</th>
+            <th class="text-black">Nama Material</th>
+            <th class="w-24 text-center text-black">Satuan</th>
+            <th class="w-32 text-right bg-blue-50/50 text-black">Sisa Stok</th>
+            <th class="w-32 text-right text-black">Harga Satuan</th>
+            <th class="w-40 text-right bg-green-50/50 text-green-700 font-bold text-black">Total Nilai</th>
+            <th class="w-24 text-center text-black">Status</th>
           </tr>
         </thead>
-        <tbody id="bodyMutasi"><tr><td colspan="5" class="text-center p-4">Memuat data...</td></tr></tbody>
+        <tbody id="bodyStok"><tr><td colspan="7" class="text-center p-20 text-gray-400 italic font-bold">⚠️ Silakan ketik nama barang pada kolom pencarian...</td></tr></tbody>
       </table>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto bg-white rounded-xl shadow overflow-hidden mb-12">
+    <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+      <h3 class="font-bold text-gray-700">📜 Riwayat Pemakaian Proyek</h3>
+      <div class="flex items-center gap-2">
+         <input type="date" id="laporanStart" class="border p-1 rounded text-xs font-bold">
+         <input type="date" id="laporanEnd" class="border p-1 rounded text-xs font-bold">
+         <button onclick="downloadLaporanMutasi(event)" class="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-red-700 transition"><i class="fas fa-file-pdf mr-1"></i> Laporan PDF</button>
+      </div>
+    </div>
+    <div class="overflow-x-auto" style="max-height: 400px;"><table class="w-full text-left border-collapse tabel-excel"><thead class="bg-gray-100"><tr><th class="p-2 border">Tanggal</th><th class="p-2 border">Barang</th><th class="p-2 border">Keterangan</th><th class="p-2 border text-right">Masuk</th><th class="p-2 border text-right">Keluar</th></tr></thead><tbody id="bodyMutasi"></tbody></table></div>
+  </div>
+
+  <div id="modalKartuStok" class="hidden fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden">
+        <div class="p-5 border-b bg-gray-50 flex justify-between items-center">
+            <div><h2 class="text-xl font-bold text-black">KARTU STOK MATERIAL</h2><p id="judulKartuStok" class="text-sm text-blue-700 font-extrabold">-</p></div>
+            <button onclick="tutupModalKartu()" class="text-gray-400 hover:text-red-500 font-black text-2xl transition">✕</button>
+        </div>
+        <div class="p-4 bg-white border-b flex gap-3 items-center">
+            <button onclick="proteksiFitur('SINKRON')" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-xl text-xs font-black flex items-center gap-2 shadow-lg"><i class="fas fa-magic"></i> SINKRONKAN SALDO</button>
+            <button onclick="downloadPDFKartu()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-black flex items-center gap-2 shadow-lg"><i class="fas fa-file-pdf"></i> DOWNLOAD KARTU (PDF)</button>
+        </div>
+        <div class="flex-grow overflow-auto p-4 bg-gray-50">
+            <table class="w-full text-xs text-left border-collapse bg-white" id="tabelKartuStok">
+                <thead class="bg-gray-200 sticky top-0">
+                    <tr><th class="p-3 border border-gray-300 text-black font-black uppercase">Tanggal</th><th class="p-3 border border-gray-300 text-black font-black uppercase">Transaksi</th><th class="p-3 border border-gray-300 text-black font-black uppercase">Proyek</th><th class="p-3 border border-gray-300 text-right bg-emerald-100 text-emerald-900 font-black">Masuk</th><th class="p-3 border border-gray-300 text-right bg-red-100 text-red-900 font-black">Keluar</th><th class="p-3 border border-gray-300 text-right bg-blue-100 text-blue-900 font-black">Saldo</th></tr>
+                </thead>
+                <tbody id="bodyKartuStok"></tbody>
+            </table>
+        </div>
     </div>
   </div>
 
   <div id="modalForm" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
     <div class="bg-white p-6 rounded shadow-lg w-full max-w-md">
-      <div class="flex justify-between mb-4">
-        <h2 id="modalTitle" class="text-lg font-bold">Judul</h2>
-        <button onclick="tutupModal()" class="text-gray-400 font-bold hover:text-red-500">✕</button>
-      </div>
-      
+      <div class="flex justify-between mb-4"><h2 id="modalTitle" class="text-lg font-bold">Catat Pemakaian</h2><button onclick="tutupModal()" class="text-gray-400 font-bold">✕</button></div>
       <div class="space-y-4">
         <input type="hidden" id="jenisInput">
-        
-        <div>
-          <label class="text-xs font-bold block mb-1 text-gray-600">Pilih Material</label>
-          <select id="pilihBarang" class="w-full border p-2.5 rounded bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"></select>
-        </div>
-
-        <div>
-          <label class="text-xs font-bold block mb-1 text-gray-600">Jumlah</label>
-          <input type="number" id="jumlahInput" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0">
-          <p id="infoStok" class="text-xs text-right mt-1 font-bold italic"></p>
-        </div>
-
-        <div id="divProyek" class="hidden">
-          <label class="text-xs font-bold block mb-1 text-blue-800">Alokasi Untuk Proyek/Rumah</label>
-          <select id="pilihProyek" class="w-full border p-2.5 rounded bg-blue-50 border-blue-200 text-blue-900 font-bold focus:ring-2 focus:ring-blue-500 outline-none">
-             <option value="">-- Sedang memuat proyek... --</option>
-          </select>
-          <p class="text-[10px] text-gray-400 mt-1">*Mengambil data dari Master Proyek (Status Berjalan)</p>
-        </div>
-
-        <div>
-          <label id="labelKet" class="text-xs font-bold block mb-1 text-gray-600">Keterangan</label>
-          <textarea id="ketInput" class="w-full border p-2.5 rounded focus:ring-2 focus:ring-blue-500 outline-none" rows="2"></textarea>
-        </div>
-
-        <button onclick="simpanTransaksi()" id="btnSimpanTransaksi" class="w-full bg-blue-600 text-white py-3 rounded font-bold hover:bg-blue-700 mt-2 shadow">Simpan Data</button>
+        <div><label class="text-xs font-bold block mb-1">Pilih Material</label><select id="pilihBarang" class="w-full border p-2 rounded"></select></div>
+        <div><label class="text-xs font-bold block mb-1 text-red-600 uppercase">Jumlah Pakai</label><input type="number" id="jumlahInput" class="w-full border p-2 rounded font-bold"></div>
+        <div id="divProyek" class="hidden"><label class="text-xs font-bold block mb-1">Proyek Alokasi</label><select id="pilihProyek" class="w-full border p-2 rounded bg-blue-50"></select></div>
+        <div><label class="text-xs font-bold block mb-1">Keterangan</label><textarea id="ketInput" class="w-full border p-2 rounded" rows="2"></textarea></div>
+        <button onclick="simpanTransaksi()" class="w-full bg-blue-600 text-white py-3 rounded font-bold hover:bg-blue-700 shadow-lg">KIRIM KE ACCOUNTING</button>
       </div>
-    </div>
-  </div>
-
-  <div id="modalEditItem" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-    <div class="bg-white p-6 rounded shadow-xl w-full max-w-sm">
-      <h2 class="text-lg font-bold mb-4 text-blue-800 border-b pb-2">✏️ Edit Data Material</h2>
-      <input type="hidden" id="editId">
-      <div class="mb-4 space-y-3">
-        <div>
-            <label class="block text-xs font-bold text-gray-600 mb-1">Nama Barang</label>
-            <input type="text" id="inputNamaBaru" class="w-full border p-2 rounded font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none">
-        </div>
-        <div>
-            <label class="block text-xs font-bold text-gray-600 mb-1">Satuan Standar</label>
-            <select id="inputSatuanBaru" class="w-full border p-2 rounded font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                <option value="">-- Pilih Satuan --</option>
-                <option value="Lembar">Lembar</option><option value="Truk">Truk</option><option value="Set">Set</option>
-                <option value="Kaleng 5 kg">Kaleng 5 kg</option><option value="Kg">Kg</option><option value="M">M</option>
-                <option value="Kubik m3">Kubik m3</option><option value="Batang">Batang</option><option value="Box">Box</option>
-                <option value="Kaleng">Kaleng</option><option value="Biji">Biji</option><option value="Pcs">Pcs</option>
-                <option value="Roll">Roll</option><option value="Gulung">Gulung</option><option value="Flsh">Flsh</option>
-                <option value="Lipat">Lipat</option><option value="Pickup">Pickup</option><option value="Meter">Meter</option>
-                <option value="Liter">Liter</option><option value="Botol">Botol</option><option value="Zak">Zak</option>
-            </select>
-        </div>
-        <div class="mt-3">
-            <label class="block text-xs font-bold text-green-600 mb-1">Update Harga Estimasi</label>
-            <input type="number" id="inputHargaBaru" class="w-full border p-2 rounded font-bold text-gray-800 focus:ring-2 focus:ring-green-500 outline-none" placeholder="0">
-            <p class="text-[10px] text-gray-400 mt-1">*Harga ini dipakai untuk estimasi nilai persediaan.</p>
-        </div>
-      </div>
-      <div class="flex justify-end gap-2 mt-6">
-        <button onclick="document.getElementById('modalEditItem').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-bold text-sm">Batal</button>
-        <button onclick="simpanPerubahanMaster()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold text-sm">Simpan</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="modalTambahItem" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-    <div class="bg-white p-6 rounded shadow-xl w-full max-w-sm">
-      <h2 class="text-lg font-bold mb-4 text-indigo-800 border-b pb-2">✨ Tambah Material Baru</h2>
-      
-      <div class="space-y-4">
-        <div>
-            <label class="block text-xs font-bold text-gray-600 mb-1">Nama Material Baru</label>
-            <input type="text" id="tambahNama" class="w-full border p-2 rounded font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none transition" placeholder="Cth: Cat Dulux Putih" oninput="cekDuplikat()">
-            
-            <p id="msgErrorNama" class="hidden text-[10px] font-bold text-red-600 mt-1">
-                <i class="fas fa-exclamation-circle"></i> Nama barang sudah terdaftar!
-            </p>
-        </div>
-        <div>
-            <label class="block text-xs font-bold text-gray-600 mb-1">Satuan</label>
-            <select id="tambahSatuan" class="w-full border p-2 rounded font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-                <option value="">-- Pilih Satuan --</option>
-                <option value="Lembar">Lembar</option><option value="Truk">Truk</option><option value="Set">Set</option>
-                <option value="Kaleng 5 kg">Kaleng 5 kg</option><option value="Kg">Kg</option><option value="M">M</option>
-                <option value="Kubik m3">Kubik m3</option><option value="Batang">Batang</option><option value="Box">Box</option>
-                <option value="Kaleng">Kaleng</option><option value="Biji">Biji</option><option value="Pcs">Pcs</option>
-                <option value="Roll">Roll</option><option value="Gulung">Gulung</option><option value="Flsh">Flsh</option>
-                <option value="Lipat">Lipat</option><option value="Pickup">Pickup</option><option value="Meter">Meter</option>
-                <option value="Liter">Liter</option><option value="Botol">Botol</option><option value="Zak">Zak</option>
-            </select>
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-2 mt-6">
-        <button onclick="document.getElementById('modalTambahItem').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-bold text-sm">Batal</button>
-        <button onclick="simpanItemBaru()" id="btnSimpanMaster" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed">Simpan</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="modalKartuStok" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
-    <div class="bg-white rounded-lg shadow-2xl w-full max-w-5xl h-[95vh] flex flex-col">
-        <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
-            <div>
-                <h2 class="text-xl font-bold text-slate-800"><i class="fas fa-file-invoice mr-2 text-blue-600"></i>Kartu Stok Barang</h2>
-                <p id="judulKartuStok" class="text-sm text-slate-500 font-bold">Material: -</p>
-            </div>
-            <button onclick="tutupModalKartu()" class="bg-red-100 text-red-600 w-8 h-8 rounded-full hover:bg-red-200 font-bold">✕</button>
-        </div>
-
-        <div class="p-3 bg-blue-50 border-b flex flex-wrap gap-3 items-end">
-            <div>
-                <label class="text-xs font-bold text-blue-800">Dari Tanggal</label>
-                <input type="date" id="filterStart" class="block border border-blue-300 rounded px-2 py-1 text-sm font-bold text-slate-700">
-            </div>
-            <div>
-                <label class="text-xs font-bold text-blue-800">Sampai Tanggal</label>
-                <input type="date" id="filterEnd" class="block border border-blue-300 rounded px-2 py-1 text-sm font-bold text-slate-700">
-            </div>
-            <button onclick="filterKartuStok()" class="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-bold hover:bg-blue-700 shadow">
-                <i class="fas fa-filter"></i> Tampilkan
-            </button>
-            <button onclick="resetFilterKartu()" class="bg-white text-slate-600 border px-4 py-1.5 rounded text-sm font-bold hover:bg-gray-50 shadow">
-                <i class="fas fa-sync"></i> Reset (Semua)
-            </button>
-        </div>
-
-        <div class="flex-grow overflow-auto p-4 bg-gray-50">
-            <div class="bg-white border rounded shadow-sm">
-                <table class="w-full text-sm text-left border-collapse" id="tabelKartuStok">
-                    <thead class="bg-slate-800 text-white sticky top-0">
-                        <tr>
-                            <th class="p-3 border">Tanggal</th>
-                            <th class="p-3 border">Tipe Transaksi</th>
-                            <th class="p-3 border">Keterangan / Proyek</th>
-                            <th class="p-3 border text-right bg-green-900">Masuk</th>
-                            <th class="p-3 border text-right bg-red-900">Keluar</th>
-                            <th class="p-3 border text-right bg-blue-900">Saldo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bodyKartuStok" class="text-slate-700">
-                        <tr><td colspan="6" class="text-center p-4 text-slate-400">Pilih barang untuk melihat detail.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="p-4 border-t bg-white flex justify-end gap-3">
-            <button onclick="downloadPDFKartu()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded shadow font-bold flex items-center gap-2">
-                <i class="fas fa-file-pdf"></i> Download PDF
-            </button>
-            <button onclick="tutupModalKartu()" class="bg-gray-200 text-gray-700 px-5 py-2 rounded shadow font-bold">
-                Tutup
-            </button>
-        </div>
     </div>
   </div>
 
@@ -328,811 +112,106 @@
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
-    async function catatLog(tipe, pesan, icon = 'fa-info-circle') {
-        const user = "Gudang";
-        try {
-            const { error } = await client.from('activity_logs').insert([{
-                user_name: user,
-                tipe: tipe,
-                aktivitas: pesan,
-                icon: icon
-            }]);
-            if(error) console.error("Gagal mencatat log:", error);
-        } catch (e) {
-            console.error("Error Log:", e);
-        }
-    }
-    const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
-    let currentBarangId = null;
-    let currentBarangNama = "Material";
-    let currentBarangSatuan = "-";
-    let currentBarangHarga = 0;
-    let kartuHistory = [];
-    let tglMulai = "";
-    let tglAkhir = "";
+    const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
-    // --- FITUR BARU: CEK DUPLIKAT REAL-TIME ---
-    let timeoutCheck = null;
+    let masterDataMemori = []; let currentBarangId = null; let currentBarangNama = ""; let currentBarangSatuan = "";
 
-    async function cekDuplikat() {
-        const input = document.getElementById("tambahNama");
-        const msg = document.getElementById("msgErrorNama");
-        const btn = document.getElementById("btnSimpanMaster");
-        const keyword = input.value.trim();
-
-        // Reset state jika kosong
-        if(keyword.length === 0) {
-            input.classList.remove("input-error");
-            msg.classList.add("hidden");
-            btn.disabled = false;
-            return;
-        }
-
-        // Cek ke Database (Case Insensitive)
-        // Gunakan ilike agar "Semen" mendeteksi "semen"
-        const { data } = await client
-            .from('master_stok')
-            .select('id')
-            .ilike('nama_barang', keyword);
-
-        if(data && data.length > 0) {
-            // DUPLIKAT DITEMUKAN!
-            input.classList.add("input-error", "shake");
-            msg.classList.remove("hidden");
-            btn.disabled = true; // Kunci Tombol
-            
-            // Hapus animasi shake setelah selesai
-            setTimeout(() => input.classList.remove("shake"), 500);
-        } else {
-            // AMAN
-            input.classList.remove("input-error");
-            msg.classList.add("hidden");
-            btn.disabled = false; // Buka Tombol
-        }
+    // 1. DATA ENGINE
+    async function initData() {
+        const { data, error } = await client.from('master_stok').select('*').order('nama_barang');
+        if(!error) { masterDataMemori = data; isiDropdown(); loadProyekDropdown(); loadMutasiBawah(); }
     }
 
-    // --- SIMPAN ITEM BARU ---
-    async function simpanItemBaru() {
-        const nama = document.getElementById("tambahNama").value.trim();
-        const satuan = document.getElementById("tambahSatuan").value;
-        const btn = document.getElementById("btnSimpanMaster");
-
-        if(!nama || !satuan) { alert("Lengkapi nama dan satuan!"); return; }
-        if(btn.disabled) return; // Mencegah bypass lewat enter
-
-        // Double Check Terakhir (Safety Net)
-        const { data: existing } = await client.from('master_stok').select('id').ilike('nama_barang', nama);
-        if(existing && existing.length > 0) {
-            alert("GAGAL: Barang sudah ada! Cek penulisan.");
-            return;
-        }
-
-        const { error } = await client.from('master_stok').insert([{
-            nama_barang: nama,
-            satuan: satuan,
-            total_stok: 0
-        }]);
-
-        if(error) {
-            alert("Gagal simpan: " + error.message);
-        } else {
-            alert("✅ Material Baru Berhasil Ditambahkan!");
-            document.getElementById("tambahNama").value = "";
-            document.getElementById("tambahNama").classList.remove("input-error");
-            document.getElementById("msgErrorNama").classList.add("hidden");
-            document.getElementById("modalTambahItem").classList.add("hidden");
-            loadAllData();
-        }
+    // 2. SEARCH ENGINE
+    function terapkanFilter() {
+        const keyword = document.getElementById("cariInput").value.toUpperCase();
+        const tbody = document.getElementById("bodyStok");
+        if (keyword.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="text-center p-20 text-gray-400 italic font-bold">⚠️ Ketik nama barang...</td></tr>`; return; }
+        const filtered = masterDataMemori.filter(item => item.nama_barang.toUpperCase().includes(keyword));
+        tbody.innerHTML = "";
+        filtered.forEach((item, index) => {
+            const val = (item.total_stok || 0) * (item.harga_estimasi || 0);
+            tbody.innerHTML += `<tr><td class="text-center">${index+1}</td><td class="font-bold text-blue-700 cursor-pointer hover:underline" onclick="bukaKartuStok(${item.id}, '${item.nama_barang}', '${item.satuan}')">${item.nama_barang}</td><td class="text-center">${item.satuan||'-'}</td><td class="text-right font-black text-blue-800 bg-blue-50/50">${item.total_stok||0}</td><td class="text-right">${fmt(item.harga_estimasi||0)}</td><td class="text-right font-black text-green-800 bg-green-50/50">${fmt(val)}</td><td class="text-center">${item.total_stok > 0 ? '✅ Ada' : '❌ Habis'}</td></tr>`;
+        });
+        document.getElementById("rowCounter").innerText = `${filtered.length} Ditemukan`;
     }
 
-    // --- LOAD DATA ---
-    async function loadAllData() {
-        await loadStok();   // Load Data Utama
-        await loadMutasi(); // Load History Tabel Bawah
-        loadProyekDropdown();
-
-        setTimeout(() => {
-            $('#pilihBarang').select2({
-                placeholder: "-- Cari Material (Ketik Nama) --",
-                width: '100%'
-            });
-            $('#pilihBarang').on('select2:select', function () {
-                updateJumlahState();
-            });
-        }, 500);
-    }
-
-    // 1. LOAD STOK
-    async function loadStok() {
-      const { data: stokData } = await client.from('master_stok').select('*').order('nama_barang');
-      const { data: grnData } = await client.from('grn_terima').select(`barang_id, purchase_order ( harga_satuan )`).order('created_at', { ascending: false });
-
-      const hargaMap = {}; 
-      if(grnData) {
-          grnData.forEach(g => {
-              if(!hargaMap[g.barang_id] && g.purchase_order) hargaMap[g.barang_id] = g.purchase_order.harga_satuan;
-          });
-      }
-
-      const tbody = document.getElementById("bodyStok");
-      const select = document.getElementById("pilihBarang");
-      tbody.innerHTML = "";
-      select.innerHTML = "<option value=''>-- Pilih Material --</option>";
-
-      if (!stokData) return;
-
-      let grandTotalRupiah = 0;
-      document.getElementById("totalJenis").innerText = stokData.length + " Item";
-
-      stokData.forEach((item, index) => {
-        const hargaBeliTerakhir = hargaMap[item.id] || 0;
-        const hargaSatuan = hargaBeliTerakhir > 0 ? hargaBeliTerakhir : (item.harga_estimasi || 0);
-        const totalNilai = item.total_stok * hargaSatuan;
-        grandTotalRupiah += totalNilai;
-
-        let status = item.total_stok <= 0 ? '<span class="text-red-600 font-bold text-xs bg-red-100 px-2 py-1 rounded">Habis</span>' : '<span class="text-green-600 font-bold text-xs bg-green-100 px-2 py-1 rounded">Ada</span>';
-        
-        tbody.innerHTML += `
-          <tr class="hover:bg-gray-50 group">
-            <td class="text-center text-gray-500">${index + 1}</td>
-            
-            <td class="klik-nama text-slate-800 font-bold cursor-pointer hover:text-blue-600 flex items-center justify-between" 
-                onclick='bukaKartuStok(${item.id}, ${JSON.stringify(item.nama_barang)}, ${JSON.stringify(item.satuan)})'>
-                ${item.nama_barang} <i class="fas fa-search text-[10px] ml-1 opacity-50"></i>
-            </td>
-            
-            <td class="text-center">${item.satuan}</td>
-            <td class="text-right font-bold text-blue-800 bg-blue-50">${item.total_stok}</td>
-            <td class="text-right text-gray-600 text-sm font-mono">${hargaSatuan > 0 ? formatRupiah(hargaSatuan) : '-'}</td>
-            <td class="text-right font-bold text-green-800 bg-green-50 font-mono">${totalNilai > 0 ? formatRupiah(totalNilai) : '-'}</td>
-            <td class="text-center">${status}</td>
-            <td class="text-center">
-               <button onclick='bukaModalEdit(${item.id}, ${JSON.stringify(item.nama_barang)}, ${JSON.stringify(item.satuan)}, ${JSON.stringify(item.harga_estimasi || "")})' class="btn-edit text-blue-500 hover:text-blue-700 p-2 rounded hover:bg-blue-100"><i class="fas fa-pencil-alt"></i></button>
-            </td>
-          </tr>
-        `;
-        
-        const opt = document.createElement('option');
-        opt.value = item.id;
-        opt.text = item.nama_barang;
-        opt.setAttribute('data-stok', item.total_stok);
-        opt.setAttribute('data-satuan', item.satuan || '-');
-        opt.setAttribute('data-harga', item.harga_estimasi || '');
-        select.appendChild(opt);
-      });
-      document.getElementById("grandTotalAset").innerText = formatRupiah(grandTotalRupiah);
-      terapkanFilter();
-    }
-
-    // --- (FUNGSI LAINNYA TETAP SAMA) ---
-    async function loadProyekDropdown() {
-        const select = document.getElementById("pilihProyek");
-        const { data } = await client.from('master_proyek').select('nama_proyek, kategori').eq('status', 'BERJALAN').order('nama_proyek');
-        if(data) {
-            select.innerHTML = "<option value=''>-- Pilih Proyek Berjalan --</option>";
-            data.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.nama_proyek;
-                opt.text = `${p.nama_proyek} [ ${p.kategori || '-'} ]`;
-                select.appendChild(opt);
-            });
-        }
-    }
-
-    document.getElementById("pilihBarang").addEventListener("change", function(){ updateJumlahState(); });
-
-    function updateJumlahState(){
-        const select = document.getElementById("pilihBarang");
-        const jumlahInput = document.getElementById("jumlahInput");
-        const info = document.getElementById("infoStok");
-        const btnSimpan = document.getElementById("btnSimpanTransaksi");
-        const jenis = document.getElementById("jenisInput").value;
-        const selectedOption = select.options[select.selectedIndex];
-        const stokAttr = selectedOption ? selectedOption.getAttribute('data-stok') : null;
-        if(selectedOption) {
-            currentBarangNama = selectedOption.textContent.trim();
-            currentBarangSatuan = selectedOption.getAttribute('data-satuan') || '-';
-        }
-        info.className = "text-xs text-right mt-1 font-bold italic";
-        jumlahInput.disabled = false;
-        jumlahInput.placeholder = "0";
-        btnSimpan.disabled = false;
-        btnSimpan.classList.remove("opacity-50", "cursor-not-allowed");
-
-        if(!select.value) { info.innerText = ""; return; }
-        const stok = Number(stokAttr);
-
-        if (jenis === 'PAKAI') {
-            if (stok <= 0) {
-                jumlahInput.disabled = true; jumlahInput.value = ""; jumlahInput.placeholder = "Stok Habis";
-                info.innerText = "❌ Stok Gudang Kosong (0) - Tidak bisa dipakai";
-                info.className = "text-xs text-right mt-1 font-bold text-red-600";
-                btnSimpan.disabled = true; btnSimpan.classList.add("opacity-50", "cursor-not-allowed");
-            } else {
-                info.innerText = `✅ Sisa Stok Gudang: ${stok}`;
-                info.className = "text-xs text-right mt-1 font-bold text-green-600";
-            }
-        } else {
-            info.innerText = `Info Sistem: ${stok} (Opname untuk koreksi)`;
-            info.className = "text-xs text-right mt-1 font-bold text-purple-600";
-        }
-    }
-
-    function bukaModal(jenis) {
-        document.getElementById("modalForm").classList.remove("hidden");
-        document.getElementById("jenisInput").value = jenis;
-        document.getElementById("jumlahInput").value = "";
-        document.getElementById("ketInput").value = "";
-        const divProyek = document.getElementById("divProyek");
-        const labelKet = document.getElementById("labelKet");
-        const title = document.getElementById("modalTitle");
-        divProyek.classList.add("hidden");
-        labelKet.innerText = "Keterangan";
-        
-        if(jenis === 'PAKAI') {
-            title.innerText = "👷 Catat Pemakaian Proyek";
-            divProyek.classList.remove("hidden"); 
-            labelKet.innerText = "Detail Pekerjaan (Opsional)";
-            document.getElementById("ketInput").placeholder = "Cth: Cor Kolom Utama";
-        } else { 
-            title.innerText = "Stok Opname / Penyesuaian"; 
-        }
-        updateJumlahState();
-    }
-
-    function tutupModal() { document.getElementById("modalForm").classList.add("hidden"); }
-
+    // 3. LOGIKA SIMPAN (Verifikasi Accounting)
     async function simpanTransaksi() {
         const jenis = document.getElementById("jenisInput").value;
         const barangId = document.getElementById("pilihBarang").value;
         const jumlah = Number(document.getElementById("jumlahInput").value);
-        let keterangan = document.getElementById("ketInput").value;
         const select = document.getElementById("pilihBarang");
         const stokSistem = Number(select.options[select.selectedIndex]?.getAttribute('data-stok') || 0);
+        let ket = document.getElementById("ketInput").value;
 
-        if(!barangId) { alert("Pilih material dulu!"); return; }
-        if(jenis === 'PAKAI' && jumlah <= 0) { alert("Jumlah harus lebih dari 0!"); return; }
+        if(!barangId || jumlah <= 0) return alert("Cek kembali input!");
 
         if(jenis === 'PAKAI') {
-            const namaProyek = document.getElementById("pilihProyek").value;
-            if(!namaProyek) { alert("Wajib pilih Proyek!"); return; }
-            if(jumlah > stokSistem) { alert(`Stok tidak cukup! Sisa: ${stokSistem}`); return; }
-            keterangan = `Proyek: ${namaProyek} | ${keterangan}`;
+            const proyek = document.getElementById("pilihProyek").value;
+            if(!proyek) return alert("Pilih proyek!");
+            if(jumlah > stokSistem) return alert("Stok tidak cukup!");
 
-            const { data: dataHarga } = await client
-                .from('grn_terima')
-                .select('purchase_order(harga_satuan)')
-                .eq('barang_id', barangId)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single();
+            const item = masterDataMemori.find(i => i.id == barangId);
+            const totalBiaya = (item?.harga_estimasi || 0) * jumlah;
 
-            let hargaSatuan = dataHarga?.purchase_order?.harga_satuan || 0;
+            const { error: errVerif } = await client.from('verifikasi_material').insert([{
+                tanggal: new Date(), nama_proyek: proyek, barang_id: barangId, jumlah: jumlah, total_biaya: totalBiaya, keterangan: ket, status: 'WAITING'
+            }]);
 
-            if (hargaSatuan === 0) {
-                const manualPrice = prompt("⚠️ Data harga beli tidak tersedia. Masukkan harga modal satuan (Rp):", "0");
-                hargaSatuan = Number(manualPrice);
-                if (isNaN(hargaSatuan) || hargaSatuan <= 0) {
-                    alert("⛔ Transaksi dibatalkan karena harga tidak valid.");
-                    return;
-                }
-            }
-
-            const totalRupiah = hargaSatuan * jumlah;
-            if (totalRupiah <= 0) {
-                alert("⛔ Total nilai harus lebih dari 0.");
-                return;
-            }
-
-            await client.from('master_stok').update({ total_stok: stokSistem - jumlah }).eq('id', barangId);
-            await client.from('stok_history').insert([{ barang_id: barangId, jenis_transaksi: 'PEMAKAIAN PROYEK', jumlah: jumlah, keterangan: keterangan }]);
-
-            const refNo = "USE-" + Date.now();
-            const jurnalPayload = [
-                {
-                    tanggal: new Date().toISOString().split('T')[0],
-                    nomor_referensi: refNo,
-                    keterangan: `Pemakaian: ${keterangan}`,
-                    nama_akun: 'Beban Proyek',
-                    debit: totalRupiah,
-                    kredit: 0
-                },
-                {
-                    tanggal: new Date().toISOString().split('T')[0],
-                    nomor_referensi: refNo,
-                    keterangan: `Pemakaian: ${keterangan}`,
-                    nama_akun: 'Persediaan Material',
-                    debit: 0,
-                    kredit: totalRupiah
-                }
-            ];
-
-            const { error: errJurnal } = await client.from('jurnal_umum').insert(jurnalPayload);
-            if (errJurnal) {
-                console.error("Gagal jurnal otomatis:", errJurnal);
-                alert("⚠️ Stok berkurang, tapi Jurnal Gagal: " + errJurnal.message);
-            }
-
-            const namaBarang = select.options[select.selectedIndex]?.textContent.trim() || 'material';
-            catatLog('GUDANG', `Pemakaian ${jumlah} ${namaBarang} untuk ${namaProyek}`, 'fa-hard-hat');
-        } 
-        else if (jenis === 'OPNAME') {
-            const { error } = await client.rpc('atur_stok_opname', { p_barang_id: barangId, p_qty_fisik: jumlah, p_alasan: keterangan });
-            if(error) { alert("Gagal: " + error.message); return; }
-        }
-        alert("✅ Data tersimpan!");
-        tutupModal();
-        loadAllData();
-    }
-
-    function bukaModalEdit(id, nama, satuan, harga) {
-      document.getElementById("modalEditItem").classList.remove("hidden");
-      document.getElementById("editId").value = id;
-      document.getElementById("inputNamaBaru").value = nama;
-      document.getElementById("inputSatuanBaru").value = satuan;
-      document.getElementById("inputHargaBaru").value = harga || 0;
-    }
-
-    async function simpanPerubahanMaster() {
-      const id = document.getElementById("editId").value;
-      const nama = document.getElementById("inputNamaBaru").value;
-      const satuan = document.getElementById("inputSatuanBaru").value;
-      const harga = Number(document.getElementById("inputHargaBaru").value) || 0;
-
-      if(!nama.trim()) return alert("Isi nama barang!");
-
-      const { error } = await client.from('master_stok')
-          .update({ 
-              nama_barang: nama, 
-              satuan: satuan, 
-              harga_estimasi: harga 
-          })
-          .eq('id', id);
-
-      if (error) {
-          alert("Gagal Simpan: " + error.message);
-      } else {
-          alert("✅ Data Berhasil Diupdate!");
-          document.getElementById("modalEditItem").classList.add("hidden");
-          loadAllData();
-      }
-    }
-
-    async function loadMutasi() {
-      const { data } = await client.from('stok_history').select(`*, master_stok!fk_barang_history(nama_barang)`).order('created_at', { ascending: false }).limit(50);
-      const tbody = document.getElementById("bodyMutasi");
-      tbody.innerHTML = "";
-      if(!data) return;
-      data.forEach(row => {
-        const isMasuk = row.jenis_transaksi.includes('MASUK') || (row.jenis_transaksi.includes('OPNAME') && row.jumlah > 0);
-        const masuk = isMasuk ? `<span class="text-green-700 font-bold">+${Math.abs(row.jumlah)}</span>` : "-";
-        const keluar = !isMasuk ? `<span class="text-red-700 font-bold">-${Math.abs(row.jumlah)}</span>` : "-";
-        tbody.innerHTML += `<tr class="hover:bg-gray-50 border-b"><td class="text-gray-600 text-sm p-2">${new Date(row.created_at).toLocaleDateString()}</td><td class="font-bold text-sm p-2">${row.master_stok?.nama_barang || '(Del)'}</td><td class="text-sm p-2"><span class="font-bold text-gray-700 block">${row.jenis_transaksi}</span><span class="text-xs text-gray-500 italic">${row.keterangan || ''}</span></td><td class="text-right bg-green-50 p-2">${masuk}</td><td class="text-right bg-red-50 p-2">${keluar}</td></tr>`;
-      });
-    }
-
-    function filterTabel(keyword) {
-      const rows = document.getElementById("bodyStok").getElementsByTagName("tr");
-      for (let i = 0; i < rows.length; i++) {
-        const td = rows[i].getElementsByTagName("td")[1];
-        if (td) {
-          rows[i].style.display = td.textContent.toUpperCase().indexOf(keyword.toUpperCase()) > -1 ? "" : "none";
-        }       
-      }
-    }
-
-    function terapkanFilter() {
-        const keyword = document.getElementById("cariInput").value.toUpperCase();
-        const status = document.getElementById("filterStatus").value;
-        const rows = document.getElementById("bodyStok").getElementsByTagName("tr");
-        let visibleCount = 0;
-
-        for (let i = 0; i < rows.length; i++) {
-            const tdNama = rows[i].getElementsByTagName("td")[1];
-            const tdStok = rows[i].getElementsByTagName("td")[3];
-
-            if (tdNama && tdStok) {
-                const namaMaterial = tdNama.innerText.toUpperCase();
-                const stokVal = parseFloat(tdStok.innerText.replace(/,/g, '')) || 0;
-                const matchKeyword = namaMaterial.indexOf(keyword) > -1;
-                let matchStatus = true;
-                if (status === "ADA") matchStatus = stokVal > 0;
-                else if (status === "HABIS") matchStatus = stokVal <= 0;
-
-                if (matchKeyword && matchStatus) {
-                    rows[i].style.display = "";
-                    visibleCount++;
-                } else {
-                    rows[i].style.display = "none";
-                }
-            }
-        }
-
-        document.getElementById("rowCounter").innerText = `${visibleCount} Item Tampil`;
-    }
-
-    async function downloadLaporanMutasi(event) {
-        const tglMulai = document.getElementById("laporanStart").value;
-        const tglAkhir = document.getElementById("laporanEnd").value;
-
-        if(!tglMulai || !tglAkhir) return alert("⚠️ Pilih Tanggal Mulai dan Sampai terlebih dahulu!");
-
-        const btn = event.currentTarget;
-        const originalText = btn.innerHTML;
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
-        btn.disabled = true;
-
-        try {
-            let query = client
-                .from('stok_history')
-                .select(`jumlah, jenis_transaksi, barang_id, master_stok!fk_barang_history ( nama_barang, satuan )`)
-                .gte('created_at', tglMulai)
-                .lte('created_at', `${tglAkhir}T23:59:59`);
-
-            const { data: history, error } = await query;
-            if(error) throw error;
-            if(!history || history.length === 0) throw new Error("Tidak ada transaksi pada periode ini.");
-
-            const laporan = {};
-            history.forEach(row => {
-                const id = row.barang_id;
-                const nama = row.master_stok?.nama_barang || 'Item Terhapus';
-                const satuan = row.master_stok?.satuan || '-';
-                const tipe = row.jenis_transaksi.toUpperCase();
-                const qty = Number(row.jumlah) || 0;
-
-                if(!laporan[id]) laporan[id] = { nama, satuan, masuk: 0, keluar: 0 };
-
-                if (tipe.includes('TERIMA') || tipe.includes('BELI') || tipe.includes('RETUR')) {
-                    laporan[id].masuk += qty;
-                } else if (tipe.includes('PAKAI') || tipe.includes('KELUAR') || tipe.includes('PROYEK')) {
-                    laporan[id].keluar += qty;
-                } else if (tipe.includes('OPNAME')) {
-                    if(qty >= 0) laporan[id].masuk += qty;
-                    else laporan[id].keluar += Math.abs(qty);
-                } else {
-                    laporan[id].masuk += qty;
-                }
-            });
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFontSize(16);
-            doc.setFont("helvetica", "bold");
-            doc.text("LAPORAN MUTASI MATERIAL", 105, 15, { align: "center" });
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "normal");
-            doc.text(`Periode: ${new Date(tglMulai).toLocaleDateString('id-ID')} s/d ${new Date(tglAkhir).toLocaleDateString('id-ID')}`, 105, 22, { align: "center" });
-
-            const tableBody = [];
-            let no = 1;
-            for (const item of Object.values(laporan)) {
-                if(item.masuk > 0 || item.keluar > 0) {
-                    tableBody.push([
-                        no++,
-                        item.nama,
-                        item.satuan,
-                        item.masuk,
-                        item.keluar,
-                        item.masuk - item.keluar
-                    ]);
-                }
-            }
-
-            doc.autoTable({
-                head: [['No', 'Nama Material', 'Satuan', 'Total Masuk (+)', 'Total Keluar (-)', 'Selisih']],
-                body: tableBody,
-                startY: 30,
-                theme: 'grid',
-                headStyles: { fillColor: [50, 50, 50], textColor: 255 },
-                columnStyles: {
-                    3: { halign: 'right', textColor: [0, 150, 0], fontStyle: 'bold' },
-                    4: { halign: 'right', textColor: [200, 0, 0], fontStyle: 'bold' },
-                    5: { halign: 'right', fontStyle: 'bold' }
-                }
-            });
-
-            const finalY = doc.lastAutoTable.finalY + 10;
-            doc.text(`Total Item Bergerak: ${tableBody.length}`, 14, finalY);
-            doc.text(`Dicetak Oleh: Admin Gudang`, 14, finalY + 5);
-
-            doc.save(`Laporan_Mutasi_${tglMulai}_sd_${tglAkhir}.pdf`);
-            alert("✅ Laporan berhasil diunduh!");
-        } catch (err) {
-            alert("Gagal: " + err.message);
-        } finally {
-            btn.innerHTML = `<i class="fas fa-file-pdf"></i> Download PDF`;
-            btn.disabled = false;
-        }
-    }
-
-    loadAllData();
-    // --- FITUR KEAMANAN: CEK AKSES OPNAME ---
-    function bukaModalKartu() {
-        const id = $('#pilihBarang').val();
-        if(!id) {
-            alert("Silakan cari dan pilih material di kolom 'Pilih Material' (atas) terlebih dahulu!");
-            $('#pilihBarang').select2('open');
-            return;
-        }
-        const option = document.querySelector(`#pilihBarang option[value='${id}']`);
-        const nama = option ? option.text : "Material";
-        const satuan = option ? option.getAttribute('data-satuan') : "-";
-        document.getElementById("filterStart").value = "";
-        document.getElementById("filterEnd").value = "";
-        tglMulai = "";
-        tglAkhir = "";
-        bukaKartuStok(id, nama, satuan);
-    }
-
-    function tutupModalKartu() {
-        document.getElementById("modalKartuStok").classList.add("hidden");
-    }
-
-    function cekAksesOpname() {
-        // 1. Cek apakah user login sebagai SUPERADMIN?
-        const role = sessionStorage.getItem("izin_akses");
-        
-        if (role === "superadmin") {
-            // Kalau dia Superadmin, langsung izinkan
-            bukaModal('OPNAME');
-        } else {
-            // 2. Kalau Staff Biasa, Minta Password Dulu
-            const pass = prompt("🔒 FITUR TERKUNCI!\n\nPerubahan stok manual (Opname) hanya untuk Superadmin.\nSilakan masukkan Password Otorisasi:");
-            
-            if (pass === "SUPERADMIN") {
-                alert("✅ Akses Diberikan sementara.");
-                bukaModal('OPNAME');
-            } else if (pass === null) {
-                // User klik cancel, diamkan saja
-            } else {
-                alert("⛔ PASSWORD SALAH! Akses Ditolak.");
+            if(!errVerif) {
+                await client.from('master_stok').update({ total_stok: stokSistem - jumlah }).eq('id', barangId);
+                await client.from('stok_history').insert([{ barang_id: barangId, jenis_transaksi: 'PEMAKAIAN PROYEK', jumlah: jumlah, keterangan: `WAITING VERIF: ${proyek}` }]);
+                alert("✅ Terkirim ke Accounting!"); tutupModal(); initData();
             }
         }
     }
 
+    // 4. KARTU STOK & PDF
     async function bukaKartuStok(id, nama, satuan) {
-        console.log("Membuka kartu untuk:", nama, id);
-        currentBarangId = id;
-        currentBarangNama = nama;
-        currentBarangSatuan = satuan;
-
-        const { data: itemData, error } = await client
-            .from('master_stok')
-            .select('harga_estimasi')
-            .eq('id', id)
-            .single();
-        if(error) console.error("Error ambil harga:", error);
-        currentBarangHarga = itemData?.harga_estimasi || 0;
-        console.log("Harga ditemukan:", currentBarangHarga);
-
-        const modalEl = document.getElementById("modalKartuStok");
-        const judulEl = document.getElementById("judulKartuStok");
-        modalEl.classList.remove("hidden");
-        judulEl.innerHTML = `
-            <div class="flex items-center gap-2 text-sm">
-                <span>Material: <b class="text-blue-700">${nama}</b></span>
-                <span class="text-gray-300">|</span>
-                <span>Satuan: <b>${satuan}</b></span>
-                <span class="text-gray-300">|</span>
-                <span>Harga Est: <b class="text-green-600 bg-green-50 px-2 py-1 rounded border border-green-200">${formatRupiah(currentBarangHarga)}</b></span>
-            </div>
-        `;
-
-        const tbody = document.getElementById("bodyKartuStok");
-        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i><br>Sedang memuat data...</td></tr>`;
-
-        let query = client.from('stok_history').select('*').eq('barang_id', id).order('created_at', { ascending: true });
-        if(tglMulai) query = query.gte('created_at', tglMulai);
-        if(tglAkhir) {
-            const dateEnd = new Date(tglAkhir);
-            dateEnd.setHours(23, 59, 59);
-            query = query.lte('created_at', dateEnd.toISOString());
-        }
-
-        let saldoAwal = 0;
-        if (tglMulai) {
-             const { data: dataLama } = await client.from('stok_history').select('jenis_transaksi, jumlah').eq('barang_id', id).lt('created_at', tglMulai);
-             if(dataLama) {
-                 dataLama.forEach(row => {
-                    const tipe = row.jenis_transaksi.toUpperCase();
-                    if (tipe.includes('TERIMA') || tipe.includes('BELI') || tipe.includes('RETUR') || (tipe.includes('OPNAME') && row.jumlah >= 0)) saldoAwal += row.jumlah;
-                    else saldoAwal -= Math.abs(row.jumlah);
-                 });
-             }
-        }
-
-        const { data: history } = await query;
-        renderKartuStok(history, satuan, saldoAwal);
-    }
-
-    function fetchMutasi(id, satuan, saldoAwal) {
-        let query = client.from('stok_history').select('*').eq('barang_id', id).order('created_at', { ascending: true });
-        if(tglMulai) query = query.gte('created_at', tglMulai);
-        if(tglAkhir) {
-            const dateEnd = new Date(tglAkhir);
-            dateEnd.setHours(23, 59, 59);
-            query = query.lte('created_at', dateEnd.toISOString());
-        }
-        query.then(({ data }) => {
-            kartuHistory = data || [];
-            renderKartuStok(kartuHistory, satuan, saldoAwal);
+        currentBarangId = id; currentBarangNama = nama; currentBarangSatuan = satuan;
+        document.getElementById("modalKartuStok").classList.remove("hidden");
+        document.getElementById("judulKartuStok").innerText = `${nama} (${satuan})`;
+        const tb = document.getElementById("bodyKartuStok"); tb.innerHTML = "<tr><td colspan='6' class='p-5 text-center font-bold'>🔄 MEMUAT...</td></tr>";
+        const { data } = await client.from('stok_history').select('*').eq('barang_id', id).order('created_at', { ascending: true });
+        tb.innerHTML = ""; let s = 0;
+        data.forEach(r => {
+            const t = (r.jenis_transaksi || "").toUpperCase(); const q = Number(r.jumlah); let m = '-', k = '-';
+            if(t.includes('TERIMA') || (t.includes('OPNAME') && q >= 0) || t.includes('SINKRON')) { m = q; s += q; } else { k = Math.abs(q); s -= k; }
+            tb.innerHTML += `<tr class="border-b"><td class="p-2 border-r text-black">${new Date(r.created_at).toLocaleDateString()}</td><td class="p-2 border-r font-bold text-gray-800">${r.jenis_transaksi}</td><td class="p-2 border-r text-gray-600">${r.keterangan || '-'}</td><td class="p-2 border-r text-right text-emerald-700 font-bold">${m}</td><td class="p-2 border-r text-right text-red-700 font-bold">${k}</td><td class="p-2 text-right font-black text-blue-800 bg-blue-50/50">${s}</td></tr>`;
         });
     }
 
-    function renderKartuStok(rows, satuan, saldoAwal = 0) {
-        const tbody = document.getElementById("bodyKartuStok");
-        if(!rows || rows.length === 0) {
-            if(!tglMulai) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Belum ada riwayat transaksi.</td></tr>`;
-                return;
-            }
-        }
-
-        let saldoBerjalan = saldoAwal;
-        tbody.innerHTML = "";
-        if(tglMulai) {
-            tbody.innerHTML += `
-                <tr class="bg-yellow-50 font-bold border-b-2 border-yellow-200">
-                    <td class="p-2 text-center">-</td>
-                    <td class="p-2 text-left" colspan="2">SALDO AWAL (Per ${new Date(tglMulai).toLocaleDateString('id-ID')})</td>
-                    <td class="p-2 text-right">-</td>
-                    <td class="p-2 text-right">-</td>
-                    <td class="p-2 text-right text-blue-800">${saldoBerjalan}</td>
-                </tr>
-            `;
-        }
-        if(rows && rows.length) {
-            rows.forEach(row => {
-                let masuk = 0;
-                let keluar = 0;
-                const tipe = row.jenis_transaksi.toUpperCase();
-                if (tipe.includes('TERIMA') || tipe.includes('BELI') || tipe.includes('RETUR')) {
-                    masuk = row.jumlah;
-                    saldoBerjalan += masuk;
-                } else if (tipe.includes('PAKAI') || tipe.includes('KELUAR') || tipe.includes('PROYEK')) {
-                    keluar = row.jumlah;
-                    saldoBerjalan -= keluar;
-                } else if (tipe.includes('OPNAME')) {
-                    if(row.jumlah >= 0) {
-                        masuk = row.jumlah;
-                        saldoBerjalan += masuk;
-                    } else {
-                        keluar = Math.abs(row.jumlah);
-                        saldoBerjalan -= keluar;
-                    }
-                } else {
-                    masuk = row.jumlah;
-                    saldoBerjalan += masuk;
-                }
-
-                const tanggal = new Date(row.created_at).toLocaleDateString('id-ID');
-                const desc = row.keterangan || '-';
-                tbody.innerHTML += `
-                    <tr class="border-b hover:bg-slate-50">
-                        <td class="p-2 border-r text-gray-600">${tanggal}</td>
-                        <td class="p-2 border-r font-bold text-xs text-slate-700">${row.jenis_transaksi}</td>
-                        <td class="p-2 border-r text-xs text-gray-500">${desc}</td>
-                        <td class="p-2 border-r text-right font-mono text-green-700 bg-green-50">${masuk > 0 ? masuk : '-'}</td>
-                        <td class="p-2 border-r text-right font-mono text-red-700 bg-red-50">${keluar > 0 ? keluar : '-'}</td>
-                        <td class="p-2 text-right font-bold font-mono bg-blue-50">${saldoBerjalan}</td>
-                    </tr>
-                `;
-            });
-        }
-        tbody.innerHTML += `
-            <tr class="bg-slate-100 font-bold border-t-2 border-slate-300">
-                <td colspan="5" class="p-3 text-right">SISA STOK AKHIR</td>
-                <td class="p-3 text-right text-lg text-blue-800">${saldoBerjalan} ${satuan}</td>
-            </tr>
-        `;
-    }
-
-    function filterKartuStok() {
-        tglMulai = document.getElementById("filterStart").value;
-        tglAkhir = document.getElementById("filterEnd").value;
-        if(!tglMulai || !tglAkhir) return alert("Pilih kedua tanggal!");
-        bukaKartuStok(currentBarangId, currentBarangNama, currentBarangSatuan);
-    }
-
-    function resetFilterKartu() {
-        document.getElementById("filterStart").value = "";
-        document.getElementById("filterEnd").value = "";
-        tglMulai = "";
-        tglAkhir = "";
-        bukaKartuStok(currentBarangId, currentBarangNama, currentBarangSatuan);
-    }
-
+    // FUNGSI PDF KARTU STOK
     function downloadPDFKartu() {
-        if(!currentBarangNama || currentBarangNama === "Material") return alert("Buka kartu stok material terlebih dahulu!");
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        const companyName = "PT. NUSANTARA LAND DEVELOPMENT";
-        const companyAddress = "Perumahan Sunrise City Maros, Desa tellumpoccoe, Kec. Marusu, Kab. Marusu, Sulawesi Selatan";
-        
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(18);
-        doc.text(companyName, 105, 15, { align: "center" });
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.text(companyAddress, 105, 22, { align: "center" });
-
-        doc.setLineWidth(1);
-        doc.line(14, 28, 196, 28);
-        doc.setLineWidth(0.5);
-        doc.line(14, 30, 196, 30);
-
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
-        doc.text("KARTU STOK MATERIAL", 105, 40, { align: "center" });
-
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text(`Nama Material :`, 14, 50);
-        doc.setFont("helvetica", "bold");
-        doc.text(currentBarangNama, 45, 50);
-        
-        doc.setFont("helvetica", "normal");
-        doc.text(`Satuan Unit     :`, 14, 55);
-        doc.text(currentBarangSatuan, 45, 55);
-
-        doc.text(`Harga Estimasi :`, 14, 60);
-        doc.text(formatRupiah(currentBarangHarga), 45, 60);
-
-        const tglCetak = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        doc.text(`Dicetak Tanggal : ${tglCetak}`, 196, 50, { align: "right" });
-        doc.text(`User Pencetak   : Admin Gudang`, 196, 55, { align: "right" });
-
-        doc.autoTable({
-            html: '#tabelKartuStok',
-            startY: 65,
-            theme: 'grid',
-            styles: {
-                fontSize: 9,
-                cellPadding: 2,
-                font: 'helvetica'
-            },
-            headStyles: {
-                fillColor: [44, 62, 80],
-                textColor: 255,
-                fontStyle: 'bold',
-                halign: 'center'
-            },
-            columnStyles: {
-                0: { halign: 'center', cellWidth: 25 },
-                1: { cellWidth: 25 },
-                2: { cellWidth: 'auto' },
-                3: { halign: 'right', textColor: [22, 163, 74] },
-                4: { halign: 'right', textColor: [220, 38, 38] },
-                5: { halign: 'right', fontStyle: 'bold', fillColor: [240, 249, 255] }
-            },
-            didDrawPage: function () {
-                let str = 'Halaman ' + doc.internal.getNumberOfPages();
-                doc.setFontSize(8);
-                doc.text(str, 196, 290, { align: 'right' });
-            }
-        });
-
-        let finalY = doc.lastAutoTable.finalY + 15;
-        if (finalY > 250) {
-            doc.addPage();
-            finalY = 20;
-        }
-
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text("Dibuat Oleh,", 30, finalY, { align: "center" });
-        doc.text("( Eka )", 30, finalY + 25, { align: "center" });
-        doc.text("Diketahui Oleh,", 105, finalY, { align: "center" });
-        doc.text("( Didin )", 105, finalY + 25, { align: "center" });
-        doc.text("Diverifikasi Oleh,", 170, finalY, { align: "center" });
-        doc.text("( Wahyuni )", 170, finalY + 25, { align: "center" });
-
-        doc.save(`Kartu_Stok_${currentBarangNama.replace(/\s/g, "_")}.pdf`);
+        const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        doc.setFontSize(16); doc.text("KARTU STOK MATERIAL", 105, 15, { align: "center" });
+        doc.setFontSize(10); doc.text(`Nama Material: ${currentBarangNama}`, 14, 25);
+        doc.autoTable({ html: '#tabelKartuStok', startY: 30, theme: 'grid', headStyles: { fillColor: [50, 50, 50] } });
+        doc.save(`Kartu_Stok_${currentBarangNama}.pdf`);
     }
+
+    // FUNGSI PDF MUTASI
+    async function downloadLaporanMutasi(e) {
+        const start = document.getElementById("laporanStart").value; const end = document.getElementById("laporanEnd").value;
+        if(!start || !end) return alert("Pilih tanggal!");
+        const { data } = await client.from('stok_history').select('*, master_stok(nama_barang, satuan)').gte('created_at', start).lte('created_at', end);
+        const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        doc.text("LAPORAN MUTASI MATERIAL", 105, 15, { align: "center" });
+        doc.autoTable({ head: [['No','Barang','Jenis','Masuk','Keluar']], body: data.map((r,i)=>[i+1, r.master_stok?.nama_barang, r.jenis_transaksi, r.jumlah > 0 ? r.jumlah : '-', r.jumlah < 0 ? Math.abs(r.jumlah) : '-']), startY: 25 });
+        doc.save("Laporan_Mutasi.pdf");
+    }
+
+    function proteksiFitur(aksi) { const p = prompt("Password:"); if(p==="SUPERADMIN") eksekusiFitur(aksi); }
+    function eksekusiFitur(aksi) { if(aksi==='SINKRON') sinkronkanSaldoOtomatis(); if(aksi==='OPNAME') bukaModal('OPNAME'); }
+    function bukaModal(j) { document.getElementById("modalForm").classList.remove("hidden"); document.getElementById("jenisInput").value = j; if(j==='PAKAI') document.getElementById("divProyek").classList.remove("hidden"); else document.getElementById("divProyek").classList.add("hidden"); }
+    function tutupModal() { document.getElementById("modalForm").classList.add("hidden"); }
+    function tutupModalKartu() { document.getElementById("modalKartuStok").classList.add("hidden"); }
+    async function loadProyekDropdown() { const { data } = await client.from('master_proyek').select('nama_proyek').eq('status','BERJALAN'); if(data) { const s = document.getElementById("pilihProyek"); s.innerHTML = "<option value=''>-- Pilih Proyek --</option>"; data.forEach(p => { const o = document.createElement('option'); o.value = p.nama_proyek; o.text = p.nama_proyek; s.appendChild(o); }); } }
+    async function loadMutasiBawah() { const { data } = await client.from('stok_history').select('*, master_stok(nama_barang)').order('created_at', {ascending:false}).limit(20); const tb = document.getElementById("bodyMutasi"); tb.innerHTML = ""; data.forEach(r => { tb.innerHTML += `<tr class="border-b text-xs"><td class="p-2">${new Date(r.created_at).toLocaleDateString()}</td><td class="p-2 font-bold">${r.master_stok?.nama_barang}</td><td class="p-2">${r.jenis_transaksi}</td><td class="p-2 text-right">${r.jumlah>0?r.jumlah:'-'}</td><td class="p-2 text-right">${r.jumlah<0?Math.abs(r.jumlah):'-'}</td></tr>`; }); }
+    function isiDropdown() { const s = document.getElementById("pilihBarang"); s.innerHTML = "<option value=''>-- Pilih --</option>"; masterDataMemori.forEach(i => { const o = document.createElement('option'); o.value = i.id; o.text = i.nama_barang; o.setAttribute('data-stok', i.total_stok); s.appendChild(o); }); $('#pilihBarang').select2({width:'100%'}); }
+
+    initData();
   </script>
 </body>
 </html>

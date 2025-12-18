@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Accounting - Verifikasi Material</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 font-sans p-6">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">Verifikasi Pengeluaran Material</h1>
+        <p class="text-sm text-gray-500">Validasi pemakaian harian sebelum masuk ke Jurnal Umum</p>
+      </div>
+      <a href="dashboard_finance.html" class="bg-gray-600 text-white px-4 py-2 rounded text-sm font-bold"><i class="fas fa-arrow-left mr-2"></i>Dashboard</a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+      <table class="w-full text-left border-collapse">
+        <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold">
+          <tr>
+            <th class="p-4 border-b">Tanggal</th>
+            <th class="p-4 border-b">Proyek</th>
+            <th class="p-4 border-b">Material & Qty</th>
+            <th class="p-4 border-b text-right">Total Biaya</th>
+            <th class="p-4 border-b text-center">Bukti</th>
+            <th class="p-4 border-b text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="bodyVerifikasi">
+          <tr><td colspan="6" class="p-10 text-center text-gray-400">Memuat antrean verifikasi...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
+    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+    async function loadWaitingList() {
+      const { data, error } = await client
+        .from('verifikasi_material')
+        .select(`*, master_stok(nama_barang, satuan)`)
+        .eq('status', 'WAITING')
+        .order('tanggal', { ascending: false });
+
+      const tbody = document.getElementById("bodyVerifikasi");
+      tbody.innerHTML = "";
+
+      if(!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400 italic">Semua data telah diverifikasi.</td></tr>`;
+        return;
+      }
+
+      data.forEach(item => {
+        tbody.innerHTML += `
+          <tr class="hover:bg-gray-50 border-b transition">
+            <td class="p-4 text-sm">${new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
+            <td class="p-4 font-bold text-blue-800">${item.nama_proyek}</td>
+            <td class="p-4 text-sm">
+                <span class="font-bold">${item.master_stok?.nama_barang || 'Item'}</span><br>
+                <span class="text-xs text-gray-500">${item.jumlah} ${item.master_stok?.satuan}</span>
+            </td>
+            <td class="p-4 text-right font-mono font-bold text-green-700">${fmt(item.total_biaya)}</td>
+            <td class="p-4 text-center">
+                ${item.bukti_nota ? `<a href="${item.bukti_nota}" target="_blank" class="text-blue-500 hover:underline text-xs font-bold"><i class="fas fa-image"></i> Lihat</a>` : '-'}
+            </td>
+            <td class="p-4 text-center flex gap-2 justify-center">
+                <button onclick="postingKeJurnal(${item.id}, ${item.total_biaya}, '${item.nama_proyek}', '${item.keterangan}')" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-green-700">Approve & Post</button>
+                <button onclick="rejectItem(${item.id})" class="bg-red-100 text-red-600 px-3 py-1.5 rounded text-xs font-bold hover:bg-red-200">Reject</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    async function postingKeJurnal(id, total, proyek, ket) {
+      if(!confirm("Posting pengeluaran ini ke Jurnal Umum?")) return;
+
+      const { error: errJurnal } = await client.from('jurnal_umum').insert([
+        { tanggal: new Date(), nomor_referensi: 'MAT-'+id, keterangan: `Material: ${proyek} - ${ket}`, nama_akun: 'Beban Proyek', debit: total, kredit: 0 },
+        { tanggal: new Date(), nomor_referensi: 'MAT-'+id, keterangan: `Material: ${proyek} - ${ket}`, nama_akun: 'Persediaan Material', debit: 0, kredit: total }
+      ]);
+
+      if(!errJurnal) {
+        await client.from('verifikasi_material').update({ status: 'POSTED' }).eq('id', id);
+        alert("✅ Berhasil diposting!");
+        loadWaitingList();
+      } else {
+        alert("Gagal posting: " + errJurnal.message);
+      }
+    }
+
+    async function rejectItem(id) {
+      if(!confirm("Batalkan verifikasi dan tandai sebagai Ditolak?")) return;
+      await client.from('verifikasi_material').update({ status: 'REJECTED' }).eq('id', id);
+      alert("✅ Transaksi ditolak.");
+      loadWaitingList();
+    }
+
+    loadWaitingList();
+  </script>
+</body>
+</html>
