@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Keuangan Upah Tukang</title>
+  <title>Keuangan Upah Tukang - PT NLD</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -16,143 +16,81 @@
   
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-    
-    /* TABLE STYLES */
-    .table-container { border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); background: white; border-radius: 8px; overflow: hidden; }
-    .th-excel { background-color: #f8fafc; color: #475569; font-weight: 800; border-bottom: 2px solid #e2e8f0; text-align: center; padding: 12px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    .td-excel { border-bottom: 1px solid #f1f5f9; padding: 10px 12px; color: #334155; vertical-align: middle; font-size: 0.85rem; }
-    
-    /* ROWS COLOR */
-    .row-group-header { background-color: #f1f5f9; font-weight: bold; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; color: #64748b; }
-    .row-subtotal { background-color: #22c55e !important; color: white !important; font-weight: bold; }
-    .row-grandtotal { background-color: #fffbeb; font-weight: 800; border-top: 2px solid #f59e0b; font-size: 1rem; color: #b45309; }
-    .row-blok-header { background-color: #0f172a; color: white; font-weight: bold; text-align: left; padding-left: 15px; }
-
-    /* BUTTONS */
-    .btn-action { padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; transition: 0.2s; display: inline-flex; items-center; gap: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor: pointer; }
-    .btn-ajukan { background: #3b82f6; color: white; } .btn-ajukan:hover { background: #2563eb; }
-    .btn-back { background: #475569; color: white; padding: 8px 16px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; }
-
-    /* TAB NAV - HIGH CONTRAST */
-    .tab-btn { flex: 1; padding: 14px; text-align: center; font-weight: 700; border-bottom: 4px solid transparent; color: #94a3b8; cursor: pointer; background: #fff; transition: all 0.2s; font-size: 0.9rem; border-right: 1px solid #f1f5f9; }
+    .th-excel { background-color: #f8fafc; color: #1e293b; font-weight: 800; border-bottom: 2px solid #cbd5e1; text-align: center; padding: 12px; font-size: 0.7rem; text-transform: uppercase; }
+    .td-excel { border-bottom: 1px solid #e2e8f0; padding: 10px 12px; color: #334155; font-size: 0.85rem; }
+    .row-blok-header { background-color: #0f172a; color: white; font-weight: bold; }
+    .tab-btn { flex: 1; padding: 14px; text-align: center; font-weight: 700; border-bottom: 4px solid transparent; color: #94a3b8; cursor: pointer; background: #fff; transition: all 0.2s; }
     .tab-btn.active-blue { background: #2563eb; color: white; border-bottom-color: #1e40af; }
     .tab-btn.active-green { background: #16a34a; color: white; border-bottom-color: #15803d; }
     .tab-btn.active-purple { background: #9333ea; color: white; border-bottom-color: #7e22ce; }
-    .tab-btn:hover:not(.active-blue):not(.active-green):not(.active-purple) { background: #f8fafc; color: #64748b; }
-
-    /* INPUTS */
-    .input-date { border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 8px; font-size: 0.85rem; width: 100%; text-align: center; font-weight: 600; color: #334155; }
-    .chk-big { width: 18px; height: 18px; cursor: pointer; accent-color: #16a34a; }
-
-    /* FLOATING ACTION BAR */
-    #actionBar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-top: 1px solid #cbd5e1; padding: 15px; box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.1); z-index: 50; display: none; justify-content: center; }
-
-    .ts-control { border-radius: 0.5rem; padding: 0.5rem; border-color: #e5e7eb; }
-    .ts-dropdown { border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    #actionBar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-top: 1px solid #cbd5e1; padding: 15px; box-shadow: 0 -10px 15px -3px rgba(0,0,0,0.1); z-index: 50; display: none; justify-content: center; }
+    .row-approved { background-color: #f0fdf4 !important; }
+    .row-rejected { background-color: #fef2f2 !important; }
   </style>
 </head>
-<body class="min-h-screen pb-32">
+<body class="min-h-screen pb-40">
 
   <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 shadow-sm">
-    <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
-        <div class="flex items-center gap-4 w-full md:w-auto">
-            <a href="siteplan.html" class="btn-back hover:bg-slate-700 shadow"><i class="fas fa-map"></i> Siteplan</a>
-            <div>
-                <h1 class="font-bold text-slate-800 text-lg">Keuangan Upah</h1>
-                <p class="text-[10px] text-slate-500 font-mono" id="statusPage">Kelola Pembayaran</p>
-            </div>
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <a href="siteplan.html" class="bg-slate-600 text-white p-2 rounded shadow hover:bg-slate-700 transition"><i class="fas fa-map mr-1"></i> Siteplan</a>
+            <h1 class="font-bold text-slate-800 tracking-tight text-lg italic uppercase">Management Upah Tukang</h1>
         </div>
-        
-        <div id="dropdownContainer" class="w-full md:w-auto">
-            <select id="pilihProyek" onchange="gantiProyek()" class="bg-blue-50 border border-blue-200 text-blue-900 text-sm rounded-lg font-bold w-full md:w-64 p-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="">-- Pilih Proyek --</option>
-            </select>
+        <div id="dropdownContainer" class="w-64">
+            <select id="pilihProyek" class="w-full font-bold"></select>
         </div>
     </div>
   </nav>
 
-  <main class="max-w-6xl mx-auto mt-6 px-2 md:px-4">
-
-    <div class="flex bg-white rounded-t-xl border border-b-0 border-slate-200 overflow-hidden shadow-sm">
-        <button onclick="setTab('pengajuan')" class="tab-btn active-blue" id="tabPengajuan">
-            <i class="fas fa-hard-hat mr-2"></i>Pengajuan
-        </button>
-        <button onclick="setTab('pembayaran')" class="tab-btn" id="tabPembayaran">
-            <i class="fas fa-money-bill-wave mr-2"></i>Pembayaran
-        </button>
-        <button onclick="setTab('lunas')" class="tab-btn" id="tabLunas">
-            <i class="fas fa-file-invoice mr-2"></i>Laporan / History
-        </button>
+  <main class="max-w-6xl mx-auto mt-6 px-4">
+    <div class="flex bg-white rounded-t-xl border border-slate-200 overflow-hidden shadow-sm">
+        <button onclick="setTab('pengajuan')" class="tab-btn active-blue" id="tabPengajuan"><i class="fas fa-hard-hat mr-2"></i>1. Pengajuan</button>
+        <button onclick="setTab('pembayaran')" class="tab-btn" id="tabPembayaran"><i class="fas fa-gavel mr-2"></i>2. Asistensi Rapat</button>
+        <button onclick="setTab('lunas')" class="tab-btn" id="tabLunas"><i class="fas fa-history mr-2"></i>3. History Lunas</button>
     </div>
 
-    <div class="bg-white border border-slate-200 rounded-b-xl shadow-lg p-0 min-h-[500px]">
-        
+    <div class="bg-white border border-slate-200 rounded-b-xl shadow-lg p-0 min-h-[550px]">
         <div id="panelFilter" class="hidden p-6 bg-purple-50 border-b border-purple-100">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <div class="md:col-span-5">
-                    <label class="block text-xs font-bold text-purple-800 uppercase mb-2">Pilih Proyek (Multiple)</label>
-                    <select id="filterProyekSelect" multiple class="w-full rounded-lg border border-purple-200 bg-white text-sm font-semibold text-purple-800 focus:ring-2 focus:ring-purple-300 p-3"></select>
-                    <p class="text-[10px] text-purple-400 mt-1 italic">Gunakan pilihan ini untuk memfilter laporan history.</p>
-                    <div class="mt-2 flex gap-2">
-                        <button onclick="selectAllProyek(true)" class="text-[10px] text-purple-600 font-bold hover:underline">Pilih Semua</button>
-                        <button onclick="selectAllProyek(false)" class="text-[10px] text-red-600 font-bold hover:underline">Reset</button>
-                    </div>
-                </div>
-
-                <div class="md:col-span-4">
-                    <label class="block text-xs font-bold text-purple-800 uppercase mb-2">Periode Pembayaran</label>
-                    <div class="flex items-center gap-2 mb-3">
-                        <input type="date" id="filterStart" class="input-date">
-                        <span class="text-slate-400">-</span>
-                        <input type="date" id="filterEnd" class="input-date">
-                    </div>
-                </div>
-                <div class="md:col-span-3 flex flex-col gap-2 justify-end">
-                    <button onclick="loadHistoryData()" class="bg-purple-600 text-white py-2 px-4 rounded-lg font-bold shadow hover:bg-purple-700 transition flex justify-center items-center gap-2">
-                        <i class="fas fa-search"></i> Tampilkan
-                    </button>
-                    <button onclick="downloadPDF()" id="btnDownloadPDF" disabled class="bg-red-600 text-white py-2 px-4 rounded-lg font-bold shadow hover:bg-red-700 transition flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <i class="fas fa-file-pdf"></i> PDF Laporan
-                    </button>
-                </div>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                <div class="md:col-span-10"><select id="filterProyekSelect" multiple class="w-full"></select></div>
+                <div class="md:col-span-2"><button onclick="loadHistoryData()" class="bg-purple-600 text-white w-full py-2.5 rounded font-bold shadow">TAMPILKAN</button></div>
             </div>
         </div>
 
         <div class="overflow-x-auto">
             <table class="w-full border-collapse">
-                <thead id="tableHead" class="bg-slate-100">
-                    </thead>
-                <tbody id="tabelBody">
-                    <tr><td class="p-10 text-center text-slate-400">Silakan pilih data...</td></tr>
-                </tbody>
+                <thead id="tableHead" class="bg-slate-50"></thead>
+                <tbody id="tabelBody"></tbody>
             </table>
         </div>
     </div>
-
   </main>
 
   <div id="actionBar">
-      <div class="max-w-6xl w-full flex justify-between items-center px-4">
-          <div>
-              <span class="block text-xs font-bold text-slate-500 uppercase">Total Dipilih</span>
-              <span class="text-xl font-black text-green-600" id="totalBayarLabel">Rp 0</span>
-              <span class="text-xs text-slate-400 ml-2" id="countBayarLabel">(0 Item)</span>
+      <div class="max-w-6xl w-full flex flex-col md:flex-row justify-between items-center px-4 gap-4">
+          <div class="text-center md:text-left">
+              <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Keputusan Rapat Asistensi</span>
+              <span class="text-2xl font-black text-emerald-600" id="totalBayarLabel">Rp 0</span>
+              <span class="text-xs text-slate-500 font-bold ml-2" id="countBayarLabel">(0 Item Disetujui)</span>
           </div>
-          <button onclick="prosesBayarMassal()" id="btnBayarMassal" disabled class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition flex items-center gap-2 transform active:scale-95">
-              <i class="fas fa-money-bill-wave"></i> BAYAR TERPILIH
-          </button>
+          <div class="flex gap-3">
+              <button onclick="downloadPDFDaftarAsistensi()" class="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl hover:bg-blue-700 transition flex items-center gap-3 border-b-4 border-blue-900 uppercase text-xs">
+                  <i class="fas fa-file-invoice"></i> Cetak Daftar Pengajuan
+              </button>
+              <button onclick="prosesBayarMassal()" id="btnBayarMassal" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-2xl hover:bg-indigo-700 transition flex items-center gap-3 border-b-4 border-indigo-900 uppercase text-xs">
+                  <i class="fas fa-print"></i> Eksekusi & Cetak BA
+              </button>
+          </div>
       </div>
   </div>
 
 <script>
-    // --- KONFIGURASI SUPABASE ---
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const fmt = (n) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(n);
-    const getToday = () => new Date().toISOString().split('T')[0];
 
-    // --- DATA MASTER ---
+    // Metadata Pekerjaan
     const MASTER_DATA = [
         { id: 1, items: [{n:"Bowplank",b:1,p:145000},{n:"Pondasi",b:3,p:435000},{n:"Sloof",b:3,p:435000},{n:"Kolom",b:3,p:435000},{n:"Urugan Tanah",b:1,p:145000}]},
         { id: 2, items: [{n:"Pasangan Batu Rata Kusen",b:7,p:1015000},{n:"Ringbalk",b:4,p:580000},{n:"Kuda-kuda",b:3,p:435000},{n:"Tiang Cor",b:1,p:145000}]},
@@ -160,363 +98,209 @@
         { id: 4, items: [{n:"Rangka Atap",b:8,p:1015000},{n:"Pemasangan Listplank",b:2,p:145000},{n:"Palfond",b:5,p:725000},{n:"Pasangan Tegel Luar Dalam",b:7,p:1450000},{n:"Plamour Luar dalam dan Acian",b:2,p:435000},{n:"WC",b:8,p:935000},{n:"Pemasangan Cover Dinding Fasad",b:1,p:145000}]},
         { id: 5, items: [{n:"Pengecetan dinding Luar dalam",b:7,p:725000},{n:"Pengecetan Kuseng",b:4,p:580000},{n:"Finishing",b:10,p:3110000}]}
     ];
+    let itemMeta = {}; MASTER_DATA.forEach(g => { g.items.forEach(i => { itemMeta[i.n] = { grup: g.id, bobot: i.b }; }); });
 
-    let itemMeta = {};
-    MASTER_DATA.forEach(g => { g.items.forEach(i => { itemMeta[i.n] = { grup: g.id, bobot: i.b }; }); });
-
-    // STATE
-    let activeProyek = "";
-    let activeTab = "pengajuan";
-    let historyDataRaw = [];
-    let inboxData = [];
-    let tomSelectProyekFilter = null;
-    let proyekOptions = [];
-    let selectProyekControl = null;
+    let activeProyek = ""; let inboxData = []; let decisionMap = {}; let tomSelectFilter = null;
 
     document.addEventListener("DOMContentLoaded", async () => {
-        const today = new Date();
-        document.getElementById('filterEnd').value = getToday();
-        document.getElementById('filterStart').value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-
-        await loadDropdownProyek();
-        await loadMultiSelectProyek();
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        const kavling = urlParams.get('kavling');
-        if(kavling) {
-            const select = document.getElementById('pilihProyek');
-            setTimeout(() => {
-                for(let i=0; i<select.options.length; i++){
-                    if(select.options[i].text.includes(kavling)){ select.selectedIndex = i; gantiProyek(); break; }
-                }
-            }, 500);
-        } else {
-            renderPengajuanView();
-        }
+        const { data: proyek } = await client.from('master_proyek').select('nama_proyek').eq('status','BERJALAN').order('nama_proyek');
+        const opt = proyek.map(p => ({ value: p.nama_proyek, text: p.nama_proyek }));
+        new TomSelect("#pilihProyek", { options: opt, placeholder: "-- Pilih Kavling --", onChange: (v) => { activeProyek = v; renderPengajuanView(); } });
+        tomSelectFilter = new TomSelect("#filterProyekSelect", { options: opt, plugins: ['remove_button'], placeholder: "-- Pilih Multiple --" });
+        setTab('pengajuan');
     });
 
-    // --- TAB NAVIGATION ---
     function setTab(tab) {
-        activeTab = tab;
-        const btns = document.querySelectorAll('.tab-btn');
-        btns.forEach(b => b.className = 'tab-btn'); 
-
-        const ddContainer = document.getElementById('dropdownContainer');
-        const panelFilter = document.getElementById('panelFilter');
-        const actionBar = document.getElementById('actionBar');
+        document.querySelectorAll('.tab-btn').forEach(b => b.className = 'tab-btn');
         const thead = document.getElementById('tableHead');
         const tbody = document.getElementById('tabelBody');
-
-        tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400"><i class="fas fa-circle-notch fa-spin text-2xl"></i></td></tr>`;
+        const actionBar = document.getElementById('actionBar');
+        const panelFilter = document.getElementById('panelFilter');
 
         if(tab === 'pengajuan') {
             document.getElementById('tabPengajuan').className = 'tab-btn active-blue';
-            ddContainer.style.display = 'block';
-            panelFilter.classList.add('hidden');
-            actionBar.style.display = 'none';
-            thead.innerHTML = `<tr><th class="th-excel w-12">No</th><th class="th-excel">Uraian Pekerjaan</th><th class="th-excel w-16">Bobot</th><th class="th-excel w-32">Nilai (Rp)</th><th class="th-excel w-32">Aksi</th></tr>`;
+            panelFilter.classList.add('hidden'); actionBar.style.display = 'none';
+            thead.innerHTML = `<tr><th class="th-excel w-12 text-center">No</th><th class="th-excel text-left">Uraian Pekerjaan</th><th class="th-excel w-16 text-center">Bobot</th><th class="th-excel w-32 text-right">Nilai</th><th class="th-excel w-32 text-center">Aksi</th></tr>`;
             renderPengajuanView();
-        } 
-        else if(tab === 'pembayaran') {
+        } else if(tab === 'pembayaran') {
             document.getElementById('tabPembayaran').className = 'tab-btn active-green';
-            ddContainer.style.display = 'none'; 
-            panelFilter.classList.add('hidden');
-            actionBar.style.display = 'flex'; 
-            thead.innerHTML = `<tr><th class="th-excel w-10"><input type="checkbox" onchange="toggleAllBayar(this)" class="chk-big"></th><th class="th-excel w-12">Tahap</th><th class="th-excel">Uraian Pekerjaan</th><th class="th-excel w-16">Bobot</th><th class="th-excel w-32">Nilai (Rp)</th><th class="th-excel w-32">Tgl Bayar</th></tr>`;
+            panelFilter.classList.add('hidden'); actionBar.style.display = 'flex';
+            thead.innerHTML = `<tr><th class="th-excel w-12 text-center">Unit</th><th class="th-excel text-left">Pekerjaan</th><th class="th-excel w-20 text-center">Bobot</th><th class="th-excel w-32 text-right">Nilai</th><th class="th-excel w-32 text-center">Tgl Bayar</th><th class="th-excel w-44 text-center">KEPUTUSAN RAPAT</th></tr>`;
             renderPembayaranGlobal();
-        } 
-        else { 
+        } else {
             document.getElementById('tabLunas').className = 'tab-btn active-purple';
-            ddContainer.style.display = 'none'; 
-            panelFilter.classList.remove('hidden');
-            actionBar.style.display = 'none';
-            thead.innerHTML = `<tr><th class="th-excel">Proyek</th><th class="th-excel">Tgl Cair</th><th class="th-excel">No Urut</th><th class="th-excel">Pekerjaan</th><th class="th-excel">Bobot</th><th class="th-excel text-right">Total Cair</th></tr>`;
-            tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-slate-400 italic">Gunakan filter di atas untuk menampilkan laporan.</td></tr>`;
+            panelFilter.classList.remove('hidden'); actionBar.style.display = 'none';
+            thead.innerHTML = `<tr><th class="th-excel">Proyek</th><th class="th-excel">Tgl Cair</th><th class="th-excel">Tahap</th><th class="th-excel">Pekerjaan</th><th class="th-excel">Bobot</th><th class="th-excel text-right">Total Cair</th><th class="th-excel text-center">Void</th></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center italic">Gunakan filter untuk history.</td></tr>`;
         }
     }
 
-    // --- MULTI SELECT DROPDOWN LOGIC ---
-    async function loadMultiSelectProyek() {
-        const select = document.getElementById("filterProyekSelect");
-        const { data } = await client.from('master_proyek').select('nama_proyek').order('nama_proyek', {ascending: true});
-        proyekOptions = (data || []).map(p => p.nama_proyek);
-        if(proyekOptions.length === 0) {
-            select.innerHTML = `<option value="" disabled>Belum ada proyek aktif.</option>`;
-        } else {
-            select.innerHTML = proyekOptions.map(p => `<option value="${p}">${p}</option>`).join('');
-        }
-
-        if(tomSelectProyekFilter) tomSelectProyekFilter.destroy();
-        tomSelectProyekFilter = new TomSelect(select, {
-            plugins: ['remove_button'],
-            placeholder: '-- Pilih Proyek --',
-            closeAfterSelect: false,
-            hideSelected: true
-        });
-    }
-
-    function selectAllProyek(check) {
-        if(!tomSelectProyekFilter) return;
-        if(check && proyekOptions.length) {
-            tomSelectProyekFilter.setValue(proyekOptions, true);
-        } else {
-            tomSelectProyekFilter.clear(true);
-        }
-    }
-
-    // --- DATA LOADERS ---
-    async function loadDropdownProyek() {
-        const select = document.getElementById("pilihProyek");
-        const { data } = await client.from('master_proyek').select('nama_proyek').eq('status','BERJALAN').order('nama_proyek', {ascending: true});
-        select.innerHTML = '<option value="">-- Ketik Cari Proyek... --</option>';
-
-        const optGudang = document.createElement('option');
-        optGudang.value = "Gudang Utama";
-        optGudang.text = "Gudang Utama (Stok)";
-        select.appendChild(optGudang);
-
-        if(data) {
-            data.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.nama_proyek;
-                opt.text = p.nama_proyek;
-                select.appendChild(opt);
-            });
-        }
-
-        if (selectProyekControl) selectProyekControl.destroy();
-        selectProyekControl = new TomSelect("#pilihProyek", {
-            create: false,
-            sortField: { field: "text", direction: "asc" },
-            placeholder: "Ketik nama proyek...",
-            plugins: ['dropdown_input'],
-            onChange: () => gantiProyek()
-        });
-    }
-
-    function gantiProyek() {
-        activeProyek = document.getElementById("pilihProyek").value;
-        if(activeTab === 'pengajuan') renderPengajuanView();
-    }
-
-    // --- TAB 1: PENGAJUAN ---
-    async function renderPengajuanView() {
-        const tbody = document.getElementById("tabelBody");
-        if(!activeProyek) { tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400">Pilih Proyek Di Atas ↗️</td></tr>`; return; }
-        
-        const { data: pengajuan } = await client.from('pengajuan_upah').select('nama_pekerjaan, status').eq('kavling', activeProyek);
-        const { data: transaksi } = await client.from('transaksi_upah').select('nama_pekerjaan').eq('kavling', activeProyek);
-        let statusMap = {};
-        if(pengajuan) pengajuan.forEach(p => { if(p.status === 'DIAJUKAN') statusMap[p.nama_pekerjaan] = 'DIAJUKAN'; });
-        if(transaksi) transaksi.forEach(t => statusMap[t.nama_pekerjaan] = 'LUNAS');
-        
-        tbody.innerHTML = "";
-        let totalBobot = 0, totalRp = 0;
-        MASTER_DATA.forEach(g => {
-            let subB=0, subRp=0;
-            tbody.innerHTML += `<tr class="row-group-header"><td class="text-center py-2">NO ${g.id}</td><td colspan="4"></td></tr>`;
-            g.items.forEach(i => {
-                subB+=i.b; subRp+=i.p;
-                const st = statusMap[i.n];
-                let btn = st==='LUNAS' ? `<span class="text-green-600 font-bold text-xs"><i class="fas fa-check"></i> SELESAI</span>` : (st==='DIAJUKAN' ? `<span class="text-amber-600 font-bold text-xs"><i class="fas fa-clock"></i> DIPROSES</span>` : `<button onclick="ajukanItem('${i.n}',${i.p},${i.b},'${g.id}')" class="btn-action btn-ajukan">Ajukan</button>`);
-                tbody.innerHTML += `<tr class="border-b ${st==='LUNAS'?'bg-green-50 opacity-60':''}"><td class="td-excel text-center">${g.id}</td><td class="td-excel">${i.n}</td><td class="td-excel text-center">${i.b}%</td><td class="td-excel text-right">${fmt(i.p)}</td><td class="td-excel text-center">${btn}</td></tr>`;
-            });
-            totalBobot+=subB; totalRp+=subRp;
-            tbody.innerHTML += `<tr class="row-subtotal"><td></td><td class="text-center">TOTAL</td><td class="text-center">${subB}%</td><td class="text-right px-2">${fmt(subRp)}</td><td></td></tr>`;
-        });
-        tbody.innerHTML += `<tr class="row-grandtotal"><td colspan="2" class="text-center py-3">GRAND TOTAL</td><td class="text-center py-3">${totalBobot}%</td><td class="text-right px-2">${fmt(totalRp)}</td><td></td></tr>`;
-    }
-
-    async function ajukanItem(nama, nilai, bobot, tahap) {
-        if(!confirm(`Ajukan "${nama}"?`)) return;
-        const {error} = await client.from('pengajuan_upah').insert([{kavling:activeProyek, tahap, nama_pekerjaan:nama, bobot, nilai, status:'DIAJUKAN', tanggal_ajukan:new Date()}]);
-        if(!error) renderPengajuanView(); else alert(error.message);
-    }
-
-    // --- TAB 2: PEMBAYARAN MASSAL ---
     async function renderPembayaranGlobal() {
-        const tbody = document.getElementById("tabelBody");
         const { data: list } = await client.from('pengajuan_upah').select('*').eq('status','DIAJUKAN').order('kavling');
-        tbody.innerHTML = "";
-        inboxData = list || [];
-        updateTotalBayar(); 
-
-        if(inboxData.length===0) { tbody.innerHTML=`<tr><td colspan="6" class="p-12 text-center text-slate-400">Tidak ada tagihan masuk.</td></tr>`; return; }
-        
-        let curKav = "";
-        inboxData.forEach((item, idx) => {
-            if(item.kavling !== curKav) {
-                curKav = item.kavling;
-                tbody.innerHTML += `<tr class="row-blok-header"><td colspan="6" class="py-2"><i class="fas fa-home text-yellow-400 mr-2"></i> ${curKav}</td></tr>`;
-            }
-            tbody.innerHTML += `
-                <tr class="bg-white border-b hover:bg-green-50">
-                    <td class="td-excel text-center">
-                        <input type="checkbox" class="chk-bayar chk-big" data-idx="${idx}" onchange="updateTotalBayar()">
-                    </td>
-                    <td class="td-excel text-center text-slate-400">${item.tahap}</td>
-                    <td class="td-excel font-bold">${item.nama_pekerjaan}</td>
-                    <td class="td-excel text-center">${item.bobot}%</td>
-                    <td class="td-excel text-right font-mono text-green-700">${fmt(item.nilai)}</td>
-                    <td class="p-1"><input type="date" id="date_${idx}" value="${getToday()}" class="input-date"></td>
-                </tr>`;
-        });
-    }
-
-    function toggleAllBayar(source) {
-        document.querySelectorAll('.chk-bayar').forEach(cb => cb.checked = source.checked);
-        updateTotalBayar();
-    }
-
-    function updateTotalBayar() {
-        let total = 0; let count = 0;
-        document.querySelectorAll('.chk-bayar:checked').forEach(cb => {
-            const idx = cb.getAttribute('data-idx');
-            total += inboxData[idx].nilai;
-            count++;
-        });
-        document.getElementById('totalBayarLabel').innerText = fmt(total);
-        document.getElementById('countBayarLabel').innerText = `(${count} Item)`;
-        
-        const btn = document.getElementById('btnBayarMassal');
-        if(count > 0) {
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fas fa-check-double"></i> BAYAR (${count}) ITEM`;
-        } else {
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fas fa-money-bill-wave"></i> BAYAR TERPILIH`;
-        }
-    }
-
-    async function prosesBayarMassal() {
-        const checked = document.querySelectorAll('.chk-bayar:checked');
-        if(checked.length === 0) return;
-        if(!confirm(`Yakin memproses pembayaran untuk ${checked.length} item terpilih?`)) return;
-
-        document.getElementById('btnBayarMassal').disabled = true;
-        document.getElementById('btnBayarMassal').innerText = "Memproses...";
-
-        try {
-            const inserts = [];
-            const idsToDelete = [];
-            checked.forEach(cb => {
-                const idx = cb.getAttribute('data-idx');
-                const item = inboxData[idx];
-                const tgl = document.getElementById(`date_${idx}`).value;
-                inserts.push({
-                    kavling: item.kavling, nama_pekerjaan: item.nama_pekerjaan,
-                    nilai_bayar: item.nilai, status: 'LUNAS', tanggal_bayar: tgl
-                });
-                idsToDelete.push(item.id);
-            });
-
-            const { error: errIns } = await client.from('transaksi_upah').insert(inserts);
-            if(errIns) throw errIns;
-            const { error: errDel } = await client.from('pengajuan_upah').delete().in('id', idsToDelete);
-            if(errDel) throw errDel;
-
-            alert("✅ Pembayaran Berhasil Diproses!");
-            renderPembayaranGlobal();
-        } catch (e) {
-            alert("Gagal: " + e.message);
-            document.getElementById('btnBayarMassal').disabled = false;
-        }
-    }
-
-    // --- TAB 3: HISTORY ---
-    async function loadHistoryData() {
-        const tbody = document.getElementById("tabelBody");
-        const start = document.getElementById("filterStart").value;
-        const end = document.getElementById("filterEnd").value;
-        const selectedProyek = tomSelectProyekFilter ? tomSelectProyekFilter.getValue() : [];
-
-        if(selectedProyek.length === 0) { alert("Pilih minimal satu proyek!"); return; }
-
-        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-purple-500"></i> Mengambil data...</td></tr>`;
-
-        const { data, error } = await client.from('transaksi_upah').select('*').in('kavling', selectedProyek).gte('tanggal_bayar', start).lte('tanggal_bayar', end).order('tanggal_bayar', {ascending: true});
-
-        if(error) { tbody.innerHTML = `<tr><td colspan="6" class="text-red-500 text-center">Error: ${error.message}</td></tr>`; return; }
-        
-        historyDataRaw = data || [];
-        if(historyDataRaw.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Tidak ada data.</td></tr>`;
-            document.getElementById('btnDownloadPDF').disabled = true;
+        inboxData = list || []; decisionMap = {};
+        const tbody = document.getElementById("tabelBody"); tbody.innerHTML = "";
+        if(inboxData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center font-bold italic animate-bounce">TIDAK ADA TAGIHAN MASUK...</td></tr>`;
             return;
         }
-
-        document.getElementById('btnDownloadPDF').disabled = false;
-        tbody.innerHTML = "";
-        let grandTotal = 0;
-
-        historyDataRaw.forEach(item => {
-            const meta = itemMeta[item.nama_pekerjaan] || { grup: '-', bobot: 0 };
-            grandTotal += item.nilai_bayar;
-            tbody.innerHTML += `<tr class="hover:bg-purple-50 border-b transition"><td class="td-excel font-bold text-slate-700">${item.kavling}</td><td class="td-excel text-center">${new Date(item.tanggal_bayar).toLocaleDateString('id-ID')}</td><td class="td-excel text-center text-slate-500 font-mono">Tahap ${meta.grup}</td><td class="td-excel">${item.nama_pekerjaan}</td><td class="td-excel text-center">${meta.bobot}%</td><td class="td-excel text-right font-bold text-purple-700">${fmt(item.nilai_bayar)}</td></tr>`;
+        let curK = ""; inboxData.forEach((item, idx) => {
+            decisionMap[idx] = 'PENDING';
+            if(item.kavling !== curK) { curK = item.kavling; tbody.innerHTML += `<tr class="bg-slate-800 text-white font-black uppercase text-[10px]"><td colspan="6" class="p-2 px-4 italic">KAVLING: ${curK}</td></tr>`; }
+            tbody.innerHTML += `
+                <tr class="border-b" id="row-${idx}">
+                    <td class="td-excel text-center font-bold text-slate-400 text-xs">${item.kavling}</td>
+                    <td class="td-excel font-bold text-slate-700">${item.nama_pekerjaan}</td>
+                    <td class="td-excel text-center font-bold">${item.bobot}%</td>
+                    <td class="td-excel text-right font-mono font-black text-slate-700">${fmt(item.nilai)}</td>
+                    <td class="p-2"><input type="date" id="date-${idx}" class="border p-1.5 text-[10px] font-bold rounded w-full bg-slate-50" value="${new Date().toISOString().split('T')[0]}"></td>
+                    <td class="td-excel text-center px-4">
+                        <div class="flex justify-center gap-1">
+                            <button onclick="setDecision(${idx}, 'APPROVE')" id="btn-app-${idx}" class="border px-2 py-1 rounded text-[10px] font-black hover:bg-green-50 uppercase">Setuju</button>
+                            <button onclick="setDecision(${idx}, 'REJECT')" id="btn-rej-${idx}" class="border px-2 py-1 rounded text-[10px] font-black hover:bg-red-50 uppercase">Tolak</button>
+                        </div>
+                    </td>
+                </tr>`;
         });
-
-        tbody.innerHTML += `<tr class="row-grandtotal"><td colspan="5" class="p-3 text-right uppercase tracking-wider">Total Pembayaran</td><td class="p-3 text-right">${fmt(grandTotal)}</td></tr>`;
+        updateSummary();
     }
 
-    async function downloadPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const start = document.getElementById("filterStart").value;
-        const end = document.getElementById("filterEnd").value;
+    function setDecision(idx, status) {
+        const row = document.getElementById(`row-${idx}`);
+        decisionMap[idx] = status;
+        row.className = status === 'APPROVE' ? "border-b row-approved" : "border-b row-rejected";
+        document.getElementById(`btn-app-${idx}`).className = status === 'APPROVE' ? "bg-green-600 text-white px-2 py-1 rounded text-[10px] font-black" : "border px-2 py-1 rounded text-[10px] font-black";
+        document.getElementById(`btn-rej-${idx}`).className = status === 'REJECT' ? "bg-red-600 text-white px-2 py-1 rounded text-[10px] font-black" : "border px-2 py-1 rounded text-[10px] font-black";
+        updateSummary();
+    }
+
+    function updateSummary() {
+        let t = 0; let c = 0;
+        Object.keys(decisionMap).forEach(idx => { if(decisionMap[idx] === 'APPROVE') { t += inboxData[idx].nilai; c++; } });
+        document.getElementById('totalBayarLabel').innerText = fmt(t);
+        document.getElementById('countBayarLabel').innerText = `(${c} Item Disetujui)`;
+    }
+
+    // --- JURUS PDF CANGGIH: SATU KOTAK PER BLOK ---
+    function downloadPDFDaftarAsistensi() {
+        if(inboxData.length === 0) return alert("Antrean kosong!");
+        const { jsPDF } = window.jspdf; const doc = new jsPDF();
         
         doc.setFontSize(14); doc.setFont("helvetica", "bold");
         doc.text("PT. NUSANTARA LAND DEVELOPMENT", 105, 15, { align: "center" });
-        doc.setFontSize(9); doc.setFont("helvetica", "normal");
-        doc.text("Jl. CitraLand City, Centre Point of Indonesia (CPI), Makassar, Indonesia", 105, 20, { align: "center" });
-        doc.setLineWidth(0.5); doc.line(14, 25, 196, 25);
-        
-        doc.setFontSize(12); doc.setFont("helvetica", "bold");
-        doc.text("LAPORAN PEMBAYARAN UPAH TUKANG", 105, 33, { align: "center" });
-        doc.setFontSize(10); doc.setFont("helvetica", "normal");
-        doc.text(`Periode: ${new Date(start).toLocaleDateString('id-ID')} s/d ${new Date(end).toLocaleDateString('id-ID')}`, 105, 38, { align: "center" });
+        doc.setFontSize(10); doc.text("DAFTAR PENGAJUAN UPAH TUKANG (PRE-MEETING ASISTENSI)", 105, 20, { align: "center" });
+        doc.line(14, 25, 196, 25);
 
-        let body = [];
-        let grandTotal = 0;
-        historyDataRaw.sort((a,b) => a.kavling.localeCompare(b.kavling) || new Date(a.tanggal_bayar) - new Date(b.tanggal_bayar));
-        let currentBlok = ""; let subTotal = 0;
+        // KELOMPOKKAN PER BLOK UNTUK PDF
+        const grouped = {}; inboxData.forEach(item => { if(!grouped[item.kavling]) grouped[item.kavling] = []; grouped[item.kavling].push(item); });
 
-        historyDataRaw.forEach((item, index) => {
+        let currentY = 32; let grandTotal = 0;
+        Object.keys(grouped).forEach(kav => {
+            if (currentY > 240) { doc.addPage(); currentY = 20; }
+            doc.setFontSize(9); doc.setFont("helvetica", "bold");
+            doc.text(`KAVLING: ${kav}`, 14, currentY); currentY += 3;
+
+            let subTotal = 0;
+            const body = grouped[kav].map((r, i) => { subTotal += r.nilai; grandTotal += r.nilai; return [i+1, r.nama_pekerjaan, `${r.bobot}%`, fmt(r.nilai), "........"]; });
+            
+            doc.autoTable({
+                startY: currentY, head: [['No', 'Uraian Pekerjaan', 'Bobot', 'Nilai', 'Paraf']], body: body,
+                theme: 'grid', headStyles: { fillColor: [51, 65, 85] }, styles: { fontSize: 8 },
+                foot: [[{ content: `TOTAL UNIT ${kav}`, colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } }, { content: fmt(subTotal), styles: { fontStyle: 'bold' } }, '']]
+            });
+            currentY = doc.lastAutoTable.finalY + 10;
+        });
+
+        doc.setFontSize(11); doc.text(`GRAND TOTAL PENGAJUAN: ${fmt(grandTotal)}`, 14, currentY + 5);
+        renderSignatures(doc, currentY + 20);
+        doc.save(`Draft_Asistensi_Rapat.pdf`);
+    }
+
+    async function prosesBayarMassal() {
+        const listS = []; const idS = []; const idR = [];
+        Object.keys(decisionMap).forEach(idx => {
+            const itm = inboxData[idx];
+            if(decisionMap[idx] === 'APPROVE') { listS.push({ kavling: itm.kavling, nama_pekerjaan: itm.nama_pekerjaan, nilai_bayar: itm.nilai, status: 'LUNAS', tanggal_bayar: document.getElementById(`date-${idx}`).value }); idS.push(itm.id); }
+            else if(decisionMap[idx] === 'REJECT') idR.push(itm.id);
+        });
+        if(idS.length === 0 && idR.length === 0) return alert("Pilih keputusan dulu!");
+        if(!confirm(`Eksekusi hasil rapat?\nSetuju: ${idS.length}\nTolak: ${idR.length}`)) return;
+
+        try {
+            if(idS.length > 0) { await client.from('transaksi_upah').insert(listS); await client.from('pengajuan_upah').delete().in('id', idS); }
+            if(idR.length > 0) { for(let id of idR) { const itm = inboxData.find(x => x.id === id); await client.from('pengajuan_upah').update({ nama_pekerjaan: `${itm.nama_pekerjaan} (REJECTED RAPAT)`, tanggal_ajukan: new Date() }).eq('id', id); } }
+            
+            // CETAK BERITA ACARA FINAL
+            generateBAFinal(listS, idR);
+            alert("✅ Berhasil diproses!"); renderPembayaranGlobal();
+        } catch (e) { alert(e.message); }
+    }
+
+    function generateBAFinal(dataSetuju, dataTolakIds) {
+        const { jsPDF } = window.jspdf; const doc = new jsPDF();
+        doc.setFont("helvetica", "bold"); doc.text("PT. NUSANTARA LAND DEVELOPMENT", 105, 15, { align: "center" });
+        doc.setFontSize(10); doc.text("BERITA ACARA HASIL KEPUTUSAN ASISTENSI", 105, 20, { align: "center" });
+        doc.line(14, 25, 196, 25);
+
+        // Tabel Setuju Per Kotak Blok
+        doc.text("A. DAFTAR DISETUJUI (CAIR)", 14, 35);
+        let grandS = 0;
+        const bodyS = dataSetuju.map((r,i) => { grandS += r.nilai_bayar; return [i+1, r.kavling, r.nama_pekerjaan, fmt(r.nilai_bayar)]; });
+        doc.autoTable({ startY: 38, head: [['No','Unit','Pekerjaan','Nilai']], body: bodyS, theme:'grid', headStyles:{fillColor:[22,163,74]}, foot:[[{content:'GRAND TOTAL CAIR', colSpan:3, styles:{halign:'right'}}, fmt(grandS)]] });
+
+        // Tabel Tolak
+        let fy = doc.lastAutoTable.finalY + 10; doc.text("B. DAFTAR DITOLAK (REJECTED)", 14, fy);
+        const dataT = inboxData.filter(x => dataTolakIds.includes(x.id));
+        doc.autoTable({ startY: fy+3, head: [['Unit','Pekerjaan','Nilai']], body: dataT.map(r=>[r.kavling, r.nama_pekerjaan, fmt(r.nilai)]), theme:'grid', headStyles:{fillColor:[220,38,38]} });
+
+        renderSignatures(doc, doc.lastAutoTable.finalY + 20);
+        doc.save(`BA_Hasil_Asistensi.pdf`);
+    }
+
+    function renderSignatures(doc, startY) {
+        if(startY > 240) doc.addPage(), startY = 25;
+        const j = ["Mengajukan,", "Verifikator 1,", "Verifikator 2,", "Moderator,", "Menyetujui,"];
+        const n = ["( Didin )", "( Supardi/Wawan )", "( Eka )", "( Wahyuni )", "( Direktur Utama )"];
+        const x = [32, 68, 104, 140, 176];
+        doc.setFontSize(8); doc.setFont("helvetica", "normal");
+        j.forEach((t, i) => doc.text(t, x[i], startY, { align: "center" }));
+        doc.setFont("helvetica", "bold");
+        n.forEach((t, i) => doc.text(t, x[i], startY + 25, { align: "center" }));
+    }
+
+    // Fungsi Pengajuan Dasar
+    async function renderPengajuanView() {
+        const tbody = document.getElementById("tabelBody"); if(!activeProyek) { tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-bold">Pilih Unit ↗️</td></tr>`; return; }
+        const { data: peng } = await client.from('pengajuan_upah').select('*').eq('kavling', activeProyek);
+        const { data: trans } = await client.from('transaksi_upah').select('nama_pekerjaan').eq('kavling', activeProyek);
+        let sMap = {}; if(peng) peng.forEach(p => sMap[p.nama_pekerjaan] = p.status); if(trans) trans.forEach(t => sMap[t.nama_pekerjaan] = 'LUNAS');
+        tbody.innerHTML = ""; MASTER_DATA.forEach(g => {
+            tbody.innerHTML += `<tr class="row-blok-header text-[10px]"><td colspan="5" class="p-2 px-4 uppercase">TAHAP NO ${g.id}</td></tr>`;
+            g.items.forEach(i => {
+                const st = sMap[i.n];
+                let btn = st==='LUNAS' ? `<span class="text-green-600 font-bold text-xs">LUNAS</span>` : (st==='DIAJUKAN' ? `<span class="text-amber-500 font-bold text-xs">DIAJUKAN</span>` : `<button onclick="ajukanItem('${i.n}',${i.p},${i.b},'${g.id}')" class="bg-blue-600 text-white px-4 py-1 rounded text-xs font-black shadow">AJUKAN</button>`);
+                tbody.innerHTML += `<tr class="border-b"><td class="td-excel text-center font-mono">${g.id}</td><td class="td-excel font-semibold">${i.n}</td><td class="td-excel text-center">${i.b}%</td><td class="td-excel text-right font-mono font-bold">${fmt(i.p)}</td><td class="td-excel text-center">${btn}</td></tr>`;
+            });
+        });
+    }
+
+    async function ajukanItem(n, v, b, t) { if(confirm(`Ajukan ${n}?`)) { await client.from('pengajuan_upah').insert([{ kavling: activeProyek, tahap: t, nama_pekerjaan: n, bobot: b, nilai: v, status: 'DIAJUKAN', tanggal_ajukan: new Date() }]); renderPengajuanView(); } }
+    async function loadHistoryData() {
+        const p = tomSelectFilter.getValue(); if(p.length === 0) return alert("Pilih unit!");
+        const { data } = await client.from('transaksi_upah').select('*').in('kavling', p).order('tanggal_bayar');
+        const tbody = document.getElementById('tabelBody'); tbody.innerHTML = "";
+        data?.forEach(item => {
             const meta = itemMeta[item.nama_pekerjaan] || { grup: '-', bobot: 0 };
-            if(item.kavling !== currentBlok) {
-                if(currentBlok !== "") {
-                    body.push([{ content: `Subtotal ${currentBlok}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 253, 244] } }, { content: fmt(subTotal), styles: { fontStyle: 'bold', halign: 'right' } }, { content: '', styles: { fillColor: [240, 253, 244] } }]);
-                    subTotal = 0;
-                }
-                currentBlok = item.kavling;
-                body.push([{ content: currentBlok, colSpan: 6, styles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold' } }]);
-            }
-            subTotal += item.nilai_bayar; grandTotal += item.nilai_bayar;
-            body.push([new Date(item.tanggal_bayar).toLocaleDateString('id-ID'), `Tahap ${meta.grup}`, item.nama_pekerjaan, `${meta.bobot}%`, fmt(item.nilai_bayar), '']);
-            if(index === historyDataRaw.length - 1) {
-                body.push([{ content: `Subtotal ${currentBlok}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 253, 244] } }, { content: fmt(subTotal), styles: { fontStyle: 'bold', halign: 'right' } }, { content: '', styles: { fillColor: [240, 253, 244] } }]);
-            }
+            tbody.innerHTML += `<tr class="border-b"><td class="td-excel font-bold">${item.kavling}</td><td class="td-excel text-center">${new Date(item.tanggal_bayar).toLocaleDateString()}</td><td class="td-excel text-center font-mono">T-${meta.grup}</td><td class="td-excel font-medium">${item.nama_pekerjaan}</td><td class="td-excel text-center">${meta.bobot}%</td><td class="td-excel text-right font-black text-purple-700">${fmt(item.nilai_bayar)}</td><td class="td-excel text-center"><button onclick="voidData(${item.id},'${item.kavling}','${item.nama_pekerjaan}',${item.nilai_bayar},'${meta.grup}','${meta.bobot}')" class="text-red-500"><i class="fas fa-undo"></i></button></td></tr>`;
         });
+    }
 
-        body.push([{ content: 'GRAND TOTAL PERIODE INI', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [254, 240, 138], fontSize: 10 } }, { content: fmt(grandTotal), styles: { fontStyle: 'bold', fillColor: [254, 240, 138], fontSize: 10, halign: 'right' } }, { content: '', styles: { fillColor: [254, 240, 138] } }]);
-
-        doc.autoTable({
-            startY: 45,
-            head: [['Tanggal', 'No. Urut', 'Uraian Pekerjaan', 'Bobot', 'Nilai Cair (Rp)', 'Check']],
-            body: body,
-            theme: 'grid',
-            headStyles: { fillColor: [51, 65, 85], textColor: 255, fontStyle: 'bold' },
-            columnStyles: { 0: {halign:'center'}, 1: {halign:'center'}, 3: {halign:'center'}, 4: {halign:'right', cellWidth: 45}, 5: {cellWidth: 15} },
-            styles: { fontSize: 8, cellPadding: 2 },
-            margin: { left: 14, right: 14 }
-        });
-
-        let finalY = doc.lastAutoTable.finalY + 15;
-        if(finalY > 250) { doc.addPage(); finalY = 20; }
-        doc.text("Disiapkan Oleh,", 14, finalY); doc.text("( Admin Keuangan )", 14, finalY+25);
-        doc.text("Diperiksa Oleh,", 90, finalY); doc.text("( Site Manager )", 90, finalY+25);
-        doc.text("Disetujui Oleh,", 160, finalY+5); doc.setFont("helvetica", "bold"); doc.text("Direktur Utama", 160, finalY+25);
-        
-        doc.save("Laporan_Upah.pdf");
+    async function voidData(id, kav, n, v, t, b) {
+        const al = prompt("ALASAN VOID:"); if(!al) return;
+        if(confirm(`Batalkan pembayaran?`)) {
+            await client.from('pengajuan_upah').insert([{ kavling: kav, tahap: t, nama_pekerjaan: `${n} (VOID: ${al})`, bobot: b, nilai: v, status: 'DIAJUKAN', tanggal_ajukan: new Date() }]);
+            await client.from('transaksi_upah').delete().eq('id', id);
+            alert("Selesai!"); loadHistoryData();
+        }
     }
 </script>
 </body>
