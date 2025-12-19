@@ -34,6 +34,31 @@
       <a href="dashboard_operasional.html" class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-2 rounded shadow text-sm font-bold flex items-center gap-2 ml-auto"><i class="fas fa-arrow-left"></i> Dashboard</a>
     </div>
   </div>
+  <div class="max-w-7xl mx-auto mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-600 flex items-center justify-between">
+      <div>
+        <p class="text-xs font-bold text-gray-500 uppercase">Total Nilai Persediaan</p>
+        <h3 id="statTotalNilai" class="text-xl font-black text-blue-900 mt-1">Rp 0</h3>
+      </div>
+      <div class="bg-blue-50 p-3 rounded-lg"><i class="fas fa-wallet text-blue-600 text-xl"></i></div>
+    </div>
+
+    <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 flex items-center justify-between">
+      <div>
+        <p class="text-xs font-bold text-gray-500 uppercase">Nilai Masuk (Bulan Ini)</p>
+        <h3 id="statMasuk" class="text-xl font-black text-emerald-700 mt-1">0</h3>
+      </div>
+      <div class="bg-emerald-50 p-3 rounded-lg"><i class="fas fa-arrow-trend-up text-emerald-600 text-xl"></i></div>
+    </div>
+
+    <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-500 flex items-center justify-between">
+      <div>
+        <p class="text-xs font-bold text-gray-500 uppercase">Nilai Keluar (Bulan Ini)</p>
+        <h3 id="statKeluar" class="text-xl font-black text-red-700 mt-1">0</h3>
+      </div>
+      <div class="bg-red-50 p-3 rounded-lg"><i class="fas fa-arrow-trend-down text-red-600 text-xl"></i></div>
+    </div>
+  </div>
 
   <div class="max-w-7xl mx-auto bg-white border p-4 rounded-t-xl shadow-sm mb-0">
     <div class="flex justify-between items-center">
@@ -139,7 +164,43 @@
                         📅 Pilih start & end lalu tekan <b>TERAPKAN</b> agar data mutasi muncul di bawah.
                     </td>
                 </tr>`;
+            hitungStatistik();
         }
+    }
+
+    async function hitungStatistik() {
+        const totalNilaiAset = masterDataMemori.reduce((acc, item) => acc + ((item.total_stok || 0) * (item.harga_estimasi || 0)), 0);
+        document.getElementById("statTotalNilai").innerText = fmt(totalNilaiAset);
+
+        const hariIni = new Date();
+        const awalBulan = new Date(hariIni.getFullYear(), hariIni.getMonth(), 1).toISOString();
+        const { data: riwayat, error } = await client
+            .from('stok_history')
+            .select('barang_id, jumlah')
+            .gte('created_at', awalBulan);
+
+        if (error) {
+            console.error("Hitung statistik error:", error);
+            return;
+        }
+
+        let nilaiMasukRupiah = 0;
+        let nilaiKeluarRupiah = 0;
+
+        (riwayat || []).forEach(log => {
+            const infoBarang = masterIndex[String(log.barang_id)] || {};
+            const hargaSatuan = infoBarang.harga_estimasi || 0;
+            const qty = Number(log.jumlah);
+            const nilaiEkonomi = Math.abs(qty) * hargaSatuan;
+            if (qty > 0) {
+                nilaiMasukRupiah += nilaiEkonomi;
+            } else {
+                nilaiKeluarRupiah += nilaiEkonomi;
+            }
+        });
+
+        document.getElementById("statMasuk").innerText = fmt(nilaiMasukRupiah);
+        document.getElementById("statKeluar").innerText = fmt(nilaiKeluarRupiah);
     }
 
     // 2. SEARCH ENGINE
@@ -274,6 +335,12 @@
     function bukaModal(j) { document.getElementById("modalForm").classList.remove("hidden"); document.getElementById("jenisInput").value = j; if(j==='PAKAI') document.getElementById("divProyek").classList.remove("hidden"); else document.getElementById("divProyek").classList.add("hidden"); }
     function tutupModal() { document.getElementById("modalForm").classList.add("hidden"); }
     function tutupModalKartu() { document.getElementById("modalKartuStok").classList.add("hidden"); }
+    function tutupModalTambah() {
+        document.getElementById("modalTambahItem").classList.add("hidden");
+        document.getElementById("tambahNama").value = "";
+        document.getElementById("tambahHarga").value = 0;
+        $('#tambahSatuan').val('').trigger('change');
+    }
     async function loadProyekDropdown() { const { data } = await client.from('master_proyek').select('nama_proyek').eq('status','BERJALAN'); if(data) { const s = document.getElementById("pilihProyek"); s.innerHTML = "<option value=''>-- Pilih Proyek --</option>"; data.forEach(p => { const o = document.createElement('option'); o.value = p.nama_proyek; o.text = p.nama_proyek; s.appendChild(o); }); } }
     async function loadMutasiBawah() {
         const startInput = document.getElementById("laporanStart").value;
@@ -351,33 +418,65 @@
     async function prosesUpdateMaterial() {
         const id = document.getElementById("editId").value;
         const nama = document.getElementById("editNama").value.trim();
-        const satuan = document.getElementById("editSatuan").value.trim();
+        const satuanRaw = $('#editSatuan').val();
+        const satuan = Array.isArray(satuanRaw) ? satuanRaw[0] : satuanRaw;
         const hargaRaw = document.getElementById("editHarga").value;
-        if (!id) return alert("Pilih material terlebih dahulu.");
-        if (!nama) return alert("Nama material wajib diisi.");
-        if (!satuan) return alert("Satuan wajib diisi.");
-        if (hargaRaw === "") return alert("Harga estimasi wajib diisi.");
+
+        if (!id || !nama || !satuan || hargaRaw === "") {
+            return alert("⚠️ Mohon lengkapi semua data!");
+        }
+
         const harga = Number(hargaRaw);
-        if (Number.isNaN(harga)) return alert("Harga tidak valid.");
+
         const { error } = await client.from("master_stok").update({
             nama_barang: nama,
             satuan: satuan,
             harga_estimasi: harga
         }).eq("id", id);
+
         if (error) {
-            console.error("Update error:", error);
-            return alert("Gagal memperbarui material: " + (error.message || "Periksa jaringan"));
+            alert("❌ Gagal: " + (error.message || "Periksa jaringan"));
+        } else {
+            alert("✅ Material berhasil diperbarui.");
+            tutupModalEdit();
+            await initData();
+            terapkanFilter();
         }
-        alert("Material berhasil diperbarui.");
-        tutupModalEdit();
+    }
+    async function prosesSimpanItemBaru() {
+        const nama = document.getElementById("tambahNama").value.trim();
+        const satuanRaw = $('#tambahSatuan').val();
+        const satuan = Array.isArray(satuanRaw) ? satuanRaw[0] : satuanRaw;
+        const harga = Number(document.getElementById("tambahHarga").value);
+
+        if (!nama || !satuan) {
+            return alert("⚠️ Nama dan Satuan wajib diisi!");
+        }
+
+        const { error } = await client.from("master_stok").insert([{
+            nama_barang: nama,
+            satuan: satuan,
+            harga_estimasi: harga,
+            total_stok: 0
+        }]);
+
+        if (error) {
+            alert("❌ Gagal Simpan: " + (error.message || "Periksa jaringan"));
+            return;
+        }
+
+        alert("✅ Material Baru Berhasil Didaftarkan. Silakan isi stok melalui menu 'Terima Barang'.");
+        tutupModalTambah();
         await initData();
-        terapkanFilter();
+        if (document.getElementById("cariInput").value) terapkanFilter();
     }
     function isiDropdown() {
         const s = document.getElementById("pilihBarang");
         const sEdit = document.getElementById("editSatuan");
+        const sTambah = document.getElementById("tambahSatuan");
         s.innerHTML = "<option value=''>-- Pilih --</option>";
-        sEdit.innerHTML = "<option value=''>-- Pilih Satuan --</option>";
+        if (sEdit) sEdit.innerHTML = "<option value=''>-- Pilih Satuan --</option>";
+        if (sTambah) sTambah.innerHTML = "<option value=''>-- Pilih Satuan --</option>";
 
         const daftarSatuan = [...new Set(masterDataMemori.map(item => item.satuan).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)));
 
@@ -393,7 +492,8 @@
             const o = document.createElement('option');
             o.value = satuan;
             o.text = satuan;
-            sEdit.appendChild(o);
+            if (sEdit) sEdit.appendChild(o.cloneNode(true));
+            if (sTambah) sTambah.appendChild(o.cloneNode(true));
         });
 
         $('#pilihBarang').select2({width:'100%'});
@@ -401,6 +501,11 @@
             width: '100%',
             tags: true,
             dropdownParent: $('#modalEdit')
+        });
+        $('#tambahSatuan').select2({
+            width: '100%',
+            tags: true,
+            dropdownParent: $('#modalTambahItem')
         });
     }
 
@@ -430,6 +535,33 @@
         </div>
         <button onclick="prosesUpdateMaterial()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 shadow-lg transition-all">
           SIMPAN PERUBAHAN
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="modalTambahItem" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
+      <div class="flex justify-between mb-4">
+        <h2 class="text-lg font-bold text-green-800"><i class="fas fa-plus-circle"></i> Tambah Material Baru</h2>
+        <button onclick="tutupModalTambah()" class="text-gray-400 font-bold hover:text-red-500">✕</button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs font-bold block mb-1">Nama Material</label>
+          <input type="text" id="tambahNama" placeholder="Contoh: Semen Gresik 40kg" class="w-full border p-2 rounded focus:ring-2 focus:ring-green-500 outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-bold block mb-1">Satuan</label>
+            <select id="tambahSatuan" class="w-full border p-2 rounded outline-none"></select>
+          </div>
+          <div>
+            <label class="text-xs font-bold block mb-1">Harga Estimasi (Rp)</label>
+            <input type="number" id="tambahHarga" value="0" class="w-full border p-2 rounded outline-none">
+          </div>
+        </div>
+        <button onclick="prosesSimpanItemBaru()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg transition-all">
+          SIMPAN KE DATABASE
         </button>
       </div>
     </div>
