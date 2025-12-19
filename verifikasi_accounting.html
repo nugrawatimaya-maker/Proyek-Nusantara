@@ -46,7 +46,8 @@
       const { data, error } = await client
         .from('verifikasi_material')
         .select(`*, master_stok(nama_barang, satuan)`)
-        .eq('status', 'WAITING')
+        // Gunakan filter .ilike agar tidak peduli huruf besar/kecil statusnya
+        .ilike('status', 'waiting')
         .order('tanggal', { ascending: false });
 
       const tbody = document.getElementById("bodyVerifikasi");
@@ -96,9 +97,40 @@
     }
 
     async function rejectItem(id) {
-      if(!confirm("Batalkan verifikasi dan tandai sebagai Ditolak?")) return;
+      if(!confirm("⚠️ TOLAK TRANSAKSI?\nBarang akan dimasukkan kembali ke saldo gudang.")) return;
+
+      // 1. Ambil detail data yang akan ditolak
+      const { data: item } = await client
+        .from('verifikasi_material')
+        .select('barang_id, jumlah, nama_proyek, keterangan')
+        .eq('id', id)
+        .single();
+
+      if (item) {
+        // 2. Ambil saldo stok saat ini
+        const { data: stokSkrg } = await client
+          .from('master_stok')
+          .select('total_stok')
+          .eq('id', item.barang_id)
+          .single();
+
+        // 3. JURUS PERBAIKAN: Kembalikan stok & Catat Riwayat sebagai MASUK (Positif)
+        // Update saldo utama
+        await client.from('master_stok').update({ total_stok: stokSkrg.total_stok + item.jumlah }).eq('id', item.barang_id);
+        
+        // Simpan ke History dengan angka POSITIF agar muncul di kolom MASUK
+        await client.from('stok_history').insert([{ 
+            barang_id: item.barang_id, 
+            jenis_transaksi: 'REJECT ACCOUNTING', // Gunakan kata kunci ini
+            jumlah: item.jumlah, // PASTIKAN POSITIF (Contoh: 1, bukan -1)
+            keterangan: `Reject Proyek ${item.nama_proyek}: ${item.keterangan}` 
+        }]);
+      }
+
+      // 4. Ubah status menjadi REJECTED agar hilang dari realisasi Master Proyek
       await client.from('verifikasi_material').update({ status: 'REJECTED' }).eq('id', id);
-      alert("✅ Transaksi ditolak.");
+      
+      alert("✅ Berhasil! Stok telah dikembalikan ke kolom MASUK.");
       loadWaitingList();
     }
 

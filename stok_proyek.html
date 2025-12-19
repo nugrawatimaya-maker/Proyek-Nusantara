@@ -62,14 +62,19 @@
   </div>
 
   <div class="max-w-7xl mx-auto bg-white rounded-xl shadow overflow-hidden mb-12">
-    <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
-      <h3 class="font-bold text-gray-700">📜 Riwayat Pemakaian Proyek</h3>
-      <div class="flex items-center gap-2">
-         <input type="date" id="laporanStart" class="border p-1 rounded text-xs font-bold">
-         <input type="date" id="laporanEnd" class="border p-1 rounded text-xs font-bold">
-         <button onclick="downloadLaporanMutasi(event)" class="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-red-700 transition"><i class="fas fa-file-pdf mr-1"></i> Laporan PDF</button>
+      <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+        <h3 class="font-bold text-gray-700">📜 Riwayat Pemakaian Proyek</h3>
+        <div class="flex items-center gap-2">
+           <input type="date" id="laporanStart" class="border p-1 rounded text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
+           <input type="date" id="laporanEnd" class="border p-1 rounded text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-500">
+           <button onclick="loadMutasiBawah()" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-black hover:bg-blue-700 shadow-md transition flex items-center gap-1">
+              <i class="fas fa-filter"></i> TERAPKAN
+           </button>
+           <button onclick="downloadLaporanMutasi(event)" class="bg-red-600 text-white px-3 py-1 rounded text-xs font-black hover:bg-red-700 shadow-md transition flex items-center gap-1">
+              <i class="fas fa-file-pdf"></i> DOWNLOAD LAPORAN
+           </button>
+        </div>
       </div>
-    </div>
     <div class="overflow-x-auto" style="max-height: 400px;"><table class="w-full text-left border-collapse tabel-excel"><thead class="bg-gray-100"><tr><th class="p-2 border">Tanggal</th><th class="p-2 border">Barang</th><th class="p-2 border">Keterangan</th><th class="p-2 border text-right">Masuk</th><th class="p-2 border text-right">Keluar</th></tr></thead><tbody id="bodyMutasi"></tbody></table></div>
   </div>
 
@@ -114,12 +119,27 @@
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
-    let masterDataMemori = []; let currentBarangId = null; let currentBarangNama = ""; let currentBarangSatuan = "";
+    let masterDataMemori = [];
+    let masterIndex = {}; // << tambah ini
+    let currentBarangId = null;
+    let currentBarangNama = "";
+    let currentBarangSatuan = "";
 
     // 1. DATA ENGINE
     async function initData() {
         const { data, error } = await client.from('master_stok').select('*').order('nama_barang');
-        if(!error) { masterDataMemori = data; isiDropdown(); loadProyekDropdown(); loadMutasiBawah(); }
+        if(!error) { 
+            masterDataMemori = data; 
+            masterIndex = Object.fromEntries((data || []).map(i => [String(i.id), i]));
+            isiDropdown(); 
+            loadProyekDropdown(); 
+            document.getElementById("bodyMutasi").innerHTML = `
+                <tr>
+                    <td colspan="5" class="p-10 text-center text-gray-400 italic font-bold">
+                        📅 Pilih start & end lalu tekan <b>TERAPKAN</b> agar data mutasi muncul di bawah.
+                    </td>
+                </tr>`;
+        }
     }
 
     // 2. SEARCH ENGINE
@@ -143,26 +163,41 @@
         const jumlah = Number(document.getElementById("jumlahInput").value);
         const select = document.getElementById("pilihBarang");
         const stokSistem = Number(select.options[select.selectedIndex]?.getAttribute('data-stok') || 0);
+        const proyek = document.getElementById("pilihProyek").value; 
         let ket = document.getElementById("ketInput").value;
 
-        if(!barangId || jumlah <= 0) return alert("Cek kembali input!");
+        if(!barangId || jumlah <= 0) return alert("⚠️ Isi jumlah barang!");
 
         if(jenis === 'PAKAI') {
-            const proyek = document.getElementById("pilihProyek").value;
-            if(!proyek) return alert("Pilih proyek!");
-            if(jumlah > stokSistem) return alert("Stok tidak cukup!");
-
+            if(!proyek) return alert("⚠️ Pilih proyek!");
             const item = masterDataMemori.find(i => i.id == barangId);
             const totalBiaya = (item?.harga_estimasi || 0) * jumlah;
 
+            // JURUS PARALEL: Kirim ke antrean Accounting & Realisasi Proyek
             const { error: errVerif } = await client.from('verifikasi_material').insert([{
-                tanggal: new Date(), nama_proyek: proyek, barang_id: barangId, jumlah: jumlah, total_biaya: totalBiaya, keterangan: ket, status: 'WAITING'
+                tanggal: new Date(), 
+                nama_proyek: proyek, 
+                barang_id: barangId, 
+                jumlah: jumlah, 
+                total_biaya: totalBiaya, 
+                keterangan: ket, 
+                status: 'WAITING' 
             }]);
 
             if(!errVerif) {
+                // Update stok dan Kartu Stok
                 await client.from('master_stok').update({ total_stok: stokSistem - jumlah }).eq('id', barangId);
-                await client.from('stok_history').insert([{ barang_id: barangId, jenis_transaksi: 'PEMAKAIAN PROYEK', jumlah: jumlah, keterangan: `WAITING VERIF: ${proyek}` }]);
-                alert("✅ Terkirim ke Accounting!"); tutupModal(); initData();
+                await client.from('stok_history').insert([{ 
+                    barang_id: barangId, 
+                    jenis_transaksi: 'PEMAKAIAN PROYEK', 
+                    jumlah: -jumlah, 
+                    keterangan: `${proyek}: ${ket}` 
+                }]);
+                alert(`✅ BERHASIL! Data terkirim ke Accounting & Master Proyek.`);
+                tutupModal(); initData();
+            } else {
+                console.error("Detail Error:", errVerif);
+                alert("❌ GAGAL! Periksa koneksi atau nama kolom di Supabase.");
             }
         }
     }
@@ -177,7 +212,7 @@
         tb.innerHTML = ""; let s = 0;
         data.forEach(r => {
             const t = (r.jenis_transaksi || "").toUpperCase(); const q = Number(r.jumlah); let m = '-', k = '-';
-            if(t.includes('TERIMA') || (t.includes('OPNAME') && q >= 0) || t.includes('SINKRON')) { m = q; s += q; } else { k = Math.abs(q); s -= k; }
+        if(t.includes('TERIMA') || t.includes('REJECT') || (t.includes('OPNAME') && q >= 0) || t.includes('SINKRON')) { m = q; s += q; } else { k = Math.abs(q); s -= k; }
             tb.innerHTML += `<tr class="border-b"><td class="p-2 border-r text-black">${new Date(r.created_at).toLocaleDateString()}</td><td class="p-2 border-r font-bold text-gray-800">${r.jenis_transaksi}</td><td class="p-2 border-r text-gray-600">${r.keterangan || '-'}</td><td class="p-2 border-r text-right text-emerald-700 font-bold">${m}</td><td class="p-2 border-r text-right text-red-700 font-bold">${k}</td><td class="p-2 text-right font-black text-blue-800 bg-blue-50/50">${s}</td></tr>`;
         });
     }
@@ -195,10 +230,17 @@
     async function downloadLaporanMutasi(e) {
         const start = document.getElementById("laporanStart").value; const end = document.getElementById("laporanEnd").value;
         if(!start || !end) return alert("Pilih tanggal!");
-        const { data } = await client.from('stok_history').select('*, master_stok(nama_barang, satuan)').gte('created_at', start).lte('created_at', end);
+        const startFull = `${start}T00:00:00`;
+        const endFull = `${end}T23:59:59`;
+        const { data, error } = await client.from('stok_history')
+            .select('*')
+            .gte('created_at', startFull)
+            .lte('created_at', endFull)
+            .order('created_at', { ascending: true });
+        if(error) { console.error(error); alert("Gagal download: " + error.message); return; }
         const { jsPDF } = window.jspdf; const doc = new jsPDF();
         doc.text("LAPORAN MUTASI MATERIAL", 105, 15, { align: "center" });
-        doc.autoTable({ head: [['No','Barang','Jenis','Masuk','Keluar']], body: data.map((r,i)=>[i+1, r.master_stok?.nama_barang, r.jenis_transaksi, r.jumlah > 0 ? r.jumlah : '-', r.jumlah < 0 ? Math.abs(r.jumlah) : '-']), startY: 25 });
+        doc.autoTable({ head: [['No','Barang','Jenis','Masuk','Keluar']], body: data.map((r,i)=>[i+1, (masterIndex[String(r.barang_id)]||{}).nama_barang || 'Item', r.jenis_transaksi, r.jumlah > 0 ? r.jumlah : '-', r.jumlah < 0 ? Math.abs(r.jumlah) : '-']), startY: 25 });
         doc.save("Laporan_Mutasi.pdf");
     }
 
@@ -208,7 +250,64 @@
     function tutupModal() { document.getElementById("modalForm").classList.add("hidden"); }
     function tutupModalKartu() { document.getElementById("modalKartuStok").classList.add("hidden"); }
     async function loadProyekDropdown() { const { data } = await client.from('master_proyek').select('nama_proyek').eq('status','BERJALAN'); if(data) { const s = document.getElementById("pilihProyek"); s.innerHTML = "<option value=''>-- Pilih Proyek --</option>"; data.forEach(p => { const o = document.createElement('option'); o.value = p.nama_proyek; o.text = p.nama_proyek; s.appendChild(o); }); } }
-    async function loadMutasiBawah() { const { data } = await client.from('stok_history').select('*, master_stok(nama_barang)').order('created_at', {ascending:false}).limit(20); const tb = document.getElementById("bodyMutasi"); tb.innerHTML = ""; data.forEach(r => { tb.innerHTML += `<tr class="border-b text-xs"><td class="p-2">${new Date(r.created_at).toLocaleDateString()}</td><td class="p-2 font-bold">${r.master_stok?.nama_barang}</td><td class="p-2">${r.jenis_transaksi}</td><td class="p-2 text-right">${r.jumlah>0?r.jumlah:'-'}</td><td class="p-2 text-right">${r.jumlah<0?Math.abs(r.jumlah):'-'}</td></tr>`; }); }
+    async function loadMutasiBawah() {
+        const startInput = document.getElementById("laporanStart").value;
+        const endInput = document.getElementById("laporanEnd").value;
+        const tb = document.getElementById("bodyMutasi");
+
+        if (!startInput || !endInput) {
+            tb.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-400 italic font-bold">
+                📅 Pilih <b>Start</b> & <b>End</b> dulu, lalu klik <b>TERAPKAN</b>.
+            </td></tr>`;
+            return;
+        }
+        
+        tb.innerHTML = "<tr><td colspan='5' class='p-5 text-center font-bold animate-pulse text-blue-600'>🔍 MENEMBUS DINDING DATABASE...</td></tr>";
+
+        // JURUS KUANTUM: Mendefinisikan relasi secara spesifik lewat !barang_id
+        let query = client.from('stok_history')
+            .select('*')
+            .order('created_at', {ascending: false});
+
+        const startFormatted = `${startInput}T00:00:00`;
+        const endFormatted = `${endInput}T23:59:59`;
+        query = query.gte('created_at', startFormatted).lte('created_at', endFormatted);
+
+        const { data, error } = await query;
+        tb.innerHTML = "";
+
+        if (error) {
+            console.error("Detail Error:", error);
+            tb.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-red-500 font-bold italic font-mono">❌ ERROR: ${error.message}</td></tr>`;
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            tb.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-gray-400 italic font-bold">⚠️ Data mutasi tidak ditemukan.</td></tr>`;
+            return;
+        }
+
+        data.forEach(r => {
+            const tgl = new Date(r.created_at).toLocaleString('id-ID', {
+                day:'2-digit', month:'2-digit', year:'numeric', 
+                hour:'2-digit', minute:'2-digit'
+            });
+            const q = Number(r.jumlah);
+            const masuk = q > 0 ? q : '-';
+            const keluar = q < 0 ? Math.abs(q) : '-';
+            const item = masterIndex[String(r.barang_id)] || {};
+            const namaBarang = item.nama_barang || `ID:${r.barang_id}`;
+
+            tb.innerHTML += `
+                <tr class="border-b text-[13px] hover:bg-blue-50 transition duration-150">
+                    <td class="p-3 border-r font-medium text-slate-500 font-mono">${tgl}</td>
+                    <td class="p-3 border-r font-bold text-blue-900">${namaBarang}</td>
+                    <td class="p-3 border-r italic text-slate-600">${r.keterangan || r.jenis_transaksi}</td>
+                    <td class="p-3 border-r text-right font-black text-emerald-700 bg-emerald-50/20">${masuk}</td>
+                    <td class="p-3 text-right font-black text-red-700 bg-red-50/20">${keluar}</td>
+                </tr>`;
+        });
+    }
     function isiDropdown() { const s = document.getElementById("pilihBarang"); s.innerHTML = "<option value=''>-- Pilih --</option>"; masterDataMemori.forEach(i => { const o = document.createElement('option'); o.value = i.id; o.text = i.nama_barang; o.setAttribute('data-stok', i.total_stok); s.appendChild(o); }); $('#pilihBarang').select2({width:'100%'}); }
 
     initData();

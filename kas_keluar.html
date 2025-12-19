@@ -227,6 +227,7 @@
         
         const { data: proyek, error: errProyek } = await client.from('master_proyek')
             .select('*')
+            .eq('status', 'BERJALAN')
             .order('nama_proyek');
 
         if (errProyek) {

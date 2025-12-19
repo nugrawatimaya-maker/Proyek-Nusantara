@@ -123,15 +123,15 @@
         <div class="overflow-y-auto flex-grow bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <table class="w-full text-left text-sm relative">
             
-            <thead class="bg-gray-100 uppercase text-xs font-bold text-gray-600 border-b-2 border-gray-200 sticky top-0 z-10 shadow-sm">
-              <tr>
-                <th class="p-4 bg-gray-100">Proyek</th>
-                <th class="p-4 text-right bg-gray-100">RAB (Budget)</th>
-                <th class="p-4 text-right bg-gray-100">Realisasi (Act)</th>
-                <th class="p-4 text-center bg-gray-100">Status</th>
-                <th class="p-4 text-center w-16 bg-gray-100">Aksi</th>
-              </tr>
-            </thead>
+            <thead class="bg-gray-100 uppercase text-[10px] font-black text-gray-600 sticky top-0 z-10 shadow-sm">
+  <tr>
+    <th class="p-4 bg-gray-100">Unit / Proyek</th>
+    <th class="p-4 text-right bg-gray-100">RAB (Budget)</th>
+    <th class="p-4 text-right bg-red-50 text-red-700 border-x">Real: Upah</th>
+    <th class="p-4 text-right bg-red-50 text-red-700 border-x">Real: Mat</th>
+    <th class="p-4 text-center w-16 bg-gray-100">Aksi</th>
+  </tr>
+</thead>
 
             <tbody id="tabelProyek" class="divide-y divide-gray-100 bg-white">
               <tr><td colspan="5" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><br>Menghitung Realisasi...</td></tr>
@@ -175,102 +175,103 @@
 
     // 1. FUNGSI LOAD DATA PROYEK
     async function loadProyek() {
-      const { data: proyeks, error } = await client.from('master_proyek').select('*').order('created_at', { ascending: false });
-      if (error) { 
-          console.error(error); 
-          return; 
-      }
+      // 1. Ambil data master proyek
+      const { data: proyeks, error } = await client.from('master_proyek').select('*').order('nama_proyek', { ascending: true });
+      if (error) return console.error(error);
       
-      document.getElementById("totalProyek").innerText = (proyeks.length || 0) + " Proyek";
       const tbody = document.getElementById("tabelProyek");
       const grandRABEl = document.getElementById("grandTotalRAB");
       const grandRealEl = document.getElementById("grandTotalRealisasi");
       tbody.innerHTML = "";
 
-      if (proyeks.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400">Belum ada proyek.</td></tr>`;
-        if (grandRABEl) grandRABEl.innerText = fmt(0);
-        if (grandRealEl) grandRealEl.innerText = fmt(0);
-        return;
-      }
+      // 2. Ambil data Upah & Material
+      const { data: upahData } = await client.from('transaksi_upah').select('kavling, nilai_bayar');
+      const { data: materialData } = await client
+          .from('verifikasi_material')
+          .select('nama_proyek, total_biaya, status');
 
-      // Ambil Data Realisasi (Borongan/Upah + Kas Keluar)
-      const { data: upahData } = await client.from('riwayat_upah').select('nama_proyek, total_bayar');
-      const { data: kasData } = await client.from('transaksi').select('keterangan, jumlah').eq('jenis_transaksi', 'KELUAR');
-      
-      const realisasiMap = {};
+      const realUpahMap = {};
+      const realMatMap = {};
 
+      // Memetakan Upah
       if(upahData) {
           upahData.forEach(u => {
-              if(!realisasiMap[u.nama_proyek]) realisasiMap[u.nama_proyek] = 0;
-              realisasiMap[u.nama_proyek] += u.total_bayar;
+              const unitId = (u.kavling || "").toString().replace(/\s+/g, '').toUpperCase();
+              realUpahMap[unitId] = (realUpahMap[unitId] || 0) + Number(u.nilai_bayar);
           });
       }
 
-      if(kasData && proyeks.length > 0) {
-        kasData.forEach(k => {
-            const foundProyek = proyeks.find(p => k.keterangan && k.keterangan.includes(p.nama_proyek));
-            if(foundProyek) {
-                if(!realisasiMap[foundProyek.nama_proyek]) realisasiMap[foundProyek.nama_proyek] = 0;
-                realisasiMap[foundProyek.nama_proyek] += k.jumlah;
-            }
-        });
+      // JURUS SAKTI: Memetakan Material
+      if(materialData) {
+          materialData.forEach(m => {
+              if(m.status !== 'REJECTED') {
+                  const unitId = (m.nama_proyek || "").toString().replace(/\s+/g, '').toUpperCase();
+                  realMatMap[unitId] = (realMatMap[unitId] || 0) + Number(m.total_biaya);
+              }
+          });
       }
       
-      // Render Baris Tabel
       let sumRAB = 0;
-      let sumRealisasi = 0;
+      let sumRealisasiTotal = 0; 
+      let countAktif = 0;
+
       proyeks.forEach(p => {
-        const rab = p.nilai_proyek || 0;
-        const realisasi = realisasiMap[p.nama_proyek] || 0;
-        sumRAB += Number(rab) || 0;
-        sumRealisasi += Number(realisasi) || 0;
-        
-        let persen = 0;
-        if(rab > 0) persen = (realisasi / rab) * 100;
-        
-        let colorClass = "text-green-600";
-        let progressColor = "bg-green-500";
-        if(persen > 80) { colorClass = "text-orange-600"; progressColor = "bg-orange-500"; }
-        if(persen > 100) { colorClass = "text-red-600 font-bold"; progressColor = "bg-red-600"; }
+        const isAktif = p.status === 'BERJALAN';
+        if(isAktif) countAktif++;
 
-        let badgeColor = "bg-gray-100 text-gray-600";
-        if (p.kategori === 'Bangunan Rumah') badgeColor = "bg-blue-100 text-blue-600";
-        if (p.kategori === 'Infrastruktur') badgeColor = "bg-orange-100 text-orange-600";
+        const rab = Number(p.nilai_proyek) || 0;
+        const unitKunci = (p.nama_proyek || "").toString().replace(/\s+/g, '').toUpperCase(); // Kunci Pencocokan Global
+        
+        const rUpah = realUpahMap[unitKunci] || 0; 
+        const rMat = realMatMap[unitKunci] || 0;   
+        
+        sumRAB += rab;
+        sumRealisasiTotal += (rUpah + rMat);
 
-        const tr = `
-          <tr class="hover:bg-gray-50 group border-b">
-            <td class="p-3 align-middle">
-              <div class="font-bold text-gray-800">${p.nama_proyek}</div>
-              <div class="flex gap-2 mt-1">
-                 <span class="text-[10px] ${badgeColor} px-1.5 py-0.5 rounded font-semibold">${p.kategori}</span>
-                 <span class="text-[10px] text-gray-400"><i class="fas fa-calendar"></i> ${p.tanggal_mulai}</span>
-              </div>
+        tbody.innerHTML += `
+          <tr class="hover:bg-gray-50 border-b ${!isAktif ? 'opacity-50 bg-gray-100' : ''}">
+            <td class="p-3 cursor-pointer group" onclick="toggleStatus(${p.id}, '${p.status}', '${p.nama_proyek}')">
+              <div class="font-bold text-gray-800 group-hover:text-blue-600">${p.nama_proyek}</div>
+              <span class="text-[9px] font-black uppercase ${isAktif ? 'text-green-600' : 'text-red-500'}">
+                ${isAktif ? '● AKTIF' : '○ NONAKTIF'}
+              </span>
             </td>
-            <td class="p-3 align-middle text-right bg-blue-50/30">
-               <div class="font-mono font-bold text-gray-700 text-sm">${fmt(rab)}</div>
+            <td class="p-3 text-right font-mono font-bold text-gray-400">${fmt(rab)}</td>
+            <td class="p-3 text-right bg-red-50/30 font-mono font-bold text-red-600">${fmt(rUpah)}</td>
+            <td class="p-3 text-right bg-red-50/30 font-mono font-bold text-red-600">${fmt(rMat)}</td>
+            <td class="p-3 text-center w-16">
+                <button onclick="hapusProyek(${p.id}, '${p.nama_proyek}')" class="text-gray-300 hover:text-red-600 transition">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
             </td>
-            <td class="p-3 align-middle text-right bg-yellow-50/30">
-               <div class="font-mono font-bold ${colorClass} text-sm">${fmt(realisasi)}</div>
-               <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1 flex justify-end">
-                  <div class="${progressColor} h-1.5 rounded-full" style="width: ${Math.min(persen, 100)}%"></div>
-               </div>
-               <div class="text-[10px] ${colorClass} mt-0.5">${persen.toFixed(1)}% Terpakai</div>
-            </td>
-            <td class="p-3 align-middle text-center">
-               <span class="text-xs font-bold text-green-600 border border-green-200 bg-green-50 px-2 py-1 rounded">BERJALAN</span>
-            </td>
-            <td class="p-3 align-middle text-center">
-               <button onclick="hapusProyek(${p.id}, '${p.nama_proyek}')" class="text-gray-400 hover:text-red-600 transition p-2 rounded hover:bg-red-50">
-                 <i class="fas fa-trash-alt"></i>
-               </button>
-            </td>
-          </tr>
-        `;
-        tbody.innerHTML += tr;
+          </tr>`;
       });
+
+      // Sinkronkan ke Dashboard Atas
       if (grandRABEl) grandRABEl.innerText = fmt(sumRAB);
-      if (grandRealEl) grandRealEl.innerText = fmt(sumRealisasi);
+      if (grandRealEl) grandRealEl.innerText = fmt(sumRealisasiTotal);
+      document.getElementById("totalProyek").innerText = proyeks.length + " Proyek";
+      if(document.getElementById("totalProyekBerjalan")) {
+          document.getElementById("totalProyekBerjalan").innerText = countAktif + " Unit";
+      }
+    }
+
+    // JURUS KONTROL STATUS: Aktifkan atau Nonaktifkan Proyek
+    async function toggleStatus(id, currentStatus, nama) {
+        const nextStatus = currentStatus === 'BERJALAN' ? 'NONAKTIF' : 'BERJALAN';
+        const confirmMsg = nextStatus === 'NONAKTIF' 
+            ? `⚠️ Nonaktifkan ${nama}? (Unit ini akan disembunyikan dari pengajuan upah & gudang)`
+            : `✅ Aktifkan kembali ${nama}?`;
+
+        if(confirm(confirmMsg)) {
+            const { error } = await client.from('master_proyek').update({ status: nextStatus }).eq('id', id);
+            if(!error) {
+                alert(`Status ${nama} berhasil diubah menjadi ${nextStatus}`);
+                loadProyek(); // Refresh tabel agar tampilan berubah
+            } else {
+                alert("Gagal mengubah status: " + error.message);
+            }
+        }
     }
 
     // 2. LOGIKA FORM INPUT
