@@ -130,14 +130,33 @@
             const { error: errUp } = await client.storage.from('nota grn').upload(fileName, file);
             if(errUp) throw new Error("Gagal Upload Foto: " + errUp.message);
 
-            // B. AMBIL STOK LAMA
-            const { data: cur, error: errGet } = await client.from('master_stok').select('total_stok').eq('id', bId).single();
-            if(errGet) throw new Error("Material (ID: " + bId + ") tidak ditemukan di Master Stok.");
-            
-            // C. UPDATE MASTER_STOK
+            // B. AMBIL STOK + HARGA LAMA
+            const hargaNota = Number(document.getElementById(`harga-${id}`).value || 0);
+            if (hargaNota <= 0) return alert("Harga nota wajib diisi!");
+
+            const { data: cur, error: errGet } = await client
+                .from('master_stok')
+                .select('total_stok, harga_estimasi')
+                .eq('id', bId)
+                .single();
+            if (errGet) throw new Error("Material (ID: " + bId + ") tidak ditemukan di Master Stok.");
+
             const stokLama = Number(cur.total_stok) || 0;
-            const { error: errUpdateStok } = await client.from('master_stok').update({ total_stok: stokLama + qty }).eq('id', bId);
-            if(errUpdateStok) throw errUpdateStok;
+            const hargaLama = Number(cur.harga_estimasi) || 0;
+
+            // C. UPDATE MASTER_STOK (stok + harga master)
+            const payloadUpdate = {
+                total_stok: stokLama + qty,
+                harga_estimasi: hargaNota,
+                harga_updated_source: 'GRN',
+                harga_updated_ref: noPO
+            };
+
+            const { error: errUpdateStok } = await client
+                .from('master_stok')
+                .update(payloadUpdate)
+                .eq('id', bId);
+            if (errUpdateStok) throw errUpdateStok;
 
             // D. UPDATE STATUS PO
             await client.from('purchase_order').update({ status: 'DITERIMA' }).eq('id', id);
