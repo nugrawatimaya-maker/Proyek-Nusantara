@@ -146,12 +146,37 @@
     function terapkanFilter() {
         const keyword = document.getElementById("cariInput").value.toUpperCase();
         const tbody = document.getElementById("bodyStok");
-        if (keyword.length === 0) { tbody.innerHTML = `<tr><td colspan="7" class="text-center p-20 text-gray-400 italic font-bold">⚠️ Ketik nama barang...</td></tr>`; return; }
+        if (keyword.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center p-20 text-gray-400 italic font-bold">⚠️ Ketik nama barang...</td></tr>`;
+            return;
+        }
         const filtered = masterDataMemori.filter(item => item.nama_barang.toUpperCase().includes(keyword));
         tbody.innerHTML = "";
         filtered.forEach((item, index) => {
             const val = (item.total_stok || 0) * (item.harga_estimasi || 0);
-            tbody.innerHTML += `<tr><td class="text-center">${index+1}</td><td class="font-bold text-blue-700 cursor-pointer hover:underline" onclick="bukaKartuStok(${item.id}, '${item.nama_barang}', '${item.satuan}')">${item.nama_barang}</td><td class="text-center">${item.satuan||'-'}</td><td class="text-right font-black text-blue-800 bg-blue-50/50">${item.total_stok||0}</td><td class="text-right">${fmt(item.harga_estimasi||0)}</td><td class="text-right font-black text-green-800 bg-green-50/50">${fmt(val)}</td><td class="text-center">${item.total_stok > 0 ? '✅ Ada' : '❌ Habis'}</td></tr>`;
+            const namaEsc = (item.nama_barang || '').replace(/'/g, "\\'");
+            const satuanEsc = (item.satuan || '-').replace(/'/g, "\\'");
+            const namaTampil = item.nama_barang || '-';
+            const statusLabel = item.total_stok > 0 ? '✅ Ada' : '❌ Habis';
+            const hargaArg = typeof item.harga_estimasi === 'number' ? item.harga_estimasi : 'null';
+            tbody.innerHTML += `
+                <tr class="border-t">
+                    <td class="text-center">${index + 1}</td>
+                    <td class="font-bold text-blue-700 cursor-pointer hover:underline" onclick="bukaKartuStok(${item.id}, '${namaEsc}', '${satuanEsc}')">
+                        ${namaTampil}
+                    </td>
+                    <td class="text-center">${item.satuan || '-'}</td>
+                    <td class="text-right font-black text-blue-800 bg-blue-50/50">${item.total_stok || 0}</td>
+                    <td class="text-right">${fmt(item.harga_estimasi || 0)}</td>
+                    <td class="text-right font-black text-green-800 bg-green-50/50">${fmt(val)}</td>
+                    <td class="text-center space-y-1">
+                        <span class="text-[11px] text-slate-500">${statusLabel}</span>
+                        <button type="button" onclick="bukaModalEdit(${item.id}, '${namaEsc}', '${satuanEsc}', ${hargaArg})" class="flex items-center gap-1 justify-center bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm transition">
+                            <i class="fas fa-edit"></i>
+                            <span>EDIT</span>
+                        </button>
+                    </td>
+                </tr>`;
         });
         document.getElementById("rowCounter").innerText = `${filtered.length} Ditemukan`;
     }
@@ -308,9 +333,106 @@
                 </tr>`;
         });
     }
-    function isiDropdown() { const s = document.getElementById("pilihBarang"); s.innerHTML = "<option value=''>-- Pilih --</option>"; masterDataMemori.forEach(i => { const o = document.createElement('option'); o.value = i.id; o.text = i.nama_barang; o.setAttribute('data-stok', i.total_stok); s.appendChild(o); }); $('#pilihBarang').select2({width:'100%'}); }
+    function bukaModalEdit(id, nama, satuan, harga) {
+        const item = masterIndex[String(id)];
+        const material = item || { id };
+        const satuanFinal = typeof satuan === "string" ? satuan : (material.satuan || "");
+        document.getElementById("editId").value = material.id;
+        document.getElementById("editNama").value = typeof nama === "string" ? nama : (material.nama_barang || "");
+        document.getElementById("editSatuan").value = satuanFinal;
+        $('#editSatuan').val(satuanFinal).trigger('change');
+        const hargaFinal = (typeof harga === "number" && !Number.isNaN(harga)) ? harga : (material.harga_estimasi ?? "");
+        document.getElementById("editHarga").value = hargaFinal;
+        document.getElementById("modalEdit").classList.remove("hidden");
+    }
+    function tutupModalEdit() {
+        document.getElementById("modalEdit").classList.add("hidden");
+    }
+    async function prosesUpdateMaterial() {
+        const id = document.getElementById("editId").value;
+        const nama = document.getElementById("editNama").value.trim();
+        const satuan = document.getElementById("editSatuan").value.trim();
+        const hargaRaw = document.getElementById("editHarga").value;
+        if (!id) return alert("Pilih material terlebih dahulu.");
+        if (!nama) return alert("Nama material wajib diisi.");
+        if (!satuan) return alert("Satuan wajib diisi.");
+        if (hargaRaw === "") return alert("Harga estimasi wajib diisi.");
+        const harga = Number(hargaRaw);
+        if (Number.isNaN(harga)) return alert("Harga tidak valid.");
+        const { error } = await client.from("master_stok").update({
+            nama_barang: nama,
+            satuan: satuan,
+            harga_estimasi: harga
+        }).eq("id", id);
+        if (error) {
+            console.error("Update error:", error);
+            return alert("Gagal memperbarui material: " + (error.message || "Periksa jaringan"));
+        }
+        alert("Material berhasil diperbarui.");
+        tutupModalEdit();
+        await initData();
+        terapkanFilter();
+    }
+    function isiDropdown() {
+        const s = document.getElementById("pilihBarang");
+        const sEdit = document.getElementById("editSatuan");
+        s.innerHTML = "<option value=''>-- Pilih --</option>";
+        sEdit.innerHTML = "<option value=''>-- Pilih Satuan --</option>";
+
+        const daftarSatuan = [...new Set(masterDataMemori.map(item => item.satuan).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)));
+
+        masterDataMemori.forEach(i => {
+            const o = document.createElement('option');
+            o.value = i.id;
+            o.text = i.nama_barang;
+            o.setAttribute('data-stok', i.total_stok);
+            s.appendChild(o);
+        });
+
+        daftarSatuan.forEach(satuan => {
+            const o = document.createElement('option');
+            o.value = satuan;
+            o.text = satuan;
+            sEdit.appendChild(o);
+        });
+
+        $('#pilihBarang').select2({width:'100%'});
+        $('#editSatuan').select2({
+            width: '100%',
+            tags: true,
+            dropdownParent: $('#modalEdit')
+        });
+    }
 
     initData();
   </script>
+  <div id="modalEdit" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
+      <div class="flex justify-between mb-4">
+        <h2 class="text-lg font-bold text-indigo-800"><i class="fas fa-edit"></i> Edit Material</h2>
+        <button onclick="tutupModalEdit()" class="text-gray-400 font-bold hover:text-red-500">✕</button>
+      </div>
+      <div class="space-y-4">
+        <input type="hidden" id="editId">
+        <div>
+          <label class="text-xs font-bold block mb-1">Nama Material</label>
+          <input type="text" id="editNama" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-xs font-bold block mb-1">Satuan</label>
+            <select id="editSatuan" class="w-full border p-2 rounded outline-none"></select>
+          </div>
+          <div>
+            <label class="text-xs font-bold block mb-1">Harga Estimasi (Rp)</label>
+            <input type="number" id="editHarga" class="w-full border p-2 rounded outline-none">
+          </div>
+        </div>
+        <button onclick="prosesUpdateMaterial()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 shadow-lg transition-all">
+          SIMPAN PERUBAHAN
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
