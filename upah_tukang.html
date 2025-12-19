@@ -155,8 +155,12 @@
                     <td class="p-2"><input type="date" id="date-${idx}" class="border p-1.5 text-[10px] font-bold rounded w-full bg-slate-50" value="${new Date().toISOString().split('T')[0]}"></td>
                     <td class="td-excel text-center px-4">
                         <div class="flex justify-center gap-1">
-                            <button onclick="setDecision(${idx}, 'APPROVE')" id="btn-app-${idx}" class="border px-2 py-1 rounded text-[10px] font-black hover:bg-green-50 uppercase">Setuju</button>
-                            <button onclick="setDecision(${idx}, 'REJECT')" id="btn-rej-${idx}" class="border px-2 py-1 rounded text-[10px] font-black hover:bg-red-50 uppercase">Tolak</button>
+                            <button onclick="setDecision(${idx}, 'APPROVE')" id="btn-app-${idx}" class="border-2 border-green-600 text-green-600 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-green-600 hover:text-white transition-all uppercase tracking-wider">
+                                <i class="fas fa-check mr-1"></i> Setuju
+                            </button>
+                            <button onclick="setDecision(${idx}, 'REJECT')" id="btn-rej-${idx}" class="border-2 border-red-600 text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-600 hover:text-white transition-all uppercase tracking-wider">
+                                <i class="fas fa-times mr-1"></i> Tolak
+                            </button>
                         </div>
                     </td>
                 </tr>`;
@@ -166,10 +170,25 @@
 
     function setDecision(idx, status) {
         const row = document.getElementById(`row-${idx}`);
+        
+        if (status === 'REJECT') {
+            const alasan = prompt("Masukkan Alasan Penolakan:");
+            if (alasan === null) return; // Batalkan jika user klik 'Cancel'
+            if (alasan.trim() === "") {
+                alert("Alasan harus diisi jika ingin menolak!");
+                return;
+            }
+            // Simpan alasan sementara di objek data agar bisa diproses saat eksekusi
+            inboxData[idx].alasan_tolak = alasan;
+        }
+
         decisionMap[idx] = status;
         row.className = status === 'APPROVE' ? "border-b row-approved" : "border-b row-rejected";
+        
+        // Update tampilan tombol
         document.getElementById(`btn-app-${idx}`).className = status === 'APPROVE' ? "bg-green-600 text-white px-2 py-1 rounded text-[10px] font-black" : "border px-2 py-1 rounded text-[10px] font-black";
         document.getElementById(`btn-rej-${idx}`).className = status === 'REJECT' ? "bg-red-600 text-white px-2 py-1 rounded text-[10px] font-black" : "border px-2 py-1 rounded text-[10px] font-black";
+        
         updateSummary();
     }
 
@@ -227,7 +246,22 @@
 
         try {
             if(idS.length > 0) { await client.from('transaksi_upah').insert(listS); await client.from('pengajuan_upah').delete().in('id', idS); }
-            if(idR.length > 0) { for(let id of idR) { const itm = inboxData.find(x => x.id === id); await client.from('pengajuan_upah').update({ nama_pekerjaan: `${itm.nama_pekerjaan} (REJECTED RAPAT)`, tanggal_ajukan: new Date() }).eq('id', id); } }
+            if(idR.length > 0) {
+                for(let id of idR) {
+                    const itm = inboxData.find(x => x.id === id);
+                    // Bersihkan nama dari catatan penolakan/void sebelumnya
+                    const namaAsli = itm.nama_pekerjaan.replace(/\s*\(REJECTED.*?\)/g, "").replace(/\s*\(VOID.*?\)/g, "");
+                    const catatanTolak = itm.alasan_tolak ? ` (TOLAK: ${itm.alasan_tolak})` : "";
+
+                    await client.from('pengajuan_upah')
+                        .update({ 
+                            nama_pekerjaan: namaAsli + catatanTolak,
+                            status: 'TERSEDIA',
+                            tanggal_ajukan: null
+                        })
+                        .eq('id', id);
+                }
+            }
             
             // CETAK BERITA ACARA FINAL
             generateBAFinal(listS, idR);
@@ -277,7 +311,14 @@
             tbody.innerHTML += `<tr class="row-blok-header text-[10px]"><td colspan="5" class="p-2 px-4 uppercase">TAHAP NO ${g.id}</td></tr>`;
             g.items.forEach(i => {
                 const st = sMap[i.n];
-                let btn = st==='LUNAS' ? `<span class="text-green-600 font-bold text-xs">LUNAS</span>` : (st==='DIAJUKAN' ? `<span class="text-amber-500 font-bold text-xs">DIAJUKAN</span>` : `<button onclick="ajukanItem('${i.n}',${i.p},${i.b},'${g.id}')" class="bg-blue-600 text-white px-4 py-1 rounded text-xs font-black shadow">AJUKAN</button>`);
+                let btn = "";
+                if (st === 'LUNAS') {
+                    btn = `<span class="text-green-600 font-bold text-xs"><i class="fas fa-check-circle"></i> LUNAS</span>`;
+                } else if (st === 'DIAJUKAN') {
+                    btn = `<span class="text-amber-500 font-bold text-xs"><i class="fas fa-clock"></i> DIAJUKAN</span>`;
+                } else {
+                    btn = `<button onclick="ajukanItem('${i.n}',${i.p},${i.b},'${g.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded text-xs font-black shadow-sm transition-all active:scale-95">AJUKAN</button>`;
+                }
                 tbody.innerHTML += `<tr class="border-b"><td class="td-excel text-center font-mono">${g.id}</td><td class="td-excel font-semibold">${i.n}</td><td class="td-excel text-center">${i.b}%</td><td class="td-excel text-right font-mono font-bold">${fmt(i.p)}</td><td class="td-excel text-center">${btn}</td></tr>`;
             });
         });

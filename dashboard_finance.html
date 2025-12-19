@@ -65,6 +65,12 @@
           <a href="laporan_jurnal.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-green-600 rounded-lg transition">
             <i class="fas fa-file-invoice-dollar w-5"></i> Laporan Keuangan
           </a>
+          <a href="monitoring_hutang.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-red-600 rounded-lg transition">
+            <i class="fas fa-hand-holding-usd w-5"></i> Monitoring Hutang
+          </a>
+          <a href="monitoring_aktiva_tetap.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition">
+            <i class="fas fa-boxes-stacked w-5"></i> Aktiva Tetap
+          </a>
 
           <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Vendor & PO</p>
           <a href="purchase_order_entry.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-purple-600 rounded-lg transition">
@@ -136,6 +142,32 @@
                 <div>
                     <p class="text-xs text-gray-400 font-bold uppercase">Hutang Vendor</p>
                     <h3 class="text-lg font-bold text-gray-800" id="valHutang">0</h3>
+                </div>
+            </div>
+            <div onclick="window.location.href='monitoring_aktiva_tetap.html'" class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition cursor-pointer group">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="bg-purple-100 p-3 rounded-2xl text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition">
+                        <i class="fas fa-tools text-xl"></i>
+                    </div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fixed Assets</span>
+                </div>
+                <h3 class="text-slate-500 text-xs font-bold mb-1">Total Nilai Buku</h3>
+                <div class="text-xl font-black text-slate-800" id="dashNilaiBuku">Rp 0</div>
+                <div class="mt-4 flex items-center text-[10px] font-bold text-purple-600 uppercase">
+                    <i class="fas fa-arrow-right mr-2"></i> Kelola Aktiva
+                </div>
+            </div>
+            <div onclick="window.location.href='monitoring_hutang.html'" class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition cursor-pointer group">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="bg-red-100 p-3 rounded-2xl text-red-600 group-hover:bg-red-600 group-hover:text-white transition">
+                        <i class="fas fa-file-invoice-dollar text-xl"></i>
+                    </div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Accounts Payable</span>
+                </div>
+                <h3 class="text-slate-500 text-xs font-bold mb-1">Hutang Jatuh Tempo</h3>
+                <div class="text-xl font-black text-red-600" id="dashHutangKritis">Rp 0</div>
+                <div class="mt-4 flex items-center text-[10px] font-bold text-red-600 uppercase">
+                    <i class="fas fa-exclamation-triangle mr-2"></i> Pantau Penagihan
                 </div>
             </div>
         </div>
@@ -258,8 +290,46 @@
         options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
     });
 
+    async function loadSummaryAktiva() {
+        const { data, error } = await client.from('master_aktiva').select('nilai_perolehan, tgl_perolehan, umur_ekonomis');
+        if (error) {
+            console.error("Gagal ambil ringkasan aktiva:", error.message);
+            return;
+        }
+        if (data && data.length > 0) {
+            const today = new Date();
+            const totalNilaiBuku = data.reduce((sum, asset) => {
+                const tgl = new Date(asset.tgl_perolehan);
+                const selisihBulan = (today.getFullYear() - tgl.getFullYear()) * 12 + (today.getMonth() - tgl.getMonth());
+                const deprPerBulan = asset.nilai_perolehan / (asset.umur_ekonomis * 12);
+                const akmPenyusutan = Math.min(asset.nilai_perolehan, Math.max(0, selisihBulan * deprPerBulan));
+                return sum + (asset.nilai_perolehan - akmPenyusutan);
+            }, 0);
+            document.getElementById('dashNilaiBuku').innerText = fmt(totalNilaiBuku);
+        }
+    }
+
+    async function loadSummaryHutang() {
+        const { data, error } = await client.from('purchase_order').select('total_harga, jatuh_tempo').eq('status', 'DITERIMA');
+        if (error) {
+            console.error("Gagal load ringkasan hutang:", error.message);
+            return;
+        }
+        if (data && data.length > 0) {
+            const today = new Date();
+            const kritis = data.reduce((sum, po) => {
+                const jt = new Date(po.jatuh_tempo);
+                const diffDays = Math.ceil((jt - today) / (1000 * 60 * 60 * 24));
+                return diffDays <= 7 ? sum + (po.total_harga || 0) : sum;
+            }, 0);
+            document.getElementById('dashHutangKritis').innerText = fmt(kritis);
+        }
+    }
+
     // Jalankan Load Data
     loadDataDashboard();
+    loadSummaryAktiva();
+    loadSummaryHutang();
   </script>
 </body>
 </html>

@@ -45,7 +45,7 @@
     async function loadWaitingList() {
       const { data, error } = await client
         .from('verifikasi_material')
-        .select(`*, master_stok(nama_barang, satuan)`)
+        .select(`*, master_stok(nama_barang, satuan, harga_estimasi)`)
         // Gunakan filter .ilike agar tidak peduli huruf besar/kecil statusnya
         .ilike('status', 'waiting')
         .order('tanggal', { ascending: false });
@@ -59,6 +59,9 @@
       }
 
       data.forEach(item => {
+        const hargaSatuan = Number(item.master_stok?.harga_estimasi || 0);
+        const qty = Number(item.jumlah || 0);
+        const totalFix = hargaSatuan * qty;
         tbody.innerHTML += `
           <tr class="hover:bg-gray-50 border-b transition">
             <td class="p-4 text-sm">${new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
@@ -67,7 +70,7 @@
                 <span class="font-bold">${item.master_stok?.nama_barang || 'Item'}</span><br>
                 <span class="text-xs text-gray-500">${item.jumlah} ${item.master_stok?.satuan}</span>
             </td>
-            <td class="p-4 text-right font-mono font-bold text-green-700">${fmt(item.total_biaya)}</td>
+            <td class="p-4 text-right font-mono font-bold text-green-700">${fmt(totalFix)}</td>
             <td class="p-4 text-center">
                 ${item.bukti_nota ? `<a href="${item.bukti_nota}" target="_blank" class="text-blue-500 hover:underline text-xs font-bold"><i class="fas fa-image"></i> Lihat</a>` : '-'}
             </td>

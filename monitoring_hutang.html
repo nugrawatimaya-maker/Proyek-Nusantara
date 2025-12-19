@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Hutang & Aging - NLD</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .status-pill { padding: 4px 12px; border-radius: 999px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+        .overdue { background: #fee2e2; color: #991b1b; }
+        .warning { background: #ffedd5; color: #9a3412; }
+        .safe { background: #dcfce7; color: #166534; }
+    </style>
+</head>
+<body class="pb-20">
+    <nav class="bg-white border-b p-4 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-red-600 text-white p-2 rounded-xl shadow-lg shadow-red-200">
+                    <i class="fas fa-hand-holding-usd"></i>
+                </div>
+                <h1 class="font-bold text-slate-800 tracking-tight">Accounts Payable Monitoring</h1>
+            </div>
+            <button onclick="window.location.href='dashboard_finance.html'" class="text-sm font-bold text-slate-500 hover:text-slate-800 transition">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="card p-6 border-t-4 border-red-600">
+                <span class="text-xs font-bold text-slate-400 uppercase">Total Hutang Berjalan</span>
+                <div class="text-2xl font-black text-slate-800 mt-1" id="totalHutang">Rp 0</div>
+            </div>
+            <div class="card p-6 border-t-4 border-orange-500">
+                <span class="text-xs font-bold text-slate-400 uppercase">Jatuh Tempo (7 Hari)</span>
+                <div class="text-2xl font-black text-orange-600 mt-1" id="hutangKritis">Rp 0</div>
+            </div>
+            <div class="card p-6 border-t-4 border-slate-800">
+                <span class="text-xs font-bold text-slate-400 uppercase">Vendor Teraktif</span>
+                <div class="text-xl font-black text-slate-800 mt-1" id="vendorUtama">-</div>
+            </div>
+        </div>
+
+        <div class="card overflow-hidden">
+            <div class="p-4 bg-slate-50 border-b flex justify-between items-center">
+                <h2 class="font-bold text-slate-700 text-sm italic">ANALISA UMUR HUTANG (AGING REPORT)</h2>
+                <div class="flex gap-2">
+                    <button onclick="loadHutangData()" class="bg-white border p-2 rounded-lg text-xs font-bold hover:bg-slate-100 transition"><i class="fas fa-sync"></i></button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-100 text-slate-600 font-bold uppercase text-[10px]">
+                        <tr>
+                            <th class="px-6 py-4">Vendor & No. PO</th>
+                            <th class="px-6 py-4 text-center">Jatuh Tempo</th>
+                            <th class="px-6 py-4 text-center">Umur (Hari)</th>
+                            <th class="px-6 py-4 text-right">Nilai Hutang</th>
+                            <th class="px-6 py-4 text-center">Status Aging</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hutangTableBody" class="divide-y divide-slate-100">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+        const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+        const client = supabase.createClient(supabaseUrl, supabaseKey);
+        const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+        async function loadHutangData() {
+            const { data, error } = await client.from('purchase_order').select('*').eq('status', 'DITERIMA').order('jatuh_tempo', { ascending: true });
+            if (error) {
+                console.error("Gagal load hutang:", error.message);
+                return;
+            }
+
+            const tbody = document.getElementById('hutangTableBody');
+            tbody.innerHTML = '';
+            let total = 0; 
+            let kritis = 0; 
+            let vendorMap = {};
+            const today = new Date();
+
+            data.forEach(po => {
+                const jt = new Date(po.jatuh_tempo);
+                const diffTime = jt - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                total += po.total_harga;
+                if(diffDays <= 7) kritis += po.total_harga;
+                vendorMap[po.nama_vendor] = (vendorMap[po.nama_vendor] || 0) + po.total_harga;
+
+                let statusClass = "safe"; let statusText = "Masih Lama";
+                if(diffDays < 0) { statusClass = "overdue"; statusText = "Terlambat"; }
+                else if(diffDays <= 7) { statusClass = "warning"; statusText = "Segera Bayar"; }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-slate-800">${po.nama_vendor}</div>
+                            <div class="text-[10px] text-indigo-500 font-mono">${po.nomor_po}</div>
+                        </td>
+                        <td class="px-6 py-4 text-center font-bold text-slate-600">${new Date(po.jatuh_tempo).toLocaleDateString('id-ID')}</td>
+                        <td class="px-6 py-4 text-center font-mono font-bold ${diffDays < 0 ? 'text-red-600' : 'text-slate-500'}">${diffDays} Hari</td>
+                        <td class="px-6 py-4 text-right font-black text-slate-800">${fmt(po.total_harga)}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="status-pill ${statusClass}">${statusText}</span>
+                        </td>
+                    </tr>`;
+            });
+
+            document.getElementById('totalHutang').innerText = fmt(total);
+            document.getElementById('hutangKritis').innerText = fmt(kritis);
+            
+            const topVendor = Object.keys(vendorMap).reduce((a, b) => vendorMap[a] > vendorMap[b] ? a : b, "-");
+            document.getElementById('vendorUtama').innerText = topVendor;
+        }
+
+        loadHutangData();
+    </script>
+</body>
+</html>
