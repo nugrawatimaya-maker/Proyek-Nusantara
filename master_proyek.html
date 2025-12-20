@@ -245,8 +245,14 @@
               </span>
             </td>
             <td class="p-3 text-right font-mono font-bold text-slate-500">${fmt(rab)}</td>
-            <td class="p-3 text-right bg-red-50/20 font-mono font-bold text-red-600">${fmt(rUpah)}</td>
-            <td class="p-3 text-right bg-red-50/20 font-mono font-bold text-red-600">${fmt(rMat)}</td>
+            <td class="p-3 text-right bg-red-50/10 font-mono font-bold text-red-600 cursor-pointer hover:bg-red-100 transition underline decoration-dotted underline-offset-4" 
+                onclick="bukaAudit('UPAH', '${p.nama_proyek}')">
+                ${fmt(rUpah)}
+            </td>
+            <td class="p-3 text-right bg-red-50/10 font-mono font-bold text-red-600 cursor-pointer hover:bg-red-100 transition underline decoration-dotted underline-offset-4" 
+                onclick="bukaAudit('MATERIAL', '${p.nama_proyek}')">
+                ${fmt(rMat)}
+            </td>
             <td class="p-4 flex flex-col items-center gap-2">
                 ${btnStatus}
                 <button onclick="hapusProyek(${p.id}, '${p.nama_proyek}')" class="text-slate-300 hover:text-red-600 transition-all text-xs flex items-center gap-1">
@@ -282,6 +288,50 @@
                 alert("❌ Gagal: " + error.message);
             }
         }
+    }
+
+    async function bukaAudit(tipe, namaProyek) {
+        const modal = document.getElementById('modalAudit');
+        const header = document.getElementById('auditHeader');
+        const body = document.getElementById('auditBody');
+        const title = document.getElementById('auditTitle');
+        const subtitle = document.getElementById('auditSubtitle');
+        const totalEl = document.getElementById('auditTotal');
+
+        modal.classList.remove('hidden');
+        body.innerHTML = '<tr><td colspan="3" class="p-10 text-center font-bold animate-pulse text-blue-600 italic">🔍 Sedang Menelusuri Log Transaksi...</td></tr>';
+        title.innerText = `AUDIT ${tipe}`;
+        subtitle.innerText = `Unit: ${namaProyek}`;
+        let total = 0;
+
+        if (tipe === 'UPAH') {
+            header.innerHTML = '<th class="p-3 border-b">Tanggal</th><th class="p-3 border-b">Keterangan Upah</th><th class="p-3 border-b text-right">Nilai Bayar</th>';
+            const { data } = await client.from('transaksi_upah').select('*').eq('kavling', namaProyek);
+            body.innerHTML = '';
+            if (data && data.length > 0) {
+                data.forEach(u => {
+                    total += Number(u.nilai_bayar || 0);
+                    body.innerHTML += `<tr class="hover:bg-blue-50"><td class="p-3 text-xs">${new Date(u.created_at || u.tanggal || u.created_at).toLocaleDateString('id-ID')}</td><td class="p-3 font-bold">${u.keterangan || 'Upah Tukang'}</td><td class="p-3 text-right font-mono font-bold">${fmt(u.nilai_bayar || 0)}</td></tr>`;
+                });
+            } else {
+                body.innerHTML = '<tr><td colspan="3" class="p-10 text-center text-gray-400">Belum ada realisasi upah.</td></tr>';
+            }
+        } else if (tipe === 'MATERIAL') {
+            header.innerHTML = '<th class="p-3 border-b">Tanggal</th><th class="p-3 border-b">Detail Material</th><th class="p-3 border-b text-right">Biaya</th>';
+            const { data } = await client.from('verifikasi_material').select('*, master_stok(nama_barang)').eq('nama_proyek', namaProyek).neq('status', 'REJECTED');
+            body.innerHTML = '';
+            if (data && data.length > 0) {
+                data.forEach(m => {
+                    const tanggal = new Date(m.tanggal || m.created_at || Date.now());
+                    total += Number(m.total_biaya || 0);
+                    body.innerHTML += `<tr class="hover:bg-red-50"><td class="p-3 text-xs">${tanggal.toLocaleDateString('id-ID')}</td><td class="p-3"><div class="font-bold">${m.master_stok?.nama_barang || 'Item'}</div><div class="text-[10px] italic text-gray-500">${m.keterangan || '-'}</div></td><td class="p-3 text-right font-mono font-bold">${fmt(m.total_biaya || 0)}</td></tr>`;
+                });
+            } else {
+                body.innerHTML = '<tr><td colspan="3" class="p-10 text-center text-gray-400">Belum ada realisasi material.</td></tr>';
+            }
+        }
+
+        totalEl.innerText = fmt(total);
     }
 
     // 2. LOGIKA FORM INPUT
@@ -420,5 +470,31 @@
         }
     }
   </script>
+
+  <div id="modalAudit" class="hidden fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-[100] backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-fade-in-up">
+        <div class="p-5 border-b bg-gray-50 flex justify-between items-center">
+            <div>
+                <h2 id="auditTitle" class="text-xl font-black text-slate-800 uppercase tracking-tight">Rincian Biaya</h2>
+                <p id="auditSubtitle" class="text-xs text-blue-600 font-bold italic"></p>
+            </div>
+            <button onclick="document.getElementById('modalAudit').classList.add('hidden')" class="text-gray-400 hover:text-red-500 font-black text-2xl transition">✕</button>
+        </div>
+        <div class="p-0 max-h-[60vh] overflow-y-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead class="bg-slate-100 sticky top-0">
+                    <tr id="auditHeader">
+                        </tr>
+                </thead>
+                <tbody id="auditBody" class="divide-y">
+                    </tbody>
+            </table>
+        </div>
+        <div class="p-4 bg-slate-50 border-t flex justify-between items-center font-black">
+            <span class="text-slate-500 uppercase text-[10px]">Total Terakumulasi:</span>
+            <span id="auditTotal" class="text-lg text-slate-900">Rp 0</span>
+        </div>
+    </div>
+  </div>
 </body>
 </html>
