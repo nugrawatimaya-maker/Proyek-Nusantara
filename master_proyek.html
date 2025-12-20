@@ -228,20 +228,29 @@
         sumRAB += rab;
         sumRealisasiTotal += (rUpah + rMat);
 
+        const btnStatus = isAktif
+          ? `<button onclick="toggleStatus(${p.id}, '${p.status}', '${p.nama_proyek}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 shadow-sm border border-red-200">
+                <i class="fas fa-power-off"></i> MATIKAN
+             </button>`
+          : `<button onclick="toggleStatus(${p.id}, '${p.status}', '${p.nama_proyek}')" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 shadow-sm border border-emerald-200">
+                <i class="fas fa-play text-[8px]"></i> AKTIFKAN
+             </button>`;
+
         tbody.innerHTML += `
-          <tr class="hover:bg-gray-50 border-b ${!isAktif ? 'opacity-50 bg-gray-100' : ''}">
-            <td class="p-3 cursor-pointer group" onclick="toggleStatus(${p.id}, '${p.status}', '${p.nama_proyek}')">
-              <div class="font-bold text-gray-800 group-hover:text-blue-600">${p.nama_proyek}</div>
-              <span class="text-[9px] font-black uppercase ${isAktif ? 'text-green-600' : 'text-red-500'}">
-                ${isAktif ? '● AKTIF' : '○ NONAKTIF'}
+          <tr class="hover:bg-gray-50 border-b ${!isAktif ? 'opacity-60 bg-gray-50' : ''}">
+            <td class="p-3">
+              <div class="font-bold text-gray-800">${p.nama_proyek}</div>
+              <span class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${isAktif ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                ${isAktif ? '● BERJALAN' : '○ NONAKTIF'}
               </span>
             </td>
-            <td class="p-3 text-right font-mono font-bold text-gray-400">${fmt(rab)}</td>
-            <td class="p-3 text-right bg-red-50/30 font-mono font-bold text-red-600">${fmt(rUpah)}</td>
-            <td class="p-3 text-right bg-red-50/30 font-mono font-bold text-red-600">${fmt(rMat)}</td>
-            <td class="p-3 text-center w-16">
-                <button onclick="hapusProyek(${p.id}, '${p.nama_proyek}')" class="text-gray-300 hover:text-red-600 transition">
-                    <i class="fas fa-trash-alt"></i>
+            <td class="p-3 text-right font-mono font-bold text-slate-500">${fmt(rab)}</td>
+            <td class="p-3 text-right bg-red-50/20 font-mono font-bold text-red-600">${fmt(rUpah)}</td>
+            <td class="p-3 text-right bg-red-50/20 font-mono font-bold text-red-600">${fmt(rMat)}</td>
+            <td class="p-4 flex flex-col items-center gap-2">
+                ${btnStatus}
+                <button onclick="hapusProyek(${p.id}, '${p.nama_proyek}')" class="text-slate-300 hover:text-red-600 transition-all text-xs flex items-center gap-1">
+                    <i class="fas fa-trash-alt"></i> <span class="text-[9px] font-bold">HAPUS</span>
                 </button>
             </td>
           </tr>`;
@@ -259,17 +268,18 @@
     // JURUS KONTROL STATUS: Aktifkan atau Nonaktifkan Proyek
     async function toggleStatus(id, currentStatus, nama) {
         const nextStatus = currentStatus === 'BERJALAN' ? 'NONAKTIF' : 'BERJALAN';
-        const confirmMsg = nextStatus === 'NONAKTIF' 
-            ? `⚠️ Nonaktifkan ${nama}? (Unit ini akan disembunyikan dari pengajuan upah & gudang)`
-            : `✅ Aktifkan kembali ${nama}?`;
+        const aksi = nextStatus === 'BERJALAN' ? 'MENGAKTIFKAN' : 'MENONAKTIFKAN';
+        
+        const confirmMsg = `⚠️ KONFIRMASI KEPUTUSAN:\n\nAnda akan ${aksi} unit proyek: ${nama}.\n\n(Unit yang nonaktif tidak akan muncul di menu pengajuan upah & alokasi material)`;
 
         if(confirm(confirmMsg)) {
             const { error } = await client.from('master_proyek').update({ status: nextStatus }).eq('id', id);
             if(!error) {
-                alert(`Status ${nama} berhasil diubah menjadi ${nextStatus}`);
-                loadProyek(); // Refresh tabel agar tampilan berubah
+                await catatLog('PROYEK', `Status ${nama} diubah menjadi ${nextStatus}`, 'fa-sync');
+                alert(`✅ Status ${nama} berhasil diperbarui.`);
+                loadProyek(); 
             } else {
-                alert("Gagal mengubah status: " + error.message);
+                alert("❌ Gagal: " + error.message);
             }
         }
     }
@@ -313,20 +323,35 @@
         const dropdown = document.getElementById("pilihNamaProyek");
         const panel = document.getElementById("manualInputPanel");
         const input = document.getElementById("inputManualNama");
+        const kategoriSelect = document.getElementById("kategoriSelect");
+        const opsiRumah = kategoriSelect?.querySelector('option[value="Bangunan Rumah"]');
 
-        // Cek nilai yang dipilih saat ini
         const val = dropdown.value;
-        console.log("Dropdown berubah ke:", val); // Cek ini di Console (F12)
 
         if (val === "MANUAL") {
             panel.classList.remove("hidden");
             panel.style.display = "block";
             input.required = true;
             input.focus();
+
+            if (opsiRumah) {
+                opsiRumah.disabled = true;
+                opsiRumah.classList.add("text-gray-300", "italic");
+            }
+
+            if (kategoriSelect.value === "Bangunan Rumah") {
+                kategoriSelect.value = "Infrastruktur";
+                cekKategori();
+            }
         } else {
             panel.classList.add("hidden");
             panel.style.display = "none";
             input.required = false;
+
+            if (opsiRumah) {
+                opsiRumah.disabled = false;
+                opsiRumah.classList.remove("text-gray-300", "italic");
+            }
         }
     }
 

@@ -68,7 +68,7 @@
       </div>
     </div>
   </div>
-  <div class="bg-white border border-slate-200 rounded-2xl shadow-inner overflow-hidden relative" id="siteplanCard">
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-inner overflow-hidden relative lg:pr-[420px]" id="siteplanCard">
     <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
       <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600" id="btnFit" title="Fit to Screen">
         <i class="fa-solid fa-compress"></i>
@@ -77,7 +77,22 @@
         <i class="fa-solid fa-rotate-left"></i>
       </button>
     </div>
-    <div id="mapWrap">
+    <div id="mapWrap" class="relative">
+      <div class="absolute top-3 right-3 z-50 sm:top-3 sm:right-3 bottom-3 sm:bottom-auto">
+        <div class="bg-white/90 backdrop-blur border border-slate-200 rounded-xl shadow px-3 py-2 w-[170px] sm:w-[200px]">
+          <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+            Filter
+          </div>
+          <select id="filterOverlay"
+                  class="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white">
+            <option value="all">Semua</option>
+            <option value="not-planning">Not Planning</option>
+            <option value="open-booking">Open Booking</option>
+            <option value="booking-unit">Booking Unit</option>
+            <option value="sold-out">Sold Out</option>
+          </select>
+        </div>
+      </div>
       <div class="hidden fixed z-50 pointer-events-none bg-slate-900/90 text-white text-xs px-3 py-2 rounded-lg shadow-xl backdrop-blur-sm border border-slate-700 transform -translate-x-1/2 -translate-y-full mt-[-10px]" id="mapTooltip">
         <div class="font-bold mb-1 text-xs" id="tipTitle">Blok</div>
         <div class="flex items-center gap-2">
@@ -261,96 +276,156 @@
 <circle class="fil6 str1" cx="13003.06" cy="11264.92" r="715.25"></circle>
 </g>
 </svg>
-<div class="text-[10px] px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500" id="syncStatus">
-<i class="fa-solid fa-cloud"></i> Ready
-                </div>
-</div>
-<div class="mb-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
-<div class="flex justify-between items-start">
-<div>
-<div class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Blok Terpilih</div>
-<div class="text-3xl font-extrabold text-slate-800 mt-1" id="selectedUnit">—</div>
-</div>
-<div class="text-xs font-bold px-2 py-1 bg-white rounded border border-slate-200 text-slate-600" id="selectedProgress">
-                        0%
-                    </div>
-</div>
-<div class="text-xs text-slate-400 mt-2" id="selectedMeta">Silakan klik blok di peta.</div>
-</div>
-<div class="space-y-4 flex-1 overflow-y-auto pr-1 opacity-50 pointer-events-none transition-opacity" id="updateForm">
-<div>
-<label class="block text-xs font-bold text-slate-700 mb-1">Status Unit</label>
-<div class="relative">
-<select class="w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 transition" id="statusSelect">
-              <option value="not-planning">⚪ Not Planning / Belum Dijual</option>
-              <option value="open-booking">🟢 Open Booking</option>
-              <option value="booking-unit">🟠 Booking Unit (Berkas Proses)</option>
-              <option value="sold-out">🔴 Sold Out</option>
+
+    </div>
+    <aside id="updatePanelCard"
+      class="mt-4 lg:mt-0 lg:absolute lg:inset-y-0 lg:right-0 lg:w-[420px] lg:overflow-y-auto
+             border-t lg:border-t-0 lg:border-l border-slate-200
+             bg-white/70 backdrop-blur-sm p-4 sm:p-5 space-y-4">
+
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h3 class="text-base font-extrabold text-slate-800 tracking-tight">Update Siteplan</h3>
+        <p class="text-[11px] text-slate-500">Klik blok di peta, lalu update statusnya.</p>
+      </div>
+      <div class="text-[10px] px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 whitespace-nowrap" id="syncStatus">
+        <i class="fa-solid fa-cloud"></i> Ready
+      </div>
+      </div>
+
+
+      <div class="mb-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Blok Terpilih</div>
+            <div class="text-3xl font-extrabold text-slate-800 mt-1" id="selectedUnit">—</div>
+          </div>
+          <div class="text-xs font-bold px-2 py-1 bg-white rounded border border-slate-200 text-slate-600" id="selectedProgress">
+            0%
+          </div>
+        </div>
+        <div class="text-xs text-slate-400 mt-2" id="selectedMeta">Silakan klik blok di peta.</div>
+      </div>
+      <div id="updateForm" class="space-y-4 opacity-50 pointer-events-none transition-opacity">
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status Saat Ini</div>
+            <div id="currentStatusText" class="mt-1 text-sm font-extrabold text-slate-800 truncate">-</div>
+          </div>
+          <button id="btnToggleStatus" type="button"
+            class="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled>
+            <i class="fa-solid fa-pen-to-square"></i> Update Status Blok
+          </button>
+        </div>
+
+        <div id="statusEditor" class="hidden space-y-4">
+          <div>
+            <label class="text-xs font-bold text-slate-600">Pilih Status</label>
+            <select id="statusSelect"
+              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">
+              <option value="not-planning">Not Planning / Belum Dijual</option>
+              <option value="open-booking">Open Booking</option>
+              <option value="booking-unit">Booking Unit</option>
+              <option value="sold-out">Sold Out</option>
             </select>
-<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-<i class="fa-solid fa-chevron-down text-xs"></i>
-</div>
-</div>
-</div>
-<hr class="border-slate-100"/>
-<div class="hidden-group space-y-3 p-3 bg-amber-50 rounded-xl border border-amber-100" id="formBooking">
-<div class="flex items-center gap-2 text-amber-700 text-xs font-bold mb-1">
-<i class="fa-solid fa-address-book"></i> Data Booking
-                    </div>
-<div>
-<label class="text-[11px] font-semibold text-slate-600">Nama Customer</label>
-<input class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" id="inputBookingName" placeholder="Nama Lengkap" type="text"/>
-</div>
-<div>
-<label class="text-[11px] font-semibold text-slate-600">No. WhatsApp</label>
-<input class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" id="inputBookingPhone" placeholder="08..." type="text"/>
-</div>
-<div>
-<label class="text-[11px] font-semibold text-slate-600">No. KTP</label>
-<input class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none" id="inputBookingKTP" placeholder="16 digit NIK" type="text"/>
-</div>
-</div>
-<div class="hidden-group space-y-3 p-3 bg-rose-50 rounded-xl border border-rose-100" id="formSold">
-<div class="flex items-center gap-2 text-rose-700 text-xs font-bold mb-1">
-<i class="fa-solid fa-hand-holding-dollar"></i> Data Penjualan
-                    </div>
-<div>
-<label class="text-[11px] font-semibold text-slate-600">Nama Pemilik</label>
-<input class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-rose-400 focus:outline-none" id="inputSoldName" placeholder="Nama Pemilik" type="text"/>
-</div>
-<div>
-<label class="text-[11px] font-semibold text-slate-600">Metode Pembayaran</label>
-<select class="w-full mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-rose-400 focus:outline-none bg-white" id="inputSoldPayment">
-<option value="">-- Pilih --</option>
-<option value="KPR">KPR (Kredit)</option>
-<option value="Cash Bertahap">Cash Bertahap</option>
-<option value="Cash Keras">Cash Keras</option>
-</select>
-</div>
-</div>
-<div>
-<label class="text-xs font-semibold text-slate-700">Catatan Tambahan</label>
-<textarea class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" id="noteInput" placeholder="Cth: Menunggu ACC Bank..." rows="2"></textarea>
-</div>
-<div class="pt-2 flex gap-2">
-<button class="flex-1 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold px-4 py-3 rounded-xl shadow-lg shadow-slate-300/50 transition transform active:scale-95 flex items-center justify-center gap-2" id="btnSave">
-<i class="fa-solid fa-floppy-disk"></i> Simpan Data
-                  </button>
-<button class="px-4 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition" id="btnClear">
-                    Batal
-                  </button>
-</div>
-</div>
-<div class="mt-4 pt-4 border-t border-slate-200">
-<div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Legenda Peta</div>
-<div class="flex flex-wrap gap-2 select-none">
-<span class="chip cursor-pointer hover:bg-slate-50"><span class="dot bg-white border border-slate-300"></span>Not Planning</span>
-<span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#22c55e"></span>Open Booking</span>
-<span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#f59e0b"></span>Booking Unit</span>
-<span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#ef4444"></span>Sold Out</span>
-</div>
-</div>
-</div>
+          </div>
+
+          <div id="formBooking" class="hidden-group space-y-3">
+            <div class="text-xs font-extrabold text-slate-700">Data Booking</div>
+            <div>
+              <label class="text-xs font-bold text-slate-600">Nama Calon Pembeli</label>
+              <input id="inputBookingName" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                placeholder="Contoh: Andi Saputra" />
+            </div>
+            <div>
+              <label class="text-xs font-bold text-slate-600">Nomor Telepon (Opsional)</label>
+              <input id="inputBookingPhone" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                placeholder="08xxxxxxxxxx" />
+            </div>
+            <div>
+              <label class="text-xs font-bold text-slate-600">Nama Marketing</label>
+              <input id="inputBookingMarketing" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                placeholder="Contoh: Maya" />
+            </div>
+            <div>
+              <label class="text-xs font-bold text-slate-600">Rencana Pembelian</label>
+              <select id="selectBookingPlan"
+                class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">
+                <option value="">- pilih -</option>
+                <option value="cash">Cash</option>
+                <option value="cash-bertahap">Cash Bertahap</option>
+                <option value="kpr">KPR</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="formSold" class="hidden-group space-y-3">
+            <div class="text-xs font-extrabold text-slate-700">Konfirmasi Sold Out</div>
+            <div>
+              <label class="text-xs font-bold text-slate-600">Pembeli sama dengan data Booking?</label>
+              <select id="soldBuyerMode"
+                class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">
+                <option value="same">Ya, pembeli sama</option>
+                <option value="different">Tidak, pembeli berbeda</option>
+              </select>
+            </div>
+            <div id="soldSameBox" class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+              <div class="font-bold text-slate-700">Pembeli: <span id="soldSameBuyerName">-</span></div>
+              <div class="text-slate-600 mt-1">Marketing: <span id="soldSameMarketingName">-</span></div>
+            </div>
+            <div id="soldDifferentBox" class="hidden space-y-3">
+              <div>
+                <label class="text-xs font-bold text-slate-600">Nama Pembeli</label>
+                <input id="inputSoldName" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  placeholder="Contoh: Budi" />
+              </div>
+              <div>
+                <label class="text-xs font-bold text-slate-600">Nama Marketing</label>
+                <input id="inputSoldMarketing" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  placeholder="Wajib diisi jika pembeli berbeda" />
+              </div>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-slate-600">Tanggal Akad Kredit</label>
+              <input id="inputAkadDate" type="date"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+            </div>
+          </div>
+
+          <div>
+            <label class="text-xs font-bold text-slate-600">Catatan Tambahan</label>
+            <textarea id="noteInput" rows="3"
+              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              placeholder="Contoh: Menunggu ACC bank..."></textarea>
+          </div>
+
+          <div class="flex gap-2">
+            <button id="btnSave"
+              class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-500 transition">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan
+            </button>
+            <button id="btnClear" type="button"
+              class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold hover:bg-slate-50 transition">
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-4 border-t border-slate-200">
+        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Legenda Peta</div>
+        <div class="flex flex-wrap gap-2 select-none">
+          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot bg-white border border-slate-300"></span>Not Planning</span>
+          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#22c55e"></span>Open Booking</span>
+          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#f59e0b"></span>Booking Unit</span>
+          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#ef4444"></span>Sold Out</span>
+        </div>
+      </div>
+
+
+</aside>
+  </div>
 </div>
 </div>
 </section>
@@ -364,7 +439,7 @@
 
     const STATUS_COLORS = {
   "not-planning": "#ffffff",
-  "open-booking": "#22c55e",
+  "open-booking": "#099df3ff",
   "booking-unit": "#f59e0b",
   "sold-out": "#ef4444"
 };
@@ -404,6 +479,74 @@
     const btnFit = document.getElementById("btnFit");
     const btnResetView = document.getElementById("btnResetView");
     const filterOverlay = document.getElementById("filterOverlay");
+    const btnToggleStatus = document.getElementById("btnToggleStatus");
+    const statusEditor = document.getElementById("statusEditor");
+    const currentStatusText = document.getElementById("currentStatusText");
+    const inputBookingMarketing = document.getElementById("inputBookingMarketing");
+    const selectBookingPlan = document.getElementById("selectBookingPlan");
+    const soldBuyerMode = document.getElementById("soldBuyerMode");
+    const soldSameBox = document.getElementById("soldSameBox");
+    const soldDifferentBox = document.getElementById("soldDifferentBox");
+    const soldSameBuyerName = document.getElementById("soldSameBuyerName");
+    const soldSameMarketingName = document.getElementById("soldSameMarketingName");
+    const inputSoldMarketing = document.getElementById("inputSoldMarketing");
+    const inputAkadDate = document.getElementById("inputAkadDate");
+    const getFilterValue = () => (filterOverlay && filterOverlay.value ? filterOverlay.value : "all");
+
+    function setStatusEditor(open) {
+      if (!statusEditor || !btnToggleStatus) return;
+      statusEditor.classList.toggle("hidden", !open);
+      btnToggleStatus.innerHTML = open
+        ? '<i class="fa-solid fa-xmark"></i> Tutup'
+        : '<i class="fa-solid fa-pen-to-square"></i> Update Status Blok';
+    }
+
+    function syncSoldSamePreview() {
+      const buyer = (inputBookingName?.value || "").trim() || "-";
+      const mkt = (inputBookingMarketing?.value || "").trim() || "-";
+      if (soldSameBuyerName) soldSameBuyerName.textContent = buyer;
+      if (soldSameMarketingName) soldSameMarketingName.textContent = mkt;
+    }
+
+    function applySoldBuyerMode(mode) {
+      const isSame = mode === "same";
+      if (soldSameBox) soldSameBox.classList.toggle("hidden", !isSame);
+      if (soldDifferentBox) soldDifferentBox.classList.toggle("hidden", isSame);
+
+      if (isSame) {
+        syncSoldSamePreview();
+      }
+    }
+
+    btnToggleStatus?.addEventListener("click", () => {
+      if (!currentSelectedId) {
+        alert("Klik blok dulu ya 🙂");
+        return;
+      }
+      if (!statusEditor) {
+        alert('Panel editor tidak ditemukan. Pastikan ada elemen id="statusEditor".');
+        return;
+      }
+
+      const isOpen = !statusEditor.classList.contains("hidden");
+      setStatusEditor(!isOpen);
+
+      if (!isOpen) {
+        const st = statusSelect?.value || "not-planning";
+        toggleDynamicForms(st);
+
+        if (st === "sold-out") {
+          syncSoldSamePreview();
+          if (typeof applySoldBuyerMode === "function") {
+            applySoldBuyerMode(soldBuyerMode?.value || "same");
+          }
+        }
+      }
+    });
+
+    soldBuyerMode?.addEventListener("change", (e) => applySoldBuyerMode(e.target.value));
+    inputBookingName?.addEventListener("input", syncSoldSamePreview);
+    inputBookingMarketing?.addEventListener("input", syncSoldSamePreview);
 
     // ====== 3. LOGIKA ZOOM & PAN (ANTI-JITTER) ======
     // Menggunakan pendekatan Delta Sederhana (Mouse Movement) agar stabil
@@ -513,55 +656,76 @@
     function normalizeStatus(raw) {
         const s = (raw || "").toLowerCase().trim();
 
-        // kosong = belum direncanakan / belum dijual (PUTIH)
         if (!s) return "not-planning";
 
-        // status baru / siap jual
-        if (["open-booking", "ready-stock", "ready-stok", "ready stock"].includes(s)) return "open-booking";
+        if (["not-planning", "not planning", "belum-dijual", "belum dijual", "belum_dijual"].includes(s)) {
+            return "not-planning";
+        }
 
-        // sold out (termasuk tahap akhir)
-        if (["sold-out", "serah-terima"].includes(s)) return "sold-out";
+        if ([
+            "open-booking", "open booking", "openbooking",
+            "ready-stock", "ready stock", "readystock",
+            "ready-stok", "ready stok", "readystok"
+        ].includes(s)) {
+            return "open-booking";
+        }
 
-        // status lama yang artinya sudah booking & proses berkas/bank/akad/pembangunan
-        if (["booking", "proses-berkas", "proses-bank", "akad", "pembangunan"].includes(s)) return "booking-unit";
+        if ([
+            "booking-unit", "booking unit",
+            "booking",
+            "proses-berkas", "proses berkas",
+            "proses-bank", "proses bank",
+            "akad",
+            "pembangunan"
+        ].includes(s)) {
+            return "booking-unit";
+        }
 
-        // dibatalkan -> kembali open booking
-        if (["cancel", "batal"].includes(s)) return "open-booking";
+        if ([
+            "sold-out", "sold out", "soldout",
+            "serah-terima", "serah terima"
+        ].includes(s)) {
+            return "sold-out";
+        }
 
-        // not planning
-        if (["not-planning", "belum-dijual", "belum dijual", "not planning"].includes(s)) return "not-planning";
+        if (["cancel", "batal", "dibatalkan"].includes(s)) return "open-booking";
 
-        // fallback aman: jangan bikin semua hijau
         return "not-planning";
     }
 
-function applyColorsToMap() {
+    function applyColorsToMap() {
         const units = document.querySelectorAll("[data-unit-id]");
-        const filter = filterOverlay.value;
+        const filter = (typeof getFilterValue === "function")
+            ? getFilterValue()
+            : (filterOverlay?.value || "all");
 
         units.forEach(el => {
             const id = el.dataset.unitId;
 
-            // ambil status dari DB, kalau belum ada pakai status default dari SVG (kalau ada), kalau kosong -> not-planning
-            const raw = (globalUnitData[id]?.status ?? el.dataset.status ?? null);
+            const raw = (globalUnitData[id]?.status ?? el.dataset.status ?? "");
             const st = normalizeStatus(raw);
             el.dataset.status = st;
 
-            // Filter overlay
-            if (filter === "all" || st === filter) {
+            const show =
+                (filter === "all") ||
+                (st === filter) ||
+                (st === "not-planning" && filter !== "not-planning");
+
+            if (show) {
                 el.style.fill = STATUS_COLORS[st] || "#ffffff";
                 el.style.opacity = "1";
                 el.style.pointerEvents = "all";
+                el.dataset.filteredOut = "0";
             } else {
-                el.style.fill = "#cbd5e1"; // dimmed
-                el.style.opacity = "0.3";
+                el.style.opacity = "0";
                 el.style.pointerEvents = "none";
+                el.dataset.filteredOut = "1";
             }
         });
     }
 
     // Listener Filter Dropdown
-    filterOverlay.addEventListener("change", applyColorsToMap);
+    if (filterOverlay) filterOverlay.addEventListener("change", applyColorsToMap);
 
     // ====== 5. INTERAKSI KLIK & HOVER ======
     let selectedEl = null;
@@ -569,6 +733,15 @@ function applyColorsToMap() {
     function selectUnit(el) {
         const id = el.dataset.unitId;
         currentSelectedId = id;
+
+        // === ANTI MACET: begitu blok kepilih, tombol update langsung aktif ===
+        if (btnToggleStatus) {
+            btnToggleStatus.disabled = false;
+            btnToggleStatus.removeAttribute("disabled");
+        }
+        if (updateForm) {
+            updateForm.classList.remove("opacity-50", "pointer-events-none");
+        }
 
         // Highlight
         if(selectedEl) {
@@ -597,13 +770,28 @@ function applyColorsToMap() {
         inputBookingKTP.value = data.customer_ktp || "";
         inputSoldName.value = data.customer_name || ""; 
         inputSoldPayment.value = data.payment_method || "";
+        if (inputBookingMarketing) inputBookingMarketing.value = data.marketing_name || "";
+        if (selectBookingPlan) selectBookingPlan.value = data.purchase_plan || "";
+        if (inputAkadDate) inputAkadDate.value = data.akad_date ? String(data.akad_date).slice(0, 10) : "";
+        if (inputSoldMarketing) inputSoldMarketing.value = data.sold_marketing_name || data.marketing_name || "";
+        syncSoldSamePreview();
+        if (soldBuyerMode) {
+          soldBuyerMode.value = (data.sold_same_buyer === false) ? "different" : "same";
+        }
+        applySoldBuyerMode(soldBuyerMode?.value || "same");
 
         toggleDynamicForms(st);
+
+        if (currentStatusText) currentStatusText.textContent = selectedMetaEl.textContent;
+        if (btnToggleStatus) btnToggleStatus.disabled = false;
+        setStatusEditor(false);
     }
 
     svg.addEventListener("click", (evt) => {
         const t = evt.target.closest("[data-unit-id]");
-        if (t) selectUnit(t);
+        if (!t) return;
+        if (t.dataset.filteredOut === "1") return;
+        selectUnit(t);
     });
 
     // Tooltip Logic
@@ -611,7 +799,7 @@ function applyColorsToMap() {
         const t = evt.target.closest("[data-unit-id]");
         if(t && t !== selectedEl) {
             const id = t.dataset.unitId;
-            const st = globalUnitData[id]?.status || "ready-stock";
+            const st = normalizeStatus(globalUnitData[id]?.status ?? t.dataset.status ?? null);
             
             tooltip.classList.remove("hidden");
             tooltip.style.left = evt.clientX + "px";
@@ -619,7 +807,7 @@ function applyColorsToMap() {
             
             tipTitle.textContent = "Blok " + id;
             tipSub.textContent = st.replace("-", " ");
-            tipDot.style.backgroundColor = STATUS_COLORS[st];
+            tipDot.style.backgroundColor = STATUS_COLORS[st] || "#94a3b8";
         } else {
             tooltip.classList.add("hidden");
         }
@@ -630,11 +818,17 @@ function applyColorsToMap() {
         formBooking.classList.add("hidden-group");
         formSold.classList.add("hidden-group");
 
-        if (status === "booking") formBooking.classList.remove("hidden-group");
+        if (status === "booking-unit") formBooking.classList.remove("hidden-group");
         else if (status === "sold-out") formSold.classList.remove("hidden-group");
     }
 
-    statusSelect.addEventListener("change", (e) => toggleDynamicForms(e.target.value));
+    statusSelect.addEventListener("change", (e) => {
+        toggleDynamicForms(e.target.value);
+        if (e.target.value === "sold-out") {
+            syncSoldSamePreview();
+            applySoldBuyerMode(soldBuyerMode?.value || "same");
+        }
+    });
 
     btnSave.addEventListener("click", async () => {
         if (!currentSelectedId) return;
@@ -643,41 +837,103 @@ function applyColorsToMap() {
         btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ...';
         btnSave.disabled = true;
 
-        const st = statusSelect.value;
-        let payload = {
-            unit_id: currentSelectedId,
-            status: st,
-            notes: noteInput.value,
-            updated_at: new Date()
+        const must = (cond, msg) => {
+            if (!cond) {
+                alert(msg);
+                throw new Error("validation");
+            }
         };
 
-        if (st === "booking") {
-            payload.customer_name = inputBookingName.value;
-            payload.customer_phone = inputBookingPhone.value;
-            payload.customer_ktp = inputBookingKTP.value;
-            payload.payment_method = null;
-        } else if (st === "sold-out") {
-            payload.customer_name = inputSoldName.value;
-            payload.payment_method = inputSoldPayment.value;
-            payload.customer_phone = null;
-            payload.customer_ktp = null;
-        } else {
-            payload.customer_name = null;
-            payload.customer_phone = null;
-            payload.customer_ktp = null;
-            payload.payment_method = null;
-        }
-
         try {
+            const st = statusSelect.value;
+
+            let payload = {
+                unit_id: currentSelectedId,
+                status: st,
+                notes: noteInput?.value || "",
+                updated_at: new Date()
+            };
+
+            if (st === "booking-unit") {
+                const buyer = (inputBookingName?.value || "").trim();
+                const mkt = (inputBookingMarketing?.value || "").trim();
+                const plan = (selectBookingPlan?.value || "").trim();
+
+                must(!!buyer, "Nama Calon Pembeli wajib diisi.");
+                must(!!mkt, "Nama Marketing wajib diisi.");
+                must(!!plan, "Rencana pembelian wajib dipilih.");
+
+                payload.customer_name = buyer;
+                payload.customer_phone = (inputBookingPhone?.value || "").trim() || null;
+                payload.customer_ktp = (inputBookingKTP?.value || "").trim() || null;
+                payload.marketing_name = mkt;
+                payload.purchase_plan = plan;
+
+                payload.akad_date = null;
+                payload.sold_same_buyer = null;
+                payload.sold_marketing_name = null;
+                payload.payment_method = null;
+
+            } else if (st === "sold-out") {
+                const akad = (inputAkadDate?.value || "").trim();
+                must(!!akad, "Tanggal Akad Kredit wajib diisi.");
+
+                const mode = soldBuyerMode?.value || "same";
+                payload.akad_date = akad;
+                payload.payment_method = (inputSoldPayment?.value || "").trim() || null;
+                payload.sold_same_buyer = (mode === "same");
+
+                if (mode === "same") {
+                    const buyer = (inputBookingName?.value || "").trim();
+                    const mkt = (inputBookingMarketing?.value || "").trim();
+                    must(!!buyer, "Data Booking belum ada. Isi data booking dulu, atau pilih mode 'pembeli berbeda'.");
+                    must(!!mkt, "Nama marketing dari booking belum ada. Isi dulu ya.");
+
+                    payload.customer_name = buyer;
+                    payload.customer_phone = (inputBookingPhone?.value || "").trim() || null;
+                    payload.customer_ktp = (inputBookingKTP?.value || "").trim() || null;
+                    payload.marketing_name = mkt;
+                    payload.sold_marketing_name = mkt;
+                } else {
+                    const buyer = (inputSoldName?.value || "").trim();
+                    const mkt = (inputSoldMarketing?.value || "").trim();
+                    must(!!buyer, "Nama Pembeli (Sold Out) wajib diisi.");
+                    must(!!mkt, "Nama Marketing wajib diisi jika pembeli berbeda.");
+
+                    payload.customer_name = buyer;
+                    payload.customer_phone = null;
+                    payload.customer_ktp = null;
+                    payload.marketing_name = mkt;
+                    payload.sold_marketing_name = mkt;
+                }
+
+                payload.purchase_plan = payload.purchase_plan ?? null;
+
+            } else {
+                payload.customer_name = null;
+                payload.customer_phone = null;
+                payload.customer_ktp = null;
+                payload.marketing_name = null;
+                payload.purchase_plan = null;
+                payload.payment_method = null;
+                payload.akad_date = null;
+                payload.sold_same_buyer = null;
+                payload.sold_marketing_name = null;
+            }
+
             const { error } = await client.from('unit_status').upsert(payload);
             if (error) throw error;
 
             globalUnitData[currentSelectedId] = { ...globalUnitData[currentSelectedId], ...payload };
             applyColorsToMap();
+
             alert("Berhasil disimpan!");
+            setStatusEditor(false);
 
         } catch (err) {
-            alert("Error: " + err.message);
+            if (err?.message !== "validation") {
+                alert("Error: " + (err?.message || err));
+            }
         } finally {
             btnSave.innerHTML = oriText;
             btnSave.disabled = false;
@@ -840,8 +1096,7 @@ document.getElementById("btnRefreshProgress")?.addEventListener("click", loadMar
 
     // Init
     loadMarketingProgress();
-    
-    document.getElementById("updatePanelCard")?.classList.add("hidden");
+
 // preload status peta supaya saat dibuka langsung siap
     loadData();
 

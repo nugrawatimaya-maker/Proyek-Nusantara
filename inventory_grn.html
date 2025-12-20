@@ -188,14 +188,15 @@
                 .from('purchase_order')
                 .update({
                     status: 'CANCELLED',
-                    keterangan: `Dibatalkan di GRN: ${alasan}`
+                    keterangan: `BATAL DI GRN: ${alasan.trim()}`
                 })
                 .eq('id', id);
 
             if (error) throw error;
 
-            alert(`✅ PO ${noPO} telah dibatalkan dan dihapus dari antrean.`);
+            alert(`✅ PO ${noPO} telah berhasil dibatalkan.`);
             loadOpenPO();
+
         } catch (e) {
             alert("❌ Gagal membatalkan PO: " + e.message);
         }

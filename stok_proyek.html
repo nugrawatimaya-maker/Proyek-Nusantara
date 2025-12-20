@@ -145,6 +145,20 @@
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    async function catatLog(tipe, pesan, icon = 'fa-info-circle') {
+        const user = "SUPERADMIN";
+        try {
+            const { error } = await client.from('activity_logs').insert([{
+                user_name: user,
+                tipe: tipe,
+                aktivitas: pesan,
+                icon: icon
+            }]);
+            if (error) console.error("Gagal mencatat log:", error);
+        } catch (e) {
+            console.error("Error Log:", e);
+        }
+    }
     const escHtml = (s) => String(s ?? '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -275,6 +289,10 @@
                             <i class="fas fa-edit"></i>
                             <span>EDIT</span>
                         </button>
+                        <button onclick="proteksiOpnameBaris(${item.id}, '${namaSafe}', ${item.total_stok || 0})"
+                            class="ml-2 bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs font-bold shadow-sm transition">
+                            OPNAME
+                        </button>
                     </td>
                 </tr>`;
         });
@@ -315,11 +333,13 @@
         if(!barangId || jumlah <= 0) return alert("⚠️ Isi jumlah barang!");
 
         if(jenis === 'PAKAI') {
+            if(jumlah > stokSistem) {
+                return alert(`❌ STOK TIDAK CUKUP!\nSisa stok di gudang hanya: ${stokSistem}.\nHarap lakukan Opname jika ada selisih fisik.`);
+            }
             if(!proyek) return alert("⚠️ Pilih proyek!");
             const item = masterDataMemori.find(i => i.id == barangId);
             const totalBiaya = (item?.harga_estimasi || 0) * jumlah;
 
-            // JURUS PARALEL: Kirim ke antrean Accounting & Realisasi Proyek
             const { error: errVerif } = await client.from('verifikasi_material').insert([{
                 tanggal: new Date(), 
                 nama_proyek: proyek, 
@@ -331,7 +351,6 @@
             }]);
 
             if(!errVerif) {
-                // Update stok dan Kartu Stok
                 await client.from('master_stok').update({ total_stok: stokSistem - jumlah }).eq('id', barangId);
                 await client.from('stok_history').insert([{ 
                     barang_id: barangId, 
@@ -339,11 +358,8 @@
                     jumlah: -jumlah, 
                     keterangan: `${proyek}: ${ket}` 
                 }]);
-                alert(`✅ BERHASIL! Data terkirim ke Accounting & Master Proyek.`);
+                alert(`✅ BERHASIL! Terkirim ke Accounting.`);
                 tutupModal(); initData();
-            } else {
-                console.error("Detail Error:", errVerif);
-                alert("❌ GAGAL! Periksa koneksi atau nama kolom di Supabase.");
             }
         }
     }
@@ -391,7 +407,23 @@
     }
 
     function proteksiFitur(aksi) { const p = prompt("Password:"); if(p==="SUPERADMIN") eksekusiFitur(aksi); }
-    function eksekusiFitur(aksi) { if(aksi==='SINKRON') sinkronkanSaldoOtomatis(); if(aksi==='OPNAME') bukaModal('OPNAME'); }
+    function proteksiOpnameBaris(id, nama, stok) {
+      const p = prompt("🔐 AKSES TERBATAS!\nMasukkan Password Admin untuk melakukan Opname:");
+      if (p === "SUPERADMIN") {
+        bukaOpname(id, nama, stok);
+      } else if (p !== null) {
+        alert("⛔ Password Salah! Anda tidak memiliki otoritas.");
+      }
+    }
+    function eksekusiFitur(aksi) {
+      if(aksi==='SINKRON') sinkronkanSaldoOtomatis();
+      if(aksi==='OPNAME') {
+        document.getElementById('modalOpname').classList.remove('hidden');
+        document.getElementById('opnameNama').value = "PILIH MATERIAL DARI TABEL DI BAWAH";
+        document.getElementById('opnameStokSistem').value = 0;
+        document.getElementById('opnameStokReal').value = 0;
+      }
+    }
     function bukaModal(j) { document.getElementById("modalForm").classList.remove("hidden"); document.getElementById("jenisInput").value = j; if(j==='PAKAI') document.getElementById("divProyek").classList.remove("hidden"); else document.getElementById("divProyek").classList.add("hidden"); }
     function tutupModal() { document.getElementById("modalForm").classList.add("hidden"); }
     function tutupModalKartu() { document.getElementById("modalKartuStok").classList.add("hidden"); }
@@ -520,6 +552,84 @@
             terapkanFilter();
         }
     }
+
+    // --- JURUS SINTRONISASI SALDO OTOMATIS ---
+    async function sinkronkanSaldoOtomatis() {
+        if (!currentBarangId) return alert("⚠️ Pilih material terlebih dahulu!");
+
+        const { data: logs, error: errLogs } = await client
+            .from('stok_history')
+            .select('jumlah')
+            .eq('barang_id', currentBarangId);
+
+        if (errLogs) return alert("❌ Gagal mengambil riwayat: " + errLogs.message);
+
+        const saldoSeharusnya = logs.reduce((acc, curr) => acc + Number(curr.jumlah || 0), 0);
+
+        const { error: errUpdate } = await client
+            .from('master_stok')
+            .update({ total_stok: saldoSeharusnya })
+            .eq('id', currentBarangId);
+
+        if (errUpdate) {
+            alert("❌ Gagal sinkronisasi ke Master: " + errUpdate.message);
+        } else {
+            await client.from('stok_history').insert([{
+                barang_id: currentBarangId,
+                jenis_transaksi: 'SINKRON SALDO',
+                jumlah: 0,
+                keterangan: `Sinkronisasi sistem ke saldo ${saldoSeharusnya}`
+            }]);
+
+            alert(`✅ SINKRONISASI BERHASIL!\nSaldo material telah disesuaikan menjadi: ${saldoSeharusnya}`);
+            tutupModalKartu();
+            await initData();
+            if (document.getElementById("cariInput").value) terapkanFilter();
+        }
+    }
+
+    function bukaOpname(id, nama, stok) {
+        document.getElementById("opnameId").value = id;
+        document.getElementById("opnameNama").value = nama;
+        document.getElementById("opnameStokSistem").value = stok;
+        document.getElementById("opnameStokReal").value = stok;
+        document.getElementById("modalOpname").classList.remove("hidden");
+    }
+
+    async function prosesOpnameLangsung() {
+        const id = document.getElementById("opnameId").value;
+        const nama = document.getElementById("opnameNama").value;
+        const real = Number(document.getElementById("opnameStokReal").value);
+        const sistem = Number(document.getElementById("opnameStokSistem").value);
+        const ket = document.getElementById("opnameKet").value || "-";
+        const selisih = real - sistem;
+
+        if(!confirm(`Konfirmasi penyesuaian stok?\nBarang: ${nama}\nSelisih: ${selisih}\nStok baru akan menjadi: ${real}`)) return;
+
+        try {
+            const { error: err1 } = await client.from('master_stok').update({ total_stok: real }).eq('id', id);
+            const { error: err2 } = await client.from('stok_history').insert([{
+                barang_id: id,
+                jenis_transaksi: 'OPNAME (PENYESUAIAN)',
+                jumlah: selisih,
+                keterangan: `Penyesuaian Fisik: ${ket}`
+            }]);
+
+            if(!err1 && !err2) {
+                await catatLog(
+                    'OPNAME',
+                    `Melakukan penyesuaian stok ${nama} dari ${sistem} menjadi ${real} (Selisih: ${selisih}). Alasan: ${ket}`,
+                    'fa-balance-scale'
+                );
+
+                alert("✅ STOK BERHASIL DISINKRONKAN & LOG TERCATAT!");
+                document.getElementById('modalOpname').classList.add('hidden');
+                initData(); terapkanFilter();
+            }
+        } catch (e) {
+            alert("❌ Gagal: " + e.message);
+        }
+    }
     async function prosesSimpanItemBaru() {
         const nama = document.getElementById("tambahNama").value.trim();
         const satuanRaw = $('#tambahSatuan').val();
@@ -639,6 +749,39 @@
         </div>
         <button onclick="prosesSimpanItemBaru()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg transition-all">
           SIMPAN KE DATABASE
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalOpname" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
+      <div class="flex justify-between mb-4">
+        <h2 class="text-lg font-bold text-purple-800"><i class="fas fa-balance-scale"></i> Stock Opname (Penyesuaian)</h2>
+        <button onclick="document.getElementById('modalOpname').classList.add('hidden')" class="text-gray-400 font-bold">✕</button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase">Nama Material</label>
+          <input type="text" id="opnameNama" class="w-full bg-gray-50 border p-2 rounded font-bold" readonly>
+          <input type="hidden" id="opnameId">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="text-[10px] font-bold text-gray-400 uppercase">Stok Sistem</label>
+            <input type="number" id="opnameStokSistem" class="w-full bg-gray-50 border p-2 rounded font-mono" readonly>
+          </div>
+          <div>
+            <label class="text-[10px] font-bold text-purple-600 uppercase">Stok Fisik Real</label>
+            <input type="number" id="opnameStokReal" class="w-full border-2 border-purple-500 p-2 rounded font-black text-lg focus:ring-4 focus:ring-purple-200 outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase">Keterangan Selisih</label>
+          <textarea id="opnameKet" class="w-full border p-2 rounded text-sm" placeholder="Contoh: Barang rusak atau salah hitung..."></textarea>
+        </div>
+        <button onclick="prosesOpnameLangsung()" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 shadow-lg transition-all active:scale-95">
+          UPDATE STOK SEKARANG
         </button>
       </div>
     </div>
