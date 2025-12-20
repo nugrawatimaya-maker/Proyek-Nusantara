@@ -77,12 +77,13 @@
             <th class="w-24 text-center text-black">Satuan</th>
             <th class="w-32 text-right bg-blue-50/50 text-black">Sisa Stok</th>
             <th class="w-32 text-right text-black">Harga Satuan</th>
+            <th class="w-44 text-center text-black">Perubahan Harga</th>
             <th class="w-40 text-right bg-green-50/50 text-green-700 font-bold text-black">Total Nilai</th>
             <th class="w-28 text-center text-black">Status</th>
             <th class="w-24 text-center text-black">Edit</th>
           </tr>
         </thead>
-        <tbody id="bodyStok"><tr><td colspan="8" class="text-center p-20 text-gray-400 italic font-bold">⚠️ Silakan ketik nama barang pada kolom pencarian...</td></tr></tbody>
+        <tbody id="bodyStok"><tr><td colspan="9" class="text-center p-20 text-gray-400 italic font-bold">⚠️ Silakan ketik nama barang pada kolom pencarian...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -144,6 +145,12 @@
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    const escHtml = (s) => String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 
     let masterDataMemori = [];
     let masterIndex = {}; // << tambah ini
@@ -209,7 +216,7 @@
         const keyword = document.getElementById("cariInput").value.toUpperCase();
         const tbody = document.getElementById("bodyStok");
         if (keyword.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center p-20 text-gray-400 italic font-bold">⚠️ Ketik nama barang...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center p-20 text-gray-400 italic font-bold">⚠️ Ketik nama barang...</td></tr>`;
             return;
         }
         const filtered = masterDataMemori.filter(item => item.nama_barang.toUpperCase().includes(keyword));
@@ -217,8 +224,11 @@
         filtered.forEach((item, index) => {
             const val = (item.total_stok || 0) * (item.harga_estimasi || 0);
             const namaEsc = (item.nama_barang || '').replace(/'/g, "\\'");
-            const satuanEsc = (item.satuan || '-').replace(/'/g, "\\'");
+            const satuanDisplay = item.satuan || '-';
+            const satuanEsc = (item.satuan || '').replace(/'/g, "\\'");
             const namaTampil = item.nama_barang || '-';
+            const namaSafe = escHtml(item.nama_barang || '');
+            const satuanSafe = escHtml(item.satuan || '');
             const isAda = Number(item.total_stok || 0) > 0;
             const statusLabel = isAda
                 ? `<span class="inline-flex items-center px-2 py-1 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200">
@@ -228,23 +238,40 @@
                         Stok Habis
                      </span>`;
             const hargaArg = typeof item.harga_estimasi === 'number' ? item.harga_estimasi : 'null';
+            const hargaLama = (item.harga_sebelumnya ?? null);
+            const hargaBaru = Number(item.harga_estimasi || 0);
+            const perubahanHargaCell = (hargaLama === null || Number(hargaLama) === hargaBaru)
+                ? `<span class="text-xs text-slate-400 italic">-</span>`
+                : `
+                    <div class="text-[11px] leading-tight">
+                        <div class="font-bold text-slate-600">${item.harga_updated_source || 'UPDATE'}</div>
+                        <div class="text-slate-500">${fmt(Number(hargaLama))} → <span class="font-black text-slate-800">${fmt(hargaBaru)}</span></div>
+                    </div>
+                  `;
             tbody.innerHTML += `
                 <tr class="border-t">
                     <td class="text-center">${index + 1}</td>
-                    <td class="font-bold text-blue-700 cursor-pointer hover:underline" onclick="bukaKartuStok(${item.id}, '${namaEsc}', '${satuanEsc}')">
-                        ${namaTampil}
+                    <td class="font-bold text-blue-700 cursor-pointer hover:underline js-kartu"
+                        data-id="${item.id}"
+                        data-nama="${namaSafe}"
+                        data-satuan="${satuanSafe}">
+                        ${namaSafe || '-'}
                     </td>
-                    <td class="text-center">${item.satuan || '-'}</td>
+                    <td class="text-center">${satuanDisplay}</td>
                     <td class="text-right font-black text-blue-800 bg-blue-50/50">${item.total_stok || 0}</td>
                     <td class="text-right">${fmt(item.harga_estimasi || 0)}</td>
+                    <td class="text-center">${perubahanHargaCell}</td>
                     <td class="text-right font-black text-green-800 bg-green-50/50">${fmt(val)}</td>
                     <td class="text-center">
                         ${statusLabel}
                     </td>
                     <td class="text-center">
                         <button type="button"
-                            onclick="bukaModalEdit(${item.id}, '${namaEsc}', '${satuanEsc}', ${hargaArg})"
-                            class="flex items-center gap-1 justify-center bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm transition">
+                            class="js-edit flex items-center gap-1 justify-center bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-xs font-bold shadow-sm transition"
+                            data-id="${item.id}"
+                            data-nama="${namaSafe}"
+                            data-satuan="${satuanSafe}"
+                            data-harga="${Number(item.harga_estimasi || 0)}">
                             <i class="fas fa-edit"></i>
                             <span>EDIT</span>
                         </button>
@@ -253,6 +280,27 @@
         });
         document.getElementById("rowCounter").innerText = `${filtered.length} Ditemukan`;
     }
+
+    document.getElementById("bodyStok").addEventListener("click", (e) => {
+        const kartu = e.target.closest(".js-kartu");
+        if (kartu) {
+            const id = kartu.dataset.id;
+            const nama = kartu.dataset.nama || "";
+            const satuan = kartu.dataset.satuan || "";
+            bukaKartuStok(id, nama, satuan);
+            return;
+        }
+
+        const btn = e.target.closest(".js-edit");
+        if (btn) {
+            const id = btn.dataset.id;
+            const nama = btn.dataset.nama || "";
+            const satuan = btn.dataset.satuan || "";
+            const harga = Number(btn.dataset.harga || 0);
+            bukaModalEdit(id, nama, satuan, harga);
+            return;
+        }
+    });
 
     // 3. LOGIKA SIMPAN (Verifikasi Accounting)
     async function simpanTransaksi() {
@@ -412,14 +460,29 @@
                 </tr>`;
         });
     }
+
+    function setSelect2Value(selectEl, value) {
+        const v = (value ?? '').toString().trim();
+        if (!selectEl) return;
+        if (!v) {
+            $(selectEl).val('').trigger('change');
+            return;
+        }
+        const exists = Array.from(selectEl.options).some(o => o.value === v);
+        if (!exists) {
+            const opt = new Option(v, v, true, true);
+            selectEl.add(opt);
+        }
+        $(selectEl).val(v).trigger('change');
+    }
     function bukaModalEdit(id, nama, satuan, harga) {
         const item = masterIndex[String(id)];
         const material = item || { id };
-        const satuanFinal = typeof satuan === "string" ? satuan : (material.satuan || "");
+        const satuanFinal = (typeof satuan === "string" ? satuan : (material.satuan || "")).trim();
         document.getElementById("editId").value = material.id;
         document.getElementById("editNama").value = typeof nama === "string" ? nama : (material.nama_barang || "");
         document.getElementById("editSatuan").value = satuanFinal;
-        $('#editSatuan').val(satuanFinal).trigger('change');
+        setSelect2Value(document.getElementById("editSatuan"), satuanFinal);
         const hargaFinal = (typeof harga === "number" && !Number.isNaN(harga)) ? harga : (material.harga_estimasi ?? "");
         document.getElementById("editHarga").value = hargaFinal;
         document.getElementById("modalEdit").classList.remove("hidden");
@@ -443,7 +506,9 @@
         const { error } = await client.from("master_stok").update({
             nama_barang: nama,
             satuan: satuan,
-            harga_estimasi: harga
+            harga_estimasi: harga,
+            harga_updated_source: "OPNAME",
+            harga_updated_ref: "STOK_PROYEK"
         }).eq("id", id);
 
         if (error) {

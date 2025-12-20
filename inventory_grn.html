@@ -45,7 +45,7 @@
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
     async function loadOpenPO() {
-      try {
+    try {
         // PERBAIKAN: Menghapus barang_id dari inventory_req untuk menghindari error kolom tidak ditemukan
         const { data, error } = await client
             .from('purchase_order')
@@ -92,10 +92,16 @@
                         <input type="file" id="nota-${po.id}" class="w-full text-sm mt-1">
                     </div>
 
-                    <button onclick="prosesGRN(${po.id}, '${po.nomor_po}', ${bId})" 
-                            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl mt-6 shadow-md">
-                        Konfirmasi Terima Barang
-                    </button>
+                    <div class="flex gap-2 mt-6">
+                        <button onclick="prosesGRN(${po.id}, '${po.nomor_po}', ${bId})" 
+                                class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-md transition">
+                            Konfirmasi Terima Barang
+                        </button>
+                        <button onclick="batalPO(${po.id}, '${po.nomor_po}')" 
+                                class="bg-red-100 hover:bg-red-200 text-red-600 font-bold px-6 py-3 rounded-xl transition border border-red-200">
+                            <i class="fas fa-times"></i> Batal PO
+                        </button>
+                    </div>
                 </div>
             </div>`;
         });
@@ -168,6 +174,30 @@
             alert("❌ GAGAL: " + e.message);
             btn.disabled = false;
             btn.innerHTML = `Konfirmasi Terima Barang`;
+        }
+    }
+
+    async function batalPO(id, noPO) {
+        const alasan = prompt(`⚠️ BATALKAN PO ${noPO}?\nMasukkan alasan pembatalan:`);
+        if (alasan === null) return;
+        if (alasan.trim() === "") return alert("Alasan pembatalan wajib diisi!");
+        if (!confirm(`Apakah Anda yakin ingin menghapus PO ${noPO} dari antrean GRN?`)) return;
+
+        try {
+            const { error } = await client
+                .from('purchase_order')
+                .update({
+                    status: 'CANCELLED',
+                    keterangan: `Dibatalkan di GRN: ${alasan}`
+                })
+                .eq('id', id);
+
+            if (error) throw error;
+
+            alert(`✅ PO ${noPO} telah dibatalkan dan dihapus dari antrean.`);
+            loadOpenPO();
+        } catch (e) {
+            alert("❌ Gagal membatalkan PO: " + e.message);
         }
     }
 

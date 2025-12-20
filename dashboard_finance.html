@@ -37,61 +37,82 @@
 
   <div class="flex h-screen overflow-hidden">
 
-    <aside id="sidebar" class="sidebar w-64 bg-white border-r border-gray-200 flex flex-col h-full fixed md:relative z-30 transform -translate-x-full md:translate-x-0 shadow-xl md:shadow-none">
-      <div class="h-16 flex items-center justify-center border-b border-gray-200 bg-green-600">
-        <h1 class="text-white font-bold text-xl tracking-wider"><i class="fas fa-building mr-2"></i>NLD FINANCE</h1>
+    <aside id="sidebar" class="sidebar w-72 bg-slate-900 flex flex-col h-full fixed md:relative z-30 transform -translate-x-full md:translate-x-0 transition-all duration-300 shadow-2xl">
+      <div class="h-20 flex items-center px-6 mb-4 bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg">
+        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-md mr-3">
+          <i class="fas fa-landmark text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-white font-black text-lg tracking-tight leading-none">NLD FINANCE</h1>
+          <span class="text-[10px] text-emerald-100 font-bold uppercase tracking-[2px] mt-1 block">Enterprise System</span>
+        </div>
       </div>
-
-      <div class="flex-1 overflow-y-auto no-scrollbar py-4">
-        <nav class="px-4 space-y-2">
-          
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Utama</p>
-          <a href="#" class="flex items-center gap-3 px-4 py-3 bg-green-50 text-green-700 rounded-lg font-bold shadow-sm">
-            <i class="fas fa-chart-pie w-5"></i> Dashboard
-          </a>
-
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Transaksi</p>
-          <a href="kas_masuk.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-green-600 rounded-lg transition">
-            <i class="fas fa-arrow-down w-5"></i> Kas Masuk
-          </a>
-          <a href="kas_keluar.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-red-600 rounded-lg transition">
-            <i class="fas fa-arrow-up w-5"></i> Kas Keluar
-          </a>
-
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Accounting</p>
-          <a href="input_jurnal_umum.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-green-600 rounded-lg transition">
-            <i class="fas fa-book w-5"></i> Jurnal Umum
-          </a>
-          <a href="laporan_jurnal.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-green-600 rounded-lg transition">
-            <i class="fas fa-file-invoice-dollar w-5"></i> Laporan Keuangan
-          </a>
-          <a href="monitoring_hutang.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-red-600 rounded-lg transition">
-            <i class="fas fa-hand-holding-usd w-5"></i> Monitoring Hutang
-          </a>
-          <a href="monitoring_aktiva_tetap.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition">
-            <i class="fas fa-boxes-stacked w-5"></i> Aktiva Tetap
-          </a>
-
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Vendor & PO</p>
-          <a href="purchase_order_entry.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-purple-600 rounded-lg transition">
-            <i class="fas fa-shopping-cart w-5"></i> Purchase Order
-          </a>
-          <a href="input_tagihan_vendor.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-purple-600 rounded-lg transition">
-            <i class="fas fa-file-contract w-5"></i> Tagihan Vendor
-          </a>
-
-          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-2">Persetujuan</p>
-          <a href="verifikasi_accounting.html" class="flex items-center gap-3 px-4 py-2 text-gray-600 hover:bg-gray-50 hover:text-orange-600 rounded-lg transition font-bold">
-            <i class="fas fa-check-double w-5"></i> Verifikasi Material
-            <span class="bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full" id="notifVerify">0</span>
-          </a>
-
-          <div class="mt-8 border-t pt-4">
-             <button onclick="logout()" class="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition text-left">
-                <i class="fas fa-sign-out-alt w-5"></i> Logout
-             </button>
+      <div class="flex-1 overflow-y-auto no-scrollbar px-4 space-y-8">
+        <div>
+          <p class="text-[10px] font-black text-slate-500 uppercase tracking-[3px] mb-4 px-2">Analytics</p>
+          <nav class="space-y-1">
+            <a href="dashboard_finance.html" class="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 text-emerald-400 rounded-xl font-bold border border-emerald-500/20 transition-all shadow-lg shadow-emerald-900/20">
+              <i class="fas fa-chart-line w-5 text-center"></i>
+              <span class="text-sm">Main Dashboard</span>
+            </a>
+          </nav>
+        </div>
+        <div>
+          <p class="text-[10px] font-black text-slate-500 uppercase tracking-[3px] mb-4 px-2">Treasury</p>
+          <nav class="space-y-1">
+            <a href="kas_masuk.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+              <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-emerald-600 transition-colors">
+                <i class="fas fa-receipt text-xs"></i>
+              </div>
+              <span class="text-sm font-semibold">Kas Masuk (Inflow)</span>
+            </a>
+            <a href="kas_keluar.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+              <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-red-600 transition-colors">
+                <i class="fas fa-paper-plane text-xs"></i>
+              </div>
+              <span class="text-sm font-semibold">Kas Keluar (Outflow)</span>
+            </a>
+            <a href="verifikasi_accounting.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+              <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-amber-500 transition-colors">
+                <i class="fas fa-check-double text-[10px]"></i>
+              </div>
+              <span class="text-sm font-semibold">Verifikasi Material</span>
+            </a>
+          </nav>
+        </div>
+        <div>
+          <p class="text-[10px] font-black text-slate-500 uppercase tracking-[3px] mb-4 px-2">Financial Reporting</p>
+          <nav class="space-y-1">
+            <a href="input_jurnal_umum.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+              <i class="fas fa-book-open w-5 text-center group-hover:text-emerald-400"></i>
+              <span class="text-sm font-semibold">General Ledger</span>
+            </a>
+            <a href="laporan_jurnal.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+              <i class="fas fa-file-contract w-5 text-center group-hover:text-emerald-400"></i>
+              <span class="text-sm font-semibold">Financial Statements</span>
+            </a>
+            <a href="monitoring_hutang.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+              <i class="fas fa-clock w-5 text-center group-hover:text-red-400"></i>
+              <span class="text-sm font-semibold">Accounts Payable</span>
+            </a>
+            <a href="monitoring_aktiva_tetap.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
+              <i class="fas fa-warehouse w-5 text-center group-hover:text-blue-400"></i>
+              <span class="text-sm font-semibold">Fixed Assets</span>
+            </a>
+          </nav>
+        </div>
+      </div>
+      <div class="p-4 bg-slate-950/50 mt-auto border-t border-slate-800">
+        <div class="flex items-center gap-3 p-2">
+          <img src="https://ui-avatars.com/api/?name=Admin+NLD&background=10b981&color=fff" class="w-10 h-10 rounded-xl border border-slate-700">
+          <div>
+            <span class="text-xs font-bold text-white">Wahyuni</span>
+            <span class="text-[9px] text-emerald-500 font-black uppercase tracking-wider">Senior Accountant</span>
           </div>
-        </nav>
+          <button onclick="logout()" class="ml-auto text-slate-500 hover:text-red-500 transition-colors">
+            <i class="fas fa-power-off"></i>
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -168,6 +189,19 @@
                 <div class="text-xl font-black text-red-600" id="dashHutangKritis">Rp 0</div>
                 <div class="mt-4 flex items-center text-[10px] font-bold text-red-600 uppercase">
                     <i class="fas fa-exclamation-triangle mr-2"></i> Pantau Penagihan
+                </div>
+            </div>
+            <div onclick="window.location.href='verifikasi_accounting.html'" class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition cursor-pointer group">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="bg-amber-100 p-3 rounded-2xl text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition">
+                        <i class="fas fa-boxes-packing text-xl"></i>
+                    </div>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operations</span>
+                </div>
+                <h3 class="text-slate-500 text-xs font-bold mb-1">Antrean Verifikasi</h3>
+                <div class="text-xl font-black text-slate-800" id="countVerifikasi">0 Data</div>
+                <div class="mt-4 flex items-center text-[10px] font-bold text-amber-600 uppercase">
+                    <i class="fas fa-clipboard-check mr-2"></i> Perlu Validasi
                 </div>
             </div>
         </div>
@@ -247,6 +281,14 @@
     async function updateVerifikasiCount() {
         const { count } = await client.from('verifikasi_material').select('*', { count: 'exact', head: true }).eq('status', 'WAITING');
         document.getElementById("notifVerify").innerText = count || 0;
+    }
+
+    async function loadCountVerifikasi() {
+        const { count, error } = await client.from('verifikasi_material').select('*', { count: 'exact', head: true }).eq('status', 'WAITING');
+        if (!error) {
+            const cv = document.getElementById("countVerifikasi");
+            if (cv) cv.innerText = `${count || 0} Data`;
+        }
     }
 
     // --- 4. LOGIKA UI SIDEBAR ---
@@ -330,6 +372,7 @@
     loadDataDashboard();
     loadSummaryAktiva();
     loadSummaryHutang();
+    loadCountVerifikasi();
   </script>
 </body>
 </html>
