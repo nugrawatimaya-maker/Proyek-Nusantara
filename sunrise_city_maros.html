@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>Siteplan - PT. Nusantara Land Development</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
@@ -10,9 +10,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
+    body {
+        overscroll-behavior-y: contain;
+        touch-action: pan-x pan-y;
+    }
     /* Peta Wrapper */
     #mapWrap { height: 75vh; cursor: grab; background-color: #f1f5f9; position: relative; overflow: hidden; }
     #mapWrap:active { cursor: grabbing; }
+    #mapWrap { touch-action: none; -webkit-user-select: none; user-select: none; }
     
     /* SVG Styling */
     #siteplanSvg { width: 100%; height: 100%; display: block; touch-action: none; }
@@ -58,6 +63,11 @@
     }
 
     #printReportArea { display: none; }
+    @media (max-width: 768px) {
+      #siteplanCard { height: 60vh !important; }
+      #quickInfoPanel { width: calc(100% - 2rem); left: 1rem; bottom: 1rem; }
+      .text-2xl { font-size: 1.25rem; }
+    }
   </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans text-slate-800">
@@ -81,9 +91,9 @@
     <div class="text-[10px] font-black text-yellow-600 uppercase tracking-wider">Dipasarkan</div>
     <div class="text-2xl font-black text-yellow-700" id="statOpen">0</div>
   </div>
-  <div class="bg-pink-50 p-3 rounded-xl border border-pink-100 shadow-sm">
-    <div class="text-[10px] font-black text-pink-500 uppercase tracking-wider">Booking / Berkas</div>
-    <div class="text-2xl font-black text-pink-600" id="statBooking">0</div>
+  <div class="bg-sky-50 p-3 rounded-xl border border-sky-100 shadow-sm">
+    <div class="text-[10px] font-black text-sky-500 uppercase tracking-wider">Terbooking</div>
+    <div class="text-2xl font-black text-sky-600" id="statBooking">0</div>
   </div>
   <div class="bg-red-50 p-3 rounded-xl border border-red-100 shadow-sm">
     <div class="text-[10px] font-black text-red-500 uppercase tracking-wider">Sold Out</div>
@@ -119,7 +129,7 @@
           <select id="filterOverlay" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-sky-500 outline-none transition">
             <option value="all">Tampilkan Semua</option>
             <option value="open-booking">🟡 Dipasarkan (Kuning)</option>
-            <option value="booking-unit">💗 Booking Unit (Pink)</option>
+            <option value="booking-unit">🔵 Terbooking (Biru Muda)</option>
             <option value="sold-out">🔴 Sold Out (Merah)</option>
           </select>
         </div>
@@ -496,7 +506,7 @@
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Legenda Peta</div>
         <div class="flex flex-wrap gap-2 select-none">
           <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#facc15"></span>Dipasarkan</span>
-          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#ff69b4"></span>Booking Unit</span>
+          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#0ea5e9"></span>Terbooking</span>
           <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#ef4444"></span>Sold Out</span>
         </div>
       </div>
@@ -517,7 +527,7 @@
 
     const STATUS_COLORS = {
   "open-booking": "#facc15", // Kuning (Dipasarkan)
-  "booking-unit": "#ff69b4", // Pink (Booking)
+  "booking-unit": "#0ea5e9", // Biru muda terang (Terbooking)
   "sold-out": "#ef4444" // Merah (Sold Out)
 };
 
@@ -657,11 +667,9 @@
         const dx = e.clientX - startPoint.x;
         const dy = e.clientY - startPoint.y;
 
-        // Hitung skala (Seberapa besar zoom saat ini relative ke ukuran layar)
-        // Semakin besar viewBox width, semakin cepat gesernya
-        const style = window.getComputedStyle(mapWrap);
-        const mapWidthPx = parseFloat(style.width);
-        const scale = vbBase.width / mapWidthPx;
+        // Skala sensitivitas berdasarkan zoom saat ini
+        const rect = mapWrap.getBoundingClientRect();
+        const scale = vbBase.width / rect.width;
 
         vbBase.x = startViewBox.x - (dx * scale);
         vbBase.y = startViewBox.y - (dy * scale);
@@ -673,6 +681,17 @@
     };
     mapWrap.addEventListener("pointerup", stopPan);
     mapWrap.addEventListener("pointerleave", stopPan);
+
+    let lastTap = 0;
+    mapWrap.addEventListener("touchend", (e) => {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        if (tapLength < 300 && tapLength > 0) {
+            btnResetView.click();
+            e.preventDefault();
+        }
+        lastTap = currentTime;
+    });
 
     // Zoom Smooth
     mapWrap.addEventListener("wheel", (e) => {
