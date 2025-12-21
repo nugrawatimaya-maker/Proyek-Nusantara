@@ -6,18 +6,20 @@
 <title>Siteplan - PT. Nusantara Land Development</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
     /* Peta Wrapper */
-    #mapWrap { height: 70vh; cursor: grab; background-color: #f8fafc; }
+    #mapWrap { height: 75vh; cursor: grab; background-color: #f1f5f9; position: relative; overflow: hidden; }
     #mapWrap:active { cursor: grabbing; }
     
     /* SVG Styling */
     #siteplanSvg { width: 100%; height: 100%; display: block; touch-action: none; }
     
     /* Unit Styling */
-    [data-unit-id] { transition: fill 0.3s ease, opacity 0.3s ease, stroke 0.2s; vector-effect: non-scaling-stroke; }
-    [data-unit-id]:hover { stroke: #5; stroke-width: 5px; filter: brightness(0.9); }
+    [data-unit-id] { transition: fill 0.3s ease, opacity 0.3s ease, stroke 0.2s; vector-effect: non-scaling-stroke; cursor: pointer !important; }
+    [data-unit-id]:hover { stroke: #0ea5e9; stroke-width: 2px; filter: brightness(0.9); }
     
     /* UI Components */
     .chip { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .5rem; border-radius:9999px; border:1px solid rgb(226 232 240); font-size:.75rem; }
@@ -38,7 +40,25 @@
       padding: 0.25rem 0.5rem;
       display: inline-block;
     }
-</style>
+    
+    @media print {
+      @page { size: landscape; margin: 0.5cm; }
+      body > *:not(#printReportArea) { display: none !important; }
+      #printReportArea {
+        display: block !important;
+        visibility: visible !important;
+        width: 100% !important;
+      }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      svg { display: block !important; width: 100% !important; height: auto !important; }
+    }
+
+    #printReportArea { display: none; }
+  </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans text-slate-800">
 <main class="max-w-[1400px] mx-auto px-4 py-6">
@@ -60,39 +80,32 @@
         <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Siteplan</h2>
         <p class="text-xs text-slate-500">Tampilan peta blok dengan legenda status</p>
       </div>
-      <div class="flex gap-2">
-        <span class="chip bg-slate-100 text-slate-700">Not Planning</span>
-        <span class="chip bg-sky-100 text-sky-700">Open Booking</span>
-        <span class="chip bg-orange-100 text-orange-700">Booking Unit</span>
-        <span class="chip bg-red-100 text-red-700">Sold Out</span>
-      </div>
-    </div>
-  </div>
-  <div class="bg-white border border-slate-200 rounded-2xl shadow-inner overflow-hidden relative lg:pr-[420px]" id="siteplanCard">
-    <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
-      <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600" id="btnFit" title="Fit to Screen">
-        <i class="fa-solid fa-compress"></i>
-      </button>
-      <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600" id="btnResetView" title="Reset Zoom">
-        <i class="fa-solid fa-rotate-left"></i>
-      </button>
-    </div>
-    <div id="mapWrap" class="relative">
-      <div class="absolute top-3 right-3 z-50 sm:top-3 sm:right-3 bottom-3 sm:bottom-auto">
-        <div class="bg-white/90 backdrop-blur border border-slate-200 rounded-xl shadow px-3 py-2 w-[170px] sm:w-[200px]">
-          <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
-            Filter
-          </div>
-          <select id="filterOverlay"
-                  class="w-full border border-slate-200 rounded-lg px-2 py-2 text-sm bg-white">
-            <option value="all">Semua</option>
-            <option value="not-planning">Not Planning</option>
-            <option value="open-booking">Open Booking</option>
-            <option value="booking-unit">Booking Unit</option>
-            <option value="sold-out">Sold Out</option>
+      <div class="flex items-center gap-3">
+        <div class="flex flex-col">
+          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Filter Status</label>
+          <select id="filterOverlay" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-sky-500 outline-none transition">
+            <option value="all">Tampilkan Semua</option>
+            <option value="open-booking">🟡 Dipasarkan (Kuning)</option>
+            <option value="booking-unit">💗 Booking Unit (Pink)</option>
+            <option value="sold-out">🔴 Sold Out (Merah)</option>
           </select>
         </div>
       </div>
+    </div>
+  </div>
+  <div class="bg-white border border-slate-200 rounded-2xl shadow-inner overflow-hidden relative flex flex-col lg:flex-row" id="siteplanCard" style="height: 75vh;">
+      <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
+        <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600" id="btnFit" title="Fit to Screen">
+          <i class="fa-solid fa-compress"></i>
+        </button>
+        <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600" id="btnResetView" title="Reset Zoom">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+        <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-emerald-50 text-emerald-600 transition" id="btnPrint" title="Cetak Siteplan">
+          <i class="fa-solid fa-print"></i>
+        </button>
+      </div>
+    <div id="mapWrap" class="relative flex-1 h-full border-r border-slate-200">
       <div class="hidden fixed z-50 pointer-events-none bg-slate-900/90 text-white text-xs px-3 py-2 rounded-lg shadow-xl backdrop-blur-sm border border-slate-700 transform -translate-x-1/2 -translate-y-full mt-[-10px]" id="mapTooltip">
         <div class="font-bold mb-1 text-xs" id="tipTitle">Blok</div>
         <div class="flex items-center gap-2">
@@ -103,16 +116,26 @@
       <svg id="siteplanSvg" preserveaspectratio="xMidYMid meet" viewbox="0 0 29700 21000" xml:space="preserve">
         <defs>
           <style type="text/css">
-            .str0 {stroke:#363333;stroke-width:35.28;stroke-miterlimit:22.9256}
-            .str1 {stroke:#373435;stroke-width:35.64;stroke-miterlimit:22.9256}
-            .fil2 {fill:none}
-            .fil1 {fill:#FEFEFE} 
-            .fil3 {fill:#FFF212}
-            .fil4 {fill:#A8CF45}
-            .fil5 {fill:#6B809B}
-            .fil6 {fill:#5CA47A}
-            .fil0 {fill:#5CA47A}
-          </style>
+    /* Garis pembatas jalan & kavling */
+    .str0, .str1 { stroke:#1e293b; stroke-width:20; stroke-miterlimit:22; opacity: 0.3; }
+    .fil2 { fill:none; }
+    
+    /* JALANAN (HITAM PEKAT & SOLID) */
+    .fil5 { 
+        fill: #455169ff !important; 
+        fill-opacity: 1 !important; /* Memastikan tidak transparan */
+        opacity: 1 !important;      /* Memastikan lapisan tidak tembus pandang */
+    } 
+    
+    /* RUMPUT & BACKGROUND (Warna Hijau Segar) */
+    .fil0, .fil6 { fill: #22ab5bff !important; }
+    
+    /* Warna Dasar Kavling (Putih) */
+    .fil1 { fill: #ffffff; }
+    
+    /* Lingkaran Taman Tengah & Ornamen Lain */
+    .fil4 { fill: #000000 !important; opacity: 1 !important; }
+</style>
         </defs>
 <g id="Layer_x0020_1">
 <path class="fil0" d="M26585.05 2731.37c-20.8,114.84 -388.6,1032.8 -388.6,1032.8l-312.27 555.04 -1246.48 106.83 -1273.83 323.56 -1612.15 38.65 -2195.44 647.55 -1378.17 -72.79 -2044.86 -254.49 -3327.15 -0.92 -1342.51 -58.24 -1405.95 -402.29 -640.18 127.2 -1280.92 254.55 -881.65 879.47 -1544.84 377.41 -1381.55 -218.46 -611.95 1882.29c0,0 -1084.7,375.83 -1057.1,350.92 27.59,-24.91 -1341.16,-15.2 -1341.16,-15.2l-515.09 243.21 404.77 1328.12 636.27 366.56 989.79 -689.68 581.54 800 1611.29 665.8 2545.49 1114.01 405.64 623.67 2004.33 517.27 2532.03 1046.26 1855.37 476.45 1137.89 55.6 2567.69 22.79 522.29 2628.36 2310.65 1135.17 1140.51 -490.04 1706.4 -1132.09 431.17 -4853.17 0 0 1683.27 379.49 412.07 338.79 825.7 1505.35 873.31 -3163.83 -1222.2 -6232.46 1009.74 -1448.62 -1183.16 -790.89z"></path>
@@ -279,9 +302,7 @@
 
     </div>
     <aside id="updatePanelCard"
-      class="mt-4 lg:mt-0 lg:absolute lg:inset-y-0 lg:right-0 lg:w-[420px] lg:overflow-y-auto
-             border-t lg:border-t-0 lg:border-l border-slate-200
-             bg-white/70 backdrop-blur-sm p-4 sm:p-5 space-y-4">
+      class="w-full lg:w-[420px] h-full overflow-y-auto bg-white p-4 sm:p-5 space-y-4 flex-shrink-0">
 
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -416,9 +437,8 @@
       <div class="mt-4 pt-4 border-t border-slate-200">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Legenda Peta</div>
         <div class="flex flex-wrap gap-2 select-none">
-          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot bg-white border border-slate-300"></span>Not Planning</span>
-          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#22c55e"></span>Open Booking</span>
-          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#f59e0b"></span>Booking Unit</span>
+          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#facc15"></span>Dipasarkan</span>
+          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#ff69b4"></span>Booking Unit</span>
           <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#ef4444"></span>Sold Out</span>
         </div>
       </div>
@@ -438,10 +458,9 @@
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
     const STATUS_COLORS = {
-  "not-planning": "#ffffff",
-  "open-booking": "#099df3ff",
-  "booking-unit": "#f59e0b",
-  "sold-out": "#ef4444"
+  "open-booking": "#facc15", // Kuning (Dipasarkan)
+  "booking-unit": "#ff69b4", // Pink (Booking)
+  "sold-out": "#ef4444" // Merah (Sold Out)
 };
 
     let globalUnitData = {};
@@ -553,6 +572,7 @@
     let isPanning = false;
     let startPoint = { x: 0, y: 0 };
     let startViewBox = { x: 0, y: 0, w: 0, h: 0 };
+    let lastTouchDistance = 0; // Menyimpan jarak terakhir antar dua jari saat pinch
     
     // Simpan viewBox awal
     const vbBase = svg.viewBox.baseVal;
@@ -627,6 +647,46 @@
         vbBase.x = newX; vbBase.y = newY; vbBase.width = newW; vbBase.height = newH;
     }, { passive: false });
 
+    // === LOGIKA ZOOM 2 JARI (MOBILE) ===
+    mapWrap.addEventListener("touchmove", (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault(); // Mencegah layar HP scroll naik-turun
+
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            const currentDistance = Math.hypot(touch2.pageX - touch1.pageX, touch2.pageY - touch1.pageY);
+
+            if (lastTouchDistance > 0) {
+                const delta = currentDistance - lastTouchDistance;
+                const scaleFactor2 = 1.05;
+                
+                const svgW = vbBase.width;
+                const svgH = vbBase.height;
+
+                let newW = delta > 0 ? svgW / scaleFactor2 : svgW * scaleFactor2;
+                let newH = delta > 0 ? svgH / scaleFactor2 : svgH * scaleFactor2;
+
+                if (newW > INITIAL_VB.w / 10 && newW < INITIAL_VB.w * 3) {
+                    const midX = (touch1.clientX + touch2.clientX) / 2;
+                    const midY = (touch1.clientY + touch2.clientY) / 2;
+                    const rect = mapWrap.getBoundingClientRect();
+                    const ratioX = (midX - rect.left) / rect.width;
+                    const ratioY = (midY - rect.top) / rect.height;
+
+                    vbBase.x += (svgW - newW) * ratioX;
+                    vbBase.y += (svgH - newH) * ratioY;
+                    vbBase.width = newW;
+                    vbBase.height = newH;
+                }
+            }
+            lastTouchDistance = currentDistance;
+        }
+    }, { passive: false });
+
+    mapWrap.addEventListener("touchend", () => {
+        lastTouchDistance = 0;
+    });
+
     // Reset Buttons
     btnResetView.onclick = () => {
         vbBase.x = INITIAL_VB.x; vbBase.y = INITIAL_VB.y;
@@ -695,29 +755,34 @@
 
     function applyColorsToMap() {
         const units = document.querySelectorAll("[data-unit-id]");
-        const filter = (typeof getFilterValue === "function")
-            ? getFilterValue()
-            : (filterOverlay?.value || "all");
+        const filter = getFilterValue();
 
         units.forEach(el => {
             const id = el.dataset.unitId;
-
-            const raw = (globalUnitData[id]?.status ?? el.dataset.status ?? "");
-            const st = normalizeStatus(raw);
+            const data = globalUnitData[id] || {};
+            const rawStatus = data.status ?? el.dataset.status ?? "";
+            const st = normalizeStatus(rawStatus);
+            
+            // Simpan status bersih ke elemen
             el.dataset.status = st;
 
-            const show =
-                (filter === "all") ||
-                (st === filter) ||
-                (st === "not-planning" && filter !== "not-planning");
+            const isMatched = (filter === "all") || (st === filter);
 
-            if (show) {
-                el.style.fill = STATUS_COLORS[st] || "#ffffff";
+            if (isMatched) {
+                // WARNA AKTIF (Kuning/Pink/Merah)
+                const targetColor = STATUS_COLORS[st] || "#ffffff";
+                el.style.setProperty("fill", targetColor, "important");
                 el.style.opacity = "1";
+                el.style.stroke = "#334155";
+                el.style.strokeWidth = "2";
                 el.style.pointerEvents = "all";
                 el.dataset.filteredOut = "0";
             } else {
-                el.style.opacity = "0";
+                // WARNA REDUP (Putih Tulang agar tidak nabrak Jalan Grey)
+                el.style.setProperty("fill", "#f8fafc", "important");
+                el.style.opacity = "1"; // Tetap 1 agar rumput hijau tidak tembus
+                el.style.stroke = "#e2e8f0";
+                el.style.strokeWidth = "1";
                 el.style.pointerEvents = "none";
                 el.dataset.filteredOut = "1";
             }
@@ -1097,9 +1162,124 @@ document.getElementById("btnRefreshProgress")?.addEventListener("click", loadMar
     // Init
     loadMarketingProgress();
 
-// preload status peta supaya saat dibuka langsung siap
+    // preload status peta supaya saat dibuka langsung siap
     loadData();
 
+    // Memastikan warna langsung terpasang saat halaman dibuka
+    window.addEventListener("DOMContentLoaded", () => {
+        setTimeout(applyColorsToMap, 500);
+    });
+
+    // === CETAK SITEPLAN TERINTEGRASI ===
+    const btnPrint = document.getElementById("btnPrint");
+    const displayPrintDate = document.getElementById("displayPrintDate");
+    const svgPrintContent = document.getElementById("svgPrintContent");
+    const printArea = document.getElementById("printReportArea");
+    const svgOriginal = document.getElementById("siteplanSvg");
+
+    const preparePrintReport = () => {
+        if (displayPrintDate) {
+            const now = new Date();
+            displayPrintDate.textContent = now.toLocaleString("id-ID", {
+                weekday: "long", year: "numeric", month: "long", day: "numeric",
+                hour: "2-digit", minute: "2-digit"
+            });
+        }
+        
+        if (svgPrintContent && svgOriginal) {
+            svgPrintContent.innerHTML = "";
+            const svgClone = svgOriginal.cloneNode(true);
+            
+            const oriPaths = svgOriginal.querySelectorAll("path, rect, circle, polygon");
+            const clonePaths = svgClone.querySelectorAll("path, rect, circle, polygon");
+            
+            oriPaths.forEach((el, i) => {
+                const color = window.getComputedStyle(el).fill;
+                const stroke = window.getComputedStyle(el).stroke;
+                if (clonePaths[i]) {
+                    clonePaths[i].style.setProperty("fill", color, "important");
+                    clonePaths[i].style.setProperty("stroke", stroke, "important");
+                }
+            });
+
+            svgClone.setAttribute("viewBox", "0 0 29700 21000");
+            svgClone.style.width = "100%";
+            svgClone.style.height = "auto";
+            
+            svgPrintContent.appendChild(svgClone);
+        }
+    };
+
+    if (btnPrint) {
+        btnPrint.addEventListener("click", () => {
+            preparePrintReport();
+            const pArea = printArea;
+            if (pArea) pArea.style.display = "block";
+            setTimeout(() => {
+                window.print();
+                setTimeout(() => { if (pArea) pArea.style.display = "none"; }, 1000);
+            }, 500);
+        });
+    }
+
+    window.addEventListener("beforeprint", () => {
+        preparePrintReport();
+        if (printArea) printArea.style.display = "block";
+    });
+    window.addEventListener("afterprint", () => {
+        if (printArea) printArea.style.display = "none";
+    });
+
+    const btnDownloadPDF = document.getElementById("btnDownloadPDF");
+    if (btnDownloadPDF) {
+        btnDownloadPDF.addEventListener("click", async () => {
+            const { jsPDF } = window.jspdf;
+            const pArea = printArea;
+            preparePrintReport();
+            if (pArea) pArea.style.display = "block";
+            syncStatus.innerHTML = '<i class="fa-solid fa-file-pdf fa-beat"></i> Processing...';
+
+            try {
+                const canvas = await html2canvas(pArea, {
+                    scale: 1.5,
+                    useCORS: true,
+                    backgroundColor: "#ffffff",
+                    logging: false
+                });
+                const imgData = canvas.toDataURL("image/jpeg", 0.8);
+                const pdf = new jsPDF("l", "mm", "a4");
+                pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+                pdf.save(`Siteplan_SunriseCity_${new Date().getTime()}.pdf`);
+                syncStatus.innerHTML = '<i class="fa-solid fa-check text-green-500"></i> PDF Ready';
+            } catch (err) {
+                console.error("PDF Error:", err);
+                alert("Gagal membuat PDF. Coba gunakan fitur Print (Ikon Hijau) lalu pilih 'Save as PDF'.");
+            } finally {
+                if (pArea) pArea.style.display = "none";
+                setTimeout(() => syncStatus.innerHTML = '<i class="fa-solid fa-cloud"></i> Ready', 2000);
+            }
+        });
+    }
+
   </script>
+  <div id="printReportArea" style="display: none; width: 100%; background: white; padding: 10px;">
+    <div style="text-align: center; font-family: sans-serif; margin-bottom: 20px; border-bottom: 3px double #334155; padding-bottom: 10px;">
+      <h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #1e293b; text-transform: uppercase;">PT. Nusantara Land Development</h1>
+      <p style="margin: 5px 0; font-size: 16px; font-weight: 600;">UPDATED SITEPLAN SUNRISE CITY MAROS</p>
+      <p style="margin: 0; font-size: 12px; color: #64748b;">Tanggal Cetak: <span id="displayPrintDate"></span></p>
+    </div>
+    <div style="border: 4px solid #000; padding: 10px; background: #fff;">
+      <div id="svgPrintContent"></div>
+    </div>
+    <div style="margin-top: 15px; display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8;">
+      <span>Sistem Monitoring Siteplan Real-time</span>
+      <span>Halaman 1/1</span>
+    </div>
+  </div>
+  <div class="fixed bottom-6 right-6 z-[100]">
+    <button id="btnDownloadPDF" class="bg-red-600 hover:bg-red-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition active:scale-90 border-4 border-white">
+      <i class="fas fa-file-pdf fa-lg"></i>
+    </button>
+  </div>
 </body>
 </html>
