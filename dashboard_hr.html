@@ -397,3 +397,5 @@
         const { count: countEmp } = await client.from('hr_employees').select('*', { count: 'exact', head: true });
         document.getElementById('statPegawai').innerText = countEmp || 0;
         document.getElementById('statAktif').innerText = countEmp || 0; //
+</body>
+</html>

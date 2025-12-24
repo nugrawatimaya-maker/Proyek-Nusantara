@@ -29,6 +29,12 @@
   }
 
   function requireAuth(allowedRoles = []) {
+    // TAMBAHAN: GOD MODE untuk bypass auth via LocalStorage
+    if (localStorage.getItem("APP_BYPASS_AUTH") === "true") {
+      console.warn("🔓 AUTH BYPASSED (Developer Mode Active)");
+      return true;
+    }
+
     const auth = getAuth();
     const allowed = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
 

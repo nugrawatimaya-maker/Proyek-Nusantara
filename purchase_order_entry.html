@@ -289,7 +289,7 @@
     async function terbitkanPO() {
         const vendorEl = document.getElementById("batchVendor");
         const vendorName = vendorEl.value;
-        const vendorAddress = vendorEl.options[vendorEl.selectedIndex].getAttribute('data-alamat') || '';
+        const vendorAddress = vendorEl.options[vendorEl.selectedIndex]?.getAttribute('data-alamat') || '';
         const tempo = document.getElementById("batchTempo").value;
 
         if(!vendorName || !tempo) { alert("Harap lengkapi Vendor & Jatuh Tempo!"); return; }
@@ -300,19 +300,24 @@
         const nomorPO = "PO-" + Math.floor(100000 + Math.random() * 900000);
         const tglPO = new Date().toISOString().split('T')[0];
 
-        // Collect Data
+        let itemNames = [];
+
         for(let i=0; i<count; i++) {
             const harga = Number(document.getElementById(`bharga-${i}`).value);
             if(harga <= 0) { alert("Harga item tidak boleh 0!"); return; }
             
+            const namaBarang = document.getElementById(`bnama-${i}`).value;
+            itemNames.push(namaBarang);
+
+            const qty = Number(document.getElementById(`bqty-${i}`).value);
             const item = {
                 reqId: document.getElementById(`bid-${i}`).value,
-                nama: document.getElementById(`bnama-${i}`).value,
-                qty: document.getElementById(`bqty-${i}`).value,
+                nama: namaBarang,
+                qty: qty,
                 satuan: document.getElementById(`bsat-${i}`).value,
                 staff: document.getElementById(`bstaff-${i}`).value,
                 harga: harga,
-                total: harga * Number(document.getElementById(`bqty-${i}`).value)
+                total: harga * qty
             };
             grandTotal += item.total;
             batchData.push(item);
@@ -323,19 +328,40 @@
         btn.disabled = true;
 
         try {
-            // A. SIMPAN KE DB
-            const payload = batchData.map(d => ({
-                req_id: d.reqId, nomor_po: nomorPO, nama_vendor: vendorName,
-                harga_satuan: d.harga, total_harga: d.total, jatuh_tempo: tempo, status: 'OPEN'
-            }));
+            const { data: stokData, error: errStok } = await client
+                .from('master_stok')
+                .select('id, nama_barang')
+                .in('nama_barang', itemNames);
+
+            if(errStok) throw new Error("Gagal mengambil ID barang: " + errStok.message);
+
+            const mapID = {};
+            if(stokData) {
+                stokData.forEach(s => mapID[s.nama_barang] = s.id);
+            }
+
+            const payload = batchData.map(d => {
+                const foundID = mapID[d.nama];
+                if(!foundID) console.warn(`Peringatan: ID untuk ${d.nama} tidak ditemukan di Master Stok.`);
+
+                return {
+                    req_id: d.reqId, 
+                    nomor_po: nomorPO, 
+                    nama_vendor: vendorName,
+                    harga_satuan: d.harga, 
+                    total_harga: d.total, 
+                    jatuh_tempo: tempo, 
+                    status: 'OPEN',
+                    barang_id: foundID || null
+                };
+            });
+
             const { error } = await client.from('purchase_order').insert(payload);
             if(error) throw error;
 
-            // B. UPDATE STATUS REQUEST
             const reqIds = batchData.map(d => d.reqId);
             await client.from('inventory_req').update({ status: 'PO DIBUAT' }).in('id', reqIds);
 
-            // C. GENERATE PDF LANGSUNG
             const pdfData = {
                 noPO: nomorPO,
                 tgl: tglPO,
@@ -347,7 +373,7 @@
             };
             generatePOPdf(pdfData);
 
-            alert("✅ PO Berhasil Diterbitkan! PDF sedang didownload.");
+            alert("✅ PO Berhasil Diterbitkan! Data ID Barang tersimpan.");
             tutupModalBatch();
             document.querySelectorAll('.chk-item').forEach(c => c.checked = false);
             cekCentang();
@@ -356,7 +382,8 @@
 
         } catch (e) {
             alert("Gagal: " + e.message);
-            btn.innerHTML = "Coba Lagi"; btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-save"></i> Simpan & Download PDF`; 
+            btn.disabled = false;
         }
     }
 
