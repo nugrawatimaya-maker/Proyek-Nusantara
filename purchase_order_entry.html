@@ -146,10 +146,43 @@
 
   <script>
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
     const fmtNum = (n) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(n);
+
+    let masterPekerjaan = [];
+
+    // Fungsi mengambil master data dari Supabase
+    async function fetchMasterData() {
+        const { data, error } = await client
+            .from('master_pekerjaan')
+            .select('*')
+            .eq('is_active', true)
+            .order('tahap', { ascending: true })
+            .order('id', { ascending: true });
+
+        if (error) {
+            console.error("Gagal ambil master harga:", error);
+            alert("Gagal memuat harga pekerjaan. Cek koneksi.");
+            return [];
+        }
+
+        const grouped = {};
+        (data || []).forEach(row => {
+            if (!grouped[row.tahap]) {
+                grouped[row.tahap] = { id: row.tahap, items: [] };
+            }
+            grouped[row.tahap].items.push({
+                n: row.nama_pekerjaan,
+                b: Number(row.bobot) || 0,
+                p: Number(row.harga_borongan) || 0
+            });
+        });
+
+        masterPekerjaan = Object.values(grouped);
+        return masterPekerjaan;
+    }
 
     let listVendor = [];
     let listPending = [];
@@ -157,9 +190,10 @@
     let batchData = [];
 
     // --- INIT ---
-    function init() {
-        loadVendors();
-        loadPendingRequests();
+    async function init() {
+        await fetchMasterData();
+        await loadVendors();
+        await loadPendingRequests();
 
         const today = new Date();
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);

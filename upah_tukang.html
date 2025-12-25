@@ -90,23 +90,57 @@
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const fmt = (n) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(n);
 
-    // Metadata Pekerjaan
-    const MASTER_DATA = [
-        { id: 1, items: [{n:"Bowplank",b:1,p:145000},{n:"Pondasi",b:3,p:435000},{n:"Sloof",b:3,p:435000},{n:"Kolom",b:3,p:435000},{n:"Urugan Tanah",b:1,p:145000}]},
-        { id: 2, items: [{n:"Pasangan Batu Rata Kusen",b:7,p:1015000},{n:"Ringbalk",b:4,p:580000},{n:"Kuda-kuda",b:3,p:435000},{n:"Tiang Cor",b:1,p:145000}]},
-        { id: 3, items: [{n:"Plesteran Luar Dalam",b:10,p:1885000},{n:"Topi-Topi",b:3,p:290000},{n:"Carport",b:2,p:290000},{n:"Drainase",b:5,p:500000}]},
-        { id: 4, items: [{n:"Rangka Atap",b:8,p:1015000},{n:"Pemasangan Listplank",b:2,p:145000},{n:"Palfond",b:5,p:725000},{n:"Pasangan Tegel Luar Dalam",b:7,p:1450000},{n:"Plamour Luar dalam dan Acian",b:2,p:435000},{n:"WC",b:8,p:935000},{n:"Pemasangan Cover Dinding Fasad",b:1,p:145000}]},
-        { id: 5, items: [{n:"Pengecetan dinding Luar dalam",b:7,p:725000},{n:"Pengecetan Kuseng",b:4,p:580000},{n:"Finishing",b:10,p:3110000}]}
-    ];
-    let itemMeta = {}; MASTER_DATA.forEach(g => { g.items.forEach(i => { itemMeta[i.n] = { grup: g.id, bobot: i.b }; }); });
+    let GLOBAL_MASTER_DATA = [];
+    let itemMeta = {};
+
+    async function loadMasterData() {
+        const { data, error } = await client
+            .from('master_pekerjaan')
+            .select('*')
+            .eq('is_active', true)
+            .order('tahap')
+            .order('nama_pekerjaan');
+
+        if (error) {
+            console.error("Gagal memuat master pekerjaan:", error);
+            return;
+        }
+
+        const stageMap = new Map();
+        (data || []).forEach(row => {
+            const tahap = Number(row.tahap) || 0;
+            if (!stageMap.has(tahap)) {
+                stageMap.set(tahap, { id: tahap, items: [] });
+            }
+            stageMap.get(tahap).items.push({
+                n: row.nama_pekerjaan,
+                b: Number(row.bobot) || 0,
+                p: Number(row.harga_borongan) || 0
+            });
+        });
+
+        GLOBAL_MASTER_DATA = Array.from(stageMap.values()).sort((a, b) => a.id - b.id);
+        return GLOBAL_MASTER_DATA;
+    }
 
     let activeProyek = ""; let inboxData = []; let decisionMap = {}; let tomSelectFilter = null;
 
     document.addEventListener("DOMContentLoaded", async () => {
+        GLOBAL_MASTER_DATA = await loadMasterData();
+        itemMeta = {};
+        GLOBAL_MASTER_DATA.forEach(g => {
+            g.items.forEach(i => {
+                itemMeta[i.n] = { grup: g.id, bobot: i.b };
+            });
+        });
+
         const { data: proyek } = await client.from('master_proyek').select('nama_proyek').eq('status','BERJALAN').order('nama_proyek');
-        const opt = proyek.map(p => ({ value: p.nama_proyek, text: p.nama_proyek }));
-        new TomSelect("#pilihProyek", { options: opt, placeholder: "-- Pilih Kavling --", onChange: (v) => { activeProyek = v; renderPengajuanView(); } });
-        tomSelectFilter = new TomSelect("#filterProyekSelect", { options: opt, plugins: ['remove_button'], placeholder: "-- Pilih Multiple --" });
+        if (proyek) {
+            const opt = proyek.map(p => ({ value: p.nama_proyek, text: p.nama_proyek }));
+            new TomSelect("#pilihProyek", { options: opt, placeholder: "-- Pilih Kavling --", onChange: (v) => { activeProyek = v; renderPengajuanView(); } });
+            tomSelectFilter = new TomSelect("#filterProyekSelect", { options: opt, plugins: ['remove_button'], placeholder: "-- Pilih Multiple --" });
+        }
+
         setTab('pengajuan');
     });
 
@@ -303,28 +337,93 @@
 
     // Fungsi Pengajuan Dasar
     async function renderPengajuanView() {
-        const tbody = document.getElementById("tabelBody"); if(!activeProyek) { tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-bold">Pilih Unit ↗️</td></tr>`; return; }
+        const tbody = document.getElementById("tabelBody");
+        if(!activeProyek) { tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-bold text-slate-400">Pilih Unit Kavling di pojok kanan atas ↗️</td></tr>`; return; }
+
         const { data: peng } = await client.from('pengajuan_upah').select('*').eq('kavling', activeProyek);
         const { data: trans } = await client.from('transaksi_upah').select('nama_pekerjaan').eq('kavling', activeProyek);
-        let sMap = {}; if(peng) peng.forEach(p => sMap[p.nama_pekerjaan] = p.status); if(trans) trans.forEach(t => sMap[t.nama_pekerjaan] = 'LUNAS');
-        tbody.innerHTML = ""; MASTER_DATA.forEach(g => {
-            tbody.innerHTML += `<tr class="row-blok-header text-[10px]"><td colspan="5" class="p-2 px-4 uppercase">TAHAP NO ${g.id}</td></tr>`;
+
+        let sMap = {};
+        let rejectMsg = {};
+
+        if(peng) {
+            peng.forEach(p => {
+                const cleanName = p.nama_pekerjaan.split(' (')[0];
+                if (p.status === 'DIAJUKAN') {
+                    sMap[cleanName] = 'DIAJUKAN';
+                } else if (p.status === 'TERSEDIA' && p.nama_pekerjaan.toUpperCase().includes('TOLAK')) {
+                    if (!sMap[cleanName]) {
+                        sMap[cleanName] = 'REJECTED';
+                        rejectMsg[cleanName] = p.nama_pekerjaan;
+                    }
+                }
+            });
+        }
+
+        if(trans) {
+            trans.forEach(t => {
+                const cleanName = t.nama_pekerjaan.split(' (')[0];
+                sMap[cleanName] = 'LUNAS';
+            });
+        }
+
+        if (!GLOBAL_MASTER_DATA.length) {
+            tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-bold">Memuat daftar pekerjaan…</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = "";
+        GLOBAL_MASTER_DATA.forEach(g => {
+            tbody.innerHTML += `<tr class="row-blok-header text-[10px]"><td colspan="5" class="p-2 px-4 uppercase tracking-widest">TAHAP ${g.id}</td></tr>`;
             g.items.forEach(i => {
                 const st = sMap[i.n];
                 let btn = "";
+                let rowClass = "border-b hover:bg-slate-50";
+
                 if (st === 'LUNAS') {
-                    btn = `<span class="text-green-600 font-bold text-xs"><i class="fas fa-check-circle"></i> LUNAS</span>`;
+                    btn = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-check-circle"></i> LUNAS</span>`;
+                    rowClass = "border-b bg-green-50/50";
                 } else if (st === 'DIAJUKAN') {
-                    btn = `<span class="text-amber-500 font-bold text-xs"><i class="fas fa-clock"></i> DIAJUKAN</span>`;
+                    btn = `<span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-hourglass-half"></i> MENUNGGU</span>`;
+                    rowClass = "border-b bg-amber-50/50";
                 } else {
-                    btn = `<button onclick="ajukanItem('${i.n}',${i.p},${i.b},'${g.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded text-xs font-black shadow-sm transition-all active:scale-95">AJUKAN</button>`;
+                    let label = "AJUKAN";
+                    let btnColor = "bg-blue-600 hover:bg-blue-700";
+                    let extraInfo = "";
+
+                    if (st === 'REJECTED') {
+                        label = "AJUKAN ULANG";
+                        btnColor = "bg-rose-600 hover:bg-rose-700";
+                        extraInfo = `<div class="text-[9px] text-red-500 font-bold mt-1"><i class="fas fa-exclamation-triangle"></i> Pernah ditolak/void</div>`;
+                    }
+
+                    btn = `
+                        <button onclick="ajukanItem('${i.n}',${i.p},${i.b},'${g.id}')" class="${btnColor} text-white px-4 py-1.5 rounded shadow-sm text-[10px] font-black transition-all active:scale-95 uppercase tracking-wider w-28">
+                            ${label}
+                        </button>
+                        ${extraInfo}
+                    `;
                 }
-                tbody.innerHTML += `<tr class="border-b"><td class="td-excel text-center font-mono">${g.id}</td><td class="td-excel font-semibold">${i.n}</td><td class="td-excel text-center">${i.b}%</td><td class="td-excel text-right font-mono font-bold">${fmt(i.p)}</td><td class="td-excel text-center">${btn}</td></tr>`;
+                tbody.innerHTML += `<tr class="${rowClass}"><td class="td-excel text-center font-mono text-slate-400">${g.id}</td><td class="td-excel font-semibold text-slate-700">${i.n}</td><td class="td-excel text-center text-slate-500">${i.b}%</td><td class="td-excel text-right font-mono font-bold text-slate-700">${fmt(i.p)}</td><td class="td-excel text-center py-3">${btn}</td></tr>`;
             });
         });
     }
 
-    async function ajukanItem(n, v, b, t) { if(confirm(`Ajukan ${n}?`)) { await client.from('pengajuan_upah').insert([{ kavling: activeProyek, tahap: t, nama_pekerjaan: n, bobot: b, nilai: v, status: 'DIAJUKAN', tanggal_ajukan: new Date() }]); renderPengajuanView(); } }
+    async function ajukanItem(n, v, b, t) {
+        if(!confirm(`Ajukan pekerjaan: ${n}?\nNilai: ${fmt(v)}`)) return;
+        const cleanName = n.split(' (')[0];
+        const { error } = await client.from('pengajuan_upah').insert([{
+            kavling: activeProyek,
+            tahap: t,
+            nama_pekerjaan: cleanName,
+            bobot: b,
+            nilai: v,
+            status: 'DIAJUKAN',
+            tanggal_ajukan: new Date()
+        }]);
+        if(error) alert("Gagal ajukan: " + error.message);
+        else renderPengajuanView();
+    }
     async function loadHistoryData() {
         const p = tomSelectFilter.getValue(); if(p.length === 0) return alert("Pilih unit!");
         const { data } = await client.from('transaksi_upah').select('*').in('kavling', p).order('tanggal_bayar');
