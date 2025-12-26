@@ -54,10 +54,32 @@
         <div id="budgetPanelContent"></div>
     </div>
     <div class="bg-white border border-slate-200 rounded-b-xl shadow-lg p-0 min-h-[550px]">
-        <div id="panelFilter" class="hidden p-6 bg-purple-50 border-b border-purple-100">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                <div class="md:col-span-10"><select id="filterProyekSelect" multiple class="w-full"></select></div>
-                <div class="md:col-span-2"><button onclick="loadHistoryData()" class="bg-purple-600 text-white w-full py-2.5 rounded font-bold shadow">TAMPILKAN</button></div>
+        <div id="panelFilter" class="hidden p-4 bg-purple-50 border-b border-purple-100 shadow-inner">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                
+                <div class="md:col-span-4">
+                    <label class="text-[10px] font-bold text-purple-800 uppercase mb-1 block">Filter Unit / Kavling</label>
+                    <select id="filterProyekSelect" multiple class="w-full"></select>
+                </div>
+
+                <div class="md:col-span-4">
+                    <label class="text-[10px] font-bold text-purple-800 uppercase mb-1 block">Periode Tanggal Bayar</label>
+                    <div class="flex items-center gap-2">
+                        <input type="date" id="historyStart" class="w-full border border-purple-200 p-2 rounded text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none shadow-sm">
+                        <span class="text-purple-400 font-bold">-</span>
+                        <input type="date" id="historyEnd" class="w-full border border-purple-200 p-2 rounded text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none shadow-sm">
+                    </div>
+                </div>
+
+                <div class="md:col-span-4 flex gap-2">
+                    <button onclick="loadHistoryData()" class="bg-purple-600 hover:bg-purple-700 text-white flex-1 py-2 rounded font-bold shadow transition text-xs flex items-center justify-center gap-2">
+                        <i class="fas fa-filter"></i> TAMPILKAN
+                    </button>
+                    <button onclick="downloadPDFHistory()" class="bg-red-600 hover:bg-red-700 text-white flex-1 py-2 rounded font-bold shadow transition text-xs flex items-center justify-center gap-2">
+                        <i class="fas fa-file-pdf"></i> CETAK LAPORAN
+                    </button>
+                </div>
+
             </div>
         </div>
 
@@ -125,6 +147,7 @@
     let activeProyek = ""; let inboxData = []; let decisionMap = {}; let tomSelectFilter = null;
     let projectCategoryMap = {};
     let activeKategori = "Bangunan Rumah";
+    let historyDataCache = [];
 
     document.addEventListener("DOMContentLoaded", async () => {
         GLOBAL_MASTER_DATA = await loadMasterData();
@@ -153,6 +176,13 @@
             });
             tomSelectFilter = new TomSelect("#filterProyekSelect", { options: opt, plugins: ['remove_button'], placeholder: "-- Pilih Multiple --" });
         }
+
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const historyStartEl = document.getElementById("historyStart");
+        const historyEndEl = document.getElementById("historyEnd");
+        if (historyStartEl) historyStartEl.value = firstDay.toISOString().split('T')[0];
+        if (historyEndEl) historyEndEl.value = today.toISOString().split('T')[0];
 
         setTab('pengajuan');
     });
@@ -719,55 +749,173 @@
             alert("Gagal: " + err.message);
         }
     }
-    async function loadHistoryData() {
-        const p = tomSelectFilter.getValue(); if(p.length === 0) return alert("Pilih unit!");
-        const { data } = await client.from('transaksi_upah').select('*').in('kavling', p).order('tanggal_bayar');
-        const tbody = document.getElementById('tabelBody'); tbody.innerHTML = "";
-        data?.forEach(item => {
-            let meta = { grup: '-', bobot: '-' };
-            let displayName = item.nama_pekerjaan;
-            let displayVol = "";
+    function deriveHistoryMeta(item) {
+        const meta = { grup: '-', bobot: '-' };
+        let displayVol = "";
 
-            if (item.tipe_input === 'MANUAL') {
-                meta.grup = 'OPNAME';
-                meta.bobot = 'Volume';
-                displayVol = item.volume_pekerjaan ? `<div class="text-[9px] text-slate-500 font-bold bg-slate-100 rounded px-1 inline-block mt-1">Vol: ${item.volume_pekerjaan}</div>` : '';
-            } else {
-                let cleanName = (item.nama_pekerjaan || "").trim();
-                let found = itemMeta[cleanName];
-                if (!found) {
-                    const key = Object.keys(itemMeta).find(k => k.trim().toLowerCase() === cleanName.toLowerCase());
-                    if (key) found = itemMeta[key];
-                }
-                if (found) {
-                    meta.grup = `T-${found.grup}`;
-                    meta.bobot = `${found.bobot}%`;
-                }
+        if (item.tipe_input === 'MANUAL') {
+            meta.grup = 'OPNAME';
+            meta.bobot = 'Vol';
+            displayVol = item.volume_pekerjaan ? `<span class="bg-gray-100 px-1 rounded text-[9px] ml-1">Vol: ${item.volume_pekerjaan}</span>` : '';
+        } else {
+            const cleanName = (item.nama_pekerjaan || "").trim();
+            let found = itemMeta[cleanName];
+            if (!found) {
+                const key = Object.keys(itemMeta).find(k => k.trim().toLowerCase() === cleanName.toLowerCase());
+                if (key) found = itemMeta[key];
             }
+            if (found) {
+                meta.grup = `T-${found.grup}`;
+                meta.bobot = `${found.bobot}%`;
+            }
+        }
 
-            const safeDisplayName = (displayName || "").replace(/'/g, "\\'");
+        return { meta, displayVol };
+    }
+
+    async function loadHistoryData() {
+        const p = tomSelectFilter.getValue();
+        if (p.length === 0) return alert("⚠️ Harap pilih minimal satu Unit/Kavling!");
+
+        const tglMulai = document.getElementById("historyStart").value;
+        const tglAkhir = document.getElementById("historyEnd").value;
+
+        let query = client.from('transaksi_upah')
+            .select('*')
+            .in('kavling', p)
+            .order('tanggal_bayar', { ascending: true });
+
+        if (tglMulai) query = query.gte('tanggal_bayar', tglMulai);
+        if (tglAkhir) query = query.lte('tanggal_bayar', tglAkhir);
+
+        const tbody = document.getElementById('tabelBody');
+        tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-purple-500 font-bold animate-pulse">🔄 Mengambil Data...</td></tr>`;
+
+        const { data, error } = await query;
+        if (error) {
+            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500">Error: ${error.message}</td></tr>`;
+            historyDataCache = [];
+            return;
+        }
+
+        historyDataCache = data || [];
+        tbody.innerHTML = "";
+
+        if (historyDataCache.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-gray-400 italic">Tidak ditemukan data pada periode tersebut.</td></tr>`;
+            return;
+        }
+
+        historyDataCache.forEach(item => {
+            const { meta, displayVol } = deriveHistoryMeta(item);
+            const displayName = item.nama_pekerjaan;
+            const safeName = (displayName || "").replace(/'/g, "\\'");
             const safeGrup = (meta.grup || "").replace(/'/g, "\\'");
-            const safeBobot = (meta.bobot || "").replace(/'/g, "\\'");
-            const buttonGrup = safeGrup.replace('T-', '');
-            const buttonBobot = safeBobot.replace('%', '');
+            const btnGrup = safeGrup.replace('T-', '');
+            const btnBobot = (meta.bobot || "").replace('%', '');
+
             tbody.innerHTML += `
-            <tr class="border-b hover:bg-slate-50">
-                <td class="td-excel font-bold text-xs">${item.kavling}</td>
-                <td class="td-excel text-center text-xs">${new Date(item.tanggal_bayar).toLocaleDateString('id-ID')}</td>
-                <td class="td-excel text-center font-mono text-xs text-slate-500">${meta.grup}</td>
-                <td class="td-excel font-medium text-sm text-slate-700">
-                    ${displayName}
-                    ${displayVol}
+            <tr class="border-b hover:bg-purple-50 transition">
+                <td class="td-excel font-bold text-xs text-center">${item.kavling}</td>
+                <td class="td-excel text-center text-xs font-bold text-slate-600">
+                    ${new Date(item.tanggal_bayar).toLocaleDateString('id-ID')}
                 </td>
-                <td class="td-excel text-center text-xs font-bold text-slate-600">${meta.bobot}</td>
-                <td class="td-excel text-right font-black text-emerald-700 text-sm">${fmt(item.nilai_bayar)}</td>
+                <td class="td-excel text-center font-mono text-[10px] text-slate-400">${meta.grup}</td>
+                <td class="td-excel font-semibold text-xs text-slate-700">
+                    ${displayName} ${displayVol}
+                </td>
+                <td class="td-excel text-center text-xs text-slate-500">${meta.bobot}</td>
+                <td class="td-excel text-right font-black text-emerald-700 text-xs">${fmt(item.nilai_bayar)}</td>
                 <td class="td-excel text-center">
-                    <button onclick="voidData(${item.id}, '${item.kavling}', '${safeDisplayName}', ${item.nilai_bayar}, '${buttonGrup}', '${buttonBobot}')" class="text-slate-300 hover:text-red-500 transition-colors" title="Batalkan Transaksi Ini">
-                    <i class="fas fa-undo"></i>
-                </button>
-            </td>
+                    <button onclick="voidData(${item.id}, '${item.kavling}', '${safeName}', ${item.nilai_bayar}, '${btnGrup}', '${btnBobot}')"
+                        class="text-slate-300 hover:text-red-500 transition-colors" title="Batalkan / Void">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                </td>
             </tr>`;
         });
+
+        const total = historyDataCache.reduce((sum, i) => sum + i.nilai_bayar, 0);
+        tbody.innerHTML += `
+            <tr class="bg-purple-100 border-t-2 border-purple-300">
+                <td colspan="5" class="p-3 text-right font-bold text-purple-900 text-xs uppercase">TOTAL PEMBAYARAN PERIODE INI:</td>
+                <td class="p-3 text-right font-black text-purple-900 text-sm">${fmt(total)}</td>
+                <td></td>
+            </tr>`;
+    }
+
+    function downloadPDFHistory() {
+        if (!historyDataCache || historyDataCache.length === 0) {
+            return alert("⚠️ Tidak ada data untuk dicetak. Silakan klik tombol 'TAMPILKAN' terlebih dahulu.");
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const tglMulai = document.getElementById("historyStart").value;
+        const tglAkhir = document.getElementById("historyEnd").value;
+        let periodeStr = "SEMUA PERIODE";
+        if(tglMulai && tglAkhir) periodeStr = `${new Date(tglMulai).toLocaleDateString('id-ID')} s/d ${new Date(tglAkhir).toLocaleDateString('id-ID')}`;
+        else if(tglMulai) periodeStr = `Mulai ${new Date(tglMulai).toLocaleDateString('id-ID')}`;
+
+        doc.setFontSize(14); 
+        doc.setFont("helvetica", "bold");
+        doc.text("PT. NUSANTARA LAND DEVELOPMENT", 105, 15, { align: "center" });
+        
+        doc.setFontSize(10); 
+        doc.text("LAPORAN REALISASI PEMBAYARAN UPAH (HISTORY)", 105, 22, { align: "center" });
+        doc.setFont("helvetica", "normal");
+        doc.text(`Periode: ${periodeStr}`, 105, 27, { align: "center" });
+        
+        doc.line(14, 30, 196, 30);
+
+        let grandTotal = 0;
+        const body = historyDataCache.map((item, index) => {
+            grandTotal += item.nilai_bayar;
+            const tgl = new Date(item.tanggal_bayar).toLocaleDateString('id-ID');
+            return [
+                index + 1,
+                tgl,
+                item.kavling,
+                item.nama_pekerjaan,
+                fmt(item.nilai_bayar)
+            ];
+        });
+
+        body.push([
+            { content: 'GRAND TOTAL REALISASI', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+            { content: fmt(grandTotal), styles: { fontStyle: 'bold', fillColor: [240, 240, 240], halign: 'right' } }
+        ]);
+
+        doc.autoTable({
+            startY: 35,
+            head: [['No', 'Tgl Bayar', 'Unit', 'Uraian Pekerjaan', 'Nominal (Rp)']],
+            body: body,
+            theme: 'grid',
+            headStyles: { fillColor: [147, 51, 234], textColor: 255, fontStyle: 'bold' },
+            columnStyles: {
+                0: { halign: 'center', cellWidth: 10 },
+                1: { halign: 'center', cellWidth: 25 },
+                2: { halign: 'center', cellWidth: 20 },
+                4: { halign: 'right', cellWidth: 35 }
+            },
+            styles: { fontSize: 8, cellPadding: 2 },
+        });
+
+        let finalY = doc.lastAutoTable.finalY + 15;
+        if (finalY > 250) { doc.addPage(); finalY = 20; }
+
+        doc.setFontSize(9);
+        doc.text("Maros, " + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), 140, finalY);
+        doc.text("Dibuat Oleh,", 140, finalY + 5);
+        doc.text("( Admin Keuangan )", 140, finalY + 25);
+
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "italic");
+        doc.text(`* Dicetak otomatis dari Sistem NLD pada ${new Date().toLocaleString('id-ID')}`, 14, 285);
+
+        const namaFile = `Laporan_Upah_${new Date().toISOString().slice(0,10)}.pdf`;
+        doc.save(namaFile);
     }
 
     async function voidData(id, kav, n, v, t, b) {
