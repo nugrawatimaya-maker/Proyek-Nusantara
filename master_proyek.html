@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Master Data Proyek</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app_config.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -149,10 +150,6 @@
   </div>
 
   <script>
-    // --- KONFIGURASI SUPABASE ---
-    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
-    const client = supabase.createClient(supabaseUrl, supabaseKey);
     async function catatLog(tipe, pesan, icon = 'fa-info-circle') {
         const user = "Admin";
         try {
@@ -167,7 +164,6 @@
             console.error("Error Log:", e);
         }
     }
-    const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
     // --- INISIALISASI ---
     loadReferensiBlok();
@@ -346,25 +342,42 @@
     // 3. AMBIL DATA BLOK (Dropdown)
     async function loadReferensiBlok() {
         const select = document.getElementById("pilihNamaProyek");
-        const { data } = await client.from('referensi_blok').select('id').order('id');
-        
-        // Reset isi dropdown agar tidak double jika dipanggil ulang
+        const { data: refBlok } = await client.from('referensi_blok').select('id').order('id');
+        const { data: proyekAktif } = await client
+            .from('master_proyek')
+            .select('nama_proyek')
+            .eq('status', 'BERJALAN');
+
+        const activeSet = new Set(proyekAktif?.map(p => p.nama_proyek.toUpperCase().trim()) || []);
+
         select.innerHTML = `
           <option value="" selected disabled>-- Pilih Blok / Proyek --</option>
           <option value="MANUAL" class="font-bold text-blue-600">➕ Input Nama Manual (Proyek Baru)</option>
-          <option disabled>----------------------------------</option>
+          <option disabled class="bg-gray-100 text-gray-400">----------------------------------</option>
         `;
 
-        if(data) {
-            data.sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true})).forEach(b => {
-                const opt = document.createElement("option"); 
-                opt.value = "Blok " + b.id; 
-                opt.text = "Blok " + b.id; 
-                select.appendChild(opt);
-            });
+        if(refBlok) {
+            refBlok
+                .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
+                .forEach(b => {
+                    const namaBlokFull = "Blok " + b.id;
+                    const isRunning = activeSet.has(namaBlokFull.toUpperCase());
+                    const opt = document.createElement("option");
+                    opt.value = namaBlokFull;
+
+                    if (isRunning) {
+                        opt.text = `🔒 ${namaBlokFull} (Sedang Dikerjakan)`;
+                        opt.disabled = true;
+                        opt.classList.add("bg-red-50", "text-red-300", "italic");
+                    } else {
+                        opt.text = namaBlokFull;
+                        opt.classList.add("font-bold", "text-gray-700");
+                    }
+
+                    select.appendChild(opt);
+                });
         }
 
-        // Pastikan UI sinkron
         toggleInputManual();
     }
 
