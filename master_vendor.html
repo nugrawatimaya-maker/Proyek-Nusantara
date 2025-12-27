@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Master Data Vendor / Supplier</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app_config.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -93,9 +94,6 @@
   </div>
 
   <script>
-    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
-    const client = supabase.createClient(supabaseUrl, supabaseKey);
 
     async function loadVendor() {
       const { data, error } = await client
