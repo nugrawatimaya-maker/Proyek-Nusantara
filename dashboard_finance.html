@@ -3,380 +3,310 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard Finance Pro - Secured</title>
+  <title>NLD Finance Hub</title>
   
   <script>
-    // Cek apakah user punya "Kunci Akses"
+    // Security Check
     const kunci = sessionStorage.getItem("izin_akses");
-    
-    // Jika tidak punya kunci, atau kuncinya salah
     if (!kunci || (kunci !== "finance" && kunci !== "superadmin")) {
-        // Tampilkan pesan
-        alert("⛔ AKSES DITOLAK: Anda harus login terlebih dahulu!");
-        
-        // Tendang kembali ke halaman Login
         window.location.href = "login_internal.html";
-        
-        // Hentikan loading halaman ini agar isinya tidak sempat terlihat
         document.execCommand("Stop"); 
     }
   </script>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    .sidebar { transition: transform 0.3s ease-in-out; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+    
+    /* Soft Gradient Background untuk Header */
+    .header-bg {
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    }
+
+    /* Card Menu Style ala Odoo */
+    .menu-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+    .menu-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Skeleton Loading Animation */
+    .skeleton {
+        background: #e2e8f0;
+        background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+        border-radius: 5px;
+        background-size: 200% 100%;
+        animation: 1.5s shine linear infinite;
+    }
+    @keyframes shine { to { background-position-x: -200%; } }
   </style>
 </head>
-<body class="bg-gray-100 font-sans text-gray-800">
+<body class="min-h-screen flex flex-col">
 
-  <div class="flex h-screen overflow-hidden">
-
-    <aside id="sidebar" class="sidebar w-72 bg-slate-900 flex flex-col h-full fixed md:relative z-30 transform -translate-x-full md:translate-x-0 transition-all duration-300 shadow-2xl">
-      <div class="h-20 flex items-center px-6 mb-4 bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg">
-        <div class="bg-white/20 p-2 rounded-xl backdrop-blur-md mr-3">
-          <i class="fas fa-landmark text-white text-xl"></i>
+  <nav class="bg-white border-b border-slate-100 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+        <div class="bg-indigo-600 text-white p-2 rounded-lg">
+            <i class="fas fa-cube text-lg"></i>
         </div>
         <div>
-          <h1 class="text-white font-black text-lg tracking-tight leading-none">NLD FINANCE</h1>
-          <span class="text-[10px] text-emerald-100 font-bold uppercase tracking-[2px] mt-1 block">Enterprise System</span>
+            <h1 class="font-bold text-slate-800 text-lg leading-tight">NLD Financial & Acounting</h1>
+            <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Finance Module</p>
         </div>
-      </div>
-      <div class="flex-1 overflow-y-auto no-scrollbar px-4 space-y-8">
-        <div>
-          <p class="text-[10px] font-black text-slate-500 uppercase tracking-[3px] mb-4 px-2">Analytics</p>
-          <nav class="space-y-1">
-            <a href="dashboard_finance.html" class="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 text-emerald-400 rounded-xl font-bold border border-emerald-500/20 transition-all shadow-lg shadow-emerald-900/20">
-              <i class="fas fa-chart-line w-5 text-center"></i>
-              <span class="text-sm">Main Dashboard</span>
-            </a>
-          </nav>
+    </div>
+    <div class="flex items-center gap-4">
+        <div class="text-right hidden sm:block">
+            <p class="text-sm font-bold text-slate-700">Wahyuni</p>
+            <p class="text-xs text-emerald-500">Online</p>
         </div>
-        <div>
-          <p class="text-[10px] font-black text-slate-500 uppercase tracking-[3px] mb-4 px-2">Treasury</p>
-          <nav class="space-y-1">
-            <a href="kas_masuk.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-              <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-emerald-600 transition-colors">
-                <i class="fas fa-receipt text-xs"></i>
-              </div>
-              <span class="text-sm font-semibold">Kas Masuk (Inflow)</span>
-            </a>
-            <a href="kas_keluar.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-              <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-red-600 transition-colors">
-                <i class="fas fa-paper-plane text-xs"></i>
-              </div>
-              <span class="text-sm font-semibold">Kas Keluar (Outflow)</span>
-            </a>
-            <a href="verifikasi_accounting.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-              <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-amber-500 transition-colors">
-                <i class="fas fa-check-double text-[10px]"></i>
-              </div>
-              <span class="text-sm font-semibold">Verifikasi Material</span>
-            </a>
-          </nav>
-        </div>
-        <div>
-          <p class="text-[10px] font-black text-slate-500 uppercase tracking-[3px] mb-4 px-2">Financial Reporting</p>
-          <nav class="space-y-1">
-            <a href="input_jurnal_umum.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-              <i class="fas fa-book-open w-5 text-center group-hover:text-emerald-400"></i>
-              <span class="text-sm font-semibold">General Ledger</span>
-            </a>
-            <a href="laporan_jurnal.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-              <i class="fas fa-file-contract w-5 text-center group-hover:text-emerald-400"></i>
-              <span class="text-sm font-semibold">Financial Statements</span>
-            </a>
-            <a href="monitoring_hutang.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-              <i class="fas fa-clock w-5 text-center group-hover:text-red-400"></i>
-              <span class="text-sm font-semibold">Accounts Payable</span>
-            </a>
-            <a href="monitoring_aktiva_tetap.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-              <i class="fas fa-warehouse w-5 text-center group-hover:text-blue-400"></i>
-              <span class="text-sm font-semibold">Fixed Assets</span>
-            </a>
-            <a href="activity_log.html" class="group flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl transition-all">
-              <i class="fas fa-history w-5 text-center group-hover:text-blue-400"></i>
-              <span class="text-sm font-semibold">Log Aktivitas Sistem</span>
-            </a>
-          </nav>
-        </div>
-      </div>
-      <div class="p-4 bg-slate-950/50 mt-auto border-t border-slate-800">
-        <div class="flex items-center gap-3 p-2">
-          <img src="https://ui-avatars.com/api/?name=Admin+NLD&background=10b981&color=fff" class="w-10 h-10 rounded-xl border border-slate-700">
-          <div>
-            <span class="text-xs font-bold text-white">Wahyuni</span>
-            <span class="text-[9px] text-emerald-500 font-black uppercase tracking-wider">Senior Accountant</span>
-          </div>
-          <button onclick="logout()" class="ml-auto text-slate-500 hover:text-red-500 transition-colors">
+        <button onclick="logout()" class="bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 p-2 rounded-full transition">
             <i class="fas fa-power-off"></i>
-          </button>
-        </div>
-      </div>
-    </aside>
-
-    <main class="flex-1 flex flex-col h-full relative overflow-y-auto bg-gray-50">
-      
-      <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-20 shadow-sm">
-        <button id="toggleSidebar" class="text-gray-500 hover:text-green-600 focus:outline-none p-2 rounded hover:bg-gray-100">
-          <i class="fas fa-bars text-xl"></i>
         </button>
+    </div>
+  </nav>
+
+  <main class="flex-grow p-6 max-w-7xl mx-auto w-full space-y-8">
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <div class="flex items-center gap-3">
-            <div class="text-right hidden sm:block">
-                <p class="text-sm font-bold text-gray-800">Finance Staff</p>
-                <p class="text-xs text-green-600">Online</p>
+        <div class="lg:col-span-1 bg-white rounded-3xl p-8 shadow-sm border border-slate-100 relative overflow-hidden flex flex-col justify-center">
+            <div class="absolute -right-6 -top-6 text-indigo-50 text-[150px] opacity-50 pointer-events-none">
+                <i class="fas fa-wallet"></i>
             </div>
-            <div class="h-9 w-9 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold border border-green-200 shadow-sm">
-                F
+            
+            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest mb-2">Total Likuiditas</p>
+            <h2 class="text-4xl font-black text-slate-800 mb-4 skeleton-text" id="mainSaldo"><span class="skeleton px-20 py-4 block w-1/2"></span></h2>
+            
+            <div class="flex gap-4 mt-2">
+                <div class="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-xs font-bold">
+                    <i class="fas fa-arrow-down"></i> <span id="inMonth">...</span> (In)
+                </div>
+                <div class="flex items-center gap-2 text-rose-600 bg-rose-50 px-3 py-1 rounded-full text-xs font-bold">
+                    <i class="fas fa-arrow-up"></i> <span id="outMonth">...</span> (Out)
+                </div>
             </div>
         </div>
-      </header>
 
-      <div class="p-6 space-y-6">
+        <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-700">Cash Flow Trend</h3>
+                <span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">Last 6 Months</span>
+            </div>
+            <div class="h-48 w-full">
+                <canvas id="simpleChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <h3 class="text-slate-500 font-bold text-sm uppercase tracking-wider mb-4 ml-1">Finance Apps</h3>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                <div class="h-12 w-12 rounded-full bg-green-50 flex items-center justify-center text-green-600"><i class="fas fa-wallet text-xl"></i></div>
-                <div>
-                    <p class="text-xs text-gray-400 font-bold uppercase">Total Saldo</p>
-                    <h3 class="text-lg font-bold text-gray-800" id="valSaldo">...</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            
+            <a href="kas_masuk.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                <div class="h-14 w-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                    <i class="fas fa-hand-holding-dollar text-2xl"></i>
                 </div>
-            </div>
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                <div class="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center text-red-600"><i class="fas fa-money-bill-wave text-xl"></i></div>
-                <div>
-                    <p class="text-xs text-gray-400 font-bold uppercase">Keluar (Bulan Ini)</p>
-                    <h3 class="text-lg font-bold text-gray-800" id="valKeluar">...</h3>
+                <h4 class="font-bold text-slate-700 group-hover:text-emerald-700">Kas Masuk</h4>
+                <p class="text-[10px] text-slate-400 mt-1">Pencatatan Inflow</p>
+            </a>
+
+            <a href="kas_keluar.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                <div class="h-14 w-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                    <i class="fas fa-file-invoice-dollar text-2xl"></i>
                 </div>
-            </div>
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 cursor-pointer hover:shadow-md transition" onclick="window.location.href='purchase_order_entry.html'">
-                <div class="h-12 w-12 rounded-full bg-yellow-50 flex items-center justify-center text-yellow-600"><i class="fas fa-shopping-basket text-xl"></i></div>
-                <div>
-                    <p class="text-xs text-gray-400 font-bold uppercase">PO Pending</p>
-                    <h3 class="text-lg font-bold text-gray-800" id="valPendingPO">0</h3>
+                <h4 class="font-bold text-slate-700 group-hover:text-rose-700">Kas Keluar</h4>
+                <p class="text-[10px] text-slate-400 mt-1">Biaya Operasional</p>
+            </a>
+
+            <a href="purchase_order_entry.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group relative">
+                <div class="h-14 w-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                    <i class="fas fa-shopping-cart text-2xl"></i>
                 </div>
-            </div>
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 cursor-pointer hover:shadow-md transition" onclick="window.location.href='input_tagihan_vendor.html'">
-                <div class="h-12 w-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600"><i class="fas fa-file-invoice text-xl"></i></div>
-                <div>
-                    <p class="text-xs text-gray-400 font-bold uppercase">Hutang Vendor</p>
-                    <h3 class="text-lg font-bold text-gray-800" id="valHutang">0</h3>
+                <h4 class="font-bold text-slate-700 group-hover:text-blue-700">Purchase Order</h4>
+                <p class="text-[10px] text-slate-400 mt-1">Order Barang</p>
+                
+                <span id="badgePO" class="hidden absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white">0</span>
+            </a>
+
+            <a href="verifikasi_accounting.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group relative">
+                <div class="h-14 w-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                    <i class="fas fa-check-double text-2xl"></i>
                 </div>
-            </div>
-            <div onclick="window.location.href='monitoring_aktiva_tetap.html'" class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition cursor-pointer group">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="bg-purple-100 p-3 rounded-2xl text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition">
-                        <i class="fas fa-tools text-xl"></i>
-                    </div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fixed Assets</span>
+                <h4 class="font-bold text-slate-700 group-hover:text-amber-700">Verifikasi</h4>
+                <p class="text-[10px] text-slate-400 mt-1">Approval Stok</p>
+                <span id="badgeVerif" class="hidden absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white">0</span>
+            </a>
+
+            <a href="monitoring_hutang.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group relative">
+                <div class="h-14 w-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                    <i class="fas fa-clock text-2xl"></i>
                 </div>
-                <h3 class="text-slate-500 text-xs font-bold mb-1">Total Nilai Buku</h3>
-                <div class="text-xl font-black text-slate-800" id="dashNilaiBuku">Rp 0</div>
-                <div class="mt-4 flex items-center text-[10px] font-bold text-purple-600 uppercase">
-                    <i class="fas fa-arrow-right mr-2"></i> Kelola Aktiva
+                <h4 class="font-bold text-slate-700 group-hover:text-orange-700">Hutang (AP)</h4>
+                <p class="text-[10px] text-slate-400 mt-1">Jatuh Tempo</p>
+                <span id="badgeHutang" class="hidden absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white">!</span>
+            </a>
+
+            <a href="input_jurnal_umum.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                <div class="h-14 w-14 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                    <i class="fas fa-book-journal-whills text-2xl"></i>
                 </div>
-            </div>
-            <div onclick="window.location.href='monitoring_hutang.html'" class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition cursor-pointer group">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="bg-red-100 p-3 rounded-2xl text-red-600 group-hover:bg-red-600 group-hover:text-white transition">
-                        <i class="fas fa-file-invoice-dollar text-xl"></i>
-                    </div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Accounts Payable</span>
+                <h4 class="font-bold text-slate-700 group-hover:text-purple-700">Jurnal Umum</h4>
+                <p class="text-[10px] text-slate-400 mt-1">Input Manual</p>
+            </a>
+
+            <a href="laporan_jurnal.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                <div class="h-14 w-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                    <i class="fas fa-chart-pie text-2xl"></i>
                 </div>
-                <h3 class="text-slate-500 text-xs font-bold mb-1">Hutang Jatuh Tempo</h3>
-                <div class="text-xl font-black text-red-600" id="dashHutangKritis">Rp 0</div>
-                <div class="mt-4 flex items-center text-[10px] font-bold text-red-600 uppercase">
-                    <i class="fas fa-exclamation-triangle mr-2"></i> Pantau Penagihan
+                <h4 class="font-bold text-slate-700 group-hover:text-teal-700">Laporan</h4>
+                <p class="text-[10px] text-slate-400 mt-1">Buku Besar</p>
+            </a>
+
+            <a href="monitoring_aktiva_tetap.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                <div class="h-14 w-14 rounded-2xl bg-cyan-100 text-cyan-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                    <i class="fas fa-building text-2xl"></i>
                 </div>
-            </div>
-            <div onclick="window.location.href='verifikasi_accounting.html'" class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition cursor-pointer group">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="bg-amber-100 p-3 rounded-2xl text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition">
-                        <i class="fas fa-boxes-packing text-xl"></i>
-                    </div>
-                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operations</span>
+                <h4 class="font-bold text-slate-700 group-hover:text-cyan-700">Aktiva Tetap</h4>
+                <p class="text-[10px] text-slate-400 mt-1">Aset Perusahaan</p>
+            </a>
+
+            <a href="master_vendor.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                <div class="h-14 w-14 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                    <i class="fas fa-users text-2xl"></i>
                 </div>
-                <h3 class="text-slate-500 text-xs font-bold mb-1">Antrean Verifikasi</h3>
-                <div class="text-xl font-black text-slate-800" id="countVerifikasi">0 Data</div>
-                <div class="mt-4 flex items-center text-[10px] font-bold text-amber-600 uppercase">
-                    <i class="fas fa-clipboard-check mr-2"></i> Perlu Validasi
+                <h4 class="font-bold text-slate-700 group-hover:text-pink-700">Vendor</h4>
+                <p class="text-[10px] text-slate-400 mt-1">Master Data</p>
+            </a>
+
+            <a href="activity_log.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                <div class="h-14 w-14 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                    <i class="fas fa-history text-2xl"></i>
                 </div>
-            </div>
+                <h4 class="font-bold text-slate-700 group-hover:text-slate-900">Activity Log</h4>
+                <p class="text-[10px] text-slate-400 mt-1">Audit Trail</p>
+            </a>
+
         </div>
+    </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 lg:col-span-2">
-                <h3 class="font-bold text-gray-700 text-sm mb-4">Tren Arus Kas</h3>
-                <div class="relative h-64 w-full">
-                    <canvas id="chartArusKas"></canvas>
-                </div>
-            </div>
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                <h3 class="font-bold text-gray-700 text-sm mb-4">Proporsi</h3>
-                <div class="relative h-48 flex justify-center">
-                    <canvas id="chartPie"></canvas>
-                </div>
-            </div>
-        </div>
-
-      </div>
-    </main>
-    
-    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden md:hidden"></div>
-
-  </div>
+  </main>
 
   <script>
-    // --- 1. KONEKSI SUPABASE ---
+    // --- SUPABASE SETUP ---
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
-    // --- 2. FUNGSI LOGOUT ---
+    // --- LOGOUT ---
     function logout() {
-        if(confirm("Yakin ingin keluar?")) {
-            sessionStorage.removeItem("izin_akses"); // Hapus Kunci
-            window.location.href = "login_internal.html"; // Balik ke Login
+        if(confirm("Keluar dari sistem?")) {
+            sessionStorage.removeItem("izin_akses");
+            window.location.href = "login_internal.html";
         }
     }
 
-    // --- 3. LOAD DATA (Hanya jalan jika sudah login) ---
-    async function loadDataDashboard() {
-        // Saldo
+    // --- LOAD DATA ---
+    async function loadDashboard() {
+        // 1. Load Saldo Total
         const { data: dSaldo } = await client.from('master_akun').select('saldo_akhir');
-        if(dSaldo) {
-            const tot = dSaldo.reduce((a, c) => a + (c.saldo_akhir || 0), 0);
-            document.getElementById("valSaldo").innerText = fmt(tot);
-        }
+        const totSaldo = dSaldo ? dSaldo.reduce((a, c) => a + (c.saldo_akhir || 0), 0) : 0;
+        
+        const elMain = document.getElementById("mainSaldo");
+        elMain.innerHTML = fmt(totSaldo);
+        elMain.classList.remove('skeleton-text'); // Hapus efek loading
 
-        // Pengeluaran Bulan Ini
+        // 2. Load In/Out Bulan Ini
         const now = new Date();
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const { data: dKeluar } = await client.from('transaksi')
-            .select('jumlah')
-            .eq('jenis_transaksi', 'KELUAR')
+        
+        const { data: dTrans } = await client.from('transaksi')
+            .select('jumlah, jenis_transaksi')
             .gte('tanggal', firstDay);
-        if(dKeluar) {
-            const tot = dKeluar.reduce((a, c) => a + (c.jumlah || 0), 0);
-            document.getElementById("valKeluar").innerText = fmt(tot);
+        
+        let inM = 0, outM = 0;
+        if(dTrans) {
+            dTrans.forEach(t => {
+                if(t.jenis_transaksi === 'MASUK') inM += t.jumlah;
+                else outM += t.jumlah;
+            });
         }
+        document.getElementById("inMonth").innerText = fmt(inM);
+        document.getElementById("outMonth").innerText = fmt(outM);
 
-        // Pending PO
-        const { count } = await client.from('inventory_req').select('*', { count: 'exact', head: true }).eq('status', 'PENDING');
-        document.getElementById("valPendingPO").innerText = count || 0;
+        // 3. Load Badges (Notifikasi Merah di Menu)
+        const { count: countPO } = await client.from('inventory_req').select('*', { count: 'exact', head: true }).eq('status', 'PENDING');
+        updateBadge('badgePO', countPO);
 
-        // Hutang
-        const { data: dHutang } = await client.from('purchase_order').select('total_harga').eq('status', 'DITERIMA');
+        const { count: countVerif } = await client.from('verifikasi_material').select('*', { count: 'exact', head: true }).eq('status', 'WAITING');
+        updateBadge('badgeVerif', countVerif);
+
+        // Hutang Jatuh Tempo (7 hari)
+        const { data: dHutang } = await client.from('purchase_order').select('jatuh_tempo').eq('status', 'DITERIMA');
+        let kritis = 0;
         if(dHutang) {
-            const tot = dHutang.reduce((a, c) => a + (c.total_harga || 0), 0);
-            document.getElementById("valHutang").innerText = fmt(tot);
-        }
-
-        await updateVerifikasiCount();
-    }
-
-    async function updateVerifikasiCount() {
-        const { count } = await client.from('verifikasi_material').select('*', { count: 'exact', head: true }).eq('status', 'WAITING');
-        document.getElementById("notifVerify").innerText = count || 0;
-    }
-
-    async function loadCountVerifikasi() {
-        const { count, error } = await client.from('verifikasi_material').select('*', { count: 'exact', head: true }).eq('status', 'WAITING');
-        if (!error) {
-            const cv = document.getElementById("countVerifikasi");
-            if (cv) cv.innerText = `${count || 0} Data`;
-        }
-    }
-
-    // --- 4. LOGIKA UI SIDEBAR ---
-    const btnToggle = document.getElementById('toggleSidebar');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('overlay');
-
-    function toggleMenu() {
-        const isMobile = window.innerWidth < 768;
-        if (isMobile) {
-            sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
-        } else {
-            sidebar.classList.toggle('hidden'); 
-        }
-    }
-    btnToggle.addEventListener('click', toggleMenu);
-    overlay.addEventListener('click', toggleMenu);
-
-    // --- 5. CHARTS (Data Dummy untuk Visualisasi) ---
-    const ctxBar = document.getElementById('chartArusKas').getContext('2d');
-    new Chart(ctxBar, {
-        type: 'bar',
-        data: {
-            labels: ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'],
-            datasets: [
-                { label: 'Masuk', data: [500, 750, 400, 900, 650, 800], backgroundColor: '#22c55e' },
-                { label: 'Keluar', data: [400, 300, 350, 500, 450, 400], backgroundColor: '#ef4444' }
-            ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
-    });
-
-    const ctxPie = document.getElementById('chartPie').getContext('2d');
-    new Chart(ctxPie, {
-        type: 'doughnut',
-        data: {
-            labels: ['Material', 'Upah', 'Ops'],
-            datasets: [{ data: [40, 35, 25], backgroundColor: ['#3b82f6', '#f97316', '#64748b'] }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
-    });
-
-    async function loadSummaryAktiva() {
-        const { data, error } = await client.from('master_aktiva').select('nilai_perolehan, tgl_perolehan, umur_ekonomis');
-        if (error) {
-            console.error("Gagal ambil ringkasan aktiva:", error.message);
-            return;
-        }
-        if (data && data.length > 0) {
             const today = new Date();
-            const totalNilaiBuku = data.reduce((sum, asset) => {
-                const tgl = new Date(asset.tgl_perolehan);
-                const selisihBulan = (today.getFullYear() - tgl.getFullYear()) * 12 + (today.getMonth() - tgl.getMonth());
-                const deprPerBulan = asset.nilai_perolehan / (asset.umur_ekonomis * 12);
-                const akmPenyusutan = Math.min(asset.nilai_perolehan, Math.max(0, selisihBulan * deprPerBulan));
-                return sum + (asset.nilai_perolehan - akmPenyusutan);
-            }, 0);
-            document.getElementById('dashNilaiBuku').innerText = fmt(totalNilaiBuku);
-        }
-    }
-
-    async function loadSummaryHutang() {
-        const { data, error } = await client.from('purchase_order').select('total_harga, jatuh_tempo').eq('status', 'DITERIMA');
-        if (error) {
-            console.error("Gagal load ringkasan hutang:", error.message);
-            return;
-        }
-        if (data && data.length > 0) {
-            const today = new Date();
-            const kritis = data.reduce((sum, po) => {
+            dHutang.forEach(po => {
                 const jt = new Date(po.jatuh_tempo);
-                const diffDays = Math.ceil((jt - today) / (1000 * 60 * 60 * 24));
-                return diffDays <= 7 ? sum + (po.total_harga || 0) : sum;
-            }, 0);
-            document.getElementById('dashHutangKritis').innerText = fmt(kritis);
+                const diff = Math.ceil((jt - today) / (1000 * 60 * 60 * 24));
+                if(diff <= 7) kritis++;
+            });
+        }
+        updateBadge('badgeHutang', kritis, true);
+    }
+
+    function updateBadge(id, count, isExclamation = false) {
+        const el = document.getElementById(id);
+        if(count > 0) {
+            el.innerText = isExclamation ? "!" : count;
+            el.classList.remove('hidden');
         }
     }
 
-    // Jalankan Load Data
-    loadDataDashboard();
-    loadSummaryAktiva();
-    loadSummaryHutang();
-    loadCountVerifikasi();
+    // --- SIMPLE CHART CONFIG (Soft Colors) ---
+    const ctx = document.getElementById('simpleChart').getContext('2d');
+    
+    // Gradient Fill
+    const grad = ctx.createLinearGradient(0, 0, 0, 400);
+    grad.addColorStop(0, 'rgba(99, 102, 241, 0.5)'); // Indigo
+    grad.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'], // Dummy Data (Bisa diganti real)
+            datasets: [{
+                label: 'Arus Kas Bersih',
+                data: [15000000, 23000000, 18000000, 32000000, 25000000, 40000000],
+                borderColor: '#6366f1',
+                backgroundColor: grad,
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 0,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                y: { display: false } // Hilangkan axis Y agar lebih bersih
+            }
+        }
+    });
+
+    loadDashboard();
   </script>
 </body>
 </html>
