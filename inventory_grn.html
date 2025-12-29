@@ -42,6 +42,7 @@
   </div>
 
   <script>
+    const activeProject = sessionStorage.getItem('active_project_name') || 'Sunrise City Maros';
     let tempVerifiedItems = {}; 
 
     async function loadOpenPO() {
@@ -58,6 +59,7 @@
                 .from('purchase_order')
                 .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
                 .eq('status', 'OPEN')
+                .eq('nama_proyek', activeProject)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -406,7 +408,7 @@
                     harga_estimasi: harga,
                     harga_updated_source: isTestMode ? 'TEST_RUN' : 'GRN Batch',
                     harga_updated_ref: nomorPO
-                }).eq('id', bId);
+                }).eq('id', bId).eq('nama_proyek', activeProject);
 
                 await client.from('purchase_order').update({
                     status: 'DITERIMA',
