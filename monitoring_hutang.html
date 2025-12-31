@@ -80,14 +80,18 @@
         const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
         async function loadHutangData() {
-            const { data, error } = await client.from('purchase_order').select('*').eq('status', 'DITERIMA').order('jatuh_tempo', { ascending: true });
+        const { data, error } = await client
+            .from('ap_monitoring_vw')
+            .select('nomor_po,nama_vendor,nama_proyek,tanggal_po,jatuh_tempo,total_tagihan,jumlah_item,status_po')
+            .order('jatuh_tempo', { ascending: true });
             if (error) {
                 console.error("Gagal load hutang:", error.message);
                 return;
             }
 
-            const tbody = document.getElementById('hutangTableBody');
-            tbody.innerHTML = '';
+            const wrap = document.getElementById('hutangTableBody');
+            if (!wrap) return;
+            wrap.innerHTML = '';
             let total = 0; 
             let kritis = 0; 
             let vendorMap = {};
@@ -106,15 +110,16 @@
                 if(diffDays < 0) { statusClass = "overdue"; statusText = "Terlambat"; }
                 else if(diffDays <= 7) { statusClass = "warning"; statusText = "Segera Bayar"; }
 
-                tbody.innerHTML += `
+                wrap.innerHTML += `
                     <tr class="hover:bg-slate-50 transition">
                         <td class="px-6 py-4">
+                            <div class="text-[10px] text-slate-500 font-mono">${new Date(po.tanggal_po || po.tanggal).toLocaleDateString('id-ID')}</div>
                             <div class="font-bold text-slate-800">${po.nama_vendor}</div>
                             <div class="text-[10px] text-indigo-500 font-mono">${po.nomor_po}</div>
                         </td>
                         <td class="px-6 py-4 text-center font-bold text-slate-600">${new Date(po.jatuh_tempo).toLocaleDateString('id-ID')}</td>
                         <td class="px-6 py-4 text-center font-mono font-bold ${diffDays < 0 ? 'text-red-600' : 'text-slate-500'}">${diffDays} Hari</td>
-                        <td class="px-6 py-4 text-right font-black text-slate-800">${fmt(po.total_harga)}</td>
+                        <td class="px-6 py-4 text-right font-black text-slate-800">${fmt(po.total_tagihan)}</td>
                         <td class="px-6 py-4 text-center">
                             <span class="status-pill ${statusClass}">${statusText}</span>
                         </td>

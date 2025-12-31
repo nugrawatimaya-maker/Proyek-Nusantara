@@ -42,7 +42,11 @@
   </div>
 
   <script>
-    const activeProject = sessionStorage.getItem('active_project_name') || 'Sunrise City Maros';
+    const activeProject = sessionStorage.getItem('active_project_name');
+    if (!activeProject) {
+        alert("⚠️ Sesi proyek habis. Silakan pilih proyek kembali di Portal.");
+        window.location.href = 'portal_proyek.html';
+    }
     let tempVerifiedItems = {}; 
 
     async function loadOpenPO() {
@@ -403,12 +407,33 @@
 
                 const stokLama = stokItem.total_stok || 0;
 
-                await client.from('master_stok').update({
-                    total_stok: stokLama + qty,
-                    harga_estimasi: harga,
-                    harga_updated_source: isTestMode ? 'TEST_RUN' : 'GRN Batch',
-                    harga_updated_ref: nomorPO
-                }).eq('id', bId).eq('nama_proyek', activeProject);
+                const { data: updatedStok, error: errUpd } = await client
+                    .from('master_stok')
+                    .update({
+                        total_stok: stokLama + qty,
+                        harga_estimasi: harga,
+                        harga_updated_source: isTestMode ? 'TEST_RUN' : 'GRN Batch',
+                        harga_updated_ref: nomorPO
+                    })
+                    .eq('id', bId)
+                    .eq('nama_proyek', activeProject)
+                    .select('id');
+                if (errUpd) throw new Error("Gagal update master_stok: " + errUpd.message);
+                if (!updatedStok || updatedStok.length === 0) {
+                    throw new Error(
+                        `MASTER_STOK TIDAK TER-UPDATE (0 rows).\n` +
+                        `Kemungkinan barang_id PO mengarah ke proyek lain.\n` +
+                        `Barang ID: ${bId}, Proyek aktif: ${activeProject}`
+                    );
+                }
+
+                const { error: errHist } = await client.from('stok_history').insert([{
+                    barang_id: bId,
+                    jenis_transaksi: 'TERIMA GRN',
+                    jumlah: qty,
+                    keterangan: `${activeProject}: ${nomorPO} | Nota: ${fileName}`
+                }]);
+                if (errHist) throw new Error("Gagal insert stok_history: " + errHist.message);
 
                 await client.from('purchase_order').update({
                     status: 'DITERIMA',
@@ -556,6 +581,15 @@
                 .update(payloadUpdate)
                 .eq('id', bId);
             if (errUpdateStok) throw errUpdateStok;
+
+            // C2. CATAT STOK HISTORY
+            const { error: errHist } = await client.from('stok_history').insert([{
+                barang_id: bId,
+                jenis_transaksi: 'TERIMA GRN',
+                jumlah: qty,
+                keterangan: `${activeProject}: ${noPO} | Nota: ${fileName}`
+            }]);
+            if (errHist) throw errHist;
 
             // D. UPDATE STATUS PO
             await client.from('purchase_order').update({ status: 'DITERIMA' }).eq('id', id);

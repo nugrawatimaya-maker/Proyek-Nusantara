@@ -85,12 +85,11 @@
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-blue-800 mb-1">Untuk Proyek / Lokasi</label>
-                <select id="pilihProyek" multiple class="w-full border p-2 rounded bg-blue-50 focus:ring-2 focus:ring-blue-300 font-semibold text-blue-900 text-sm">
-                    <option value="">-- Pilih Proyek --</option>
-                    <option value="Gudang Utama">Gudang Utama (Stok)</option>
+                <label class="block text-xs font-bold text-blue-800 mb-1">Untuk Proyek / Lokasi (Bisa Pilih Banyak)</label>
+                <select id="pilihProyek" multiple class="w-full border p-2 rounded bg-blue-50 focus:ring-2 focus:ring-blue-300 font-semibold text-blue-900 text-sm" placeholder="Pilih satu atau lebih proyek...">
+                    <option value="">-- Pilih Proyek Tujuan --</option>
                 </select>
-                <p class="text-[10px] text-gray-400 mt-1 italic">*Pilih proyek aktif dari database</p>
+                <p class="text-[10px] text-gray-400 mt-1 italic">*Material ini akan dialokasikan untuk lokasi yang dipilih.</p>
             </div>
 
             <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded shadow flex justify-center items-center gap-2 mt-4">
@@ -143,17 +142,13 @@
 
   <script>
     const activeProject = sessionStorage.getItem('active_project_name') || 'Sunrise City Maros';
-    const elProyek = document.getElementById("pilihProyek");
-    if (elProyek) {
-        elProyek.innerHTML = `<option value="${activeProject}">${activeProject}</option>`;
-        elProyek.disabled = true;
-    }
 
     let keranjang = [];
 
     // --- INIT ---
     async function init() {
         await loadMaterial();
+        await loadDestinasiProyek();
         loadRequestDB();
     }
 
@@ -180,6 +175,57 @@
       optBaru.text = "➕ Input Material Baru...";
       optBaru.className = "font-bold text-orange-600 bg-orange-50";
       select.appendChild(optBaru);
+    }
+
+    // 2. LOAD DESTINASI PROYEK (ganti dengan TomSelect)
+    async function loadDestinasiProyek() {
+      const elProyek = document.getElementById("pilihProyek");
+      if (!elProyek) return;
+
+      if (elProyek.tomselect) {
+        elProyek.tomselect.destroy();
+      }
+
+      elProyek.innerHTML = '';
+
+      try {
+        const { data, error } = await client
+          .from('master_proyek')
+          .select('nama_proyek')
+          .eq('status', 'BERJALAN')
+          .order('nama_proyek', { ascending: true });
+
+        if (error) throw error;
+
+        const optGudang = document.createElement('option');
+        optGudang.value = "Gudang Utama";
+        optGudang.text = "Gudang Utama (Stok)";
+        elProyek.appendChild(optGudang);
+
+        if (data) {
+          data.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.nama_proyek;
+            opt.text = p.nama_proyek;
+            elProyek.appendChild(opt);
+          });
+        }
+
+        new TomSelect('#pilihProyek', {
+          plugins: ['remove_button'],
+          create: false,
+          placeholder: "Cari & Pilih Proyek...",
+          maxItems: null,
+          valueField: 'value',
+          labelField: 'text',
+          searchField: 'text',
+          sortField: { field: "text", direction: "asc" }
+        });
+
+      } catch (err) {
+        console.error("Gagal memuat proyek:", err);
+        alert("Gagal memuat daftar proyek.");
+      }
     }
 
     // 3. LOGIKA TAMPILAN (Update: Tampilkan Info Stok)
@@ -234,7 +280,23 @@
       
       const mode = document.getElementById("pilihBarang").value;
       const jumlah = parseFloat(document.getElementById("jumlah").value);
-      const proyekTarget = activeProject;
+      const elProyek = document.getElementById("pilihProyek");
+
+      let selectedProyek = [];
+      if (elProyek.tomselect) {
+        const value = elProyek.tomselect.getValue();
+        selectedProyek = Array.isArray(value) ? value : (value ? [value] : []);
+      } else {
+        selectedProyek = Array.from(elProyek.selectedOptions || []).map(o => o.value);
+      }
+      selectedProyek = selectedProyek.filter(Boolean);
+
+      if (selectedProyek.length === 0) {
+        alert("Pilih minimal satu proyek tujuan!");
+        return;
+      }
+
+      const proyekTarget = selectedProyek.join(", ");
       
       if (!mode) { alert("Pilih material dulu!"); return; }
       if (isNaN(jumlah) || jumlah <= 0) { alert("Jumlah harus lebih dari 0!"); return; }
@@ -269,6 +331,11 @@
       document.getElementById("jumlah").value = "";
       document.getElementById("satuanDisplay").value = "";
       document.getElementById("namaBaru").value = "";
+      if (elProyek.tomselect) {
+        elProyek.tomselect.clear();
+      } else {
+        Array.from(elProyek.options || []).forEach(o => o.selected = false);
+      }
       cekPilihan(); // Reset info stok
       renderKeranjang();
     });
