@@ -139,56 +139,19 @@
         <div class="text-right flex justify-end gap-3">
             <button onclick="tutupModalBatch()" class="px-5 py-2 text-gray-500 hover:text-gray-800 font-bold text-sm">Batal</button>
             <button id="btnTerbitkan" onclick="terbitkanPO()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2 transition hover:scale-105">
-                <i class="fas fa-save"></i> <span>Simpan & Download PDF</span>
+                <i class="fas fa-check-circle"></i> <span>Terbitkan PO</span>
             </button>
         </div>
     </div>
   </div>
 
   <script>
-    const fmtNum = (n) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(n);
-
-    let masterPekerjaan = [];
-
-    // Fungsi mengambil master data dari Supabase
-    async function fetchMasterData() {
-        const { data, error } = await client
-            .from('master_pekerjaan')
-            .select('*')
-            .eq('is_active', true)
-            .order('tahap', { ascending: true })
-            .order('id', { ascending: true });
-
-        if (error) {
-            console.error("Gagal ambil master harga:", error);
-            alert("Gagal memuat harga pekerjaan. Cek koneksi.");
-            return [];
-        }
-
-        const grouped = {};
-        (data || []).forEach(row => {
-            if (!grouped[row.tahap]) {
-                grouped[row.tahap] = { id: row.tahap, items: [] };
-            }
-            grouped[row.tahap].items.push({
-                n: row.nama_pekerjaan,
-                b: Number(row.bobot) || 0,
-                p: Number(row.harga_borongan) || 0
-            });
-        });
-
-        masterPekerjaan = Object.values(grouped);
-        return masterPekerjaan;
-    }
-
     let listVendor = [];
     let listPending = [];
     let selectedIds = [];
-    let batchData = [];
 
     // --- INIT ---
     async function init() {
-        await fetchMasterData();
         await loadVendors();
         await loadPendingRequests();
 
@@ -200,8 +163,11 @@
     
     // 1. LOAD DATA
     async function loadVendors() {
-        const { data } = await client.from('master_vendor').select('*').order('nama_vendor');
+        const { data, error } = await client.from('master_vendor').select('*').order('nama_vendor');
         if (data) listVendor = data;
+        if (error) {
+            console.error("Gagal memuat vendor:", error);
+        }
     }
 
     async function loadPendingRequests() {
@@ -219,10 +185,19 @@
       const itemNames = listPending.map(item => item.nama_barang);
       const { data: stockData } = await client.from('master_stok').select('nama_barang, total_stok').in('nama_barang', itemNames);
       const stockMap = {};
-      if(stockData) stockData.forEach(s => stockMap[s.nama_barang] = s.total_stok);
+      if(stockData) stockData.forEach(s => stockMap[s.nama_barang] = { total_stok: s.total_stok, id: s.id });
+
+      listPending = listPending.map(item => {
+        const stockInfo = stockMap[item.nama_barang] || { total_stok: 0, id: null };
+        return {
+          ...item,
+          stok_total: stockInfo.total_stok,
+          barang_id: stockInfo.id
+        };
+      });
 
       listPending.forEach(item => {
-        const sisa = stockMap[item.nama_barang] || 0;
+        const sisa = item.stok_total || 0;
         const stokBadge = sisa === 0 
             ? `<span class="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200">Stok: 0</span>` 
             : `<span class="text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded border border-green-200">Stok: ${sisa}</span>`;
@@ -281,21 +256,22 @@
         
         selectedItems.forEach((item, idx) => {
             tbody.innerHTML += `
-                <tr class="hover:bg-gray-50">
-                    <td class="p-3">
-                        <div class="font-bold text-gray-700">${item.nama_barang}</div>
-                        <input type="hidden" id="bid-${idx}" value="${item.id}">
-                        <input type="hidden" id="bnama-${idx}" value="${item.nama_barang}">
-                        <input type="hidden" id="bqty-${idx}" value="${item.jumlah}">
-                        <input type="hidden" id="bsat-${idx}" value="${item.satuan}">
-                        <input type="hidden" id="bstaff-${idx}" value="${item.pengorder}">
-                    </td>
-                    <td class="p-3 text-center text-sm font-bold bg-gray-50">${item.jumlah} ${item.satuan}</td>
-                    <td class="p-3">
-                        <input type="number" id="bharga-${idx}" class="w-full border p-2 rounded text-right focus:border-blue-500 outline-none" placeholder="0" onkeyup="hitungTotalBatch()">
-                    </td>
-                    <td class="p-3 text-right font-bold text-gray-700" id="bsub-${idx}">Rp 0</td>
-                </tr>
+        <tr class="hover:bg-gray-50">
+            <td class="p-3">
+                <div class="font-bold text-gray-700">${item.nama_barang}</div>
+                <input type="hidden" id="bid-${idx}" value="${item.id}">
+                <input type="hidden" id="b-barangid-${idx}" value="${item.barang_id || ''}">
+                <input type="hidden" id="bnama-${idx}" value="${item.nama_barang}">
+                <input type="hidden" id="bqty-${idx}" value="${item.jumlah}">
+                <input type="hidden" id="bsat-${idx}" value="${item.satuan}">
+                <input type="hidden" id="bstaff-${idx}" value="${item.pengorder}">
+            </td>
+            <td class="p-3 text-center text-sm font-bold bg-gray-50">${item.jumlah} ${item.satuan}</td>
+            <td class="p-3">
+                <input type="number" id="bharga-${idx}" class="w-full border p-2 rounded text-right focus:border-blue-500 outline-none" placeholder="0" onkeyup="hitungTotalBatch()">
+            </td>
+            <td class="p-3 text-right font-bold text-gray-700" id="bsub-${idx}">Rp 0</td>
+        </tr>
             `;
         });
         document.getElementById("modalBatch").classList.remove("hidden");
@@ -325,102 +301,94 @@
 
     // 4. TERBITKAN PO & DOWNLOAD PDF
     async function terbitkanPO() {
+        const btn = document.getElementById("btnTerbitkan");
         const vendorEl = document.getElementById("batchVendor");
         const vendorName = vendorEl.value;
-        const vendorAddress = vendorEl.options[vendorEl.selectedIndex]?.getAttribute('data-alamat') || '';
+        const vendorAddress = vendorEl.options[vendorEl.selectedIndex]?.getAttribute('data-alamat') || '-'; 
         const tempo = document.getElementById("batchTempo").value;
 
-        if(!vendorName || !tempo) { alert("Harap lengkapi Vendor & Jatuh Tempo!"); return; }
-
-        batchData = [];
-        let grandTotal = 0;
-        const count = selectedIds.length;
-        const nomorPO = "PO-" + Math.floor(100000 + Math.random() * 900000);
-        const tglPO = new Date().toISOString().split('T')[0];
-
-        let itemNames = [];
-
-        for(let i=0; i<count; i++) {
-            const harga = Number(document.getElementById(`bharga-${i}`).value);
-            if(harga <= 0) { alert("Harga item tidak boleh 0!"); return; }
-            
-            const namaBarang = document.getElementById(`bnama-${i}`).value;
-            itemNames.push(namaBarang);
-
-            const qty = Number(document.getElementById(`bqty-${i}`).value);
-            const item = {
-                reqId: document.getElementById(`bid-${i}`).value,
-                nama: namaBarang,
-                qty: qty,
-                satuan: document.getElementById(`bsat-${i}`).value,
-                staff: document.getElementById(`bstaff-${i}`).value,
-                harga: harga,
-                total: harga * qty
-            };
-            grandTotal += item.total;
-            batchData.push(item);
+        if (!vendorName || !tempo) {
+            alert("⚠️ Harap pilih Vendor dan Tanggal Jatuh Tempo!");
+            return;
         }
 
-        const btn = document.getElementById("btnTerbitkan");
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menyimpan...`;
-        btn.disabled = true;
+        if (selectedIds.length === 0) {
+            alert("⚠️ Tidak ada item yang dipilih.");
+            return;
+        }
 
-        try {
-            const { data: stokData, error: errStok } = await client
-                .from('master_stok')
-                .select('id, nama_barang')
-                .in('nama_barang', itemNames);
+        let payloadItems = [];
+        let pdfItems = [];
 
-            if(errStok) throw new Error("Gagal mengambil ID barang: " + errStok.message);
+        for (let i = 0; i < selectedIds.length; i++) {
+            const rowId = `bid-${i}`;
+            if (!document.getElementById(rowId)) continue;
 
-            const mapID = {};
-            if(stokData) {
-                stokData.forEach(s => mapID[s.nama_barang] = s.id);
+            const reqId = document.getElementById(rowId).value;
+            const harga = document.getElementById(`bharga-${i}`).value;
+            const jumlahValue = document.getElementById(`bqty-${i}`).value;
+            const namaBarang = document.getElementById(`bnama-${i}`).value;
+            const satuan = document.getElementById(`bsat-${i}`).value;
+
+            if (!harga || harga <= 0) {
+                alert(`⚠️ Harga untuk item '${namaBarang}' belum diisi atau 0.`);
+                return;
             }
 
-            const payload = batchData.map(d => {
-                const foundID = mapID[d.nama];
-                if(!foundID) console.warn(`Peringatan: ID untuk ${d.nama} tidak ditemukan di Master Stok.`);
+            const barangIdValue = document.getElementById(`b-barangid-${i}`)?.value;
+            const barangIdInt = parseInt(barangIdValue, 10);
 
-                return {
-                    req_id: d.reqId, 
-                    nomor_po: nomorPO, 
-                    nama_vendor: vendorName,
-                    harga_satuan: d.harga, 
-                    total_harga: d.total, 
-                    jatuh_tempo: tempo, 
-                    status: 'OPEN',
-                    barang_id: foundID || null
-                };
+            payloadItems.push({
+                req_id: parseInt(reqId, 10),
+                barang_id: isNaN(barangIdInt) ? null : barangIdInt,
+                harga: parseInt(harga, 10),
+                jumlah: parseInt(jumlahValue, 10)
             });
 
-            const { error } = await client.from('purchase_order').insert(payload);
-            if(error) throw error;
+            pdfItems.push({
+                nama: namaBarang,
+                qty: jumlahValue,
+                satuan: satuan,
+                harga: harga,
+                total: (parseInt(harga, 10) * parseInt(jumlahValue, 10))
+            });
+        }
 
-            const reqIds = batchData.map(d => d.reqId);
-            await client.from('inventory_req').update({ status: 'PO DIBUAT' }).in('id', reqIds);
+        try {
+            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Memproses...`;
+            btn.disabled = true;
+
+            const { data, error } = await client.rpc('process_create_po_batch', {
+                p_vendor_name: vendorName,
+                p_jatuh_tempo: tempo,
+                p_items: payloadItems
+            });
+
+            if (error) throw error;
 
             const pdfData = {
-                noPO: nomorPO,
-                tgl: tglPO,
+                noPO: data.no_po,
+                tgl: new Date().toISOString().split('T')[0],
                 vendor: vendorName,
                 vendorAlamat: vendorAddress,
                 tempo: tempo,
-                items: batchData,
-                grandTotal: grandTotal
+                items: pdfItems,
+                grandTotal: data.grand_total
             };
+            
             generatePOPdf(pdfData);
 
-            alert("✅ PO Berhasil Diterbitkan! Data ID Barang tersimpan.");
-            tutupModalBatch();
-            document.querySelectorAll('.chk-item').forEach(c => c.checked = false);
-            cekCentang();
-            await loadPendingRequests();
-            await cariRiwayat();
+            alert(`✅ PO Berhasil Diterbitkan!\nNomor: ${data.no_po}`);
 
-        } catch (e) {
-            alert("Gagal: " + e.message);
-            btn.innerHTML = `<i class="fas fa-save"></i> Simpan & Download PDF`; 
+            tutupModalBatch();
+            selectedIds = [];
+            cekCentang();
+            loadPendingRequests();
+        } catch (err) {
+            console.error(err);
+            alert("❌ GAGAL MENERBITKAN PO:\n" + (err.message || err.details));
+        } finally {
+            btn.innerHTML = `<i class="fas fa-check-circle"></i> Terbitkan PO`;
             btn.disabled = false;
         }
     }

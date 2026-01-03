@@ -74,7 +74,7 @@
       inset: 0;
       background: rgba(0,0,0,0.8);
       backdrop-filter: blur(8px);
-      z-index: 10000;
+      z-index: 100001; /* Dinaikkan agar di atas banner DEV */
       align-items: center;
       justify-content: center;
     }
@@ -190,7 +190,18 @@
 
       <div class="setting-row border-l-4 border-yellow-500 pl-3">
         <div>
-          <div class="setting-label font-bold text-yellow-500">Global Simulation</div>
+          <div class="setting-label font-bold text-yellow-500">Mode Pengembangan</div>
+          <div class="setting-desc">Gunakan database 'DEV'. Jika OFF, gunakan 'PROD'.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleDevMode">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Global Simulation</div>
           <div class="setting-desc">Cegah simpan data ke Supabase (Aman untuk Demo).</div>
         </div>
         <label class="switch">
@@ -257,21 +268,24 @@
 
     function loadSettings() {
       // Load status dari LocalStorage
+      document.getElementById('toggleDevMode').checked = localStorage.getItem('APP_DEV_MODE') === 'true';
       document.getElementById('toggleGlobalTest').checked = localStorage.getItem('APP_TEST_MODE') === 'true';
       document.getElementById('toggleBypassAuth').checked = localStorage.getItem('APP_BYPASS_AUTH') === 'true';
       document.getElementById('toggleDebug').checked = localStorage.getItem('APP_DEBUG_MODE') === 'true';
     }
 
     function simpanPengaturan() {
+      const isDev = document.getElementById('toggleDevMode').checked;
       const isTest = document.getElementById('toggleGlobalTest').checked;
       const isBypass = document.getElementById('toggleBypassAuth').checked;
       const isDebug = document.getElementById('toggleDebug').checked;
 
+      localStorage.setItem('APP_DEV_MODE', isDev);
       localStorage.setItem('APP_TEST_MODE', isTest);
       localStorage.setItem('APP_BYPASS_AUTH', isBypass);
       localStorage.setItem('APP_DEBUG_MODE', isDebug);
 
-      alert(`✅ Konfigurasi Tersimpan!\n\nSimulation: ${isTest ? 'ON' : 'OFF'}\nBypass Auth: ${isBypass ? 'ON' : 'OFF'}\nDebug: ${isDebug ? 'ON' : 'OFF'}`);
+      alert(`✅ Konfigurasi Tersimpan!\n\nMode DEV: ${isDev ? 'ON' : 'OFF'}\nSimulation: ${isTest ? 'ON' : 'OFF'}\nBypass Auth: ${isBypass ? 'ON' : 'OFF'}\nDebug: ${isDebug ? 'ON' : 'OFF'}`);
       tutupAdminPanel();
       location.reload(); // Refresh halaman untuk menerapkan efek
     }

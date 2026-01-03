@@ -501,6 +501,18 @@
             // Konfirmasi User
             if(!confirm(`Keluarkan ${jumlah} unit ke proyek: ${proyek}?`)) return;
 
+            // --- GENERATE NOMOR PO OTOMATIS ---
+            const tglInput = new Date().toISOString().split('T')[0];
+            const { data: noPOBaru, error: errGen } = await client.rpc('generate_po_number', {
+                p_tanggal: tglInput
+            });
+
+            if (errGen) {
+                alert("⚠️ Gagal generate nomor PO: " + errGen.message);
+                return;
+            }
+            console.log("Nomor PO baru:", noPOBaru);
+
             // 1. Insert ke Verifikasi Material (Jembatan ke Accounting)
             // Hitung total biaya (Estimasi)
             const item = masterDataMemori.find(i => i.id == barangId);
@@ -509,6 +521,7 @@
 
             const { error: errVerif } = await client.from('verifikasi_material').insert([{
                 tanggal: new Date(), 
+                nomor_po: noPOBaru,
                 nama_proyek: proyek, 
                 barang_id: barangId, 
                 jumlah: jumlah, 

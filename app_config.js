@@ -3,8 +3,12 @@
 // ==========================================
 
 // 1. LOGIKA SAKLAR OTOMATIS
-const isSimulationActive = localStorage.getItem('APP_TEST_MODE') === 'true';
-const CURRENT_ENV = isSimulationActive ? 'DEV' : 'PROD'; 
+// Prioritas: URL Parameter '?mode=dev' > Pengaturan di Admin Panel > Default ke PROD
+const urlParams = new URLSearchParams(window.location.search);
+const urlWantsDev = urlParams.get('mode') === 'dev';
+const storageWantsDev = localStorage.getItem('APP_DEV_MODE') === 'true';
+
+const CURRENT_ENV = (urlWantsDev || storageWantsDev) ? 'DEV' : 'PROD'; 
 
 // 2. DAFTAR KREDENSIAL
 const CONFIG = {
@@ -15,7 +19,8 @@ const CONFIG = {
     },
     DEV: {
         URL: "https://drpnegmcazqnxmbonhwq.supabase.co", 
-        KEY: "sb_publishable_RDhFfphNpQCg4iYStiI8Ug_3PIWUSip",
+        // ⚠️ PASTIKAN KEY INI ADALAH 'anon public' KEY YANG PANJANG (JWT) DARI SUPABASE
+        KEY: "sb_publishable_RDhFfphNpQCg4iYStiI8Ug_3PIWUSip", 
         THEME: "warning"
     }
 };
@@ -23,7 +28,16 @@ const CONFIG = {
 // ==========================================
 // SYSTEM LOGIC
 // ==========================================
+// Cek apakah library Supabase sudah dimuat?
+if (typeof supabase === 'undefined') {
+    alert("CRITICAL ERROR: Library Supabase belum dimuat di HTML!");
+    throw new Error("Supabase library missing");
+}
+
 const activeConfig = CONFIG[CURRENT_ENV];
+console.log(`🔌 Menghubungkan ke Database: ${CURRENT_ENV}`);
+
+// Inisialisasi Koneksi Asli
 const _realClient = supabase.createClient(activeConfig.URL, activeConfig.KEY);
 
 const fmt = (n) => new Intl.NumberFormat('id-ID', {
@@ -32,6 +46,7 @@ const fmt = (n) => new Intl.NumberFormat('id-ID', {
     minimumFractionDigits:0
 }).format(n);
 
+// Banner Mode DEV
 document.addEventListener("DOMContentLoaded", () => {
     if (CURRENT_ENV === 'DEV') {
         document.title = "[DEV] " + document.title;
@@ -45,22 +60,17 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
         `;
         document.body.appendChild(banner);
-
-        const actionBar = document.getElementById('actionBar');
-        if (actionBar) {
-            actionBar.style.transition = "bottom 0.3s ease";
-            actionBar.style.bottom = "70px";
-            actionBar.style.borderTop = "4px solid #cbd5e1";
-        }
-
-        const adminBtn = document.querySelector('.stealth-admin-btn');
-        if (adminBtn) {
-            adminBtn.style.bottom = "80px";
-        }
     }
 });
 
-const client = {
+// ==========================================
+// JEMBATAN PENGHUBUNG (INI YANG HILANG TADI)
+// ==========================================
+window.client = {
     from: (table) => _realClient.from(table),
-    storage: _realClient.storage
+    storage: _realClient.storage,
+    rpc: (fn, args) => _realClient.rpc(fn, args),
+    auth: _realClient.auth
 };
+
+console.log("✅ app_config.js Siap. Variable 'client' sudah aktif.");
