@@ -1,610 +1,865 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>Gudang Pro - Nusantara Land Development</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app_config.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-  <style>
-    thead th { position: sticky; top: 0; z-index: 10; background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 12px; font-size: 13px; color: #000000; font-weight: 800; text-transform: uppercase; }
-    .tabel-excel td { border: 1px solid #e2e8f0; padding: 10px; font-size: 14px; color: #1e293b; }
-    .tabel-excel tr:hover { background-color: #f8fafc; }
-    .select2-container .select2-selection--single { height: 42px !important; border-radius: 0.5rem !important; display: flex !important; align-items: center !important; }
-  </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-  <script>
-    const activeProject = sessionStorage.getItem('active_project_name');
-    if (!activeProject) {
-        alert("Sesi proyek tidak ditemukan. Silakan pilih proyek di Portal.");
-        window.location.href = 'portal_proyek.html';
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-        const titleEl = document.querySelector('h1');
-        if(titleEl) {
-            titleEl.innerHTML += ` <span class="text-sm bg-yellow-200 text-yellow-800 px-2 py-1 rounded ml-2">${activeProject}</span>`;
+    <meta charset="UTF-8" />
+    <title>Gudang Pro - Nusantara Land Development</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app_config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <style>
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 12px;
+            font-size: 13px;
+            color: #000000;
+            font-weight: 800;
+            text-transform: uppercase;
         }
-    });
-  </script>
+
+        .tabel-excel td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            font-size: 14px;
+            color: #1e293b;
+        }
+
+        .tabel-excel tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .select2-container .select2-selection--single {
+            height: 42px !important;
+            border-radius: 0.5rem !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Check Auth: Operasional + Global Roles
+        PNAuth.requireAuth(['operasional', 'finance', 'direksi', 'superadmin', 'marketing', 'hr']);
+
+        const activeProject = sessionStorage.getItem('active_project_name');
+        if (!activeProject) {
+            alert("Sesi proyek tidak ditemukan. Silakan pilih proyek di Portal.");
+            window.location.href = 'portal_proyek.html';
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const session = PNAuth.getSession();
+            if (session) {
+                document.getElementById('nav-user-name').innerText = session.user.full_name;
+                document.getElementById('nav-user-role').innerText = session.user.role;
+            }
+            document.getElementById('projectTitle').innerText = activeProject;
+        });
+    </script>
 </head>
-<body class="bg-gray-100 font-sans text-gray-800 p-6">
 
-  <div class="max-w-7xl mx-auto mt-8 mb-6">
-    <h1 class="text-3xl font-black text-gray-800 flex items-center gap-3">
-        <i class="fas fa-warehouse text-indigo-600"></i>
-        Gudang & Alokasi Proyek
-    </h1>
-    <p class="text-gray-500 text-sm font-bold ml-10">
-        Site Aktif: <span class="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded border border-yellow-300"><script>document.write(sessionStorage.getItem('active_project_name') || '-')</script></span>
-    </p>
-  </div>
-  <div class="max-w-7xl mx-auto mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-    <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-600 flex items-center justify-between">
-      <div>
-        <p class="text-xs font-bold text-gray-500 uppercase">Total Nilai Persediaan</p>
-        <h3 id="statTotalNilai" class="text-xl font-black text-blue-900 mt-1">Rp 0</h3>
-      </div>
-      <div class="bg-blue-50 p-3 rounded-lg"><i class="fas fa-wallet text-blue-600 text-xl"></i></div>
-    </div>
+<body class="bg-gray-50 font-sans text-gray-800">
 
-    <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 flex items-center justify-between">
-      <div>
-        <p class="text-xs font-bold text-gray-500 uppercase">Nilai Masuk (Bulan Ini)</p>
-        <h3 id="statMasuk" class="text-xl font-black text-emerald-700 mt-1">0</h3>
-      </div>
-      <div class="bg-emerald-50 p-3 rounded-lg"><i class="fas fa-arrow-trend-up text-emerald-600 text-xl"></i></div>
-    </div>
+    <header
+        class="glass-header fixed top-0 w-full z-50 px-6 py-3 flex justify-between items-center bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
+        <div class="flex items-center gap-4">
+            <a href="dashboard_operasional.html"
+                class="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-500 transition"
+                title="Kembali ke Dashboard">
+                <i class="fas fa-arrow-left"></i>
+            </a>
 
-    <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-500 flex items-center justify-between">
-      <div>
-        <p class="text-xs font-bold text-gray-500 uppercase">Nilai Keluar (Bulan Ini)</p>
-        <h3 id="statKeluar" class="text-xl font-black text-red-700 mt-1">0</h3>
-      </div>
-      <div class="bg-red-50 p-3 rounded-lg"><i class="fas fa-arrow-trend-down text-red-600 text-xl"></i></div>
-    </div>
-  </div>
-
-<div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-12">
-    
-    <button onclick="bukaModalPencarian()" 
-            class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-indigo-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
-            <i class="fas fa-search"></i>
-        </div>
-        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-indigo-700">Cari Stok</span>
-    </button>
-
-    <button onclick="document.getElementById('modalTambahItem').classList.remove('hidden')" 
-            class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-blue-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
-            <i class="fas fa-plus"></i>
-        </div>
-        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-blue-700">Item Baru</span>
-    </button>
-
-    <a href="inventory_grn.html" 
-       class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-emerald-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
-            <i class="fas fa-truck-loading"></i>
-        </div>
-        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-emerald-700">Terima Barang</span>
-    </a>
-
-    <button onclick="bukaModal('PAKAI')" 
-            class="col-span-2 md:col-span-1 bg-gradient-to-br from-orange-50 to-white p-4 rounded-xl shadow-md hover:shadow-xl border border-orange-200 hover:border-orange-400 group transition-all duration-300 flex flex-col items-center justify-center gap-3 relative overflow-hidden">
-        <div class="absolute top-0 right-0 bg-orange-500 text-white text-[9px] px-2 py-1 rounded-bl-lg font-bold shadow-sm">UTAMA</div>
-        <div class="w-12 h-12 rounded-full bg-white text-orange-600 flex items-center justify-center text-2xl shadow-sm group-hover:rotate-12 transition-transform border border-orange-100">
-            <i class="fas fa-dolly-flatbed"></i>
-        </div>
-        <span class="text-[10px] font-black text-orange-800 uppercase tracking-wide">Catat Pemakaian</span>
-    </button>
-
-    <button onclick="proteksiFitur('AUDIT')" 
-            class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-red-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
-            <i class="fas fa-search-dollar"></i>
-        </div>
-        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-red-700">Audit Stok</span>
-    </button>
-
-    <button onclick="bukaModalRiwayat()" 
-            class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-cyan-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
-            <i class="fas fa-history"></i>
-        </div>
-        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-cyan-700">Riwayat</span>
-    </button>
-
-    <button onclick="proteksiFitur('OPNAME')" 
-            class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-purple-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
-            <i class="fas fa-clipboard-check"></i>
-        </div>
-        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-purple-700">Stock Opname</span>
-    </button>
-
-    <a href="dashboard_operasional.html" 
-       class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-gray-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
-            <i class="fas fa-th-large"></i>
-        </div>
-        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-gray-800">Dashboard</span>
-    </a>
-<div id="modalRiwayat" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex justify-center items-start pt-10 z-50 backdrop-blur-sm transition-opacity duration-300">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden transform transition-all scale-100 mx-4">
-        
-        <div class="p-5 bg-white border-b flex justify-between items-center shadow-sm z-10 shrink-0">
             <div>
-                <h2 class="text-xl font-black text-gray-800 flex items-center gap-2">
-                    <i class="fas fa-history text-cyan-600"></i> Riwayat Transaksi
-                </h2>
-                <p class="text-xs text-gray-400 font-bold">Log aktivitas keluar masuk barang</p>
-            </div>
-            
-            <div class="flex items-center gap-2">
-                <div class="flex items-center gap-2 px-3 bg-gray-50 rounded-lg border border-gray-100 py-1">
-                    <input type="date" id="laporanStartModal" class="bg-transparent border-none text-xs font-bold text-gray-600 outline-none w-24 uppercase">
-                    <span class="text-gray-300 font-bold">➜</span>
-                    <input type="date" id="laporanEndModal" class="bg-transparent border-none text-xs font-bold text-gray-600 outline-none w-24 uppercase">
-                </div>
-                <button onclick="loadMutasiBawah()" class="bg-cyan-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-cyan-700 shadow-md transition-all">
-                    <i class="fas fa-filter mr-1"></i> FILTER
-                </button>
-                <button onclick="downloadLaporanMutasi(event)" class="bg-red-50 text-red-600 w-8 h-8 rounded-lg flex items-center justify-center border border-red-100 hover:bg-red-100 transition-all" title="Download PDF">
-                    <i class="fas fa-file-pdf"></i>
-                </button>
-                <button onclick="document.getElementById('modalRiwayat').classList.add('hidden')" class="ml-4 text-gray-400 hover:text-red-600 text-2xl font-bold transition">
-                    &times;
-                </button>
+                <p class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Manajemen Stok</p>
+                <h1 class="text-lg font-black text-gray-800 leading-tight" id="projectTitle">Memuat...</h1>
             </div>
         </div>
 
-        <div class="flex-grow overflow-y-auto bg-white p-0">
-            <table class="w-full text-left text-sm border-collapse">
-                <thead class="bg-gray-100 text-gray-600 uppercase text-[11px] font-extrabold tracking-wider sticky top-0 z-10 shadow-sm">
-                    <tr>
-                        <th class="p-4 border-b">Waktu & Tanggal</th>
-                        <th class="p-4 border-b">Nama Material</th>
-                        <th class="p-4 border-b">Keterangan / Ref</th>
-                        <th class="p-4 border-b text-right text-emerald-700 bg-emerald-50/50">Masuk</th>
-                        <th class="p-4 border-b text-right text-red-700 bg-red-50/50">Keluar</th>
-                        <th class="p-4 border-b text-center">User</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelMutasiBody" class="divide-y divide-gray-100 text-gray-700">
-                    </tbody>
-            </table>
-
-            <div id="stateKosongMutasi" class="hidden py-12 flex flex-col items-center justify-center text-center">
-                <div class="bg-gray-50 p-4 rounded-full mb-3 text-gray-300 text-3xl">
-                    <i class="fas fa-clipboard-list"></i>
-                </div>
-                <p class="text-gray-400 font-bold text-sm">Tidak ada transaksi ditemukan.</p>
+        <div class="flex items-center gap-3">
+            <a href="index.html"
+                class="w-10 h-10 bg-gray-100 text-gray-500 rounded-xl flex items-center justify-center hover:bg-gray-200 transition"
+                title="Home">
+                <i class="fas fa-home"></i>
+            </a>
+            <div class="text-right hidden md:block">
+                <p class="text-sm font-bold text-gray-700" id="nav-user-name">User</p>
+                <p class="text-[10px] text-emerald-500 font-bold bg-emerald-50 px-2 rounded-full inline-block uppercase"
+                    id="nav-user-role">Role</p>
             </div>
-        </div>
-    </div>
-</div>
-
-  <div id="modalKartuStok" class="hidden fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-[60] backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden">
-        <div class="p-5 border-b bg-gray-50 flex justify-between items-center">
-            <div><h2 class="text-xl font-bold text-black">KARTU STOK MATERIAL</h2><p id="judulKartuStok" class="text-sm text-blue-700 font-extrabold">-</p></div>
-            <button onclick="tutupModalKartu()" class="text-gray-400 hover:text-red-500 font-black text-2xl transition">✕</button>
-        </div>
-        <div class="p-4 bg-white border-b flex gap-3 items-center">
-            <button onclick="proteksiFitur('SINKRON')" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-xl text-xs font-black flex items-center gap-2 shadow-lg"><i class="fas fa-magic"></i> SINKRONKAN SALDO</button>
-            <button onclick="downloadPDFKartu()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-black flex items-center gap-2 shadow-lg"><i class="fas fa-file-pdf"></i> DOWNLOAD KARTU (PDF)</button>
-        </div>
-        <div class="flex-grow overflow-auto p-4 bg-gray-50">
-            <table class="w-full text-xs text-left border-collapse bg-white" id="tabelKartuStok">
-                <thead class="bg-gray-200 sticky top-0">
-                    <tr><th class="p-3 border border-gray-300 text-black font-black uppercase">Tanggal</th><th class="p-3 border border-gray-300 text-black font-black uppercase">Transaksi</th><th class="p-3 border border-gray-300 text-black font-black uppercase">Proyek</th><th class="p-3 border border-gray-300 text-right bg-emerald-100 text-emerald-900 font-black">Masuk</th><th class="p-3 border border-gray-300 text-right bg-red-100 text-red-900 font-black">Keluar</th><th class="p-3 border border-gray-300 text-right bg-blue-100 text-blue-900 font-black">Saldo</th></tr>
-                </thead>
-                <tbody id="bodyKartuStok"></tbody>
-            </table>
-        </div>
-    </div>
-  </div>
-
-  <div id="modalForm" class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 flex justify-center items-center z-50 backdrop-blur-sm transition-opacity">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all scale-100">
-        
-        <div class="bg-gradient-to-r from-slate-800 to-slate-700 p-4 flex justify-between items-center text-white shadow-md">
-            <div class="flex items-center gap-3">
-                <div class="bg-orange-500 p-2 rounded-lg text-white">
-                    <i class="fas fa-hard-hat"></i>
-                </div>
-                <div>
-                    <h2 class="text-lg font-bold tracking-wide">Form Pemakaian Material</h2>
-                    <p class="text-xs text-slate-300">Barang keluar untuk kebutuhan proyek</p>
-                </div>
+            <div
+                class="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg">
+                <i class="fas fa-hard-hat"></i>
             </div>
-            <button onclick="tutupModal()" class="text-slate-400 hover:text-white transition text-xl">&times;</button>
-        </div>
-
-        <div class="p-6 space-y-5">
-            <input type="hidden" id="jenisInput">
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Pilih Material</label>
-                        <select id="pilihBarang" class="w-full" onchange="updateInfoStokUI()"></select>
-                        <div id="infoStokRealtime" class="mt-2 text-xs flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-200">
-                            <span class="text-slate-500">Stok Tersedia:</span>
-                            <span class="font-bold text-slate-800 text-sm" id="labelStok">-</span>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Jumlah Keluar</label>
-                        <div class="relative">
-                            <input type="number" id="jumlahInput" class="w-full border border-gray-300 p-2.5 rounded-lg font-bold text-gray-800 focus:ring-2 focus:ring-orange-500 outline-none transition" placeholder="0">
-                            <span class="absolute right-3 top-2.5 text-xs font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded" id="labelSatuan">-</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div id="divProyek">
-                        <label class="block text-xs font-bold text-blue-800 uppercase mb-1">Alokasi Proyek (Tujuan)</label>
-                        <select id="pilihProyek" class="w-full border p-2 rounded bg-blue-50" multiple="multiple"></select>
-                        <p class="text-[10px] text-gray-400 mt-1 italic">*Bisa pilih lebih dari satu proyek</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Keterangan / Catatan</label>
-                        <textarea id="ketInput" class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-slate-300 outline-none" rows="3" placeholder="Contoh: Untuk cor dak lantai 2..."></textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="p-4 bg-gray-50 border-t flex justify-end gap-3">
-            <button onclick="tutupModal()" class="px-5 py-2 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-200 transition">Batal</button>
-            <button onclick="simpanTransaksi()" class="px-6 py-2 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 shadow-lg transform active:scale-95 transition flex items-center gap-2">
-                <i class="fas fa-paper-plane"></i> PROSES PENGELUARAN
+            <button onclick="PNAuth.logout()" class="text-gray-400 hover:text-red-500 ml-2" title="Logout">
+                <i class="fas fa-power-off"></i>
             </button>
         </div>
-    </div>
-  </div>
+    </header>
 
-  <script>
-    async function catatLog(tipe, pesan, icon = 'fa-info-circle') {
-        const user = "SUPERADMIN";
-        try {
-            const { error } = await client.from('activity_logs').insert([{
-                user_name: user,
-                tipe: tipe,
-                aktivitas: pesan,
-                icon: icon
-            }]);
-            if (error) console.error("Gagal mencatat log:", error);
-        } catch (e) {
-            console.error("Error Log:", e);
-        }
-    }
-    const escHtml = (s) => String(s ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    <div class="pt-24 max-w-7xl mx-auto px-6">
+        <div class="max-w-7xl mx-auto mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-600 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase">Total Nilai Persediaan</p>
+                    <h3 id="statTotalNilai" class="text-xl font-black text-blue-900 mt-1">Rp 0</h3>
+                </div>
+                <div class="bg-blue-50 p-3 rounded-lg"><i class="fas fa-wallet text-blue-600 text-xl"></i></div>
+            </div>
 
-    function updateInfoStokUI() {
-        const select = document.getElementById("pilihBarang");
-        if (!select) return;
+            <div
+                class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-emerald-500 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase">Nilai Masuk (Bulan Ini)</p>
+                    <h3 id="statMasuk" class="text-xl font-black text-emerald-700 mt-1">0</h3>
+                </div>
+                <div class="bg-emerald-50 p-3 rounded-lg"><i class="fas fa-arrow-trend-up text-emerald-600 text-xl"></i>
+                </div>
+            </div>
 
-        const option = select.options[select.selectedIndex];
-        const stok = Number(option?.getAttribute('data-stok') || 0);
-        const satuan = option?.getAttribute('data-satuan') || 'Unit';
-        const labelStok = document.getElementById("labelStok");
-        const labelSatuan = document.getElementById("labelSatuan");
+            <div class="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-500 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase">Nilai Keluar (Bulan Ini)</p>
+                    <h3 id="statKeluar" class="text-xl font-black text-red-700 mt-1">0</h3>
+                </div>
+                <div class="bg-red-50 p-3 rounded-lg"><i class="fas fa-arrow-trend-down text-red-600 text-xl"></i></div>
+            </div>
+        </div>
 
-        if (labelStok) {
-            labelStok.innerText = `${stok} ${satuan}`;
-            if (stok <= 0) {
-                labelStok.className = "font-bold text-red-600 text-sm";
-                labelStok.innerText += " (HABIS!)";
-            } else if (stok < 10) {
-                labelStok.className = "font-bold text-orange-600 text-sm";
-            } else {
-                labelStok.className = "font-bold text-emerald-600 text-sm";
-            }
-        }
+        <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-12">
 
-        if (labelSatuan) {
-            labelSatuan.innerText = satuan;
-        }
-    }
+            <button onclick="bukaModalPencarian()"
+                class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-indigo-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
+                <div
+                    class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
+                    <i class="fas fa-search"></i>
+                </div>
+                <span
+                    class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-indigo-700">Cari
+                    Stok</span>
+            </button>
 
-    const escJs = (s) => String(s ?? '')
-        .replace(/\\/g, '\\\\')
-        .replace(/'/g, "\\'")
-        .replace(/"/g, '\\"');
+            <button onclick="document.getElementById('modalTambahItem').classList.remove('hidden')"
+                class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-blue-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
+                <div
+                    class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-blue-700">Item
+                    Baru</span>
+            </button>
 
-    function terapkanFilter() {
-        const inputEl = document.getElementById("cariInput");
-        const tbody = document.getElementById("bodyStok");
-        const emptyState = document.getElementById("stateKosong");
-        const rowCounter = document.getElementById("rowCounter");
-        if (!inputEl || !tbody || !emptyState || !rowCounter) return;
+            <a href="inventory_grn.html"
+                class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-emerald-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
+                <div
+                    class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
+                    <i class="fas fa-truck-loading"></i>
+                </div>
+                <span
+                    class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-emerald-700">Terima
+                    Barang</span>
+            </a>
 
-        const keyword = inputEl.value.toUpperCase();
-        let filtered = masterDataMemori;
-        if (keyword.length > 0) {
-            filtered = masterDataMemori.filter(item => item.nama_barang && item.nama_barang.toUpperCase().includes(keyword));
-        }
-        filtered = filtered.sort((a, b) => (a.total_stok || 0) - (b.total_stok || 0));
+            <button onclick="bukaModal('PAKAI')"
+                class="col-span-2 md:col-span-1 bg-gradient-to-br from-orange-50 to-white p-4 rounded-xl shadow-md hover:shadow-xl border border-orange-200 hover:border-orange-400 group transition-all duration-300 flex flex-col items-center justify-center gap-3 relative overflow-hidden">
+                <div
+                    class="absolute top-0 right-0 bg-orange-500 text-white text-[9px] px-2 py-1 rounded-bl-lg font-bold shadow-sm">
+                    UTAMA</div>
+                <div
+                    class="w-12 h-12 rounded-full bg-white text-orange-600 flex items-center justify-center text-2xl shadow-sm group-hover:rotate-12 transition-transform border border-orange-100">
+                    <i class="fas fa-dolly-flatbed"></i>
+                </div>
+                <span class="text-[10px] font-black text-orange-800 uppercase tracking-wide">Catat Pemakaian</span>
+            </button>
 
-        tbody.innerHTML = "";
+            <button onclick="proteksiFitur('AUDIT')"
+                class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-red-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
+                <div
+                    class="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
+                    <i class="fas fa-search-dollar"></i>
+                </div>
+                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-red-700">Audit
+                    Stok</span>
+            </button>
 
-        if (filtered.length === 0) {
-            emptyState.classList.remove("hidden");
-            rowCounter.innerText = `Total: 0 Item`;
-            return;
-        }
+            <button onclick="bukaModalRiwayat()"
+                class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-cyan-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
+                <div
+                    class="w-12 h-12 rounded-full bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
+                    <i class="fas fa-history"></i>
+                </div>
+                <span
+                    class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-cyan-700">Riwayat</span>
+            </button>
 
-        emptyState.classList.add("hidden");
+            <button onclick="proteksiFitur('OPNAME')"
+                class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-purple-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
+                <div
+                    class="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <span
+                    class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-purple-700">Stock
+                    Opname</span>
+            </button>
 
-        filtered.forEach((item, index) => {
-            const stok = Number(item.total_stok || 0);
-            const nama = item.nama_barang || "Tanpa Nama";
-            const satuan = item.satuan || "Unit";
+            <a href="dashboard_operasional.html"
+                class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-gray-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
+                <div
+                    class="w-12 h-12 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
+                    <i class="fas fa-th-large"></i>
+                </div>
+                <span
+                    class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-gray-800">Dashboard</span>
+            </a>
+            <div id="modalRiwayat"
+                class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex justify-center items-start pt-10 z-50 backdrop-blur-sm transition-opacity duration-300">
+                <div
+                    class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden transform transition-all scale-100 mx-4">
 
-            let statusBadge = '<span class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded font-bold">AMAN</span>';
-            let stokClass = "text-gray-700";
+                    <div class="p-5 bg-white border-b flex justify-between items-center shadow-sm z-10 shrink-0">
+                        <div>
+                            <h2 class="text-xl font-black text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-history text-cyan-600"></i> Riwayat Transaksi
+                            </h2>
+                            <p class="text-xs text-gray-400 font-bold">Log aktivitas keluar masuk barang</p>
+                        </div>
 
-            if (stok <= 0) {
-                statusBadge = '<span class="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded font-bold animate-pulse">HABIS</span>';
-                stokClass = "text-red-600 font-black";
-            } else if (stok < 10) {
-                statusBadge = '<span class="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded font-bold">KRITIS</span>';
-                stokClass = "text-orange-600 font-bold";
-            }
+                        <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 px-3 bg-gray-50 rounded-lg border border-gray-100 py-1">
+                                <input type="date" id="laporanStartModal"
+                                    class="bg-transparent border-none text-xs font-bold text-gray-600 outline-none w-24 uppercase">
+                                <span class="text-gray-300 font-bold">➜</span>
+                                <input type="date" id="laporanEndModal"
+                                    class="bg-transparent border-none text-xs font-bold text-gray-600 outline-none w-24 uppercase">
+                            </div>
+                            <button onclick="loadMutasiBawah()"
+                                class="bg-cyan-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-cyan-700 shadow-md transition-all">
+                                <i class="fas fa-filter mr-1"></i> FILTER
+                            </button>
+                            <button onclick="downloadLaporanMutasi(event)"
+                                class="bg-red-50 text-red-600 w-8 h-8 rounded-lg flex items-center justify-center border border-red-100 hover:bg-red-100 transition-all"
+                                title="Download PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
+                            <button onclick="document.getElementById('modalRiwayat').classList.add('hidden')"
+                                class="ml-4 text-gray-400 hover:text-red-600 text-2xl font-bold transition">
+                                &times;
+                            </button>
+                        </div>
+                    </div>
 
-            const safeNama = escHtml(nama);
-            const safeId = escJs(item.id);
-            const safeSatuan = escJs(satuan);
+                    <div class="flex-grow overflow-y-auto bg-white p-0">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead
+                                class="bg-gray-100 text-gray-600 uppercase text-[11px] font-extrabold tracking-wider sticky top-0 z-10 shadow-sm">
+                                <tr>
+                                    <th class="p-4 border-b">Waktu & Tanggal</th>
+                                    <th class="p-4 border-b">Nama Material</th>
+                                    <th class="p-4 border-b">Keterangan / Ref</th>
+                                    <th class="p-4 border-b text-right text-emerald-700 bg-emerald-50/50">Masuk</th>
+                                    <th class="p-4 border-b text-right text-red-700 bg-red-50/50">Keluar</th>
+                                    <th class="p-4 border-b text-center">User</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelMutasiBody" class="divide-y divide-gray-100 text-gray-700">
+                            </tbody>
+                        </table>
 
-            tbody.innerHTML += `
-                <tr class="hover:bg-blue-50 transition border-b border-gray-50 last:border-0">
-                    <td class="p-4 text-center text-gray-400 text-xs">${index + 1}</td>
-                    <td class="p-4">
-                        <div class="font-bold text-gray-800">${safeNama}</div>
-                        <div class="text-[10px] text-gray-400">ID: ${item.id}</div>
-                    </td>
-                    <td class="p-4 text-center text-xs font-bold text-gray-500 bg-gray-50/30">${safeSatuan}</td>
-                    <td class="p-4 text-right ${stokClass} text-sm">${stok}</td>
-                    <td class="p-4 text-center">${statusBadge}</td>
-                    <td class="p-4 text-center">
-                        <button onclick="bukaKartuStok('${safeId}', '${safeNama}', '${safeSatuan}')"
-                                class="bg-white border border-gray-200 text-blue-600 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg shadow-sm transition-all text-xs font-bold flex items-center gap-1 mx-auto">
-                            <i class="fas fa-history"></i> Detail
+                        <div id="stateKosongMutasi"
+                            class="hidden py-12 flex flex-col items-center justify-center text-center">
+                            <div class="bg-gray-50 p-4 rounded-full mb-3 text-gray-300 text-3xl">
+                                <i class="fas fa-clipboard-list"></i>
+                            </div>
+                            <p class="text-gray-400 font-bold text-sm">Tidak ada transaksi ditemukan.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="modalKartuStok"
+                class="hidden fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-[60] backdrop-blur-sm">
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden">
+                    <div class="p-5 border-b bg-gray-50 flex justify-between items-center">
+                        <div>
+                            <h2 class="text-xl font-bold text-black">KARTU STOK MATERIAL</h2>
+                            <p id="judulKartuStok" class="text-sm text-blue-700 font-extrabold">-</p>
+                        </div>
+                        <button onclick="tutupModalKartu()"
+                            class="text-gray-400 hover:text-red-500 font-black text-2xl transition">✕</button>
+                    </div>
+                    <div class="p-4 bg-white border-b flex gap-3 items-center">
+                        <button onclick="proteksiFitur('SINKRON')"
+                            class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-xl text-xs font-black flex items-center gap-2 shadow-lg"><i
+                                class="fas fa-magic"></i> SINKRONKAN SALDO</button>
+                        <button onclick="downloadPDFKartu()"
+                            class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-black flex items-center gap-2 shadow-lg"><i
+                                class="fas fa-file-pdf"></i> DOWNLOAD KARTU (PDF)</button>
+                    </div>
+                    <div class="flex-grow overflow-auto p-4 bg-gray-50">
+                        <table class="w-full text-xs text-left border-collapse bg-white" id="tabelKartuStok">
+                            <thead class="bg-gray-200 sticky top-0">
+                                <tr>
+                                    <th class="p-3 border border-gray-300 text-black font-black uppercase">Tanggal</th>
+                                    <th class="p-3 border border-gray-300 text-black font-black uppercase">Transaksi
+                                    </th>
+                                    <th class="p-3 border border-gray-300 text-black font-black uppercase">Proyek</th>
+                                    <th
+                                        class="p-3 border border-gray-300 text-right bg-emerald-100 text-emerald-900 font-black">
+                                        Masuk</th>
+                                    <th
+                                        class="p-3 border border-gray-300 text-right bg-red-100 text-red-900 font-black">
+                                        Keluar</th>
+                                    <th
+                                        class="p-3 border border-gray-300 text-right bg-blue-100 text-blue-900 font-black">
+                                        Saldo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bodyKartuStok"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="modalForm"
+                class="hidden fixed inset-0 bg-gray-900 bg-opacity-60 flex justify-center items-center z-50 backdrop-blur-sm transition-opacity">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl transform transition-all scale-100">
+
+                    <div
+                        class="bg-gradient-to-r from-slate-800 to-slate-700 p-4 flex justify-between items-center text-white shadow-md">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-orange-500 p-2 rounded-lg text-white">
+                                <i class="fas fa-hard-hat"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-bold tracking-wide">Form Pemakaian Material</h2>
+                                <p class="text-xs text-slate-300">Barang keluar untuk kebutuhan proyek</p>
+                            </div>
+                        </div>
+                        <button onclick="tutupModal()"
+                            class="text-slate-400 hover:text-white transition text-xl">&times;</button>
+                    </div>
+
+                    <div class="p-6 space-y-5">
+                        <input type="hidden" id="jenisInput">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Pilih
+                                        Material</label>
+                                    <select id="pilihBarang" class="w-full" onchange="updateInfoStokUI()"></select>
+                                    <div id="infoStokRealtime"
+                                        class="mt-2 text-xs flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-200">
+                                        <span class="text-slate-500">Stok Tersedia:</span>
+                                        <span class="font-bold text-slate-800 text-sm" id="labelStok">-</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Jumlah
+                                        Keluar</label>
+                                    <div class="relative">
+                                        <input type="number" id="jumlahInput"
+                                            class="w-full border border-gray-300 p-2.5 rounded-lg font-bold text-gray-800 focus:ring-2 focus:ring-orange-500 outline-none transition"
+                                            placeholder="0">
+                                        <span
+                                            class="absolute right-3 top-2.5 text-xs font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded"
+                                            id="labelSatuan">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div id="divProyek">
+                                    <label class="block text-xs font-bold text-blue-800 uppercase mb-1">Alokasi Proyek
+                                        (Tujuan)</label>
+                                    <select id="pilihProyek" class="w-full border p-2 rounded bg-blue-50"
+                                        multiple="multiple"></select>
+                                    <p class="text-[10px] text-gray-400 mt-1 italic">*Bisa pilih lebih dari satu proyek
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Keterangan /
+                                        Catatan</label>
+                                    <textarea id="ketInput"
+                                        class="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-slate-300 outline-none"
+                                        rows="3" placeholder="Contoh: Untuk cor dak lantai 2..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 border-t flex justify-end gap-3">
+                        <button onclick="tutupModal()"
+                            class="px-5 py-2 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-200 transition">Batal</button>
+                        <button onclick="simpanTransaksi()"
+                            class="px-6 py-2 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 shadow-lg transform active:scale-95 transition flex items-center gap-2">
+                            <i class="fas fa-paper-plane"></i> PROSES PENGELUARAN
                         </button>
-                    </td>
-                </tr>
-            `;
-        });
+                    </div>
+                </div>
+            </div>
 
-        rowCounter.innerText = `Total: ${filtered.length} Item`;
-    }
+            <script>
+                async function catatLog(tipe, pesan, icon = 'fa-info-circle') {
+                    const user = "SUPERADMIN";
+                    try {
+                        const { error } = await client.from('activity_logs').insert([{
+                            user_name: user,
+                            tipe: tipe,
+                            aktivitas: pesan,
+                            icon: icon
+                        }]);
+                        if (error) console.error("Gagal mencatat log:", error);
+                    } catch (e) {
+                        console.error("Error Log:", e);
+                    }
+                }
+                const escHtml = (s) => String(s ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
 
-    let masterDataMemori = [];
-    let masterIndex = {}; // << tambah ini
-    let currentBarangId = null;
-    let currentBarangNama = "";
-    let currentBarangSatuan = "";
+                function updateInfoStokUI() {
+                    const select = document.getElementById("pilihBarang");
+                    if (!select) return;
 
-    // 1. DATA ENGINE
-    async function initData() {
-        const { data, error } = await client
-            .from('master_stok')
-            .select('*')
-            .eq('nama_proyek', activeProject)
-            .order('nama_barang');
+                    const option = select.options[select.selectedIndex];
+                    const stok = Number(option?.getAttribute('data-stok') || 0);
+                    const satuan = option?.getAttribute('data-satuan') || 'Unit';
+                    const labelStok = document.getElementById("labelStok");
+                    const labelSatuan = document.getElementById("labelSatuan");
 
-        if(!error) { 
-            masterDataMemori = data; 
-            masterIndex = Object.fromEntries((data || []).map(i => [String(i.id), i]));
-            isiDropdown(); 
-            terapkanFilter();
-            hitungStatistik();
-            const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            const elStart = document.getElementById("laporanStartModal");
-            const elEnd = document.getElementById("laporanEndModal");
-            if (elStart && elEnd) {
-                const fmtDate = (d) => {
-                    const offset = d.getTimezoneOffset() * 60000;
-                    return new Date(d.getTime() - offset).toISOString().split('T')[0];
-                };
-                elStart.value = fmtDate(firstDay);
-                elEnd.value = fmtDate(today);
-                loadMutasiBawah();
-            }
-            hitungStatistik();
-        } else {
-            console.error("Gagal load stok:", error);
-        }
-    }
+                    if (labelStok) {
+                        labelStok.innerText = `${stok} ${satuan}`;
+                        if (stok <= 0) {
+                            labelStok.className = "font-bold text-red-600 text-sm";
+                            labelStok.innerText += " (HABIS!)";
+                        } else if (stok < 10) {
+                            labelStok.className = "font-bold text-orange-600 text-sm";
+                        } else {
+                            labelStok.className = "font-bold text-emerald-600 text-sm";
+                        }
+                    }
 
-    async function hitungStatistik() {
-        const totalNilaiAset = masterDataMemori.reduce((acc, item) => acc + ((item.total_stok || 0) * (item.harga_estimasi || 0)), 0);
-        document.getElementById("statTotalNilai").innerText = fmt(totalNilaiAset);
+                    if (labelSatuan) {
+                        labelSatuan.innerText = satuan;
+                    }
+                }
 
-        const hariIni = new Date();
-        const awalBulan = new Date(hariIni.getFullYear(), hariIni.getMonth(), 1).toISOString();
-        const { data: riwayat, error } = await client
-            .from('stok_history')
-            .select('barang_id, jumlah')
-            .gte('created_at', awalBulan);
+                const escJs = (s) => String(s ?? '')
+                    .replace(/\\/g, '\\\\')
+                    .replace(/'/g, "\\'")
+                    .replace(/"/g, '\\"');
 
-        if (error) {
-            console.error("Hitung statistik error:", error);
-            return;
-        }
+                function terapkanFilter_Legacy() {
+                    const inputEl = document.getElementById("cariInput");
+                    const tbody = document.getElementById("bodyStok");
+                    const emptyState = document.getElementById("stateKosong");
+                    const rowCounter = document.getElementById("rowCounter");
+                    if (!inputEl || !tbody || !emptyState || !rowCounter) return;
 
-        let nilaiMasukRupiah = 0;
-        let nilaiKeluarRupiah = 0;
+                    const keyword = inputEl.value.toUpperCase();
 
-        (riwayat || []).forEach(log => {
-            const infoBarang = masterIndex[String(log.barang_id)] || {};
-            const hargaSatuan = infoBarang.harga_estimasi || 0;
-            const qty = Number(log.jumlah);
-            const nilaiEkonomi = Math.abs(qty) * hargaSatuan;
-            if (qty > 0) {
-                nilaiMasukRupiah += nilaiEkonomi;
-            } else {
-                nilaiKeluarRupiah += nilaiEkonomi;
-            }
-        });
+                    // User Request: Jangan muat data jika belum dicari
+                    if (keyword.length === 0) {
+                        tbody.innerHTML = "";
+                        emptyState.classList.remove("hidden");
+                        emptyState.innerHTML = `
+                            <div class="bg-gray-50 p-6 rounded-full mb-4 text-gray-300 text-5xl">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <p class="text-gray-500 font-bold text-lg">Ketik nama material untuk mencari...</p>
+                        `;
+                        rowCounter.innerText = "Menunggu input...";
+                        return;
+                    }
 
-        document.getElementById("statMasuk").innerText = fmt(nilaiMasukRupiah);
-        document.getElementById("statKeluar").innerText = fmt(nilaiKeluarRupiah);
-    }
+                    // Filter Logic
+                    let filtered = masterDataMemori.filter(item =>
+                        (item.nama_barang || "").toUpperCase().includes(keyword) ||
+                        (item.id || "").toUpperCase().includes(keyword)
+                    );
 
-    // 3. LOGIKA SIMPAN (Verifikasi Accounting)
-    async function simpanTransaksi() {
-        const jenis = document.getElementById("jenisInput").value;
-        const barangId = document.getElementById("pilihBarang").value;
-        const jumlah = Number(document.getElementById("jumlahInput").value);
-        
-        // Ambil Data Stok & Proyek
-        const select = document.getElementById("pilihBarang");
-        const stokSistem = Number(select.options[select.selectedIndex]?.getAttribute('data-stok') || 0);
-        
-        // Ambil Multi Select Proyek
-        const proyekRaw = $('#pilihProyek').val();
-        const proyek = (proyekRaw && proyekRaw.length > 0) ? proyekRaw.join(', ') : '';
-        const ket = document.getElementById("ketInput").value;
+                    // Sort: Stok sedikit di atas
+                    filtered.sort((a, b) => (a.total_stok || 0) - (b.total_stok || 0));
 
-        // Validasi Input
-        if(!barangId) return alert("⚠️ Pilih material terlebih dahulu!");
-        if(jumlah <= 0) return alert("⚠️ Jumlah barang harus lebih dari 0!");
-        
-        if(jenis === 'PAKAI') {
-            // Validasi Stok
-            if(jumlah > stokSistem) {
-                return alert(`❌ STOK TIDAK CUKUP!\nSisa stok fisik: ${stokSistem}.\nSilakan kurangi jumlah atau lakukan Opname/Terima Barang dulu.`);
-            }
-            // Validasi Proyek Tujuan
-            if(!proyek) return alert("⚠️ Harap pilih minimal satu Proyek Tujuan (Alokasi)!");
+                    // Limit Results for Performance
+                    const MAX_ITEMS = 50;
+                    const totalMatch = filtered.length;
+                    filtered = filtered.slice(0, MAX_ITEMS);
 
-            // Konfirmasi User
-            if(!confirm(`Keluarkan ${jumlah} unit ke proyek: ${proyek}?`)) return;
+                    tbody.innerHTML = "";
 
-            // --- GENERATE NOMOR PO OTOMATIS ---
-            const tglInput = new Date().toISOString().split('T')[0];
-            const { data: noPOBaru, error: errGen } = await client.rpc('generate_po_number', {
-                p_tanggal: tglInput
-            });
+                    if (filtered.length === 0) {
+                        emptyState.classList.remove("hidden");
+                        emptyState.innerHTML = `
+                            <div class="bg-gray-50 p-6 rounded-full mb-4 text-gray-300 text-5xl">
+                                <i class="fas fa-box-open"></i>
+                            </div>
+                            <p class="text-gray-500 font-bold text-lg">Material tidak ditemukan.</p>
+                        `;
+                        rowCounter.innerText = `Total: 0 Item`;
+                        return;
+                    }
 
-            if (errGen) {
-                alert("⚠️ Gagal generate nomor PO: " + errGen.message);
-                return;
-            }
-            console.log("Nomor PO baru:", noPOBaru);
+                    emptyState.classList.add("hidden");
 
-            // 1. Insert ke Verifikasi Material (Jembatan ke Accounting)
-            // Hitung total biaya (Estimasi)
-            const item = masterDataMemori.find(i => i.id == barangId);
-            const hargaSatuan = item?.harga_estimasi || 0;
-            const totalBiaya = hargaSatuan * jumlah;
+                    // Batch Layout Construction (Faster)
+                    const rowsHTML = filtered.map((item, index) => {
+                        const stok = Number(item.total_stok || 0);
+                        const nama = item.nama_barang || "Tanpa Nama";
+                        const satuan = item.satuan || "Unit";
 
-            const { error: errVerif } = await client.from('verifikasi_material').insert([{
-                tanggal: new Date(), 
-                nomor_po: noPOBaru,
-                nama_proyek: proyek, 
-                barang_id: barangId, 
-                jumlah: jumlah, 
-                total_biaya: totalBiaya, 
-                keterangan: ket, 
-                status: 'WAITING' 
-            }]);
+                        let statusBadge = '<span class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded font-bold">AMAN</span>';
+                        let stokClass = "text-gray-700";
 
-            if(errVerif) {
-                return alert("❌ Gagal membuat tiket verifikasi: " + errVerif.message);
-            }
+                        if (stok <= 0) {
+                            statusBadge = '<span class="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded font-bold animate-pulse">HABIS</span>';
+                            stokClass = "text-red-600 font-black";
+                        } else if (stok < 10) {
+                            statusBadge = '<span class="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded font-bold">KRITIS</span>';
+                            stokClass = "text-orange-600 font-bold";
+                        }
 
-            // 2. Update Stok Master (RPC Atomic)
-            const { error: errUpdate } = await client.rpc('kurangi_stok_aman', {
-                p_barang_id: barangId,
-                p_jumlah: jumlah
-            });
+                        const safeNama = escHtml(nama);
+                        const safeId = escJs(item.id);
+                        const safeSatuan = escJs(satuan);
 
-            if (errUpdate) {
-                return alert("❌ Gagal mengurangi stok master: " + errUpdate.message);
-            }
+                        return `
+                            <tr class="hover:bg-blue-50 transition border-b border-gray-50 last:border-0">
+                                <td class="p-4 text-center text-gray-400 text-xs">${index + 1}</td>
+                                <td class="p-4">
+                                    <div class="font-bold text-gray-800">${safeNama}</div>
+                                    <div class="text-[10px] text-gray-400">ID: ${item.id}</div>
+                                </td>
+                                <td class="p-4 text-center text-xs font-bold text-gray-500 bg-gray-50/30">${safeSatuan}</td>
+                                <td class="p-4 text-right ${stokClass} text-sm">${stok}</td>
+                                <td class="p-4 text-center">${statusBadge}</td>
+                                <td class="p-4 text-center">
+                                    <button onclick="bukaKartuStok('${safeId}', '${safeNama}', '${safeSatuan}')"
+                                            class="bg-white border border-gray-200 text-blue-600 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg shadow-sm transition-all text-xs font-bold flex items-center gap-1 mx-auto">
+                                        <i class="fas fa-history"></i> Detail
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
 
-            // 3. Catat History (PENTING: Cek Error Disini)
-            const { error: errHist } = await client.from('stok_history').insert([{ 
-                barang_id: barangId, 
-                jenis_transaksi: 'PEMAKAIAN PROYEK', 
-                jumlah: -jumlah, // Negatif = Keluar
-                keterangan: `${proyek}: ${ket}` 
-            }]);
+                    tbody.innerHTML = rowsHTML;
+                    rowCounter.innerText = `Menampilkan ${filtered.length} dari ${totalMatch} Item`;
+                }
 
-            if (errHist) {
-                alert("⚠️ PERINGATAN: Stok Master berkurang tapi Riwayat gagal dicatat! Hubungi IT. \nError: " + errHist.message);
-            } else {
-                alert(`✅ TRANSAKSI SUKSES!\nBarang dikeluarkan ke: ${proyek}`);
-            }
+                let masterDataMemori = [];
+                let masterIndex = {}; // << tambah ini
+                let currentBarangId = null;
+                let currentBarangNama = "";
+                let currentBarangSatuan = "";
 
-            tutupModal();
-            initData(); // Refresh Data Otomatis
-        }
-    }
+                // --- NEW ROBUST FILTER ENGINE ---
+                function terapkanFilter() {
+                    try {
+                        const inputEl = document.querySelector("#modalPencarian #cariInput") || document.getElementById("cariInput");
+                        const tbody = document.getElementById("bodyStok");
+                        const emptyState = document.getElementById("stateKosong");
+                        const rowCounter = document.getElementById("rowCounter");
 
-    // 4. KARTU STOK & PDF
-    async function bukaKartuStok(id, nama, satuan) {
-        currentBarangId = id;
-        currentBarangNama = nama;
-        currentBarangSatuan = satuan;
+                        if (!inputEl || !tbody || !emptyState || !rowCounter) {
+                            console.error("DOM Error: Elements not found");
+                            return;
+                        }
 
-        document.getElementById("modalKartuStok").classList.remove("hidden");
-        document.getElementById("judulKartuStok").innerText = `${nama} (${satuan})`;
+                        const keyword = inputEl.value.toUpperCase();
 
-        const tb = document.getElementById("bodyKartuStok");
-        tb.innerHTML = "<tr><td colspan='6' class='p-5 text-center font-bold text-gray-400'>🔄 Mengambil data...</td></tr>";
+                        // Auto-Init: Load data if empty
+                        if (!masterDataMemori || masterDataMemori.length === 0) {
+                            console.warn("Data empty, re-initializing...");
+                            rowCounter.innerText = "Memuat data...";
+                            initData().then(() => setTimeout(terapkanFilter, 500));
+                            return;
+                        }
 
-        try {
-            const { data, error } = await client
-                .from('stok_history')
-                .select('*')
-                .eq('barang_id', id)
-                .order('created_at', { ascending: true });
+                        if (keyword.length === 0) {
+                            tbody.innerHTML = "";
+                            emptyState.classList.remove("hidden");
+                            emptyState.innerHTML = `<div class="bg-gray-50 p-6 rounded-full mb-4 text-gray-300 text-5xl"><i class="fas fa-search"></i></div><p class="text-gray-500 font-bold text-lg">Ketik nama material...</p>`;
+                            rowCounter.innerText = "Menunggu input...";
+                            return;
+                        }
 
-            if(error) throw error;
+                        let filtered = masterDataMemori.filter(item =>
+                            String(item.nama_barang || "").toUpperCase().includes(keyword) ||
+                            String(item.id || "").toUpperCase().includes(keyword)
+                        );
+                        filtered.sort((a, b) => (a.total_stok || 0) - (b.total_stok || 0));
 
-            tb.innerHTML = "";
-            let s = 0;
+                        const MAX_ITEMS = 50;
+                        const totalMatch = filtered.length;
+                        filtered = filtered.slice(0, MAX_ITEMS);
 
-            if(!data || data.length === 0) {
-                tb.innerHTML = "<tr><td colspan='6' class='p-10 text-center text-gray-400 italic'>Belum ada riwayat.</td></tr>";
-                return;
-            }
+                        tbody.innerHTML = "";
 
-            data.forEach(r => {
-                const q = Number(r.jumlah);
-                s += q; // Positif masuk, negatif keluar
+                        if (filtered.length === 0) {
+                            emptyState.classList.remove("hidden");
+                            emptyState.innerHTML = `<div class="bg-gray-50 p-6 rounded-full mb-4 text-gray-300 text-5xl"><i class="fas fa-box-open"></i></div><p class="text-gray-500 font-bold text-lg">Tidak ditemukan.</p>`;
+                            rowCounter.innerText = "Total: 0 Item";
+                            return;
+                        }
 
-                const isMasuk = q >= 0;
-                const m = isMasuk ? q : '-';
-                const k = !isMasuk ? Math.abs(q) : '-';
+                        emptyState.classList.add("hidden");
 
-                const bgM = isMasuk && q > 0 ? "bg-emerald-50 text-emerald-700 font-bold" : "";
-                const bgK = !isMasuk ? "bg-red-50 text-red-700 font-bold" : "";
-                const tgl = new Date(r.created_at).toLocaleDateString('id-ID');
+                        const rowsHTML = filtered.map((item, index) => {
+                            const stok = Number(item.total_stok || 0);
+                            const nama = item.nama_barang || "Tanpa Nama";
+                            const satuan = item.satuan || "Unit";
+                            let statusBadge = '<span class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded font-bold">AMAN</span>';
+                            let stokClass = "text-gray-700";
 
-                tb.innerHTML += `
+                            if (stok <= 0) {
+                                statusBadge = '<span class="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded font-bold animate-pulse">HABIS</span>';
+                                stokClass = "text-red-600 font-black";
+                            } else if (stok < 10) {
+                                statusBadge = '<span class="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded font-bold">KRITIS</span>';
+                                stokClass = "text-orange-600 font-bold";
+                            }
+
+                            return `
+                                <tr class="hover:bg-blue-50 transition border-b border-gray-50 last:border-0">
+                                    <td class="p-4 text-center text-gray-400 text-xs">${index + 1}</td>
+                                    <td class="p-4"><div class="font-bold text-gray-800">${escHtml(nama)}</div><div class="text-[10px] text-gray-400">ID: ${item.id}</div></td>
+                                    <td class="p-4 text-center text-xs font-bold text-gray-500 bg-gray-50/30">${escJs(satuan)}</td>
+                                    <td class="p-4 text-right ${stokClass} text-sm">${stok}</td>
+                                    <td class="p-4 text-center">${statusBadge}</td>
+                                    <td class="p-4 text-center">
+                                        <button onclick="bukaKartuStok('${escJs(item.id)}', '${escHtml(nama)}', '${escJs(satuan)}')" class="bg-white border border-gray-200 text-blue-600 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg shadow-sm transition-all text-xs font-bold flex items-center gap-1 mx-auto"><i class="fas fa-history"></i> Detail</button>
+                                    </td>
+                                </tr>`;
+                        }).join('');
+
+                        tbody.innerHTML = rowsHTML;
+                        rowCounter.innerText = `Menampilkan ${filtered.length} dari ${totalMatch} Item`;
+                    } catch (e) {
+                        console.error("Filter Error:", e);
+                        const c = document.getElementById("rowCounter");
+                        if (c) c.innerText = "Err: " + e.message;
+                    }
+                }
+
+                // 1. DATA ENGINE
+                async function initData() {
+                    const { data, error } = await client
+                        .from('master_stok')
+                        .select('*')
+                        .eq('nama_proyek', activeProject)
+                        .order('nama_barang');
+
+                    if (!error) {
+                        masterDataMemori = data;
+                        masterIndex = Object.fromEntries((data || []).map(i => [String(i.id), i]));
+                        isiDropdown();
+                        terapkanFilter();
+                        hitungStatistik();
+                        const today = new Date();
+                        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                        const elStart = document.getElementById("laporanStartModal");
+                        const elEnd = document.getElementById("laporanEndModal");
+                        if (elStart && elEnd) {
+                            const fmtDate = (d) => {
+                                const offset = d.getTimezoneOffset() * 60000;
+                                return new Date(d.getTime() - offset).toISOString().split('T')[0];
+                            };
+                            elStart.value = fmtDate(firstDay);
+                            elEnd.value = fmtDate(today);
+                            loadMutasiBawah();
+                        }
+                        hitungStatistik();
+                    } else {
+                        console.error("Gagal load stok:", error);
+                    }
+                }
+
+                async function hitungStatistik() {
+                    const totalNilaiAset = masterDataMemori.reduce((acc, item) => acc + ((item.total_stok || 0) * (item.harga_estimasi || 0)), 0);
+                    document.getElementById("statTotalNilai").innerText = fmt(totalNilaiAset);
+
+                    const hariIni = new Date();
+                    const awalBulan = new Date(hariIni.getFullYear(), hariIni.getMonth(), 1).toISOString();
+                    const { data: riwayat, error } = await client
+                        .from('stok_history')
+                        .select('barang_id, jumlah')
+                        .gte('created_at', awalBulan);
+
+                    if (error) {
+                        console.error("Hitung statistik error:", error);
+                        return;
+                    }
+
+                    let nilaiMasukRupiah = 0;
+                    let nilaiKeluarRupiah = 0;
+
+                    (riwayat || []).forEach(log => {
+                        const infoBarang = masterIndex[String(log.barang_id)] || {};
+                        const hargaSatuan = infoBarang.harga_estimasi || 0;
+                        const qty = Number(log.jumlah);
+                        const nilaiEkonomi = Math.abs(qty) * hargaSatuan;
+                        if (qty > 0) {
+                            nilaiMasukRupiah += nilaiEkonomi;
+                        } else {
+                            nilaiKeluarRupiah += nilaiEkonomi;
+                        }
+                    });
+
+                    document.getElementById("statMasuk").innerText = fmt(nilaiMasukRupiah);
+                    document.getElementById("statKeluar").innerText = fmt(nilaiKeluarRupiah);
+                }
+
+                // 3. LOGIKA SIMPAN (Verifikasi Accounting)
+                async function simpanTransaksi() {
+                    const jenis = document.getElementById("jenisInput").value;
+                    const barangId = document.getElementById("pilihBarang").value;
+                    const jumlah = Number(document.getElementById("jumlahInput").value);
+
+                    // Ambil Data Stok & Proyek
+                    const select = document.getElementById("pilihBarang");
+                    const stokSistem = Number(select.options[select.selectedIndex]?.getAttribute('data-stok') || 0);
+
+                    // Ambil Multi Select Proyek
+                    const proyekRaw = $('#pilihProyek').val();
+                    const proyek = (proyekRaw && proyekRaw.length > 0) ? proyekRaw.join(', ') : '';
+                    const ket = document.getElementById("ketInput").value;
+
+                    // Validasi Input
+                    if (!barangId) return alert("⚠️ Pilih material terlebih dahulu!");
+                    if (jumlah <= 0) return alert("⚠️ Jumlah barang harus lebih dari 0!");
+
+                    if (jenis === 'PAKAI') {
+                        // Validasi Stok
+                        if (jumlah > stokSistem) {
+                            return alert(`❌ STOK TIDAK CUKUP!\nSisa stok fisik: ${stokSistem}.\nSilakan kurangi jumlah atau lakukan Opname/Terima Barang dulu.`);
+                        }
+                        // Validasi Proyek Tujuan
+                        if (!proyek) return alert("⚠️ Harap pilih minimal satu Proyek Tujuan (Alokasi)!");
+
+                        // Konfirmasi User
+                        if (!confirm(`Keluarkan ${jumlah} unit ke proyek: ${proyek}?`)) return;
+
+                        // --- GENERATE NOMOR PO OTOMATIS ---
+                        const tglInput = new Date().toISOString().split('T')[0];
+                        const { data: noPOBaru, error: errGen } = await client.rpc('generate_po_number', {
+                            p_tanggal: tglInput
+                        });
+
+                        if (errGen) {
+                            alert("⚠️ Gagal generate nomor PO: " + errGen.message);
+                            return;
+                        }
+                        console.log("Nomor PO baru:", noPOBaru);
+
+                        // 1. Insert ke Verifikasi Material (Jembatan ke Accounting)
+                        // Hitung total biaya (Estimasi)
+                        const item = masterDataMemori.find(i => i.id == barangId);
+                        const hargaSatuan = item?.harga_estimasi || 0;
+                        const totalBiaya = hargaSatuan * jumlah;
+
+                        const { error: errVerif } = await client.from('verifikasi_material').insert([{
+                            tanggal: new Date(),
+                            nomor_po: noPOBaru,
+                            nama_proyek: proyek,
+                            barang_id: barangId,
+                            jumlah: jumlah,
+                            total_biaya: totalBiaya,
+                            keterangan: ket,
+                            status: 'WAITING'
+                        }]);
+
+                        if (errVerif) {
+                            return alert("❌ Gagal membuat tiket verifikasi: " + errVerif.message);
+                        }
+
+                        // 2. Update Stok Master (RPC Atomic)
+                        const { error: errUpdate } = await client.rpc('kurangi_stok_aman', {
+                            p_barang_id: barangId,
+                            p_jumlah: jumlah
+                        });
+
+                        if (errUpdate) {
+                            return alert("❌ Gagal mengurangi stok master: " + errUpdate.message);
+                        }
+
+                        // 3. Catat History (PENTING: Cek Error Disini)
+                        const { error: errHist } = await client.from('stok_history').insert([{
+                            barang_id: barangId,
+                            jenis_transaksi: 'PEMAKAIAN PROYEK',
+                            jumlah: -jumlah, // Negatif = Keluar
+                            keterangan: `${proyek}: ${ket}`
+                        }]);
+
+                        if (errHist) {
+                            alert("⚠️ PERINGATAN: Stok Master berkurang tapi Riwayat gagal dicatat! Hubungi IT. \nError: " + errHist.message);
+                        } else {
+                            alert(`✅ TRANSAKSI SUKSES!\nBarang dikeluarkan ke: ${proyek}`);
+                        }
+
+                        tutupModal();
+                        initData(); // Refresh Data Otomatis
+                    }
+                }
+
+                // 4. KARTU STOK & PDF
+                async function bukaKartuStok(id, nama, satuan) {
+                    currentBarangId = id;
+                    currentBarangNama = nama;
+                    currentBarangSatuan = satuan;
+
+                    document.getElementById("modalKartuStok").classList.remove("hidden");
+                    document.getElementById("judulKartuStok").innerText = `${nama} (${satuan})`;
+
+                    const tb = document.getElementById("bodyKartuStok");
+                    tb.innerHTML = "<tr><td colspan='6' class='p-5 text-center font-bold text-gray-400'>🔄 Mengambil data...</td></tr>";
+
+                    try {
+                        const { data, error } = await client
+                            .from('stok_history')
+                            .select('*')
+                            .eq('barang_id', id)
+                            .order('created_at', { ascending: true });
+
+                        if (error) throw error;
+
+                        tb.innerHTML = "";
+                        let s = 0;
+
+                        if (!data || data.length === 0) {
+                            tb.innerHTML = "<tr><td colspan='6' class='p-10 text-center text-gray-400 italic'>Belum ada riwayat.</td></tr>";
+                            return;
+                        }
+
+                        data.forEach(r => {
+                            const q = Number(r.jumlah);
+                            s += q; // Positif masuk, negatif keluar
+
+                            const isMasuk = q >= 0;
+                            const m = isMasuk ? q : '-';
+                            const k = !isMasuk ? Math.abs(q) : '-';
+
+                            const bgM = isMasuk && q > 0 ? "bg-emerald-50 text-emerald-700 font-bold" : "";
+                            const bgK = !isMasuk ? "bg-red-50 text-red-700 font-bold" : "";
+                            const tgl = new Date(r.created_at).toLocaleDateString('id-ID');
+
+                            tb.innerHTML += `
                 <tr class="border-b hover:bg-gray-50 transition text-xs">
                     <td class="p-3 border-r text-gray-600">${tgl}</td>
                     <td class="p-3 border-r font-bold text-gray-800 uppercase">${r.jenis_transaksi}</td>
@@ -613,289 +868,289 @@
                     <td class="p-3 border-r text-right ${bgK}">${k}</td>
                     <td class="p-3 text-right font-black text-blue-800 bg-blue-50/30">${s}</td>
                 </tr>`;
-            });
+                        });
 
-        } catch (err) {
-            console.error(err);
-            tb.innerHTML = `<tr><td colspan="6" class="p-5 text-center text-red-500 font-bold">❌ Error: ${err.message}</td></tr>`;
-        }
-    }
+                    } catch (err) {
+                        console.error(err);
+                        tb.innerHTML = `<tr><td colspan="6" class="p-5 text-center text-red-500 font-bold">❌ Error: ${err.message}</td></tr>`;
+                    }
+                }
 
-    // FUNGSI PDF KARTU STOK
-    function downloadPDFKartu() {
-        const { jsPDF } = window.jspdf; const doc = new jsPDF();
-        doc.setFontSize(16); doc.text("KARTU STOK MATERIAL", 105, 15, { align: "center" });
-        doc.setFontSize(10); doc.text(`Nama Material: ${currentBarangNama}`, 14, 25);
-        doc.autoTable({ html: '#tabelKartuStok', startY: 30, theme: 'grid', headStyles: { fillColor: [50, 50, 50] } });
-        doc.save(`Kartu_Stok_${currentBarangNama}.pdf`);
-    }
+                // FUNGSI PDF KARTU STOK
+                function downloadPDFKartu() {
+                    const { jsPDF } = window.jspdf; const doc = new jsPDF();
+                    doc.setFontSize(16); doc.text("KARTU STOK MATERIAL", 105, 15, { align: "center" });
+                    doc.setFontSize(10); doc.text(`Nama Material: ${currentBarangNama}`, 14, 25);
+                    doc.autoTable({ html: '#tabelKartuStok', startY: 30, theme: 'grid', headStyles: { fillColor: [50, 50, 50] } });
+                    doc.save(`Kartu_Stok_${currentBarangNama}.pdf`);
+                }
 
-    // FUNGSI PDF MUTASI
-    async function downloadLaporanMutasi(e) {
-        const elStart = document.getElementById("laporanStartModal") || document.getElementById("laporanStart");
-        const elEnd = document.getElementById("laporanEndModal") || document.getElementById("laporanEnd");
-        
-        const start = elStart ? elStart.value : "";
-        const end = elEnd ? elEnd.value : "";
+                // FUNGSI PDF MUTASI
+                async function downloadLaporanMutasi(e) {
+                    const elStart = document.getElementById("laporanStartModal") || document.getElementById("laporanStart");
+                    const elEnd = document.getElementById("laporanEndModal") || document.getElementById("laporanEnd");
 
-        if(!start || !end) return alert("⚠️ Harap pilih tanggal awal dan akhir terlebih dahulu!");
-        
-        const startFull = `${start}T00:00:00`;
-        const endFull = `${end}T23:59:59`;
-        
-        const btn = e.currentTarget;
-        const originalContent = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        btn.disabled = true;
+                    const start = elStart ? elStart.value : "";
+                    const end = elEnd ? elEnd.value : "";
 
-        try {
-            const { data, error } = await client.from('stok_history')
-                .select('*')
-                .gte('created_at', startFull)
-                .lte('created_at', endFull)
-                .order('created_at', { ascending: true });
+                    if (!start || !end) return alert("⚠️ Harap pilih tanggal awal dan akhir terlebih dahulu!");
 
-            if(error) throw error;
-            if(!data || data.length === 0) throw new Error("Tidak ada data transaksi pada periode ini.");
+                    const startFull = `${start}T00:00:00`;
+                    const endFull = `${end}T23:59:59`;
 
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+                    const btn = e.currentTarget;
+                    const originalContent = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    btn.disabled = true;
 
-            doc.setFontSize(16);
-            doc.text("LAPORAN MUTASI MATERIAL", 105, 15, { align: "center" });
-            doc.setFontSize(10);
-            doc.text(`Periode: ${start} s/d ${end}`, 105, 22, { align: "center" });
+                    try {
+                        const { data, error } = await client.from('stok_history')
+                            .select('*')
+                            .gte('created_at', startFull)
+                            .lte('created_at', endFull)
+                            .order('created_at', { ascending: true });
 
-            doc.autoTable({
-                head: [['No', 'Tanggal', 'Barang', 'Ket/Ref', 'Masuk', 'Keluar']],
-                body: data.map((r, i) => {
-                    const item = masterIndex[String(r.barang_id)] || {};
-                    const namaBarang = item.nama_barang || `ID:${r.barang_id}`;
-                    const tgl = new Date(r.created_at).toLocaleDateString('id-ID');
-                    const masuk = r.jumlah > 0 ? r.jumlah : '-';
-                    const keluar = r.jumlah < 0 ? Math.abs(r.jumlah) : '-';
-                    
-                    return [
-                        i + 1,
-                        tgl,
-                        namaBarang,
-                        r.keterangan || '-',
-                        masuk,
-                        keluar
-                    ];
-                }),
-                startY: 30,
-                theme: 'grid',
-                headStyles: { fillColor: [41, 128, 185] },
-                styles: { fontSize: 8 }
-            });
+                        if (error) throw error;
+                        if (!data || data.length === 0) throw new Error("Tidak ada data transaksi pada periode ini.");
 
-            doc.save(`Laporan_Mutasi_${start}_${end}.pdf`);
+                        const { jsPDF } = window.jspdf;
+                        const doc = new jsPDF();
 
-        } catch (err) {
-            console.error(err);
-            alert("❌ Gagal download: " + err.message);
-        } finally {
-            btn.innerHTML = originalContent;
-            btn.disabled = false;
-        }
-    }
+                        doc.setFontSize(16);
+                        doc.text("LAPORAN MUTASI MATERIAL", 105, 15, { align: "center" });
+                        doc.setFontSize(10);
+                        doc.text(`Periode: ${start} s/d ${end}`, 105, 22, { align: "center" });
 
-    function proteksiFitur(aksi) { const p = prompt("Password:"); if(p==="SUPERADMIN") eksekusiFitur(aksi); }
-    function proteksiOpnameBaris(id, nama, stok) {
-      const p = prompt("🔐 AKSES TERBATAS!\nMasukkan Password Admin untuk melakukan Opname:");
-      if (p === "SUPERADMIN") {
-        siapkanOpname();
-        setTimeout(() => {
-          const select = document.getElementById("pilihBarangOpname");
-          if (select) {
-            $(select).val(id).trigger('change');
-          }
-          document.getElementById("opnameStokReal").value = stok;
-        }, 50);
-      } else if (p !== null) {
-        alert("⛔ Password Salah! Anda tidak memiliki otoritas.");
-      }
-    }
-    function eksekusiFitur(aksi) {
-      if(aksi==='SINKRON') sinkronkanSaldoOtomatis();
-      if(aksi==='OPNAME') {
-        siapkanOpname();
-      }
-    }
-    function bukaModal(j) {
-      document.getElementById("modalForm").classList.remove("hidden");
-      document.getElementById("jenisInput").value = j;
-      if (j === 'PAKAI') {
-        document.getElementById("divProyek").classList.remove("hidden");
-        loadProyekDropdown();
-      } else {
-        document.getElementById("divProyek").classList.add("hidden");
-      }
-    }
-    function bukaModalPencarian() {
-        const modal = document.getElementById("modalPencarian");
-        if (!modal) return;
-        modal.classList.remove("hidden");
-        modal.scrollTop = 0;
-        setTimeout(() => {
-            const input = document.getElementById("cariInput");
-            if (!input) return;
-            input.value = "";
-            input.focus();
-            terapkanFilter();
-        }, 100);
-    }
-    async function bukaModalRiwayat() { // Tambahkan async
-        const modal = document.getElementById("modalRiwayat");
-        if (!modal) return;
-        
-        // 1. Refresh Data Master dulu agar item baru dari GRN terbaca
-        await initData(); 
-        
-        modal.classList.remove("hidden");
+                        doc.autoTable({
+                            head: [['No', 'Tanggal', 'Barang', 'Ket/Ref', 'Masuk', 'Keluar']],
+                            body: data.map((r, i) => {
+                                const item = masterIndex[String(r.barang_id)] || {};
+                                const namaBarang = item.nama_barang || `ID:${r.barang_id}`;
+                                const tgl = new Date(r.created_at).toLocaleDateString('id-ID');
+                                const masuk = r.jumlah > 0 ? r.jumlah : '-';
+                                const keluar = r.jumlah < 0 ? Math.abs(r.jumlah) : '-';
 
-        const elStart = document.getElementById("laporanStartModal");
-        const elEnd = document.getElementById("laporanEndModal");
+                                return [
+                                    i + 1,
+                                    tgl,
+                                    namaBarang,
+                                    r.keterangan || '-',
+                                    masuk,
+                                    keluar
+                                ];
+                            }),
+                            startY: 30,
+                            theme: 'grid',
+                            headStyles: { fillColor: [41, 128, 185] },
+                            styles: { fontSize: 8 }
+                        });
 
-        if (elStart && elEnd && (!elStart.value || !elEnd.value)) {
-            const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            const fmt = (d) => {
-                const offset = d.getTimezoneOffset() * 60000;
-                return new Date(d.getTime() - offset).toISOString().split('T')[0];
-            };
-            elStart.value = fmt(firstDay);
-            elEnd.value = fmt(today);
-        }
-        
-        // 2. Baru load mutasi
-        loadMutasiBawah();
-        elStart?.focus();
-    }
-    function tutupModal() { document.getElementById("modalForm").classList.add("hidden"); }
-    function tutupModalKartu() { document.getElementById("modalKartuStok").classList.add("hidden"); }
-    function tutupModalTambah() {
-        document.getElementById("modalTambahItem").classList.add("hidden");
-        document.getElementById("tambahNama").value = "";
-        document.getElementById("tambahHarga").value = 0;
-        $('#tambahSatuan').val('').trigger('change');
-        const el = document.getElementById("tambahNama");
-        const errorEl = document.getElementById("errorNamaAda");
-        const listEl = document.getElementById("listPrediksi");
-        const btnSimpan = document.querySelector("#modalTambahItem button[onclick='prosesSimpanItemBaru()']");
-        if(el) {
-            el.classList.remove("border-red-500", "bg-red-50");
-            el.value = "";
-        }
-        if(errorEl) errorEl.classList.add("hidden");
-        if(listEl) {
-            listEl.classList.add("hidden");
-            listEl.innerHTML = "";
-        }
-        if(btnSimpan) {
-            btnSimpan.disabled = false;
-            btnSimpan.classList.remove("opacity-50", "cursor-not-allowed");
-        }
-    }
-    function tutupModalPencarian() {
-        document.getElementById("modalPencarian").classList.add("hidden");
-    }
-    async function loadProyekDropdown() {
-        const s = document.getElementById("pilihProyek");
-        if (!s) return;
+                        doc.save(`Laporan_Mutasi_${start}_${end}.pdf`);
 
-        s.innerHTML = "";
-        s.disabled = false;
+                    } catch (err) {
+                        console.error(err);
+                        alert("❌ Gagal download: " + err.message);
+                    } finally {
+                        btn.innerHTML = originalContent;
+                        btn.disabled = false;
+                    }
+                }
 
-        const { data, error } = await client
-            .from('master_proyek')
-            .select('nama_proyek')
-            .eq('status', 'BERJALAN')
-            .order('nama_proyek', { ascending: true });
+                function proteksiFitur(aksi) { const p = prompt("Password:"); if (p === "SUPERADMIN") eksekusiFitur(aksi); }
+                function proteksiOpnameBaris(id, nama, stok) {
+                    const p = prompt("🔐 AKSES TERBATAS!\nMasukkan Password Admin untuk melakukan Opname:");
+                    if (p === "SUPERADMIN") {
+                        siapkanOpname();
+                        setTimeout(() => {
+                            const select = document.getElementById("pilihBarangOpname");
+                            if (select) {
+                                $(select).val(id).trigger('change');
+                            }
+                            document.getElementById("opnameStokReal").value = stok;
+                        }, 50);
+                    } else if (p !== null) {
+                        alert("⛔ Password Salah! Anda tidak memiliki otoritas.");
+                    }
+                }
+                function eksekusiFitur(aksi) {
+                    if (aksi === 'SINKRON') sinkronkanSaldoOtomatis();
+                    if (aksi === 'OPNAME') {
+                        siapkanOpname();
+                    }
+                }
+                function bukaModal(j) {
+                    document.getElementById("modalForm").classList.remove("hidden");
+                    document.getElementById("jenisInput").value = j;
+                    if (j === 'PAKAI') {
+                        document.getElementById("divProyek").classList.remove("hidden");
+                        loadProyekDropdown();
+                    } else {
+                        document.getElementById("divProyek").classList.add("hidden");
+                    }
+                }
+                function bukaModalPencarian() {
+                    const modal = document.getElementById("modalPencarian");
+                    if (!modal) return;
+                    modal.classList.remove("hidden");
+                    modal.scrollTop = 0;
+                    setTimeout(() => {
+                        const input = document.getElementById("cariInput");
+                        if (!input) return;
+                        input.value = "";
+                        input.focus();
+                        terapkanFilter();
+                    }, 100);
+                }
+                async function bukaModalRiwayat() { // Tambahkan async
+                    const modal = document.getElementById("modalRiwayat");
+                    if (!modal) return;
 
-        if (error) {
-            console.error("Gagal memuat proyek:", error);
-            return;
-        }
+                    // 1. Refresh Data Master dulu agar item baru dari GRN terbaca
+                    await initData();
 
-        if (data) {
-            data.forEach(p => {
-                const o = document.createElement('option');
-                o.value = p.nama_proyek;
-                o.text = p.nama_proyek;
-                s.appendChild(o);
-            });
-        }
+                    modal.classList.remove("hidden");
 
-        $(s).select2({
-            dropdownParent: $('#modalForm'),
-            width: '100%',
-            placeholder: "-- Pilih Satu atau Lebih Proyek --",
-            allowClear: true,
-            multiple: true,
-            closeOnSelect: false
-        });
+                    const elStart = document.getElementById("laporanStartModal");
+                    const elEnd = document.getElementById("laporanEndModal");
 
-        $(s).val(null).trigger('change');
-    }
-    async function loadMutasiBawah() {
-        const startEl = document.getElementById("laporanStartModal") || document.getElementById("laporanStart");
-        const endEl = document.getElementById("laporanEndModal") || document.getElementById("laporanEnd");
-        const startInput = startEl?.value;
-        const endInput = endEl?.value;
-        const tbody = document.getElementById("tabelMutasiBody");
-        const emptyState = document.getElementById("stateKosongMutasi");
+                    if (elStart && elEnd && (!elStart.value || !elEnd.value)) {
+                        const today = new Date();
+                        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                        const fmt = (d) => {
+                            const offset = d.getTimezoneOffset() * 60000;
+                            return new Date(d.getTime() - offset).toISOString().split('T')[0];
+                        };
+                        elStart.value = fmt(firstDay);
+                        elEnd.value = fmt(today);
+                    }
 
-        if (!tbody) return;
+                    // 2. Baru load mutasi
+                    loadMutasiBawah();
+                    elStart?.focus();
+                }
+                function tutupModal() { document.getElementById("modalForm").classList.add("hidden"); }
+                function tutupModalKartu() { document.getElementById("modalKartuStok").classList.add("hidden"); }
+                function tutupModalTambah() {
+                    document.getElementById("modalTambahItem").classList.add("hidden");
+                    document.getElementById("tambahNama").value = "";
+                    document.getElementById("tambahHarga").value = 0;
+                    $('#tambahSatuan').val('').trigger('change');
+                    const el = document.getElementById("tambahNama");
+                    const errorEl = document.getElementById("errorNamaAda");
+                    const listEl = document.getElementById("listPrediksi");
+                    const btnSimpan = document.querySelector("#modalTambahItem button[onclick='prosesSimpanItemBaru()']");
+                    if (el) {
+                        el.classList.remove("border-red-500", "bg-red-50");
+                        el.value = "";
+                    }
+                    if (errorEl) errorEl.classList.add("hidden");
+                    if (listEl) {
+                        listEl.classList.add("hidden");
+                        listEl.innerHTML = "";
+                    }
+                    if (btnSimpan) {
+                        btnSimpan.disabled = false;
+                        btnSimpan.classList.remove("opacity-50", "cursor-not-allowed");
+                    }
+                }
+                function tutupModalPencarian() {
+                    document.getElementById("modalPencarian").classList.add("hidden");
+                }
+                async function loadProyekDropdown() {
+                    const s = document.getElementById("pilihProyek");
+                    if (!s) return;
 
-        if (!startInput || !endInput) {
-            alert("⚠️ Harap pilih Tanggal Mulai dan Selesai terlebih dahulu!");
-            return;
-        }
-        
-        tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400 animate-pulse font-bold">🔄 Sedang memuat data transaksi...</td></tr>`;
-        emptyState?.classList.add("hidden");
+                    s.innerHTML = "";
+                    s.disabled = false;
 
-        const { data, error } = await client.from('stok_history')
-            .select('*')
-            .gte('created_at', `${startInput}T00:00:00`)
-            .lte('created_at', `${endInput}T23:59:59`)
-            .order('created_at', {ascending: false});
+                    const { data, error } = await client
+                        .from('master_proyek')
+                        .select('nama_proyek')
+                        .eq('status', 'BERJALAN')
+                        .order('nama_proyek', { ascending: true });
 
-        if (error) {
-            console.error("Error:", error);
-            tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500 font-bold">❌ Error: ${error.message}</td></tr>`;
-            return;
-        }
+                    if (error) {
+                        console.error("Gagal memuat proyek:", error);
+                        return;
+                    }
 
-        const mutasiProyekIni = data ? data.filter(r => masterIndex[String(r.barang_id)]) : [];
+                    if (data) {
+                        data.forEach(p => {
+                            const o = document.createElement('option');
+                            o.value = p.nama_proyek;
+                            o.text = p.nama_proyek;
+                            s.appendChild(o);
+                        });
+                    }
 
-        tbody.innerHTML = "";
+                    $(s).select2({
+                        dropdownParent: $('#modalForm'),
+                        width: '100%',
+                        placeholder: "-- Pilih Satu atau Lebih Proyek --",
+                        allowClear: true,
+                        multiple: true,
+                        closeOnSelect: false
+                    });
 
-        if (mutasiProyekIni.length === 0) {
-            emptyState?.classList.remove("hidden");
-            return;
-        }
+                    $(s).val(null).trigger('change');
+                }
+                async function loadMutasiBawah() {
+                    const startEl = document.getElementById("laporanStartModal") || document.getElementById("laporanStart");
+                    const endEl = document.getElementById("laporanEndModal") || document.getElementById("laporanEnd");
+                    const startInput = startEl?.value;
+                    const endInput = endEl?.value;
+                    const tbody = document.getElementById("tabelMutasiBody");
+                    const emptyState = document.getElementById("stateKosongMutasi");
 
-        mutasiProyekIni.forEach(r => {
-            const tglObj = new Date(r.created_at);
-            const tgl = tglObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-            const jam = tglObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            
-            const q = Number(r.jumlah);
-            const isMasuk = q > 0;
-            const jumlahAbs = Math.abs(q);
-            
-            const item = masterIndex[String(r.barang_id)] || {};
-            const namaBarang = item.nama_barang || `ID:${r.barang_id}`;
-            const satuan = item.satuan || 'Unit';
+                    if (!tbody) return;
 
-            const colMasuk = isMasuk ? `<span class="font-bold text-emerald-600">+${jumlahAbs} ${satuan}</span>` : `<span class="text-gray-300">-</span>`;
-            const colKeluar = !isMasuk ? `<span class="font-bold text-red-600">-${jumlahAbs} ${satuan}</span>` : `<span class="text-gray-300">-</span>`;
-            const bgRow = isMasuk ? 'hover:bg-emerald-50' : 'hover:bg-red-50';
+                    if (!startInput || !endInput) {
+                        alert("⚠️ Harap pilih Tanggal Mulai dan Selesai terlebih dahulu!");
+                        return;
+                    }
 
-            const rowHTML = `
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400 animate-pulse font-bold">🔄 Sedang memuat data transaksi...</td></tr>`;
+                    emptyState?.classList.add("hidden");
+
+                    const { data, error } = await client.from('stok_history')
+                        .select('*')
+                        .gte('created_at', `${startInput}T00:00:00`)
+                        .lte('created_at', `${endInput}T23:59:59`)
+                        .order('created_at', { ascending: false });
+
+                    if (error) {
+                        console.error("Error:", error);
+                        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500 font-bold">❌ Error: ${error.message}</td></tr>`;
+                        return;
+                    }
+
+                    const mutasiProyekIni = data ? data.filter(r => masterIndex[String(r.barang_id)]) : [];
+
+                    tbody.innerHTML = "";
+
+                    if (mutasiProyekIni.length === 0) {
+                        emptyState?.classList.remove("hidden");
+                        return;
+                    }
+
+                    mutasiProyekIni.forEach(r => {
+                        const tglObj = new Date(r.created_at);
+                        const tgl = tglObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                        const jam = tglObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+                        const q = Number(r.jumlah);
+                        const isMasuk = q > 0;
+                        const jumlahAbs = Math.abs(q);
+
+                        const item = masterIndex[String(r.barang_id)] || {};
+                        const namaBarang = item.nama_barang || `ID:${r.barang_id}`;
+                        const satuan = item.satuan || 'Unit';
+
+                        const colMasuk = isMasuk ? `<span class="font-bold text-emerald-600">+${jumlahAbs} ${satuan}</span>` : `<span class="text-gray-300">-</span>`;
+                        const colKeluar = !isMasuk ? `<span class="font-bold text-red-600">-${jumlahAbs} ${satuan}</span>` : `<span class="text-gray-300">-</span>`;
+                        const bgRow = isMasuk ? 'hover:bg-emerald-50' : 'hover:bg-red-50';
+
+                        const rowHTML = `
                 <tr class="${bgRow} transition border-b border-gray-50 last:border-0">
                     <td class="p-4 whitespace-nowrap">
                         <div class="font-bold text-gray-700 text-xs">${tgl}</div>
@@ -919,534 +1174,586 @@
                         <span class="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded">ADMIN</span>
                     </td>
                 </tr>`;
-            
-            tbody.insertAdjacentHTML('beforeend', rowHTML);
-        });
-    }
-    function setSelect2Value(selectEl, value) {
-        const v = (value ?? '').toString().trim();
-        if (!selectEl) return;
-        if (!v) {
-            $(selectEl).val('').trigger('change');
-            return;
-        }
-        const exists = Array.from(selectEl.options).some(o => o.value === v);
-        if (!exists) {
-            const opt = new Option(v, v, true, true);
-            selectEl.add(opt);
-        }
-        $(selectEl).val(v).trigger('change');
-    }
-    function bukaModalEdit(id, nama, satuan, harga) {
-        const item = masterIndex[String(id)];
-        const material = item || { id };
-        const satuanFinal = (typeof satuan === "string" ? satuan : (material.satuan || "")).trim();
-        document.getElementById("editId").value = material.id;
-        document.getElementById("editNama").value = typeof nama === "string" ? nama : (material.nama_barang || "");
-        document.getElementById("editSatuan").value = satuanFinal;
-        setSelect2Value(document.getElementById("editSatuan"), satuanFinal);
-        const hargaFinal = (typeof harga === "number" && !Number.isNaN(harga)) ? harga : (material.harga_estimasi ?? "");
-        document.getElementById("editHarga").value = hargaFinal;
-        document.getElementById("modalEdit").classList.remove("hidden");
-    }
-    function tutupModalEdit() {
-        document.getElementById("modalEdit").classList.add("hidden");
-    }
-    async function prosesUpdateMaterial() {
-        const id = document.getElementById("editId").value;
-        const nama = document.getElementById("editNama").value.trim();
-        const satuanRaw = $('#editSatuan').val();
-        const satuan = Array.isArray(satuanRaw) ? satuanRaw[0] : satuanRaw;
-        const hargaRaw = document.getElementById("editHarga").value;
 
-        if (!id || !nama || !satuan || hargaRaw === "") {
-            return alert("⚠️ Mohon lengkapi semua data!");
-        }
+                        tbody.insertAdjacentHTML('beforeend', rowHTML);
+                    });
+                }
+                function setSelect2Value(selectEl, value) {
+                    const v = (value ?? '').toString().trim();
+                    if (!selectEl) return;
+                    if (!v) {
+                        $(selectEl).val('').trigger('change');
+                        return;
+                    }
+                    const exists = Array.from(selectEl.options).some(o => o.value === v);
+                    if (!exists) {
+                        const opt = new Option(v, v, true, true);
+                        selectEl.add(opt);
+                    }
+                    $(selectEl).val(v).trigger('change');
+                }
+                function bukaModalEdit(id, nama, satuan, harga) {
+                    const item = masterIndex[String(id)];
+                    const material = item || { id };
+                    const satuanFinal = (typeof satuan === "string" ? satuan : (material.satuan || "")).trim();
+                    document.getElementById("editId").value = material.id;
+                    document.getElementById("editNama").value = typeof nama === "string" ? nama : (material.nama_barang || "");
+                    document.getElementById("editSatuan").value = satuanFinal;
+                    setSelect2Value(document.getElementById("editSatuan"), satuanFinal);
+                    const hargaFinal = (typeof harga === "number" && !Number.isNaN(harga)) ? harga : (material.harga_estimasi ?? "");
+                    document.getElementById("editHarga").value = hargaFinal;
+                    document.getElementById("modalEdit").classList.remove("hidden");
+                }
+                function tutupModalEdit() {
+                    document.getElementById("modalEdit").classList.add("hidden");
+                }
+                async function prosesUpdateMaterial() {
+                    const id = document.getElementById("editId").value;
+                    const nama = document.getElementById("editNama").value.trim();
+                    const satuanRaw = $('#editSatuan').val();
+                    const satuan = Array.isArray(satuanRaw) ? satuanRaw[0] : satuanRaw;
+                    const hargaRaw = document.getElementById("editHarga").value;
 
-        const harga = Number(hargaRaw);
+                    if (!id || !nama || !satuan || hargaRaw === "") {
+                        return alert("⚠️ Mohon lengkapi semua data!");
+                    }
 
-        const { error } = await client.from("master_stok").update({
-            nama_barang: nama,
-            satuan: satuan,
-            harga_estimasi: harga,
-            harga_updated_source: "OPNAME",
-            harga_updated_ref: "STOK_PROYEK"
-        }).eq("id", id);
+                    const harga = Number(hargaRaw);
 
-        if (error) {
-            alert("❌ Gagal: " + (error.message || "Periksa jaringan"));
-        } else {
-            alert("✅ Material berhasil diperbarui.");
-            tutupModalEdit();
-            await initData();
-            terapkanFilter();
-        }
-    }
+                    const { error } = await client.from("master_stok").update({
+                        nama_barang: nama,
+                        satuan: satuan,
+                        harga_estimasi: harga,
+                        harga_updated_source: "OPNAME",
+                        harga_updated_ref: "STOK_PROYEK"
+                    }).eq("id", id);
 
-    // --- JURUS SINTRONISASI SALDO OTOMATIS ---
-    async function sinkronkanSaldoOtomatis() {
-        if (!currentBarangId) return alert("⚠️ Pilih material terlebih dahulu!");
-
-        const { data: logs, error: errLogs } = await client
-            .from('stok_history')
-            .select('jumlah')
-            .eq('barang_id', currentBarangId);
-
-        if (errLogs) return alert("❌ Gagal mengambil riwayat: " + errLogs.message);
-
-        const saldoSeharusnya = logs.reduce((acc, curr) => acc + Number(curr.jumlah || 0), 0);
-
-        const { error: errUpdate } = await client
-            .from('master_stok')
-            .update({ total_stok: saldoSeharusnya })
-            .eq('id', currentBarangId);
-
-        if (errUpdate) {
-            alert("❌ Gagal sinkronisasi ke Master: " + errUpdate.message);
-        } else {
-            await client.from('stok_history').insert([{
-                barang_id: currentBarangId,
-                jenis_transaksi: 'SINKRON SALDO',
-                jumlah: 0,
-                keterangan: `Sinkronisasi sistem ke saldo ${saldoSeharusnya}`
-            }]);
-
-            alert(`✅ SINKRONISASI BERHASIL!\nSaldo material telah disesuaikan menjadi: ${saldoSeharusnya}`);
-            tutupModalKartu();
-            await initData();
-            const cariInputEl = document.getElementById("cariInput");
-            if (cariInputEl?.value) terapkanFilter();
-        }
-    }
-
-    async function prosesOpnameLangsung() {
-        const id = $('#pilihBarangOpname').val();
-        const dataSelect = $('#pilihBarangOpname').select2('data');
-        const namaLengkap = dataSelect && dataSelect.length > 0 ? dataSelect[0].text : 'Unknown Item';
-
-        const realInput = document.getElementById("opnameStokReal").value;
-        const real = Number(realInput);
-        const sistem = Number(document.getElementById("opnameStokSistem").value) || 0;
-        const ket = document.getElementById("opnameKet").value || "-";
-        
-        if(!id) return alert("⚠️ Silakan cari dan pilih material terlebih dahulu!");
-        if(realInput === "") return alert("⚠️ Isi jumlah stok fisik (0 jika habis)!");
-
-        const selisih = real - sistem;
-        const statusSelisih = selisih > 0 ? `(Surplus +${selisih})` : selisih < 0 ? `(Minus ${selisih})` : `(Cocok)`;
-
-        if(!confirm(`KONFIRMASI OPNAME\n\nBarang: ${namaLengkap}\nStok Sistem: ${sistem}\nStok Fisik: ${real}\n\nSelisih: ${selisih} ${statusSelisih}\n\nLanjutkan update stok?`)) return;
-
-        try {
-            const { error: err1 } = await client.from('master_stok').update({ 
-                total_stok: real,
-                harga_updated_source: 'OPNAME_MANUAL' 
-            }).eq('id', id);
-            
-            if(err1) throw new Error(err1.message);
-
-            const { error: err2 } = await client.from('stok_history').insert([{
-                barang_id: id,
-                jenis_transaksi: 'OPNAME (PENYESUAIAN)',
-                jumlah: selisih,
-                keterangan: `Fisik: ${real}. Sistem Awal: ${sistem}. ${ket}`
-            }]);
-
-            if(err2) throw new Error(err2.message);
-
-            await catatLog(
-                'OPNAME',
-                `Opname ${namaLengkap}: Sistem(${sistem}) -> Fisik(${real}).`,
-                'fa-balance-scale'
-            );
-
-            alert("✅ STOK BERHASIL DISESUAIKAN!");
-            document.getElementById('modalOpname').classList.add('hidden');
-            
-            await initData(); 
-            if(currentBarangId == id) {
-               bukaKartuStok(id, currentBarangNama, currentBarangSatuan);
-            }
-            
-        } catch (e) {
-            alert("❌ Gagal: " + e.message);
-        }
-    }
-
-    function siapkanOpname() {
-        const modal = document.getElementById('modalOpname');
-        const select = document.getElementById("pilihBarangOpname");
-        
-        if (!modal || !select) return;
-
-        select.innerHTML = "<option value=''>-- Ketik Nama Barang --</option>";
-
-        masterDataMemori.forEach(item => {
-            const opt = document.createElement('option');
-            opt.value = item.id;
-            opt.text = `${item.nama_barang} (${item.satuan || '-'})`;
-            opt.setAttribute('data-stok', item.total_stok || 0);
-            select.appendChild(opt);
-        });
-
-        modal.classList.remove('hidden');
-
-        if (window.jQuery && $.fn.select2) {
-            $(select).select2({
-                dropdownParent: $('#modalOpname'),
-                width: '100%',
-                placeholder: "Ketik nama barang...",
-                allowClear: true,
-                language: {
-                    noResults: function() {
-                        return "Barang tidak ditemukan";
+                    if (error) {
+                        alert("❌ Gagal: " + (error.message || "Periksa jaringan"));
+                    } else {
+                        alert("✅ Material berhasil diperbarui.");
+                        tutupModalEdit();
+                        await initData();
+                        terapkanFilter();
                     }
                 }
-            });
-            
-            $(select).val(null).trigger('change');
-        }
 
-        document.getElementById('opnameStokSistem').value = "";
-        document.getElementById('opnameStokReal').value = "";
-        document.getElementById('opnameKet').value = "";
-    }
+                // --- JURUS SINTRONISASI SALDO OTOMATIS ---
+                async function sinkronkanSaldoOtomatis() {
+                    if (!currentBarangId) return alert("⚠️ Pilih material terlebih dahulu!");
 
-    function isiDataOpnameOtomatis() {
-        const select = document.getElementById("pilihBarangOpname");
-        const stokSistem = Number(select?.options[select.selectedIndex]?.getAttribute('data-stok') || 0);
-        const val = select?.value;
+                    const { data: logs, error: errLogs } = await client
+                        .from('stok_history')
+                        .select('jumlah')
+                        .eq('barang_id', currentBarangId);
 
-        if (val) {
-            document.getElementById("opnameStokSistem").value = stokSistem;
-            document.getElementById("opnameStokReal").value = "";
-            document.getElementById("opnameStokReal").focus();
-        } else {
-            document.getElementById("opnameStokSistem").value = "";
-        }
-    }
+                    if (errLogs) return alert("❌ Gagal mengambil riwayat: " + errLogs.message);
 
-    function cekNamaMaterial(el) {
-        const rawValue = el.value;
-        const keyword = rawValue.toUpperCase().trim();
-        
-        const listEl = document.getElementById("listPrediksi");
-        const errorEl = document.getElementById("errorNamaAda");
-        const btnSimpan = document.querySelector("#modalTambahItem button[onclick='prosesSimpanItemBaru()']");
-        
-        if (listEl) {
-            listEl.innerHTML = "";
-            listEl.classList.add("hidden");
-        }
-        if (errorEl) errorEl.classList.add("hidden");
-        
-        el.classList.remove("border-red-500", "bg-red-50");
-        el.classList.add("border-gray-300");
-        
-        if (btnSimpan) {
-            btnSimpan.disabled = false;
-            btnSimpan.classList.remove("opacity-50", "cursor-not-allowed");
-        }
+                    const saldoSeharusnya = logs.reduce((acc, curr) => acc + Number(curr.jumlah || 0), 0);
 
-        if (keyword.length === 0) return;
+                    const { error: errUpdate } = await client
+                        .from('master_stok')
+                        .update({ total_stok: saldoSeharusnya })
+                        .eq('id', currentBarangId);
 
-        const isDuplicate = masterDataMemori.some(item => 
-            (item.nama_barang || "").toUpperCase().trim() === keyword
-        );
+                    if (errUpdate) {
+                        alert("❌ Gagal sinkronisasi ke Master: " + errUpdate.message);
+                    } else {
+                        await client.from('stok_history').insert([{
+                            barang_id: currentBarangId,
+                            jenis_transaksi: 'SINKRON SALDO',
+                            jumlah: 0,
+                            keterangan: `Sinkronisasi sistem ke saldo ${saldoSeharusnya}`
+                        }]);
 
-        if (isDuplicate) {
-            if (errorEl) errorEl.classList.remove("hidden");
-            el.classList.remove("border-gray-300");
-            el.classList.add("border-red-500", "bg-red-50");
-            if (btnSimpan) {
-                btnSimpan.disabled = true;
-                btnSimpan.classList.add("opacity-50", "cursor-not-allowed");
-            }
-            return;
-        }
+                        alert(`✅ SINKRONISASI BERHASIL!\nSaldo material telah disesuaikan menjadi: ${saldoSeharusnya}`);
+                        tutupModalKartu();
+                        await initData();
+                        const cariInputEl = document.getElementById("cariInput");
+                        if (cariInputEl?.value) terapkanFilter();
+                    }
+                }
 
-        const matches = masterDataMemori
-            .filter(item => {
-                const dbName = (item.nama_barang || "").toUpperCase();
-                return dbName.includes(keyword) && dbName !== keyword;
-            })
-            .slice(0, 5);
+                async function prosesOpnameLangsung() {
+                    const id = $('#pilihBarangOpname').val();
+                    const dataSelect = $('#pilihBarangOpname').select2('data');
+                    const namaLengkap = dataSelect && dataSelect.length > 0 ? dataSelect[0].text : 'Unknown Item';
 
-        if (matches.length > 0 && listEl) {
-            listEl.classList.remove("hidden");
-            
-            matches.forEach(item => {
-                const regex = new RegExp(`(${keyword})`, 'gi');
-                const highlightedName = item.nama_barang.replace(regex, '<span class="font-bold text-green-600">$1</span>');
+                    const realInput = document.getElementById("opnameStokReal").value;
+                    const real = Number(realInput);
+                    const sistem = Number(document.getElementById("opnameStokSistem").value) || 0;
+                    const ket = document.getElementById("opnameKet").value || "-";
 
-                const li = document.createElement("li");
-                li.className = "p-2.5 hover:bg-green-50 cursor-pointer text-xs text-gray-600 flex justify-between items-center transition-colors";
-                li.innerHTML = `<span>${highlightedName}</span> <span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-400">Sudah ada</span>`;
-                li.onclick = () => {
-                    el.value = item.nama_barang;
-                    cekNamaMaterial(el);
+                    if (!id) return alert("⚠️ Silakan cari dan pilih material terlebih dahulu!");
+                    if (realInput === "") return alert("⚠️ Isi jumlah stok fisik (0 jika habis)!");
+
+                    const selisih = real - sistem;
+                    const statusSelisih = selisih > 0 ? `(Surplus +${selisih})` : selisih < 0 ? `(Minus ${selisih})` : `(Cocok)`;
+
+                    if (!confirm(`KONFIRMASI OPNAME\n\nBarang: ${namaLengkap}\nStok Sistem: ${sistem}\nStok Fisik: ${real}\n\nSelisih: ${selisih} ${statusSelisih}\n\nLanjutkan update stok?`)) return;
+
+                    try {
+                        const { error: err1 } = await client.from('master_stok').update({
+                            total_stok: real,
+                            harga_updated_source: 'OPNAME_MANUAL'
+                        }).eq('id', id);
+
+                        if (err1) throw new Error(err1.message);
+
+                        const { error: err2 } = await client.from('stok_history').insert([{
+                            barang_id: id,
+                            jenis_transaksi: 'OPNAME (PENYESUAIAN)',
+                            jumlah: selisih,
+                            keterangan: `Fisik: ${real}. Sistem Awal: ${sistem}. ${ket}`
+                        }]);
+
+                        if (err2) throw new Error(err2.message);
+
+                        await catatLog(
+                            'OPNAME',
+                            `Opname ${namaLengkap}: Sistem(${sistem}) -> Fisik(${real}).`,
+                            'fa-balance-scale'
+                        );
+
+                        alert("✅ STOK BERHASIL DISESUAIKAN!");
+                        document.getElementById('modalOpname').classList.add('hidden');
+
+                        await initData();
+                        if (currentBarangId == id) {
+                            bukaKartuStok(id, currentBarangNama, currentBarangSatuan);
+                        }
+
+                    } catch (e) {
+                        alert("❌ Gagal: " + e.message);
+                    }
+                }
+
+                function siapkanOpname() {
+                    const modal = document.getElementById('modalOpname');
+                    const select = document.getElementById("pilihBarangOpname");
+
+                    if (!modal || !select) return;
+
+                    select.innerHTML = "<option value=''>-- Ketik Nama Barang --</option>";
+
+                    masterDataMemori.forEach(item => {
+                        const opt = document.createElement('option');
+                        opt.value = item.id;
+                        opt.text = `${item.nama_barang} (${item.satuan || '-'})`;
+                        opt.setAttribute('data-stok', item.total_stok || 0);
+                        select.appendChild(opt);
+                    });
+
+                    modal.classList.remove('hidden');
+
+                    if (window.jQuery && $.fn.select2) {
+                        $(select).select2({
+                            dropdownParent: $('#modalOpname'),
+                            width: '100%',
+                            placeholder: "Ketik nama barang...",
+                            allowClear: true,
+                            language: {
+                                noResults: function () {
+                                    return "Barang tidak ditemukan";
+                                }
+                            }
+                        });
+
+                        $(select).val(null).trigger('change');
+                    }
+
+                    document.getElementById('opnameStokSistem').value = "";
+                    document.getElementById('opnameStokReal').value = "";
+                    document.getElementById('opnameKet').value = "";
+                }
+
+                function isiDataOpnameOtomatis() {
+                    const select = document.getElementById("pilihBarangOpname");
+                    const stokSistem = Number(select?.options[select.selectedIndex]?.getAttribute('data-stok') || 0);
+                    const val = select?.value;
+
+                    if (val) {
+                        document.getElementById("opnameStokSistem").value = stokSistem;
+                        document.getElementById("opnameStokReal").value = "";
+                        document.getElementById("opnameStokReal").focus();
+                    } else {
+                        document.getElementById("opnameStokSistem").value = "";
+                    }
+                }
+
+                function cekNamaMaterial(el) {
+                    const rawValue = el.value;
+                    const keyword = rawValue.toUpperCase().trim();
+
+                    const listEl = document.getElementById("listPrediksi");
+                    const errorEl = document.getElementById("errorNamaAda");
+                    const btnSimpan = document.querySelector("#modalTambahItem button[onclick='prosesSimpanItemBaru()']");
+
+                    if (listEl) {
+                        listEl.innerHTML = "";
+                        listEl.classList.add("hidden");
+                    }
+                    if (errorEl) errorEl.classList.add("hidden");
+
+                    el.classList.remove("border-red-500", "bg-red-50");
+                    el.classList.add("border-gray-300");
+
+                    if (btnSimpan) {
+                        btnSimpan.disabled = false;
+                        btnSimpan.classList.remove("opacity-50", "cursor-not-allowed");
+                    }
+
+                    if (keyword.length === 0) return;
+
+                    const isDuplicate = masterDataMemori.some(item =>
+                        (item.nama_barang || "").toUpperCase().trim() === keyword
+                    );
+
+                    if (isDuplicate) {
+                        if (errorEl) errorEl.classList.remove("hidden");
+                        el.classList.remove("border-gray-300");
+                        el.classList.add("border-red-500", "bg-red-50");
+                        if (btnSimpan) {
+                            btnSimpan.disabled = true;
+                            btnSimpan.classList.add("opacity-50", "cursor-not-allowed");
+                        }
+                        return;
+                    }
+
+                    const matches = masterDataMemori
+                        .filter(item => {
+                            const dbName = (item.nama_barang || "").toUpperCase();
+                            return dbName.includes(keyword) && dbName !== keyword;
+                        })
+                        .slice(0, 5);
+
+                    if (matches.length > 0 && listEl) {
+                        listEl.classList.remove("hidden");
+
+                        matches.forEach(item => {
+                            const regex = new RegExp(`(${keyword})`, 'gi');
+                            const highlightedName = item.nama_barang.replace(regex, '<span class="font-bold text-green-600">$1</span>');
+
+                            const li = document.createElement("li");
+                            li.className = "p-2.5 hover:bg-green-50 cursor-pointer text-xs text-gray-600 flex justify-between items-center transition-colors";
+                            li.innerHTML = `<span>${highlightedName}</span> <span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-400">Sudah ada</span>`;
+                            li.onclick = () => {
+                                el.value = item.nama_barang;
+                                cekNamaMaterial(el);
+                            };
+                            listEl.appendChild(li);
+                        });
+                    }
+                }
+                async function prosesSimpanItemBaru() {
+                    const namaInput = document.getElementById("tambahNama");
+                    // Force uppercase on submit so the database stays normalized even if user types lowercase
+                    const nama = namaInput.value.trim().toUpperCase();
+                    const satuanRaw = $('#tambahSatuan').val();
+                    const satuan = Array.isArray(satuanRaw) ? satuanRaw[0] : satuanRaw;
+                    const harga = Number(document.getElementById("tambahHarga").value);
+
+                    if (!nama || !satuan) {
+                        return alert("⚠️ Nama dan Satuan wajib diisi!");
+                    }
+
+                    const isDuplicate = masterDataMemori.some(item =>
+                        (item.nama_barang || "").toUpperCase().trim() === nama
+                    );
+
+                    if (isDuplicate) {
+                        alert("⛔ AKSES DITOLAK: Nama material sudah ada di database!");
+                        if (namaInput) {
+                            namaInput.classList.add("border-red-500", "animate-pulse");
+                            namaInput.focus();
+                        }
+                        return;
+                    }
+
+                    const { error } = await client.from("master_stok").insert([{
+                        nama_barang: nama,
+                        satuan: satuan,
+                        harga_estimasi: harga,
+                        total_stok: 0,
+                        nama_proyek: activeProject
+                    }]);
+
+                    if (error) {
+                        alert("❌ Gagal Simpan: " + (error.message || "Periksa jaringan"));
+                        return;
+                    }
+
+                    alert("✅ Material Baru Berhasil Didaftarkan.");
+                    tutupModalTambah();
+                    await initData();
+
+                    const cariInputEl = document.getElementById("cariInput");
+                    if (cariInputEl) {
+                        cariInputEl.value = "";
+                        terapkanFilter();
+                    }
+                }
+                function isiDropdown() {
+                    const s = document.getElementById("pilihBarang");
+                    const sEdit = document.getElementById("editSatuan");
+                    const sTambah = document.getElementById("tambahSatuan");
+                    s.innerHTML = "<option value=''>-- Pilih --</option>";
+                    if (sEdit) sEdit.innerHTML = "<option value=''>-- Pilih Satuan --</option>";
+                    if (sTambah) sTambah.innerHTML = "<option value=''>-- Pilih Satuan --</option>";
+
+                    const daftarSatuan = [...new Set(masterDataMemori.map(item => item.satuan).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)));
+
+                    masterDataMemori.forEach(i => {
+                        const o = document.createElement('option');
+                        o.value = i.id;
+                        o.text = i.nama_barang;
+                        o.setAttribute('data-stok', i.total_stok);
+                        o.setAttribute('data-satuan', i.satuan || 'Unit');
+                        s.appendChild(o);
+                    });
+
+                    daftarSatuan.forEach(satuan => {
+                        const o = document.createElement('option');
+                        o.value = satuan;
+                        o.text = satuan;
+                        if (sEdit) sEdit.appendChild(o.cloneNode(true));
+                        if (sTambah) sTambah.appendChild(o.cloneNode(true));
+                    });
+
+                    $('#pilihBarang').select2({
+                        width: '100%',
+                        dropdownParent: $('#modalForm'),
+                        placeholder: '-- Pilih Material --',
+                        allowClear: true
+                    });
+                    $('#editSatuan').select2({
+                        width: '100%',
+                        tags: true,
+                        dropdownParent: $('#modalEdit')
+                    });
+                    $('#tambahSatuan').select2({
+                        width: '100%',
+                        tags: true,
+                        dropdownParent: $('#modalTambahItem')
+                    });
+                }
+
+                document.addEventListener('click', function (e) {
+                    const input = document.getElementById('tambahNama');
+                    const list = document.getElementById('listPrediksi');
+                    if (input && list && !input.contains(e.target) && !list.contains(e.target)) {
+                        list.classList.add('hidden');
+                    }
+                });
+
+                // Global Debounce Logic
+                let debounceTimer;
+                window.debounceSearch = function () {
+                    console.log("Typing...");
+                    clearTimeout(debounceTimer);
+                    const rowCounter = document.getElementById("rowCounter");
+                    if (rowCounter) rowCounter.innerText = "Mengetik...";
+
+                    debounceTimer = setTimeout(() => {
+                        console.log("Triggering Filter...");
+                        terapkanFilter();
+                    }, 400);
                 };
-                listEl.appendChild(li);
-            });
-        }
-    }
-    async function prosesSimpanItemBaru() {
-        const namaInput = document.getElementById("tambahNama");
-        // Force uppercase on submit so the database stays normalized even if user types lowercase
-        const nama = namaInput.value.trim().toUpperCase();
-        const satuanRaw = $('#tambahSatuan').val();
-        const satuan = Array.isArray(satuanRaw) ? satuanRaw[0] : satuanRaw;
-        const harga = Number(document.getElementById("tambahHarga").value);
 
-        if (!nama || !satuan) {
-            return alert("⚠️ Nama dan Satuan wajib diisi!");
-        }
 
-        const isDuplicate = masterDataMemori.some(item => 
-            (item.nama_barang || "").toUpperCase().trim() === nama
-        );
 
-        if (isDuplicate) {
-            alert("⛔ AKSES DITOLAK: Nama material sudah ada di database!");
-            if(namaInput) {
-                namaInput.classList.add("border-red-500", "animate-pulse");
-                namaInput.focus();
-            }
-            return;
-        }
-
-        const { error } = await client.from("master_stok").insert([{
-            nama_barang: nama,
-            satuan: satuan,
-            harga_estimasi: harga,
-            total_stok: 0,
-            nama_proyek: activeProject
-        }]);
-
-        if (error) {
-            alert("❌ Gagal Simpan: " + (error.message || "Periksa jaringan"));
-            return;
-        }
-
-        alert("✅ Material Baru Berhasil Didaftarkan.");
-        tutupModalTambah();
-        await initData();
-        
-        const cariInputEl = document.getElementById("cariInput");
-        if (cariInputEl) {
-            cariInputEl.value = "";
-            terapkanFilter();
-        }
-    }
-    function isiDropdown() {
-        const s = document.getElementById("pilihBarang");
-        const sEdit = document.getElementById("editSatuan");
-        const sTambah = document.getElementById("tambahSatuan");
-        s.innerHTML = "<option value=''>-- Pilih --</option>";
-        if (sEdit) sEdit.innerHTML = "<option value=''>-- Pilih Satuan --</option>";
-        if (sTambah) sTambah.innerHTML = "<option value=''>-- Pilih Satuan --</option>";
-
-        const daftarSatuan = [...new Set(masterDataMemori.map(item => item.satuan).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)));
-
-        masterDataMemori.forEach(i => {
-            const o = document.createElement('option');
-            o.value = i.id;
-            o.text = i.nama_barang;
-            o.setAttribute('data-stok', i.total_stok);
-            o.setAttribute('data-satuan', i.satuan || 'Unit');
-            s.appendChild(o);
-        });
-
-        daftarSatuan.forEach(satuan => {
-            const o = document.createElement('option');
-            o.value = satuan;
-            o.text = satuan;
-            if (sEdit) sEdit.appendChild(o.cloneNode(true));
-            if (sTambah) sTambah.appendChild(o.cloneNode(true));
-        });
-
-        $('#pilihBarang').select2({width:'100%'});
-        $('#editSatuan').select2({
-            width: '100%',
-            tags: true,
-            dropdownParent: $('#modalEdit')
-        });
-        $('#tambahSatuan').select2({
-            width: '100%',
-            tags: true,
-            dropdownParent: $('#modalTambahItem')
-        });
-    }
-
-    document.addEventListener('click', function(e) {
-        const input = document.getElementById('tambahNama');
-        const list = document.getElementById('listPrediksi');
-        if (input && list && !input.contains(e.target) && !list.contains(e.target)) {
-            list.classList.add('hidden');
-        }
-    });
-
-    initData();
-  </script>
-  <div id="modalEdit" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
-      <div class="flex justify-between mb-4">
-        <h2 class="text-lg font-bold text-indigo-800"><i class="fas fa-edit"></i> Edit Material</h2>
-        <button onclick="tutupModalEdit()" class="text-gray-400 font-bold hover:text-red-500">✕</button>
-      </div>
-      <div class="space-y-4">
-        <input type="hidden" id="editId">
-        <div>
-          <label class="text-xs font-bold block mb-1">Nama Material</label>
-          <input type="text" id="editNama" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 outline-none">
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-xs font-bold block mb-1">Satuan</label>
-            <select id="editSatuan" class="w-full border p-2 rounded outline-none"></select>
-          </div>
-          <div>
-            <label class="text-xs font-bold block mb-1">Harga Estimasi (Rp)</label>
-            <input type="number" id="editHarga" class="w-full border p-2 rounded outline-none">
-          </div>
-        </div>
-        <button onclick="prosesUpdateMaterial()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 shadow-lg transition-all">
-          SIMPAN PERUBAHAN
-        </button>
-      </div>
-    </div>
-  </div>
-  <div id="modalTambahItem" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
-      <div class="flex justify-between mb-4">
-        <h2 class="text-lg font-bold text-green-800"><i class="fas fa-plus-circle"></i> Tambah Material Baru</h2>
-        <button onclick="tutupModalTambah()" class="text-gray-400 font-bold hover:text-red-500">✕</button>
-      </div>
-      <div class="space-y-4">
-        <div class="relative">
-          <label class="text-xs font-bold block mb-1">Nama Material</label>
-          
-          <input type="text" id="tambahNama" 
-                 placeholder="Contoh: Semen Tonasa 40KG" 
-                 autocomplete="off"
-                 class="w-full border p-2 rounded focus:ring-2 focus:ring-green-500 outline-none transition-colors font-bold text-gray-700"
-                 oninput="cekNamaMaterial(this)">
-          
-          <p id="errorNamaAda" class="hidden text-[10px] font-bold text-red-600 mt-1 flex items-center gap-1 animate-pulse">
-              <i class="fas fa-exclamation-triangle"></i> Nama material sudah terdaftar!
-          </p>
-
-          <ul id="listPrediksi" class="hidden absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-40 overflow-y-auto mt-1 divide-y divide-gray-100">
-          </ul>
-      </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-xs font-bold block mb-1">Satuan</label>
-            <select id="tambahSatuan" class="w-full border p-2 rounded outline-none"></select>
-          </div>
-          <div>
-            <label class="text-xs font-bold block mb-1">Harga Estimasi (Rp)</label>
-            <input type="number" id="tambahHarga" value="0" class="w-full border p-2 rounded outline-none">
-          </div>
-        </div>
-        <button onclick="prosesSimpanItemBaru()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg transition-all">
-          SIMPAN KE DATABASE
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div id="modalOpname" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[70] backdrop-blur-sm">
-    <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md transform transition-all scale-100">
-      
-      <div class="flex justify-between items-center mb-6 border-b pb-3">
-        <h2 class="text-lg font-bold text-purple-800 flex items-center gap-2">
-            <i class="fas fa-balance-scale"></i> Stock Opname
-        </h2>
-        <button onclick="document.getElementById('modalOpname').classList.add('hidden')" class="text-gray-400 font-bold hover:text-red-500 text-xl transition">&times;</button>
-      </div>
-
-      <div class="space-y-5">
-        
-        <div>
-          <label class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Cari & Pilih Material</label>
-          <select id="pilihBarangOpname" class="w-full" onchange="isiDataOpnameOtomatis()">
-              <option value="">-- Cari barang --</option>
-          </select>
-          <p class="text-[10px] text-gray-400 mt-1 italic">*Ketik nama barang untuk mencari</p>
-        </div>
-        
-        <div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
-          <div>
-            <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Stok Sistem</label>
-            <input type="number" id="opnameStokSistem" class="w-full bg-white border border-gray-300 p-2 rounded text-center font-mono font-bold text-gray-600" readonly>
-          </div>
-          <div>
-            <label class="text-[10px] font-bold text-purple-600 uppercase block mb-1">Stok Fisik (Real)</label>
-            <input type="number" id="opnameStokReal" class="w-full border-2 border-purple-500 p-2 rounded text-center font-black text-lg focus:ring-4 focus:ring-purple-200 outline-none text-purple-900 shadow-sm" placeholder="0">
-          </div>
-        </div>
-
-        <div>
-          <label class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Keterangan Selisih</label>
-          <textarea id="opnameKet" class="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-purple-200 outline-none transition" rows="2" placeholder="Contoh: Barang rusak, hilang, atau salah hitung..."></textarea>
-        </div>
-
-        <button onclick="prosesOpnameLangsung()" class="w-full bg-gradient-to-r from-purple-600 to-purple-800 text-white py-3 rounded-lg font-bold hover:shadow-lg hover:from-purple-700 hover:to-purple-900 transition-all active:scale-95 flex justify-center items-center gap-2">
-          <i class="fas fa-save"></i> UPDATE STOK SEKARANG
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div id="modalPencarian" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex justify-center items-start pt-10 z-50 backdrop-blur-sm transition-opacity duration-300">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden transform transition-all scale-100 mx-4">
-        
-        <div class="p-6 bg-white border-b flex flex-col gap-4 shadow-sm z-10">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-black text-gray-800 flex items-center gap-2">
-                    <i class="fas fa-cubes text-indigo-600"></i> Database Material
-                </h2>
-                <button onclick="tutupModalPencarian()" class="bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 w-10 h-10 rounded-full flex items-center justify-center transition-all font-bold text-xl">
-                    &times;
-                </button>
-            </div>
-            
-            <div class="relative w-full">
-                <i class="fas fa-search absolute left-4 top-4 text-gray-400 text-lg"></i>
-                <input type="text" id="cariInput" onkeyup="terapkanFilter()" 
-                       class="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none text-gray-700 font-bold text-lg transition-all" 
-                       placeholder="Ketik nama barang untuk mencari..." autofocus>
-                <div class="absolute right-4 top-4 text-xs font-bold text-gray-400" id="rowCounter">0 Item</div>
-            </div>
-        </div>
-
-        <div class="flex-grow overflow-y-auto bg-gray-50 p-6">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-gray-100 border-b border-gray-200 text-gray-500 uppercase text-[11px] font-extrabold tracking-wider sticky top-0 z-10">
-                        <tr>
-                            <th class="p-4 w-16 text-center">No</th>
-                            <th class="p-4">Nama Material</th>
-                            <th class="p-4 text-center">Satuan</th>
-                            <th class="p-4 text-right">Sisa Stok</th>
-                            <th class="p-4 text-center">Status</th>
-                            <th class="p-4 text-center w-32">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bodyStok" class="divide-y divide-gray-100 bg-white">
-                        </tbody>
-                </table>
-                
-                <div id="stateKosong" class="hidden py-20 flex flex-col items-center justify-center text-center">
-                    <div class="bg-gray-50 p-6 rounded-full mb-4 text-gray-300 text-5xl">
-                        <i class="fas fa-box-open"></i>
+                document.addEventListener("DOMContentLoaded", () => {
+                    initData();
+                });
+            </script>
+            <div id="modalEdit"
+                class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
+                    <div class="flex justify-between mb-4">
+                        <h2 class="text-lg font-bold text-indigo-800"><i class="fas fa-edit"></i> Edit Material</h2>
+                        <button onclick="tutupModalEdit()" class="text-gray-400 font-bold hover:text-red-500">✕</button>
                     </div>
-                    <p class="text-gray-500 font-bold text-lg">Material tidak ditemukan.</p>
+                    <div class="space-y-4">
+                        <input type="hidden" id="editId">
+                        <div>
+                            <label class="text-xs font-bold block mb-1">Nama Material</label>
+                            <input type="text" id="editNama"
+                                class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold block mb-1">Satuan</label>
+                                <select id="editSatuan" class="w-full border p-2 rounded outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold block mb-1">Harga Estimasi (Rp)</label>
+                                <input type="number" id="editHarga" class="w-full border p-2 rounded outline-none">
+                            </div>
+                        </div>
+                        <button onclick="prosesUpdateMaterial()"
+                            class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 shadow-lg transition-all">
+                            SIMPAN PERUBAHAN
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-  </div>
+            <div id="modalTambahItem"
+                class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
+                    <div class="flex justify-between mb-4">
+                        <h2 class="text-lg font-bold text-green-800"><i class="fas fa-plus-circle"></i> Tambah Material
+                            Baru</h2>
+                        <button onclick="tutupModalTambah()"
+                            class="text-gray-400 font-bold hover:text-red-500">✕</button>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="relative">
+                            <label class="text-xs font-bold block mb-1">Nama Material</label>
+
+                            <input type="text" id="tambahNama" placeholder="Contoh: Semen Tonasa 40KG"
+                                autocomplete="off"
+                                class="w-full border p-2 rounded focus:ring-2 focus:ring-green-500 outline-none transition-colors font-bold text-gray-700"
+                                oninput="cekNamaMaterial(this)">
+
+                            <p id="errorNamaAda"
+                                class="hidden text-[10px] font-bold text-red-600 mt-1 flex items-center gap-1 animate-pulse">
+                                <i class="fas fa-exclamation-triangle"></i> Nama material sudah terdaftar!
+                            </p>
+
+                            <ul id="listPrediksi"
+                                class="hidden absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-40 overflow-y-auto mt-1 divide-y divide-gray-100">
+                            </ul>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-bold block mb-1">Satuan</label>
+                                <select id="tambahSatuan" class="w-full border p-2 rounded outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold block mb-1">Harga Estimasi (Rp)</label>
+                                <input type="number" id="tambahHarga" value="0"
+                                    class="w-full border p-2 rounded outline-none">
+                            </div>
+                        </div>
+                        <button onclick="prosesSimpanItemBaru()"
+                            class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg transition-all">
+                            SIMPAN KE DATABASE
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="modalOpname"
+                class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[70] backdrop-blur-sm">
+                <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md transform transition-all scale-100">
+
+                    <div class="flex justify-between items-center mb-6 border-b pb-3">
+                        <h2 class="text-lg font-bold text-purple-800 flex items-center gap-2">
+                            <i class="fas fa-balance-scale"></i> Stock Opname
+                        </h2>
+                        <button onclick="document.getElementById('modalOpname').classList.add('hidden')"
+                            class="text-gray-400 font-bold hover:text-red-500 text-xl transition">&times;</button>
+                    </div>
+
+                    <div class="space-y-5">
+
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Cari &
+                                Pilih Material</label>
+                            <select id="pilihBarangOpname" class="w-full" onchange="isiDataOpnameOtomatis()">
+                                <option value="">-- Cari barang --</option>
+                            </select>
+                            <p class="text-[10px] text-gray-400 mt-1 italic">*Ketik nama barang untuk mencari</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Stok
+                                    Sistem</label>
+                                <input type="number" id="opnameStokSistem"
+                                    class="w-full bg-white border border-gray-300 p-2 rounded text-center font-mono font-bold text-gray-600"
+                                    readonly>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-purple-600 uppercase block mb-1">Stok Fisik
+                                    (Real)</label>
+                                <input type="number" id="opnameStokReal"
+                                    class="w-full border-2 border-purple-500 p-2 rounded text-center font-black text-lg focus:ring-4 focus:ring-purple-200 outline-none text-purple-900 shadow-sm"
+                                    placeholder="0">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Keterangan
+                                Selisih</label>
+                            <textarea id="opnameKet"
+                                class="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-2 focus:ring-purple-200 outline-none transition"
+                                rows="2" placeholder="Contoh: Barang rusak, hilang, atau salah hitung..."></textarea>
+                        </div>
+
+                        <button onclick="prosesOpnameLangsung()"
+                            class="w-full bg-gradient-to-r from-purple-600 to-purple-800 text-white py-3 rounded-lg font-bold hover:shadow-lg hover:from-purple-700 hover:to-purple-900 transition-all active:scale-95 flex justify-center items-center gap-2">
+                            <i class="fas fa-save"></i> UPDATE STOK SEKARANG
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="modalPencarian"
+                class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex justify-center items-start pt-10 z-50 backdrop-blur-sm transition-opacity duration-300">
+                <div
+                    class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden transform transition-all scale-100 mx-4">
+
+                    <div class="p-6 bg-white border-b flex flex-col gap-4 shadow-sm z-10">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-xl font-black text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-cubes text-indigo-600"></i> Database Material
+                            </h2>
+                            <button onclick="tutupModalPencarian()"
+                                class="bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 w-10 h-10 rounded-full flex items-center justify-center transition-all font-bold text-xl">
+                                &times;
+                            </button>
+                        </div>
+
+                        <div class="relative w-full">
+                            <i class="fas fa-search absolute left-4 top-4 text-gray-400 text-lg"></i>
+                            <input type="text" id="cariInput" onkeyup="debounceSearch()"
+                                class="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none text-gray-700 font-bold text-lg transition-all"
+                                placeholder="Ketik nama barang untuk mencari..." autofocus>
+                            <div class="absolute right-4 top-4 text-xs font-bold text-gray-400" id="rowCounter">0 Item
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-grow overflow-y-auto bg-gray-50 p-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <table class="w-full text-left text-sm">
+                                <thead
+                                    class="bg-gray-100 border-b border-gray-200 text-gray-500 uppercase text-[11px] font-extrabold tracking-wider sticky top-0 z-10">
+                                    <tr>
+                                        <th class="p-4 w-16 text-center">No</th>
+                                        <th class="p-4">Nama Material</th>
+                                        <th class="p-4 text-center">Satuan</th>
+                                        <th class="p-4 text-right">Sisa Stok</th>
+                                        <th class="p-4 text-center">Status</th>
+                                        <th class="p-4 text-center w-32">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bodyStok" class="divide-y divide-gray-100 bg-white">
+                                </tbody>
+                            </table>
+
+                            <div id="stateKosong"
+                                class="hidden py-20 flex flex-col items-center justify-center text-center">
+                                <div class="bg-gray-50 p-6 rounded-full mb-4 text-gray-300 text-5xl">
+                                    <i class="fas fa-box-open"></i>
+                                </div>
+                                <p class="text-gray-500 font-bold text-lg">Material tidak ditemukan.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 </body>
+
 </html>

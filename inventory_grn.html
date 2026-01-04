@@ -1,77 +1,82 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>Gudang - Penerimaan Barang (GRN)</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app_config.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <title>Gudang - Penerimaan Barang (GRN)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app_config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-gray-50 font-sans text-gray-800 p-6">
 
-  <div class="max-w-5xl mx-auto mb-6 flex flex-col gap-4">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
-      <div>
-        <div class="flex items-center gap-3">
-            <h1 class="text-2xl font-bold text-green-700">Penerimaan Barang (GRN)</h1>
-            <span id="statusBadge" class="hidden px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600 border border-red-200 shadow-sm animate-pulse">
-                Loading...
-            </span>
-        </div>
-        <p class="text-sm text-gray-500 mt-1">Cek fisik barang, Validasi Harga & Posting Tagihan</p>
-      </div>
+    <div class="max-w-5xl mx-auto mb-6 flex flex-col gap-4">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl font-bold text-green-700">Penerimaan Barang (GRN)</h1>
+                    <span id="statusBadge"
+                        class="hidden px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600 border border-red-200 shadow-sm animate-pulse">
+                        Loading...
+                    </span>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Cek fisik barang, Validasi Harga & Posting Tagihan</p>
+            </div>
 
-      <div class="flex gap-2 mt-3 md:mt-0">
-        <button onclick="loadOpenPO()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2 transition">
-          <i class="fas fa-sync-alt"></i> Refresh
-        </button>
-        <a href="dashboard_operasional.html" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2 transition">
-          <i class="fas fa-arrow-left"></i> Dashboard
-        </a>
-      </div>
+            <div class="flex gap-2 mt-3 md:mt-0">
+                <button onclick="loadOpenPO()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2 transition">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <a href="dashboard_operasional.html"
+                    class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2 transition">
+                    <i class="fas fa-arrow-left"></i> Dashboard
+                </a>
+            </div>
+        </div>
+
+        <div id="summaryAlert" class="hidden"></div>
     </div>
 
-    <div id="summaryAlert" class="hidden"></div>
-  </div>
+    <div class="max-w-5xl mx-auto space-y-6" id="containerPO">
+        <div class="text-center p-10 bg-white rounded shadow animate-pulse">
+            <p class="text-gray-500 font-bold">🔄 Sedang menghubungkan ke database...</p>
+        </div>
+    </div>
 
-  <div class="max-w-5xl mx-auto space-y-6" id="containerPO">
-            <div class="text-center p-10 bg-white rounded shadow animate-pulse">
-                <p class="text-gray-500 font-bold">🔄 Sedang menghubungkan ke database...</p>
-            </div>
-  </div>
+    <script>
+        const activeProject = sessionStorage.getItem('active_project_name');
+        if (!activeProject) {
+            alert("⚠️ Sesi proyek habis. Silakan pilih proyek kembali di Portal.");
+            window.location.href = 'portal_proyek.html';
+        }
+        let tempVerifiedItems = {};
 
-  <script>
-    const activeProject = sessionStorage.getItem('active_project_name');
-    if (!activeProject) {
-        alert("⚠️ Sesi proyek habis. Silakan pilih proyek kembali di Portal.");
-        window.location.href = 'portal_proyek.html';
-    }
-    let tempVerifiedItems = {}; 
+        async function loadOpenPO() {
+            const container = document.getElementById("containerPO");
+            const badge = document.getElementById("statusBadge");
+            const alertBox = document.getElementById("summaryAlert");
 
-    async function loadOpenPO() {
-        const container = document.getElementById("containerPO");
-        const badge = document.getElementById("statusBadge");
-        const alertBox = document.getElementById("summaryAlert");
+            try {
+                container.innerHTML = `<div class="text-center p-10 bg-white rounded shadow animate-pulse"><p class="text-gray-500 font-bold">🔄 Mengambil data PO...</p></div>`;
+                badge.classList.add("hidden");
+                alertBox.classList.add("hidden");
 
-        try {
-            container.innerHTML = `<div class="text-center p-10 bg-white rounded shadow animate-pulse"><p class="text-gray-500 font-bold">🔄 Mengambil data PO...</p></div>`;
-            badge.classList.add("hidden");
-            alertBox.classList.add("hidden");
+                const { data, error } = await client
+                    .from('purchase_order')
+                    .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
+                    .eq('status', 'APPROVED')
+                    .eq('nama_proyek', activeProject)
+                    .order('created_at', { ascending: false });
 
-            const { data, error } = await client
-                .from('purchase_order')
-                .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
-                .eq('status', 'OPEN')
-                .eq('nama_proyek', activeProject)
-                .order('created_at', { ascending: false });
+                if (error) throw error;
+                container.innerHTML = "";
+                tempVerifiedItems = {};
 
-            if (error) throw error;
-            container.innerHTML = "";
-            tempVerifiedItems = {};
-
-            if (!data || data.length === 0) {
-                container.innerHTML = `
+                if (!data || data.length === 0) {
+                    container.innerHTML = `
                     <div class="text-center p-10 bg-white rounded-xl shadow border border-green-100">
                         <i class="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
                         <p class="text-gray-800 font-bold text-lg">Semua Beres!</p>
@@ -79,27 +84,27 @@
                         <p class="text-sm text-gray-400 mt-3">Tidak ada PO yang harus diproses.</p>
                     </div>`;
 
-                badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200";
-                badge.innerHTML = `<i class="fas fa-check"></i> Updated`;
+                    badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200";
+                    badge.innerHTML = `<i class="fas fa-check"></i> Updated`;
+                    badge.classList.remove("hidden");
+                    return;
+                }
+
+                const groupedPO = data.reduce((acc, item) => {
+                    const noPO = item.nomor_po || 'Tanpa Nomor';
+                    if (!acc[noPO]) acc[noPO] = [];
+                    acc[noPO].push(item);
+                    return acc;
+                }, {});
+
+                const totalPO = Object.keys(groupedPO).length;
+                const totalItem = data.length;
+
+                badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600 border border-red-200 shadow-sm animate-pulse";
+                badge.innerHTML = `⚠️ ${totalPO} PO Menunggu`;
                 badge.classList.remove("hidden");
-                return;
-            }
 
-            const groupedPO = data.reduce((acc, item) => {
-                const noPO = item.nomor_po || 'Tanpa Nomor';
-                if (!acc[noPO]) acc[noPO] = [];
-                acc[noPO].push(item);
-                return acc;
-            }, {});
-
-            const totalPO = Object.keys(groupedPO).length;
-            const totalItem = data.length;
-
-            badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600 border border-red-200 shadow-sm animate-pulse";
-            badge.innerHTML = `⚠️ ${totalPO} PO Menunggu`;
-            badge.classList.remove("hidden");
-
-            alertBox.innerHTML = `
+                alertBox.innerHTML = `
                 <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r shadow-sm flex items-center justify-between">
                     <div class="flex items-center">
                         <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mr-4"></i>
@@ -110,15 +115,15 @@
                     </div>
                 </div>
             `;
-            alertBox.classList.remove("hidden");
+                alertBox.classList.remove("hidden");
 
-            Object.keys(groupedPO).forEach(nomorPO => {
-                const items = groupedPO[nomorPO];
-                const sanitizedNomorPO = nomorPO.replace(/[^a-zA-Z0-9_-]/g, "_") || "po-group";
-                const escapedNomorPO = nomorPO.replace(/'/g, "\\'");
-                const tanggalPO = new Date(items[0].created_at).toLocaleDateString('id-ID');
-                
-                let groupHTML = `
+                Object.keys(groupedPO).forEach(nomorPO => {
+                    const items = groupedPO[nomorPO];
+                    const sanitizedNomorPO = nomorPO.replace(/[^a-zA-Z0-9_-]/g, "_") || "po-group";
+                    const escapedNomorPO = nomorPO.replace(/'/g, "\\'");
+                    const tanggalPO = new Date(items[0].created_at).toLocaleDateString('id-ID');
+
+                    let groupHTML = `
                 <div class="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden mb-8" id="card-${sanitizedNomorPO}">
                     <div class="bg-gray-100 px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
                         <div>
@@ -143,12 +148,12 @@
                     <div class="divide-y divide-gray-100 p-2">
                 `;
 
-                items.forEach(po => {
-                    const req = po.inventory_req;
-                    const bId = po.barang_id;
-                    const safeName = (req?.nama_barang || 'Material').replace(/'/g, "\\'");
-                    
-                    groupHTML += `
+                    items.forEach(po => {
+                        const req = po.inventory_req;
+                        const bId = po.barang_id;
+                        const safeName = (req?.nama_barang || 'Material').replace(/'/g, "\\'");
+
+                        groupHTML += `
                         <div id="row-${po.id}" data-po="${escapedNomorPO}" data-group-id="${sanitizedNomorPO}" data-barang-id="${bId}" class="p-4 transition duration-200 rounded-lg border border-transparent hover:bg-gray-50 item-row">
                             <div class="flex flex-col md:flex-row gap-4 items-center">
                                 <div class="md:w-1/3 w-full">
@@ -180,9 +185,9 @@
                             </div>
                         </div>
                     `;
-                });
+                    });
 
-                groupHTML += `
+                    groupHTML += `
                     </div>
                     
                     <div class="bg-blue-50 p-6 border-t border-blue-100">
@@ -215,421 +220,422 @@
                             <i class="fas fa-lock"></i> Selesaikan (Isi Total Dulu)
                         </button>
                     </div>
-                </div>`; 
-                
-                container.innerHTML += groupHTML;
+                </div>`;
+
+                    container.innerHTML += groupHTML;
+                });
+
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `<p class="text-red-500 text-center font-bold">⚠️ Error: ${err.message}</p>`;
+            }
+        }
+
+        function verifikasiItem(id, namaBarang, groupId) {
+            const qtyInput = document.getElementById(`qty-${id}`);
+            const hargaInput = document.getElementById(`harga-${id}`);
+            const hargaEstimasi = document.getElementById(`estimasi-${id}`).value;
+            const row = document.getElementById(`row-${id}`);
+            const btn = document.getElementById(`btn-check-${id}`);
+
+            const valQty = Number(qtyInput.value);
+            const valHarga = Number(hargaInput.value);
+            const valEstimasi = Number(hargaEstimasi);
+
+            if (valQty <= 0) return alert("Jumlah fisik tidak boleh 0!");
+            if (valHarga <= 0) return alert("Harga nota wajib diisi!");
+
+            let pesanKonfirmasi = `Konfirmasi Item: ${namaBarang}\n\n`;
+            pesanKonfirmasi += `Jumlah: ${valQty}\nHarga Nota: Rp ${valHarga.toLocaleString()}\n`;
+
+            if (valHarga !== valEstimasi) {
+                const selisih = valHarga - valEstimasi;
+                const status = selisih > 0 ? "LEBIH MAHAL" : "LEBIH MURAH";
+                pesanKonfirmasi += `\n⚠️ PERHATIAN: Harga berbeda dengan PO!\nHarga PO: Rp ${valEstimasi.toLocaleString()}\nSelisih: Rp ${Math.abs(selisih).toLocaleString()} (${status})`;
+            } else {
+                pesanKonfirmasi += `\n✅ Harga Sesuai dengan PO.`;
+            }
+
+            pesanKonfirmasi += `\n\nTekan OK jika data sudah benar.`;
+
+            if (!confirm(pesanKonfirmasi)) return;
+
+            row.classList.remove('hover:bg-gray-50');
+            row.classList.add('bg-green-50', 'border-green-200');
+
+            qtyInput.disabled = true;
+            hargaInput.disabled = true;
+            qtyInput.classList.add('bg-transparent', 'border-none', 'font-bold', 'text-green-800');
+            hargaInput.classList.add('bg-transparent', 'border-none', 'font-bold', 'text-green-800');
+
+            if (btn) {
+                btn.innerHTML = `<i class="fas fa-check-circle"></i> Sesuai`;
+                btn.className = "w-full bg-green-600 text-white font-bold py-2 rounded-lg shadow-sm cursor-default";
+                btn.onclick = null;
+            }
+
+            row.dataset.ready = "true";
+            row.dataset.finalQty = valQty;
+            row.dataset.finalPrice = valHarga;
+            tempVerifiedItems[id] = row.dataset.po;
+
+            hitungTotalGroup(groupId);
+        }
+
+        function hitungTotalGroup(groupId) {
+            const card = document.getElementById(`card-${groupId}`);
+            if (!card) return;
+
+            const verifiedRows = card.querySelectorAll('.item-row[data-ready="true"]');
+            let totalSistem = 0;
+
+            verifiedRows.forEach(row => {
+                const qty = Number(row.dataset.finalQty || 0);
+                const price = Number(row.dataset.finalPrice || 0);
+                totalSistem += qty * price;
             });
 
-        } catch (err) { 
-            console.error(err);
-            container.innerHTML = `<p class="text-red-500 text-center font-bold">⚠️ Error: ${err.message}</p>`;
-        }
-    }
+            const displayEl = document.getElementById(`display-total-sistem-${groupId}`);
+            const rawEl = document.getElementById(`raw-total-sistem-${groupId}`);
+            if (displayEl) displayEl.innerText = "Rp " + totalSistem.toLocaleString('id-ID');
+            if (rawEl) rawEl.value = totalSistem;
 
-    function verifikasiItem(id, namaBarang, groupId) {
-        const qtyInput = document.getElementById(`qty-${id}`);
-        const hargaInput = document.getElementById(`harga-${id}`);
-        const hargaEstimasi = document.getElementById(`estimasi-${id}`).value;
-        const row = document.getElementById(`row-${id}`);
-        const btn = document.getElementById(`btn-check-${id}`);
-
-        const valQty = Number(qtyInput.value);
-        const valHarga = Number(hargaInput.value);
-        const valEstimasi = Number(hargaEstimasi);
-
-        if (valQty <= 0) return alert("Jumlah fisik tidak boleh 0!");
-        if (valHarga <= 0) return alert("Harga nota wajib diisi!");
-
-        let pesanKonfirmasi = `Konfirmasi Item: ${namaBarang}\n\n`;
-        pesanKonfirmasi += `Jumlah: ${valQty}\nHarga Nota: Rp ${valHarga.toLocaleString()}\n`;
-
-        if (valHarga !== valEstimasi) {
-            const selisih = valHarga - valEstimasi;
-            const status = selisih > 0 ? "LEBIH MAHAL" : "LEBIH MURAH";
-            pesanKonfirmasi += `\n⚠️ PERHATIAN: Harga berbeda dengan PO!\nHarga PO: Rp ${valEstimasi.toLocaleString()}\nSelisih: Rp ${Math.abs(selisih).toLocaleString()} (${status})`;
-        } else {
-            pesanKonfirmasi += `\n✅ Harga Sesuai dengan PO.`;
+            cekKesesuaian(groupId);
         }
 
-        pesanKonfirmasi += `\n\nTekan OK jika data sudah benar.`;
+        function cekKesesuaian(groupId) {
+            const rawSistem = Number(document.getElementById(`raw-total-sistem-${groupId}`).value || 0);
+            const inputNota = document.getElementById(`input-total-nota-${groupId}`);
+            const valNota = Number(inputNota.value || 0);
+            const msgBox = document.getElementById(`msg-selisih-${groupId}`);
+            const btnFinal = document.getElementById(`btn-final-${groupId}`);
 
-        if (!confirm(pesanKonfirmasi)) return;
+            if (!inputNota || !msgBox || !btnFinal) return;
 
-        row.classList.remove('hover:bg-gray-50');
-        row.classList.add('bg-green-50', 'border-green-200');
+            if (!inputNota.value) {
+                msgBox.innerHTML = "⚠️ Masukkan total nota fisik";
+                msgBox.className = "text-xs font-bold mt-1 text-right text-yellow-600";
+                btnKunci(btnFinal, false);
+                inputNota.className = "w-full border-2 border-blue-200 p-2 pl-10 rounded-lg font-bold text-lg focus:ring-blue-500 focus:border-blue-500 text-blue-900";
+                return;
+            }
 
-        qtyInput.disabled = true;
-        hargaInput.disabled = true;
-        qtyInput.classList.add('bg-transparent', 'border-none', 'font-bold', 'text-green-800');
-        hargaInput.classList.add('bg-transparent', 'border-none', 'font-bold', 'text-green-800');
+            const selisih = valNota - rawSistem;
 
-        if (btn) {
-            btn.innerHTML = `<i class="fas fa-check-circle"></i> Sesuai`;
-            btn.className = "w-full bg-green-600 text-white font-bold py-2 rounded-lg shadow-sm cursor-default";
-            btn.onclick = null;
+            if (selisih === 0) {
+                msgBox.innerHTML = "✅ BALANCE / COCOK";
+                msgBox.className = "text-xs font-bold mt-1 text-right text-green-600";
+                inputNota.className = "w-full border-2 border-green-500 bg-green-50 p-2 pl-10 rounded-lg font-bold text-lg text-green-900";
+                btnKunci(btnFinal, true);
+            } else {
+                const ket = selisih > 0 ? "Nota Lebih Tinggi" : "Nota Lebih Rendah";
+                msgBox.innerHTML = `❌ SELISIH: Rp ${Math.abs(selisih).toLocaleString('id-ID')} (${ket})`;
+                msgBox.className = "text-xs font-bold mt-1 text-right text-red-600 animate-pulse";
+                inputNota.className = "w-full border-2 border-red-500 bg-red-50 p-2 pl-10 rounded-lg font-bold text-lg text-red-900";
+                btnKunci(btnFinal, false);
+            }
         }
 
-        row.dataset.ready = "true";
-        row.dataset.finalQty = valQty;
-        row.dataset.finalPrice = valHarga;
-        tempVerifiedItems[id] = row.dataset.po;
-
-        hitungTotalGroup(groupId);
-    }
-
-    function hitungTotalGroup(groupId) {
-        const card = document.getElementById(`card-${groupId}`);
-        if (!card) return;
-
-        const verifiedRows = card.querySelectorAll('.item-row[data-ready="true"]');
-        let totalSistem = 0;
-
-        verifiedRows.forEach(row => {
-            const qty = Number(row.dataset.finalQty || 0);
-            const price = Number(row.dataset.finalPrice || 0);
-            totalSistem += qty * price;
-        });
-
-        const displayEl = document.getElementById(`display-total-sistem-${groupId}`);
-        const rawEl = document.getElementById(`raw-total-sistem-${groupId}`);
-        if (displayEl) displayEl.innerText = "Rp " + totalSistem.toLocaleString('id-ID');
-        if (rawEl) rawEl.value = totalSistem;
-
-        cekKesesuaian(groupId);
-    }
-
-    function cekKesesuaian(groupId) {
-        const rawSistem = Number(document.getElementById(`raw-total-sistem-${groupId}`).value || 0);
-        const inputNota = document.getElementById(`input-total-nota-${groupId}`);
-        const valNota = Number(inputNota.value || 0);
-        const msgBox = document.getElementById(`msg-selisih-${groupId}`);
-        const btnFinal = document.getElementById(`btn-final-${groupId}`);
-
-        if (!inputNota || !msgBox || !btnFinal) return;
-
-        if (!inputNota.value) {
-            msgBox.innerHTML = "⚠️ Masukkan total nota fisik";
-            msgBox.className = "text-xs font-bold mt-1 text-right text-yellow-600";
-            btnKunci(btnFinal, false);
-            inputNota.className = "w-full border-2 border-blue-200 p-2 pl-10 rounded-lg font-bold text-lg focus:ring-blue-500 focus:border-blue-500 text-blue-900";
-            return;
+        function btnKunci(btn, isUnlocked) {
+            if (!btn) return;
+            if (isUnlocked) {
+                btn.disabled = false;
+                btn.className = "bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg flex items-center justify-center gap-2 ml-auto w-full md:w-auto transition";
+                btn.innerHTML = `<i class="fas fa-save"></i> UPDATE (Proses Stock & Tagihan)`;
+            } else {
+                btn.disabled = true;
+                btn.className = "bg-gray-300 text-gray-500 font-bold py-3 px-8 rounded-lg flex items-center justify-center gap-2 ml-auto w-full md:w-auto cursor-not-allowed";
+                btn.innerHTML = `<i class="fas fa-lock"></i> Cek Selisih Dulu`;
+            }
         }
 
-        const selisih = valNota - rawSistem;
+        async function finalUpdate(event, safeID, nomorPO) {
+            const isTestMode = localStorage.getItem('APP_TEST_MODE') === 'true';
 
-        if (selisih === 0) {
-            msgBox.innerHTML = "✅ BALANCE / COCOK";
-            msgBox.className = "text-xs font-bold mt-1 text-right text-green-600";
-            inputNota.className = "w-full border-2 border-green-500 bg-green-50 p-2 pl-10 rounded-lg font-bold text-lg text-green-900";
-            btnKunci(btnFinal, true);
-        } else {
-            const ket = selisih > 0 ? "Nota Lebih Tinggi" : "Nota Lebih Rendah";
-            msgBox.innerHTML = `❌ SELISIH: Rp ${Math.abs(selisih).toLocaleString('id-ID')} (${ket})`;
-            msgBox.className = "text-xs font-bold mt-1 text-right text-red-600 animate-pulse";
-            inputNota.className = "w-full border-2 border-red-500 bg-red-50 p-2 pl-10 rounded-lg font-bold text-lg text-red-900";
-            btnKunci(btnFinal, false);
-        }
-    }
+            const manualTotalInput = document.getElementById(`input-total-nota-${safeID}`);
+            const manualTotal = Number(manualTotalInput?.value || 0);
 
-    function btnKunci(btn, isUnlocked) {
-        if (!btn) return;
-        if (isUnlocked) {
-            btn.disabled = false;
-            btn.className = "bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg flex items-center justify-center gap-2 ml-auto w-full md:w-auto transition";
-            btn.innerHTML = `<i class="fas fa-save"></i> UPDATE (Proses Stock & Tagihan)`;
-        } else {
-            btn.disabled = true;
-            btn.className = "bg-gray-300 text-gray-500 font-bold py-3 px-8 rounded-lg flex items-center justify-center gap-2 ml-auto w-full md:w-auto cursor-not-allowed";
-            btn.innerHTML = `<i class="fas fa-lock"></i> Cek Selisih Dulu`;
-        }
-    }
+            if (manualTotal <= 0) {
+                manualTotalInput?.focus();
+                return alert("⚠️ WAJIB ISI TOTAL NOTA DULU SEBELUM MELANJUTKAN.");
+            }
 
-    async function finalUpdate(event, safeID, nomorPO) {
-        const isTestMode = localStorage.getItem('APP_TEST_MODE') === 'true';
+            const rawSistem = document.getElementById(`raw-total-sistem-${safeID}`);
+            const rawValue = Number(rawSistem?.value || 0);
+            if (Math.abs(manualTotal - rawValue) > 100) {
+                return alert("❌ STOP! Total Nota dan Total Sistem masih selisih.\nMohon cek kembali inputan harga per item.");
+            }
 
-        const manualTotalInput = document.getElementById(`input-total-nota-${safeID}`);
-        const manualTotal = Number(manualTotalInput?.value || 0);
+            const fileInput = document.getElementById(`nota-${safeID}`);
+            if (!fileInput || fileInput.files.length === 0) {
+                return alert("❌ STOP: Anda belum mengupload Foto Nota untuk PO ini!");
+            }
 
-        if (manualTotal <= 0) {
-            manualTotalInput?.focus();
-            return alert("⚠️ WAJIB ISI TOTAL NOTA DULU SEBELUM MELANJUTKAN.");
-        }
+            const btnUpdate = event.currentTarget;
+            const parentCard = btnUpdate.closest('.rounded-xl');
+            const rowsInCard = parentCard.querySelectorAll('[data-ready="true"]');
 
-        const rawSistem = document.getElementById(`raw-total-sistem-${safeID}`);
-        const rawValue = Number(rawSistem?.value || 0);
-        if (Math.abs(manualTotal - rawValue) > 100) {
-            return alert("❌ STOP! Total Nota dan Total Sistem masih selisih.\nMohon cek kembali inputan harga per item.");
-        }
+            if (rowsInCard.length === 0) {
+                return alert("❌ Belum ada barang yang diverifikasi (OK). Silakan cek barang dulu.");
+            }
 
-        const fileInput = document.getElementById(`nota-${safeID}`);
-        if (!fileInput || fileInput.files.length === 0) {
-            return alert("❌ STOP: Anda belum mengupload Foto Nota untuk PO ini!");
-        }
+            let msg = `Siap memproses ${rowsInCard.length} item untuk PO ${nomorPO}?`;
+            if (isTestMode) msg = `🧪 [MODE PENGUJIAN AKTIF]\n\nSistem akan mengirim data NYATA ke database.\nSetelah selesai, Anda akan diminta konfirmasi untuk MENGEMBALIKAN (ROLLBACK) data.\n\nLanjut?`;
+            if (!confirm(msg)) return;
 
-        const btnUpdate = event.currentTarget;
-        const parentCard = btnUpdate.closest('.rounded-xl');
-        const rowsInCard = parentCard.querySelectorAll('[data-ready="true"]');
+            btnUpdate.disabled = true;
+            btnUpdate.innerHTML = isTestMode ? `<i class="fas fa-flask fa-spin"></i> Testing DB...` : `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
 
-        if (rowsInCard.length === 0) {
-            return alert("❌ Belum ada barang yang diverifikasi (OK). Silakan cek barang dulu.");
-        }
+            let rollbackLog = [];
 
-        let msg = `Siap memproses ${rowsInCard.length} item untuk PO ${nomorPO}?`;
-        if (isTestMode) msg = `🧪 [MODE PENGUJIAN AKTIF]\n\nSistem akan mengirim data NYATA ke database.\nSetelah selesai, Anda akan diminta konfirmasi untuk MENGEMBALIKAN (ROLLBACK) data.\n\nLanjut?`;
-        if (!confirm(msg)) return;
+            try {
+                const file = fileInput.files[0];
+                const fileExt = file.name.split('.').pop();
+                const fileName = isTestMode ? `TEST_GRN_${safeID}_${Date.now()}.${fileExt}` : `GRN_${safeID}_${Date.now()}.${fileExt}`;
+                const { data: fileData, error: errUp } = await client.storage.from('nota grn').upload(fileName, file);
+                if (errUp) throw new Error("Gagal Upload Foto: " + errUp.message);
 
-        btnUpdate.disabled = true;
-        btnUpdate.innerHTML = isTestMode ? `<i class="fas fa-flask fa-spin"></i> Testing DB...` : `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
+                const fileUrl = client.storage.from('nota grn').getPublicUrl(fileName).data.publicUrl;
 
-        let rollbackLog = [];
+                const updates = Array.from(rowsInCard).map(async (row) => {
+                    const poId = row.id.split('-')[1];
+                    const qty = Number(row.getAttribute("data-final-qty"));
+                    const harga = Number(row.getAttribute("data-final-price"));
 
-        try {
-            const file = fileInput.files[0];
-            const fileExt = file.name.split('.').pop();
-            const fileName = isTestMode ? `TEST_GRN_${safeID}_${Date.now()}.${fileExt}` : `GRN_${safeID}_${Date.now()}.${fileExt}`;
-            const { data: fileData, error: errUp } = await client.storage.from('nota grn').upload(fileName, file);
-            if (errUp) throw new Error("Gagal Upload Foto: " + errUp.message);
+                    const { data: poItem, error: errPO } = await client.from('purchase_order').select('barang_id').eq('id', poId).single();
+                    if (errPO || !poItem) throw new Error(`Data PO (ID: ${poId}) tidak ditemukan di database.`);
+                    if (!poItem.barang_id) throw new Error(`CRITICAL: PO (ID: ${poId}) tidak memiliki 'barang_id'. Stok tidak bisa diupdate.`);
 
-            const fileUrl = client.storage.from('nota grn').getPublicUrl(fileName).data.publicUrl;
+                    const bId = poItem.barang_id;
+                    const { data: stokItem, error: errStok } = await client.from('master_stok').select('total_stok').eq('id', bId).single();
+                    if (errStok || !stokItem) throw new Error(`Data Master Stok (ID Barang: ${bId}) tidak ditemukan.`);
 
-            const updates = Array.from(rowsInCard).map(async (row) => {
-                const poId = row.id.split('-')[1];
-                const qty = Number(row.getAttribute("data-final-qty"));
-                const harga = Number(row.getAttribute("data-final-price"));
+                    const stokLama = stokItem.total_stok || 0;
 
-                const { data: poItem, error: errPO } = await client.from('purchase_order').select('barang_id').eq('id', poId).single();
-                if (errPO || !poItem) throw new Error(`Data PO (ID: ${poId}) tidak ditemukan di database.`);
-                if (!poItem.barang_id) throw new Error(`CRITICAL: PO (ID: ${poId}) tidak memiliki 'barang_id'. Stok tidak bisa diupdate.`);
+                    const { data: updatedStok, error: errUpd } = await client
+                        .from('master_stok')
+                        .update({
+                            total_stok: stokLama + qty,
+                            harga_estimasi: harga,
+                            harga_updated_source: isTestMode ? 'TEST_RUN' : 'GRN Batch',
+                            harga_updated_ref: nomorPO
+                        })
+                        .eq('id', bId)
+                        .eq('nama_proyek', activeProject)
+                        .select('id');
+                    if (errUpd) throw new Error("Gagal update master_stok: " + errUpd.message);
+                    if (!updatedStok || updatedStok.length === 0) {
+                        throw new Error(
+                            `MASTER_STOK TIDAK TER-UPDATE (0 rows).\n` +
+                            `Kemungkinan barang_id PO mengarah ke proyek lain.\n` +
+                            `Barang ID: ${bId}, Proyek aktif: ${activeProject}`
+                        );
+                    }
 
-                const bId = poItem.barang_id;
-                const { data: stokItem, error: errStok } = await client.from('master_stok').select('total_stok').eq('id', bId).single();
-                if (errStok || !stokItem) throw new Error(`Data Master Stok (ID Barang: ${bId}) tidak ditemukan.`);
+                    const { error: errHist } = await client.from('stok_history').insert([{
+                        barang_id: bId,
+                        jenis_transaksi: 'TERIMA GRN',
+                        jumlah: qty,
+                        keterangan: `${activeProject}: ${nomorPO} | Nota: ${fileName}`
+                    }]);
+                    if (errHist) throw new Error("Gagal insert stok_history: " + errHist.message);
 
-                const stokLama = stokItem.total_stok || 0;
+                    await client.from('purchase_order').update({
+                        status: 'DITERIMA',
+                        harga_satuan: harga,
+                        keterangan: `Nota: ${fileName} | ${fileUrl}`
+                    }).eq('id', poId);
 
-                const { data: updatedStok, error: errUpd } = await client
-                    .from('master_stok')
-                    .update({
-                        total_stok: stokLama + qty,
-                        harga_estimasi: harga,
-                        harga_updated_source: isTestMode ? 'TEST_RUN' : 'GRN Batch',
-                        harga_updated_ref: nomorPO
-                    })
-                    .eq('id', bId)
-                    .eq('nama_proyek', activeProject)
-                    .select('id');
-                if (errUpd) throw new Error("Gagal update master_stok: " + errUpd.message);
-                if (!updatedStok || updatedStok.length === 0) {
-                    throw new Error(
-                        `MASTER_STOK TIDAK TER-UPDATE (0 rows).\n` +
-                        `Kemungkinan barang_id PO mengarah ke proyek lain.\n` +
-                        `Barang ID: ${bId}, Proyek aktif: ${activeProject}`
+                    rollbackLog.push({
+                        poId: poId,
+                        barangId: bId,
+                        qtyAdded: qty,
+                        fileName: fileName
+                    });
+                });
+
+                await Promise.all(updates);
+
+                if (isTestMode) {
+                    btnUpdate.innerHTML = `<i class="fas fa-check"></i> Data Masuk!`;
+                    await new Promise(r => setTimeout(r, 500));
+
+                    const userChoice = confirm(
+                        `✅ DATA SUDAH MASUK DATABASE!\n\n` +
+                        `Stok material sudah bertambah & Tagihan muncul.\n\n` +
+                        `SILAKAN CEK TAB LAIN SEKARANG.\n` +
+                        `Jangan tutup popup ini jika ingin membatalkan.\n\n` +
+                        `❓ PILIH TINDAKAN:\n` +
+                        `[OK] = ROLLBACK (Hapus data & kembalikan stok awal)\n` +
+                        `[Cancel] = BIARKAN (Simpan data permanen)`
                     );
+
+                    if (userChoice) {
+                        btnUpdate.innerHTML = `<i class="fas fa-undo fa-spin"></i> Reverting...`;
+                        const rollbacks = rollbackLog.map(async (log) => {
+                            const { data: curStok } = await client.from('master_stok').select('total_stok').eq('id', log.barangId).single();
+                            const stokSekarang = curStok ? curStok.total_stok : 0;
+
+                            await client.from('master_stok').update({
+                                total_stok: stokSekarang - log.qtyAdded,
+                                harga_updated_source: 'ROLLBACK_TEST'
+                            }).eq('id', log.barangId);
+
+                            await client.from('purchase_order').update({
+                                status: 'APPROVED',
+                                keterangan: null
+                            }).eq('id', log.poId);
+
+                            await client.storage.from('nota grn').remove([log.fileName]);
+                        });
+
+                        await Promise.all(rollbacks);
+                        alert("🔄 ROLLBACK BERHASIL!\nSistem kembali bersih.");
+                        loadOpenPO();
+                        return;
+                    } else {
+                        alert("💾 Data Test disimpan permanen.");
+                    }
                 }
 
+                if (!isTestMode) alert("✅ SUKSES!\nStok telah bertambah dan tagihan tercatat.");
+                loadOpenPO();
+
+            } catch (e) {
+                console.error(e);
+                alert("❌ TERJADI KESALAHAN: " + e.message);
+                btnUpdate.disabled = false;
+                btnUpdate.innerHTML = `<i class="fas fa-save"></i> UPDATE (Proses Stock & Tagihan)`;
+            }
+        }
+
+        async function batalSatuPO(nomorPO) {
+            const alasan = prompt(`⚠️ KONFIRMASI PEMBATALAN\n\nAnda akan membatalkan/menolak PO: ${nomorPO}.\nPO ini akan hilang dari halaman GRN.\n\nMasukkan alasan:`);
+            if (alasan === null) return;
+            if (!alasan.trim()) return alert("❌ Alasan wajib diisi!");
+            if (!confirm("Yakin ingin melanjutkan pembatalan?")) return;
+
+            try {
+                const { error } = await client
+                    .from('purchase_order')
+                    .update({
+                        status: 'CANCELLED',
+                        keterangan: `Ditolak di GRN oleh Gudang. Alasan: ${alasan}`
+                    })
+                    .eq('nomor_po', nomorPO);
+
+                if (error) throw error;
+                alert(`✅ PO ${nomorPO} berhasil dibatalkan.`);
+                loadOpenPO();
+
+            } catch (e) {
+                console.error(e);
+                alert("❌ Gagal membatalkan: " + e.message);
+            }
+        }
+
+        async function prosesGRN(id, noPO, bId) {
+            if (!bId || bId === 0) {
+                alert("❌ ERROR: ID Material tidak ditemukan pada PO ini. Hubungi Admin.");
+                return;
+            }
+
+            const btn = event.currentTarget;
+            const qty = Number(document.getElementById(`qty-${id}`).value);
+            const fileInput = document.getElementById(`nota-${id}`);
+
+            if (qty <= 0) return alert("Jumlah fisik tidak boleh 0!");
+            if (fileInput.files.length === 0) return alert("Wajib upload foto nota!");
+
+            if (!confirm(`Konfirmasi penerimaan ${qty} unit?`)) return;
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
+
+            try {
+                // A. UPLOAD FOTO
+                const file = fileInput.files[0];
+                const fileName = `Nota_PO_${noPO}_${Date.now()}.jpg`;
+                const { error: errUp } = await client.storage.from('nota grn').upload(fileName, file);
+                if (errUp) throw new Error("Gagal Upload Foto: " + errUp.message);
+
+                // B. AMBIL STOK + HARGA LAMA
+                const hargaNota = Number(document.getElementById(`harga-${id}`).value || 0);
+                if (hargaNota <= 0) return alert("Harga nota wajib diisi!");
+
+                const { data: cur, error: errGet } = await client
+                    .from('master_stok')
+                    .select('total_stok, harga_estimasi')
+                    .eq('id', bId)
+                    .single();
+                if (errGet) throw new Error("Material (ID: " + bId + ") tidak ditemukan di Master Stok.");
+
+                const stokLama = Number(cur.total_stok) || 0;
+                const hargaLama = Number(cur.harga_estimasi) || 0;
+
+                // C. UPDATE MASTER_STOK (stok + harga master)
+                const payloadUpdate = {
+                    total_stok: stokLama + qty,
+                    harga_estimasi: hargaNota,
+                    harga_updated_source: 'GRN',
+                    harga_updated_ref: noPO
+                };
+
+                const { error: errUpdateStok } = await client
+                    .from('master_stok')
+                    .update(payloadUpdate)
+                    .eq('id', bId);
+                if (errUpdateStok) throw errUpdateStok;
+
+                // C2. CATAT STOK HISTORY
                 const { error: errHist } = await client.from('stok_history').insert([{
                     barang_id: bId,
                     jenis_transaksi: 'TERIMA GRN',
                     jumlah: qty,
-                    keterangan: `${activeProject}: ${nomorPO} | Nota: ${fileName}`
+                    keterangan: `${activeProject}: ${noPO} | Nota: ${fileName}`
                 }]);
-                if (errHist) throw new Error("Gagal insert stok_history: " + errHist.message);
+                if (errHist) throw errHist;
 
-                await client.from('purchase_order').update({
-                    status: 'DITERIMA',
-                    harga_satuan: harga,
-                    keterangan: `Nota: ${fileName} | ${fileUrl}`
-                }).eq('id', poId);
+                // D. UPDATE STATUS PO
+                await client.from('purchase_order').update({ status: 'DITERIMA' }).eq('id', id);
 
-                rollbackLog.push({
-                    poId: poId,
-                    barangId: bId,
-                    qtyAdded: qty,
-                    fileName: fileName
-                });
-            });
+                alert("✅ BERHASIL!\nBarang diterima dan stok gudang telah ditambahkan.");
+                loadOpenPO();
 
-            await Promise.all(updates);
-
-            if (isTestMode) {
-                btnUpdate.innerHTML = `<i class="fas fa-check"></i> Data Masuk!`;
-                await new Promise(r => setTimeout(r, 500));
-
-                const userChoice = confirm(
-                    `✅ DATA SUDAH MASUK DATABASE!\n\n` +
-                    `Stok material sudah bertambah & Tagihan muncul.\n\n` +
-                    `SILAKAN CEK TAB LAIN SEKARANG.\n` +
-                    `Jangan tutup popup ini jika ingin membatalkan.\n\n` +
-                    `❓ PILIH TINDAKAN:\n` +
-                    `[OK] = ROLLBACK (Hapus data & kembalikan stok awal)\n` +
-                    `[Cancel] = BIARKAN (Simpan data permanen)`
-                );
-
-                if (userChoice) {
-                    btnUpdate.innerHTML = `<i class="fas fa-undo fa-spin"></i> Reverting...`;
-                    const rollbacks = rollbackLog.map(async (log) => {
-                        const { data: curStok } = await client.from('master_stok').select('total_stok').eq('id', log.barangId).single();
-                        const stokSekarang = curStok ? curStok.total_stok : 0;
-
-                        await client.from('master_stok').update({
-                            total_stok: stokSekarang - log.qtyAdded,
-                            harga_updated_source: 'ROLLBACK_TEST'
-                        }).eq('id', log.barangId);
-
-                        await client.from('purchase_order').update({
-                            status: 'OPEN',
-                            keterangan: null
-                        }).eq('id', log.poId);
-
-                        await client.storage.from('nota grn').remove([log.fileName]);
-                    });
-
-                    await Promise.all(rollbacks);
-                    alert("🔄 ROLLBACK BERHASIL!\nSistem kembali bersih.");
-                    loadOpenPO();
-                    return;
-                } else {
-                    alert("💾 Data Test disimpan permanen.");
-                }
+            } catch (e) {
+                alert("❌ GAGAL: " + e.message);
+                btn.disabled = false;
+                btn.innerHTML = `Konfirmasi Terima Barang`;
             }
-
-            if (!isTestMode) alert("✅ SUKSES!\nStok telah bertambah dan tagihan tercatat.");
-            loadOpenPO();
-
-        } catch (e) {
-            console.error(e);
-            alert("❌ TERJADI KESALAHAN: " + e.message);
-            btnUpdate.disabled = false;
-            btnUpdate.innerHTML = `<i class="fas fa-save"></i> UPDATE (Proses Stock & Tagihan)`;
-        }
-    }
-
-    async function batalSatuPO(nomorPO) {
-        const alasan = prompt(`⚠️ KONFIRMASI PEMBATALAN\n\nAnda akan membatalkan/menolak PO: ${nomorPO}.\nPO ini akan hilang dari halaman GRN.\n\nMasukkan alasan:`);
-        if (alasan === null) return;
-        if (!alasan.trim()) return alert("❌ Alasan wajib diisi!");
-        if (!confirm("Yakin ingin melanjutkan pembatalan?")) return;
-
-        try {
-            const { error } = await client
-                .from('purchase_order')
-                .update({
-                    status: 'CANCELLED',
-                    keterangan: `Ditolak di GRN oleh Gudang. Alasan: ${alasan}`
-                })
-                .eq('nomor_po', nomorPO);
-
-            if (error) throw error;
-            alert(`✅ PO ${nomorPO} berhasil dibatalkan.`);
-            loadOpenPO();
-
-        } catch (e) {
-            console.error(e);
-            alert("❌ Gagal membatalkan: " + e.message);
-        }
-    }
-
-    async function prosesGRN(id, noPO, bId) {
-        if (!bId || bId === 0) {
-            alert("❌ ERROR: ID Material tidak ditemukan pada PO ini. Hubungi Admin.");
-            return;
         }
 
-        const btn = event.currentTarget;
-        const qty = Number(document.getElementById(`qty-${id}`).value);
-        const fileInput = document.getElementById(`nota-${id}`);
+        async function batalPO(id, noPO) {
+            const alasan = prompt(`⚠️ BATALKAN PO ${noPO}?\nMasukkan alasan pembatalan:`);
+            if (alasan === null) return;
+            if (alasan.trim() === "") return alert("Alasan pembatalan wajib diisi!");
+            if (!confirm(`Apakah Anda yakin ingin menghapus PO ${noPO} dari antrean GRN?`)) return;
 
-        if(qty <= 0) return alert("Jumlah fisik tidak boleh 0!");
-        if(fileInput.files.length === 0) return alert("Wajib upload foto nota!");
+            try {
+                const { error } = await client
+                    .from('purchase_order')
+                    .update({
+                        status: 'CANCELLED',
+                        keterangan: `BATAL DI GRN: ${alasan.trim()}`
+                    })
+                    .eq('id', id);
 
-        if(!confirm(`Konfirmasi penerimaan ${qty} unit?`)) return;
+                if (error) throw error;
 
-        btn.disabled = true;
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
+                alert(`✅ PO ${noPO} telah berhasil dibatalkan.`);
+                loadOpenPO();
 
-        try {
-            // A. UPLOAD FOTO
-            const file = fileInput.files[0];
-            const fileName = `Nota_PO_${noPO}_${Date.now()}.jpg`;
-            const { error: errUp } = await client.storage.from('nota grn').upload(fileName, file);
-            if(errUp) throw new Error("Gagal Upload Foto: " + errUp.message);
-
-            // B. AMBIL STOK + HARGA LAMA
-            const hargaNota = Number(document.getElementById(`harga-${id}`).value || 0);
-            if (hargaNota <= 0) return alert("Harga nota wajib diisi!");
-
-            const { data: cur, error: errGet } = await client
-                .from('master_stok')
-                .select('total_stok, harga_estimasi')
-                .eq('id', bId)
-                .single();
-            if (errGet) throw new Error("Material (ID: " + bId + ") tidak ditemukan di Master Stok.");
-
-            const stokLama = Number(cur.total_stok) || 0;
-            const hargaLama = Number(cur.harga_estimasi) || 0;
-
-            // C. UPDATE MASTER_STOK (stok + harga master)
-            const payloadUpdate = {
-                total_stok: stokLama + qty,
-                harga_estimasi: hargaNota,
-                harga_updated_source: 'GRN',
-                harga_updated_ref: noPO
-            };
-
-            const { error: errUpdateStok } = await client
-                .from('master_stok')
-                .update(payloadUpdate)
-                .eq('id', bId);
-            if (errUpdateStok) throw errUpdateStok;
-
-            // C2. CATAT STOK HISTORY
-            const { error: errHist } = await client.from('stok_history').insert([{
-                barang_id: bId,
-                jenis_transaksi: 'TERIMA GRN',
-                jumlah: qty,
-                keterangan: `${activeProject}: ${noPO} | Nota: ${fileName}`
-            }]);
-            if (errHist) throw errHist;
-
-            // D. UPDATE STATUS PO
-            await client.from('purchase_order').update({ status: 'DITERIMA' }).eq('id', id);
-
-            alert("✅ BERHASIL!\nBarang diterima dan stok gudang telah ditambahkan.");
-            loadOpenPO();
-
-        } catch (e) {
-            alert("❌ GAGAL: " + e.message);
-            btn.disabled = false;
-            btn.innerHTML = `Konfirmasi Terima Barang`;
+            } catch (e) {
+                alert("❌ Gagal membatalkan PO: " + e.message);
+            }
         }
-    }
 
-    async function batalPO(id, noPO) {
-        const alasan = prompt(`⚠️ BATALKAN PO ${noPO}?\nMasukkan alasan pembatalan:`);
-        if (alasan === null) return;
-        if (alasan.trim() === "") return alert("Alasan pembatalan wajib diisi!");
-        if (!confirm(`Apakah Anda yakin ingin menghapus PO ${noPO} dari antrean GRN?`)) return;
-
-        try {
-            const { error } = await client
-                .from('purchase_order')
-                .update({
-                    status: 'CANCELLED',
-                    keterangan: `BATAL DI GRN: ${alasan.trim()}`
-                })
-                .eq('id', id);
-
-            if (error) throw error;
-
-            alert(`✅ PO ${noPO} telah berhasil dibatalkan.`);
-            loadOpenPO();
-
-        } catch (e) {
-            alert("❌ Gagal membatalkan PO: " + e.message);
-        }
-    }
-
-    loadOpenPO();
-  </script>
+        loadOpenPO();
+    </script>
 </body>
+
 </html>

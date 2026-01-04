@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,6 +22,7 @@
     }
   </style>
 </head>
+
 <body class="bg-gray-100 font-sans text-gray-800 p-6">
 
   <div class="max-w-4xl mx-auto mb-6 flex justify-between items-center">
@@ -29,12 +31,14 @@
       <p class="text-sm text-gray-500">Buat daftar permintaan material ke Gudang</p>
     </div>
     <div class="space-x-3">
-        <a href="stok_proyek.html" class="bg-white text-indigo-600 px-4 py-2 rounded shadow font-bold text-sm hover:bg-gray-50">
-            <i class="fas fa-boxes mr-1"></i> Cek Stok
-        </a>
-        <a href="dashboard_operasional.html" class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold text-sm hover:bg-gray-700">
-            <i class="fas fa-home mr-1"></i> Dashboard
-        </a>
+      <a href="stok_proyek.html"
+        class="bg-white text-indigo-600 px-4 py-2 rounded shadow font-bold text-sm hover:bg-gray-50">
+        <i class="fas fa-boxes mr-1"></i> Cek Stok
+      </a>
+      <a href="dashboard_operasional.html"
+        class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold text-sm hover:bg-gray-700">
+        <i class="fas fa-home mr-1"></i> Dashboard
+      </a>
     </div>
   </div>
 
@@ -43,58 +47,73 @@
     <div class="md:col-span-1">
       <div class="bg-white p-5 rounded-lg shadow sticky top-6">
         <h2 class="font-bold text-gray-700 border-b pb-2 mb-4">1. Masukkan Item</h2>
-        
+
         <div class="mb-4">
-            <label class="block text-xs font-bold text-gray-600 mb-1">Nama Anda (Staff)</label>
-            <input type="text" id="pengorder" class="w-full border p-2 rounded bg-indigo-50 focus:ring-2 focus:ring-indigo-300" placeholder="Cth: Budi (Lapangan)">
+          <label class="block text-xs font-bold text-gray-600 mb-1">Nama Anda (Staff)</label>
+          <input type="text" id="pengorder"
+            class="w-full border p-2 rounded bg-indigo-50 focus:ring-2 focus:ring-indigo-300"
+            placeholder="Cth: Budi (Lapangan)">
         </div>
 
         <hr class="border-gray-200 mb-4">
 
         <form id="formTambahItem" class="space-y-3">
-            
-            <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">Pilih Material</label>
-                <select id="pilihBarang" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-300" onchange="cekPilihan()">
-                    <option value="">-- Memuat Data... --</option>
-                </select>
-                <p id="infoStok" class="text-[11px] text-right font-bold mt-1 text-gray-400 min-h-[1.5em] transition-colors duration-300">
-                    -
-                </p>
-            </div>
 
-            <div id="panelBaru" class="hidden bg-orange-50 p-3 rounded border border-orange-200 text-sm space-y-2">
-                <p class="text-[10px] font-bold text-orange-600 uppercase">✨ Input Material Baru</p>
-                <input type="text" id="namaBaru" class="w-full border p-2 rounded text-xs" placeholder="Nama Barang...">
-                <select id="satuanBaru" class="w-full border p-2 rounded text-xs bg-white">
-                    <option value="Pcs">Pcs</option><option value="Unit">Unit</option><option value="Kg">Kg</option>
-                    <option value="Sak">Sak</option><option value="Meter">Meter</option><option value="Batang">Batang</option>
-                    <option value="Lembar">Lembar</option><option value="Box">Box</option><option value="Set">Set</option>
-                </select>
-            </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1">Pilih Material</label>
+            <select id="pilihBarang" class="w-full border p-2 rounded focus:ring-2 focus:ring-indigo-300"
+              onchange="cekPilihan()">
+              <option value="">-- Memuat Data... --</option>
+            </select>
+            <p id="infoStok"
+              class="text-[11px] text-right font-bold mt-1 text-gray-400 min-h-[1.5em] transition-colors duration-300">
+              -
+            </p>
+          </div>
 
-            <div class="flex gap-2">
-                <div class="w-2/3">
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Jumlah</label>
-                    <input type="number" id="jumlah" class="w-full border p-2 rounded" placeholder="0">
-                </div>
-                <div class="w-1/3">
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Satuan</label>
-                    <input type="text" id="satuanDisplay" class="w-full border p-2 rounded bg-gray-100 text-gray-500 text-xs" readonly>
-                </div>
-            </div>
+          <div id="panelBaru" class="hidden bg-orange-50 p-3 rounded border border-orange-200 text-sm space-y-2">
+            <p class="text-[10px] font-bold text-orange-600 uppercase">✨ Input Material Baru</p>
+            <input type="text" id="namaBaru" class="w-full border p-2 rounded text-xs" placeholder="Nama Barang...">
+            <select id="satuanBaru" class="w-full border p-2 rounded text-xs bg-white">
+              <option value="Pcs">Pcs</option>
+              <option value="Unit">Unit</option>
+              <option value="Kg">Kg</option>
+              <option value="Sak">Sak</option>
+              <option value="Meter">Meter</option>
+              <option value="Batang">Batang</option>
+              <option value="Lembar">Lembar</option>
+              <option value="Box">Box</option>
+              <option value="Set">Set</option>
+            </select>
+          </div>
 
-            <div>
-                <label class="block text-xs font-bold text-blue-800 mb-1">Untuk Proyek / Lokasi (Bisa Pilih Banyak)</label>
-                <select id="pilihProyek" multiple class="w-full border p-2 rounded bg-blue-50 focus:ring-2 focus:ring-blue-300 font-semibold text-blue-900 text-sm" placeholder="Pilih satu atau lebih proyek...">
-                    <option value="">-- Pilih Proyek Tujuan --</option>
-                </select>
-                <p class="text-[10px] text-gray-400 mt-1 italic">*Material ini akan dialokasikan untuk lokasi yang dipilih.</p>
+          <div class="flex gap-2">
+            <div class="w-2/3">
+              <label class="block text-xs font-bold text-gray-600 mb-1">Jumlah</label>
+              <input type="number" id="jumlah" class="w-full border p-2 rounded" placeholder="0">
             </div>
+            <div class="w-1/3">
+              <label class="block text-xs font-bold text-gray-600 mb-1">Satuan</label>
+              <input type="text" id="satuanDisplay" class="w-full border p-2 rounded bg-gray-100 text-gray-500 text-xs"
+                readonly>
+            </div>
+          </div>
 
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded shadow flex justify-center items-center gap-2 mt-4">
-                <i class="fas fa-plus-circle"></i> Tambah ke Daftar
-            </button>
+          <div>
+            <label class="block text-xs font-bold text-blue-800 mb-1">Untuk Proyek / Lokasi (Bisa Pilih Banyak)</label>
+            <select id="pilihProyek" multiple
+              class="w-full border p-2 rounded bg-blue-50 focus:ring-2 focus:ring-blue-300 font-semibold text-blue-900 text-sm"
+              placeholder="Pilih satu atau lebih proyek...">
+              <option value="">-- Pilih Proyek Tujuan --</option>
+            </select>
+            <p class="text-[10px] text-gray-400 mt-1 italic">*Material ini akan dialokasikan untuk lokasi yang dipilih.
+            </p>
+          </div>
+
+          <button type="submit"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded shadow flex justify-center items-center gap-2 mt-4">
+            <i class="fas fa-plus-circle"></i> Tambah ke Daftar
+          </button>
         </form>
       </div>
     </div>
@@ -102,29 +121,34 @@
     <div class="md:col-span-2">
       <div class="bg-white rounded-lg shadow overflow-hidden min-h-[400px] flex flex-col">
         <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
-            <h2 class="font-bold text-gray-700">2. Daftar Permintaan (Keranjang)</h2>
-            <span id="badgeCount" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded-full">0 Item</span>
+          <h2 class="font-bold text-gray-700">2. Daftar Permintaan (Keranjang)</h2>
+          <span id="badgeCount" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded-full">0
+            Item</span>
         </div>
 
         <div class="flex-grow overflow-auto p-0">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-gray-100 text-gray-500 font-bold text-xs uppercase">
-                    <tr>
-                        <th class="p-3">Nama Barang / Proyek</th>
-                        <th class="p-3 w-24 text-center">Jumlah</th>
-                        <th class="p-3 w-16 text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelKeranjang" class="divide-y divide-gray-100">
-                    <tr><td colspan="3" class="p-8 text-center text-gray-400 italic">Belum ada item ditambahkan.</td></tr>
-                </tbody>
-            </table>
+          <table class="w-full text-left text-sm">
+            <thead class="bg-gray-100 text-gray-500 font-bold text-xs uppercase">
+              <tr>
+                <th class="p-3">Nama Barang / Proyek</th>
+                <th class="p-3 w-24 text-center">Jumlah</th>
+                <th class="p-3 w-16 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelKeranjang" class="divide-y divide-gray-100">
+              <tr>
+                <td colspan="3" class="p-8 text-center text-gray-400 italic">Belum ada item ditambahkan.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <div class="p-4 bg-gray-50 border-t">
-            <button onclick="kirimSemua()" id="btnKirim" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow-lg text-lg flex justify-center items-center gap-2 opacity-50 cursor-not-allowed" disabled>
-                <i class="fas fa-paper-plane"></i> KIRIM SEMUA PERMINTAAN
-            </button>
+          <button onclick="kirimSemua()" id="btnKirim"
+            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow-lg text-lg flex justify-center items-center gap-2 opacity-50 cursor-not-allowed"
+            disabled>
+            <i class="fas fa-paper-plane"></i> KIRIM SEMUA PERMINTAAN
+          </button>
         </div>
       </div>
     </div>
@@ -134,9 +158,9 @@
   <div class="max-w-4xl mx-auto mt-8">
     <h3 class="font-bold text-gray-600 mb-2 border-l-4 border-orange-400 pl-2">Antrian Request (Menunggu PO)</h3>
     <div class="bg-white rounded shadow overflow-hidden">
-        <ul id="listReqDB" class="divide-y text-sm">
-            <li class="p-4 text-center text-gray-400">Memuat data...</li>
-        </ul>
+      <ul id="listReqDB" class="divide-y text-sm">
+        <li class="p-4 text-center text-gray-400">Memuat data...</li>
+      </ul>
     </div>
   </div>
 
@@ -147,9 +171,20 @@
 
     // --- INIT ---
     async function init() {
-        await loadMaterial();
-        await loadDestinasiProyek();
-        loadRequestDB();
+      // Auto-fill Nama Staff dari Session
+      const session = PNAuth.getSession();
+      if (session && session.user) {
+        const inputPengorder = document.getElementById("pengorder");
+        if (inputPengorder) {
+          inputPengorder.value = session.user.full_name;
+          inputPengorder.readOnly = true; // Lock agar tidak bisa diubah sembarangan
+          inputPengorder.classList.add("bg-gray-100", "cursor-not-allowed");
+        }
+      }
+
+      await loadMaterial();
+      await loadDestinasiProyek();
+      loadRequestDB();
     }
 
     // 1. LOAD DATA MATERIAL (Update: Ambil total_stok)
@@ -157,18 +192,18 @@
       const select = document.getElementById("pilihBarang");
       // Ambil kolom total_stok juga
       const { data } = await client.from('master_stok').select('nama_barang, satuan, total_stok').eq('nama_proyek', activeProject).order('nama_barang');
-      
+
       select.innerHTML = '<option value="">-- Pilih Material --</option>';
-      if(data) {
-          data.forEach(item => {
-            const opt = document.createElement('option');
-            opt.value = item.nama_barang;
-            opt.setAttribute('data-satuan', item.satuan);
-            // Simpan stok di atribut data-stok
-            opt.setAttribute('data-stok', item.total_stok || 0); 
-            opt.text = item.nama_barang;
-            select.appendChild(opt);
-          });
+      if (data) {
+        data.forEach(item => {
+          const opt = document.createElement('option');
+          opt.value = item.nama_barang;
+          opt.setAttribute('data-satuan', item.satuan);
+          // Simpan stok di atribut data-stok
+          opt.setAttribute('data-stok', item.total_stok || 0);
+          opt.text = item.nama_barang;
+          select.appendChild(opt);
+        });
       }
       const optBaru = document.createElement('option');
       optBaru.value = "BARU";
@@ -234,7 +269,7 @@
       const panelBaru = document.getElementById("panelBaru");
       const satuanDisplay = document.getElementById("satuanDisplay");
       const infoStok = document.getElementById("infoStok");
-      
+
       // Reset Tampilan Stok
       infoStok.innerText = "";
       infoStok.className = "text-[11px] text-right font-bold mt-1 text-gray-400 transition-colors duration-300";
@@ -243,7 +278,7 @@
         panelBaru.classList.remove("hidden");
         satuanDisplay.value = document.getElementById("satuanBaru").value;
         document.getElementById("namaBaru").focus();
-        document.getElementById("satuanBaru").onchange = function() { satuanDisplay.value = this.value; }
+        document.getElementById("satuanBaru").onchange = function () { satuanDisplay.value = this.value; }
         infoStok.innerText = "Stok Awal: 0 (Barang Baru)";
         infoStok.classList.add("text-orange-500");
 
@@ -256,20 +291,20 @@
         panelBaru.classList.add("hidden");
         const satuan = select.options[select.selectedIndex].getAttribute('data-satuan');
         const stok = parseFloat(select.options[select.selectedIndex].getAttribute('data-stok'));
-        
+
         satuanDisplay.value = satuan;
-        
+
         // Update Teks Stok
         infoStok.innerText = `Sisa Stok Gudang: ${stok} ${satuan}`;
-        
+
         // Ubah Warna jika stok habis
         if (stok > 0) {
-            infoStok.classList.remove("text-gray-400", "text-red-600");
-            infoStok.classList.add("text-green-600");
+          infoStok.classList.remove("text-gray-400", "text-red-600");
+          infoStok.classList.add("text-green-600");
         } else {
-            infoStok.classList.remove("text-gray-400", "text-green-600");
-            infoStok.classList.add("text-red-600");
-            infoStok.innerText += " (Habis)";
+          infoStok.classList.remove("text-gray-400", "text-green-600");
+          infoStok.classList.add("text-red-600");
+          infoStok.innerText += " (Habis)";
         }
       }
     }
@@ -277,7 +312,7 @@
     // 4. TAMBAH KE KERANJANG
     document.getElementById("formTambahItem").addEventListener("submit", (e) => {
       e.preventDefault();
-      
+
       const mode = document.getElementById("pilihBarang").value;
       const jumlah = parseFloat(document.getElementById("jumlah").value);
       const elProyek = document.getElementById("pilihProyek");
@@ -297,7 +332,7 @@
       }
 
       const proyekTarget = selectedProyek.join(", ");
-      
+
       if (!mode) { alert("Pilih material dulu!"); return; }
       if (isNaN(jumlah) || jumlah <= 0) { alert("Jumlah harus lebih dari 0!"); return; }
 
@@ -308,22 +343,22 @@
       const proyekNama = proyekTarget;
       let item = {};
       if (mode === "BARU") {
-         const satuanBaru = document.getElementById("satuanBaru").value;
-         item = { 
-             nama: namaBaru, 
-             jumlah, 
-             satuan: satuanBaru, 
-             proyek: proyekNama, 
-             isNew: true 
-         };
+        const satuanBaru = document.getElementById("satuanBaru").value;
+        item = {
+          nama: namaBaru,
+          jumlah,
+          satuan: satuanBaru,
+          proyek: proyekNama,
+          isNew: true
+        };
       } else {
-         item = { 
-             nama: mode, 
-             jumlah, 
-             satuan: satuanDisplay, 
-             proyek: proyekNama, 
-             isNew: false 
-         };
+        item = {
+          nama: mode,
+          jumlah,
+          satuan: satuanDisplay,
+          proyek: proyekNama,
+          isNew: false
+        };
       }
       keranjang.push(item);
 
@@ -342,25 +377,25 @@
 
     // 5. RENDER KERANJANG
     function renderKeranjang() {
-        const tbody = document.getElementById("tabelKeranjang");
-        const btnKirim = document.getElementById("btnKirim");
-        document.getElementById("badgeCount").innerText = keranjang.length + " Item";
+      const tbody = document.getElementById("tabelKeranjang");
+      const btnKirim = document.getElementById("btnKirim");
+      document.getElementById("badgeCount").innerText = keranjang.length + " Item";
 
-        tbody.innerHTML = "";
-        if(keranjang.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-gray-400 italic">Belum ada item ditambahkan.</td></tr>`;
-            btnKirim.disabled = true;
-            btnKirim.classList.add("opacity-50", "cursor-not-allowed");
-            return;
-        }
+      tbody.innerHTML = "";
+      if (keranjang.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-gray-400 italic">Belum ada item ditambahkan.</td></tr>`;
+        btnKirim.disabled = true;
+        btnKirim.classList.add("opacity-50", "cursor-not-allowed");
+        return;
+      }
 
-        btnKirim.disabled = false;
-        btnKirim.classList.remove("opacity-50", "cursor-not-allowed");
+      btnKirim.disabled = false;
+      btnKirim.classList.remove("opacity-50", "cursor-not-allowed");
 
-        keranjang.forEach((item, index) => {
-            const badgeNew = item.isNew ? '<span class="text-[10px] bg-orange-100 text-orange-600 px-1 rounded border border-orange-200 ml-1">BARU</span>' : '';
-            
-            tbody.innerHTML += `
+      keranjang.forEach((item, index) => {
+        const badgeNew = item.isNew ? '<span class="text-[10px] bg-orange-100 text-orange-600 px-1 rounded border border-orange-200 ml-1">BARU</span>' : '';
+
+        tbody.innerHTML += `
                 <tr class="hover:bg-indigo-50 border-b border-gray-100">
                     <td class="p-3">
                         <div class="font-bold text-gray-700">${item.nama} ${badgeNew}</div>
@@ -374,54 +409,54 @@
                     </td>
                 </tr>
             `;
-        });
+      });
     }
 
     function hapusItem(index) { keranjang.splice(index, 1); renderKeranjang(); }
 
     // 6. KIRIM KE DATABASE
     async function kirimSemua() {
-        const pengorder = document.getElementById("pengorder").value.trim();
-        if(!pengorder) { alert("Isi Nama Anda (Staff)!"); document.getElementById("pengorder").focus(); return; }
-        if(!confirm(`Kirim permintaan untuk ${keranjang.length} item?`)) return;
+      const pengorder = document.getElementById("pengorder").value.trim();
+      if (!pengorder) { alert("Isi Nama Anda (Staff)!"); document.getElementById("pengorder").focus(); return; }
+      if (!confirm(`Kirim permintaan untuk ${keranjang.length} item?`)) return;
 
-        const btn = document.getElementById("btnKirim");
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`; btn.disabled = true;
+      const btn = document.getElementById("btnKirim");
+      btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`; btn.disabled = true;
 
-        try {
-            // A. Insert Master Baru
-            const itemsBaru = keranjang.filter(i => i.isNew);
-            const uniqueNew = [...new Map(itemsBaru.map(item => [item.nama, item])).values()];
-            if(uniqueNew.length > 0) {
-                const payloadM = uniqueNew.map(i => ({ nama_barang: i.nama, satuan: i.satuan, total_stok: 0 }));
-                const { error: errM } = await client.from('master_stok').insert(payloadM);
-                if(errM && errM.code !== '23505') throw new Error("Gagal Master: " + errM.message);
-            }
-
-            // B. Insert Request
-            const payloadReq = keranjang.map(i => ({
-                nama_barang: i.nama,
-                jumlah: i.jumlah,
-                satuan: i.satuan,
-                pengorder: pengorder,
-                status: 'PENDING',
-                nama_proyek: i.proyek
-            }));
-
-            const { error: errReq } = await client.from('inventory_req').insert(payloadReq);
-            if(errReq) throw new Error(errReq.message);
-
-            alert("✅ Berhasil dikirim!");
-            keranjang = []; 
-            renderKeranjang();
-            loadRequestDB();
-            loadMaterial(); 
-            
-        } catch (err) {
-            alert("Error: " + err.message);
-        } finally {
-            btn.innerHTML = `<i class="fas fa-paper-plane"></i> KIRIM SEMUA PERMINTAAN`;
+      try {
+        // A. Insert Master Baru
+        const itemsBaru = keranjang.filter(i => i.isNew);
+        const uniqueNew = [...new Map(itemsBaru.map(item => [item.nama, item])).values()];
+        if (uniqueNew.length > 0) {
+          const payloadM = uniqueNew.map(i => ({ nama_barang: i.nama, satuan: i.satuan, total_stok: 0 }));
+          const { error: errM } = await client.from('master_stok').insert(payloadM);
+          if (errM && errM.code !== '23505') throw new Error("Gagal Master: " + errM.message);
         }
+
+        // B. Insert Request
+        const payloadReq = keranjang.map(i => ({
+          nama_barang: i.nama,
+          jumlah: i.jumlah,
+          satuan: i.satuan,
+          pengorder: pengorder,
+          status: 'PENDING',
+          nama_proyek: i.proyek
+        }));
+
+        const { error: errReq } = await client.from('inventory_req').insert(payloadReq);
+        if (errReq) throw new Error(errReq.message);
+
+        alert("✅ Berhasil dikirim!");
+        keranjang = [];
+        renderKeranjang();
+        loadRequestDB();
+        loadMaterial();
+
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.innerHTML = `<i class="fas fa-paper-plane"></i> KIRIM SEMUA PERMINTAAN`;
+      }
     }
 
     // 7. LIST RIWAYAT
@@ -429,10 +464,10 @@
       const { data } = await client.from('inventory_req').select('*').eq('status', 'PENDING').eq('nama_proyek', activeProject).order('created_at', { ascending: false });
       const ul = document.getElementById("listReqDB");
       ul.innerHTML = "";
-      if(data && data.length > 0) {
-          data.forEach(d => {
-              const proyekLabel = d.nama_proyek ? `<span class="bg-blue-100 text-blue-800 text-[10px] px-1 rounded ml-1">${d.nama_proyek}</span>` : '';
-              ul.innerHTML += `
+      if (data && data.length > 0) {
+        data.forEach(d => {
+          const proyekLabel = d.nama_proyek ? `<span class="bg-blue-100 text-blue-800 text-[10px] px-1 rounded ml-1">${d.nama_proyek}</span>` : '';
+          ul.innerHTML += `
                 <li class="p-3 flex justify-between items-center hover:bg-gray-50">
                     <div>
                         <div class="font-bold text-gray-800 flex items-center">${d.nama_barang} ${proyekLabel}</div>
@@ -440,13 +475,14 @@
                     </div>
                     <span class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-bold">Pending</span>
                 </li>`;
-          });
+        });
       } else {
-          ul.innerHTML = `<li class="p-4 text-center text-gray-400">Tidak ada antrian.</li>`;
+        ul.innerHTML = `<li class="p-4 text-center text-gray-400">Tidak ada antrian.</li>`;
       }
     }
 
     init();
   </script>
 </body>
+
 </html>

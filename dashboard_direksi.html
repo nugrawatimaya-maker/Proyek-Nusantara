@@ -419,9 +419,16 @@
         }
 
         async function approveGeneric(queueId, sourceTable, sourceId) {
-            // Update Source Table (misal: purchase_order, purchase_request, dll)
+            // Tentukan status target berdasarkan tabel
+            // Default: 'APPROVED', tapi untuk proyek kita pakai 'BERJALAN'
+            let targetStatus = 'APPROVED';
+            if (sourceTable === 'master_proyek') {
+                targetStatus = 'BERJALAN';
+            }
+
+            // Update Source Table 
             // Pastikan tabel target memiliki kolom 'status'
-            const { error: errSource } = await client.from(sourceTable).update({ status: 'APPROVED' }).eq('id', sourceId);
+            const { error: errSource } = await client.from(sourceTable).update({ status: targetStatus }).eq('id', sourceId);
 
             // Jika sourceTable tidak punya kolom status, kita abaikan error tertentu atau handle khusus
             if (errSource) {

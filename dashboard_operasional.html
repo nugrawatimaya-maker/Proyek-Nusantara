@@ -12,6 +12,14 @@
   <script>
     // Check Auth: Operasional + Global Roles (Finance, Direksi, Superadmin)
     PNAuth.requireAuth(['operasional', 'finance', 'direksi', 'superadmin']);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const session = PNAuth.getSession();
+      if (session) {
+        document.getElementById('nav-user-name').innerText = session.user.full_name;
+        document.getElementById('nav-user-role').innerText = session.user.role;
+      }
+    });
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -56,20 +64,32 @@
           .eq('status', 'BERJALAN')
           .ilike('nama_proyek', `%${activeProject}%`);
 
+        // Update: Mengambil Pending Req dari tabel inventory_req
         const { count: countReq } = await client
-          .from('transaksi')
+          .from('inventory_req')
           .select('*', { count: 'exact', head: true })
-          .eq('jenis_transaksi', 'DRAFT_KELUAR');
+          .eq('status', 'PENDING')
+        // Asumsi tabel Inventory_req punya kolom nama_proyek (biasanya ada untuk filtering)
+        // Jika tidak ada, mungkin perlu join. Tapi untuk sekarang kita filter apa adanya.
+        // Cek inventory.html, dia insert 'nama_proyek'?
+        // Ternyata inventory_req biasanya punya relasi ke master_stok atau user.
+        // Tapi activeProject session disimpan di localStorage.
+        // Kita filter by 'nama_proyek' jika ada.
+        // Jika ragu, kita skip filter proyek untuk Req dulu TAPI purchase_order punya 'nama_proyek'.
+        // Cek inventory_grn.html -> ambil purchase_order WHERE nama_proyek = activeProject.
+        // Jadi PO support.
 
         const { count: countPO } = await client
           .from('purchase_order')
           .select('*', { count: 'exact', head: true })
-          .eq('status', 'OPEN');
+          .eq('status', 'APPROVED') // Update: Gudang melihat APPROVED, bukan OPEN lagi
+          .eq('nama_proyek', activeProject);
 
         const { count: countStok } = await client
           .from('master_stok')
           .select('*', { count: 'exact', head: true })
-          .lte('total_stok', 5);
+          .lt('total_stok', 5)
+          .eq('nama_proyek', activeProject);
 
         animateValue('statProyek', countProyek || 1);
         animateValue('statReq', countReq || 0);
@@ -108,14 +128,23 @@
     </div>
 
     <div class="flex items-center gap-3">
+      <a href="index.html"
+        class="w-10 h-10 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center hover:bg-slate-200 transition"
+        title="Home">
+        <i class="fas fa-home"></i>
+      </a>
       <div class="text-right hidden md:block">
-        <p class="text-sm font-bold text-slate-700">Staff Ops</p>
-        <p class="text-[10px] text-emerald-500 font-bold bg-emerald-50 px-2 rounded-full inline-block">ONLINE</p>
+        <p class="text-sm font-bold text-slate-700" id="nav-user-name">User</p>
+        <p class="text-[10px] text-emerald-500 font-bold bg-emerald-50 px-2 rounded-full inline-block uppercase"
+          id="nav-user-role">Role</p>
       </div>
       <div
         class="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg">
         <i class="fas fa-hard-hat"></i>
       </div>
+      <button onclick="PNAuth.logout()" class="text-slate-400 hover:text-red-500 ml-2" title="Logout">
+        <i class="fas fa-power-off"></i>
+      </button>
     </div>
   </header>
 

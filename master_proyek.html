@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8" />
   <title>Master Data Proyek</title>
@@ -8,37 +9,46 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-gray-100 font-sans text-gray-800 p-6 min-h-screen pb-96">
 
   <div class="max-w-7xl mx-auto mb-6 flex justify-between items-center">
     <div>
-      <h1 class="text-3xl font-bold text-gray-800"><i class="fas fa-city text-blue-600 mr-2"></i>Daftar Proyek & RAB</h1>
+      <h1 class="text-3xl font-bold text-gray-800"><i class="fas fa-city text-blue-600 mr-2"></i>Daftar Proyek & RAB
+      </h1>
       <p class="text-gray-500">Monitoring Budget (RAB) vs Realisasi Lapangan</p>
     </div>
-    <a href="stok_proyek.html" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
+    <a href="stok_proyek.html"
+      class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2">
       <i class="fas fa-arrow-left"></i> Kembali ke Gudang
     </a>
   </div>
 
   <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-    
+
     <div class="lg:col-span-1">
       <div class="bg-white p-6 rounded-lg shadow-lg sticky top-6">
         <h2 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">➕ Proyek Baru</h2>
-        
+
         <form id="formProyek" class="space-y-4">
-          
+
           <div>
             <label class="block text-xs font-bold text-gray-600 mb-1">Pilih Kavling / Nama Proyek</label>
-            <select id="pilihNamaProyek" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white font-bold text-gray-700" onchange="toggleInputManual()">
-                <option value="MANUAL" class="font-bold text-blue-600">➕ Input Nama Manual (Proyek Baru)</option>
-                <option disabled>----------------------------------</option>
-                <option disabled>Memuat daftar blok...</option>
+            <select id="pilihNamaProyek"
+              class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white font-bold text-gray-700"
+              onchange="toggleInputManual()">
+              <option value="MANUAL" class="font-bold text-blue-600">➕ Input Nama Manual (Proyek Baru)</option>
+              <option disabled>----------------------------------</option>
+              <option disabled>Memuat daftar blok...</option>
             </select>
 
-            <div id="manualInputPanel" class="hidden border border-blue-200 bg-blue-50 rounded mt-3 p-3 space-y-1 shadow-inner">
-              <label for="inputManualNama" class="text-[11px] font-semibold text-blue-800 uppercase tracking-wide">Nama Proyek Manual</label>
-              <input type="text" id="inputManualNama" class="w-full border border-blue-300 rounded p-2 bg-white font-bold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Contoh: Jalan Koridor Blok A dan B">
+            <div id="manualInputPanel"
+              class="hidden border border-blue-200 bg-blue-50 rounded mt-3 p-3 space-y-1 shadow-inner">
+              <label for="inputManualNama" class="text-[11px] font-semibold text-blue-800 uppercase tracking-wide">Nama
+                Proyek Manual</label>
+              <input type="text" id="inputManualNama"
+                class="w-full border border-blue-300 rounded p-2 bg-white font-bold text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Contoh: Jalan Koridor Blok A dan B">
               <p class="text-[10px] text-blue-700/70">Contoh: Jalan Koridor Blok A dan B</p>
             </div>
           </div>
@@ -52,40 +62,49 @@
               <option value="Renovasi">Renovasi</option>
               <option value="LAINNYA">-- Isi Kategori Lain --</option>
             </select>
-            <input type="text" id="kategoriLain" class="hidden w-full border p-2 rounded bg-blue-50 border-blue-300 text-blue-800 placeholder-blue-300" placeholder="Tulis kategori manual...">
+            <input type="text" id="kategoriLain"
+              class="hidden w-full border p-2 rounded bg-blue-50 border-blue-300 text-blue-800 placeholder-blue-300"
+              placeholder="Tulis kategori manual...">
           </div>
 
           <div id="boxUploadRAB" class="hidden bg-orange-50 p-3 rounded border border-orange-200">
-             <label class="block text-xs font-bold text-orange-800 mb-1">📂 Upload File RAB (Infrastruktur)</label>
-             <input type="file" id="fileRAB" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700">
-             <p class="text-[10px] text-gray-400 mt-1 italic">*Wajib untuk proyek infrastruktur</p>
+            <label class="block text-xs font-bold text-orange-800 mb-1">📂 Upload File RAB (Infrastruktur)</label>
+            <input type="file" id="fileRAB"
+              class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700">
+            <p class="text-[10px] text-gray-400 mt-1 italic">*Wajib untuk proyek infrastruktur</p>
           </div>
 
           <div class="grid grid-cols-1 gap-3">
-              <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">RAB Material</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-gray-500 font-bold">Rp</span>
-                  <input type="number" id="rabMaterial" class="w-full border p-2 pl-10 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0" value="0" required oninput="updateNilaiTotal()">
-                </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-600 mb-1">RAB Material</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2 text-gray-500 font-bold">Rp</span>
+                <input type="number" id="rabMaterial"
+                  class="w-full border p-2 pl-10 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0"
+                  value="0" required oninput="updateNilaiTotal()">
               </div>
+            </div>
 
-              <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">RAB Upah Tukang</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-gray-500 font-bold">Rp</span>
-                  <input type="number" id="rabUpahTukang" class="w-full border p-2 pl-10 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0" value="0" required oninput="updateNilaiTotal()">
-                </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-600 mb-1">RAB Upah Tukang</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2 text-gray-500 font-bold">Rp</span>
+                <input type="number" id="rabUpahTukang"
+                  class="w-full border p-2 pl-10 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="0"
+                  value="0" required oninput="updateNilaiTotal()">
               </div>
+            </div>
 
-              <div class="bg-blue-50 border border-blue-200 rounded p-3">
-                <label class="block text-xs font-bold text-blue-800 mb-1">Total Nilai Proyek (RAB)</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-2 text-blue-700 font-bold">Rp</span>
-                  <input type="number" id="nilaiProyek" class="w-full border p-2 pl-10 rounded outline-none bg-white font-bold text-blue-800" placeholder="0" value="0" readonly>
-                </div>
-                <div class="text-[11px] text-blue-700 mt-1 font-bold" id="nilaiTotalPreview">Rp 0</div>
+            <div class="bg-blue-50 border border-blue-200 rounded p-3">
+              <label class="block text-xs font-bold text-blue-800 mb-1">Total Nilai Proyek (RAB)</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2 text-blue-700 font-bold">Rp</span>
+                <input type="number" id="nilaiProyek"
+                  class="w-full border p-2 pl-10 rounded outline-none bg-white font-bold text-blue-800" placeholder="0"
+                  value="0" readonly>
               </div>
+              <div class="text-[11px] text-blue-700 mt-1 font-bold" id="nilaiTotalPreview">Rp 0</div>
+            </div>
           </div>
 
           <div>
@@ -93,7 +112,8 @@
             <input type="date" id="tglMulai" class="w-full border p-2 rounded" required>
           </div>
 
-          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded shadow transition">
+          <button type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded shadow transition">
             Simpan Proyek
           </button>
         </form>
@@ -101,48 +121,53 @@
     </div>
 
     <div class="lg:col-span-2">
-      <div class="bg-white rounded-lg shadow-lg border border-gray-200 flex flex-col h-[600px]"> 
+      <div class="bg-white rounded-lg shadow-lg border border-gray-200 flex flex-col h-[600px]">
         <div class="p-4 bg-slate-800 text-white flex justify-between items-center shadow-md z-20 rounded-t-lg shrink-0">
           <div class="flex items-center gap-2">
-             <i class="fas fa-list-ul text-blue-400"></i>
-             <h3 class="font-bold text-lg tracking-wide">Daftar Proyek Berjalan</h3>
+            <i class="fas fa-list-ul text-blue-400"></i>
+            <h3 class="font-bold text-lg tracking-wide">Daftar Proyek Berjalan</h3>
           </div>
-          <span class="text-xs bg-blue-500 text-white border border-blue-400 px-3 py-1 rounded-full font-bold shadow-sm" id="totalProyek">0 Proyek</span>
+          <span class="text-xs bg-blue-500 text-white border border-blue-400 px-3 py-1 rounded-full font-bold shadow-sm"
+            id="totalProyek">0 Proyek</span>
         </div>
-        
+
         <div class="grid grid-cols-2 gap-4 p-4 bg-blue-50/50 border-b border-gray-200 shrink-0">
-            <div class="bg-white p-3 rounded border border-blue-100 shadow-sm flex flex-col">
-                <span class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Total Nilai Proyek (RAB)</span>
-                <span class="text-xl font-bold text-blue-700 mt-1" id="grandTotalRAB">Rp 0</span>
-            </div>
-            <div class="bg-white p-3 rounded border border-orange-100 shadow-sm flex flex-col">
-                <span class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Total Realisasi (Act)</span>
-                <span class="text-xl font-bold text-orange-600 mt-1" id="grandTotalRealisasi">Rp 0</span>
-            </div>
+          <div class="bg-white p-3 rounded border border-blue-100 shadow-sm flex flex-col">
+            <span class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Total Nilai Proyek (RAB)</span>
+            <span class="text-xl font-bold text-blue-700 mt-1" id="grandTotalRAB">Rp 0</span>
+          </div>
+          <div class="bg-white p-3 rounded border border-orange-100 shadow-sm flex flex-col">
+            <span class="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Total Realisasi (Act)</span>
+            <span class="text-xl font-bold text-orange-600 mt-1" id="grandTotalRealisasi">Rp 0</span>
+          </div>
         </div>
-        
-        <div class="overflow-y-auto flex-grow bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+
+        <div
+          class="overflow-y-auto flex-grow bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <table class="w-full text-left text-sm relative">
-            
+
             <thead class="bg-gray-100 uppercase text-[10px] font-black text-gray-600 sticky top-0 z-10 shadow-sm">
-  <tr>
-    <th class="p-4 bg-gray-100">Unit / Proyek</th>
-    <th class="p-4 text-right bg-gray-100">RAB (Budget)</th>
-    <th class="p-4 text-right bg-red-50 text-red-700 border-x">Real: Upah</th>
-    <th class="p-4 text-right bg-red-50 text-red-700 border-x">Real: Mat</th>
-    <th class="p-4 text-center w-16 bg-gray-100">Aksi</th>
-  </tr>
-</thead>
+              <tr>
+                <th class="p-4 bg-gray-100">Unit / Proyek</th>
+                <th class="p-4 text-right bg-gray-100">RAB (Budget)</th>
+                <th class="p-4 text-right bg-red-50 text-red-700 border-x">Real: Upah</th>
+                <th class="p-4 text-right bg-red-50 text-red-700 border-x">Real: Mat</th>
+                <th class="p-4 text-center w-16 bg-gray-100">Aksi</th>
+              </tr>
+            </thead>
 
             <tbody id="tabelProyek" class="divide-y divide-gray-100 bg-white">
-              <tr><td colspan="5" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><br>Menghitung Realisasi...</td></tr>
+              <tr>
+                <td colspan="5" class="p-6 text-center text-gray-400"><i
+                    class="fas fa-spinner fa-spin text-2xl mb-2"></i><br>Menghitung Realisasi...</td>
+              </tr>
             </tbody>
           </table>
         </div>
 
         <div class="p-3 bg-blue-50/50 border-t text-[11px] text-gray-500 flex gap-2 items-start shrink-0 rounded-b-lg">
-            <i class="fas fa-info-circle mt-0.5 text-blue-400"></i>
-            <span>Scroll ke bawah untuk melihat proyek lainnya.</span>
+          <i class="fas fa-info-circle mt-0.5 text-blue-400"></i>
+          <span>Scroll ke bawah untuk melihat proyek lainnya.</span>
         </div>
       </div>
     </div>
@@ -151,18 +176,18 @@
 
   <script>
     async function catatLog(tipe, pesan, icon = 'fa-info-circle') {
-        const user = "Admin";
-        try {
-            const { error } = await client.from('activity_logs').insert([{
-                user_name: user,
-                tipe: tipe,
-                aktivitas: pesan,
-                icon: icon
-            }]);
-            if(error) console.error("Gagal mencatat log:", error);
-        } catch (e) {
-            console.error("Error Log:", e);
-        }
+      const user = "Admin";
+      try {
+        const { error } = await client.from('activity_logs').insert([{
+          user_name: user,
+          tipe: tipe,
+          aktivitas: pesan,
+          icon: icon
+        }]);
+        if (error) console.error("Gagal mencatat log:", error);
+      } catch (e) {
+        console.error("Error Log:", e);
+      }
     }
 
     // --- INISIALISASI ---
@@ -174,7 +199,7 @@
       // 1. Ambil data master proyek
       const { data: proyeks, error } = await client.from('master_proyek').select('*').order('nama_proyek', { ascending: true });
       if (error) return console.error(error);
-      
+
       const tbody = document.getElementById("tabelProyek");
       const grandRABEl = document.getElementById("grandTotalRAB");
       const grandRealEl = document.getElementById("grandTotalRealisasi");
@@ -183,44 +208,44 @@
       // 2. Ambil data Upah & Material
       const { data: upahData } = await client.from('transaksi_upah').select('kavling, nilai_bayar');
       const { data: materialData } = await client
-          .from('verifikasi_material')
-          .select('nama_proyek, total_biaya, status');
+        .from('verifikasi_material')
+        .select('nama_proyek, total_biaya, status');
 
       const realUpahMap = {};
       const realMatMap = {};
 
       // Memetakan Upah
-      if(upahData) {
-          upahData.forEach(u => {
-              const unitId = (u.kavling || "").toString().replace(/\s+/g, '').toUpperCase();
-              realUpahMap[unitId] = (realUpahMap[unitId] || 0) + Number(u.nilai_bayar);
-          });
+      if (upahData) {
+        upahData.forEach(u => {
+          const unitId = (u.kavling || "").toString().replace(/\s+/g, '').toUpperCase();
+          realUpahMap[unitId] = (realUpahMap[unitId] || 0) + Number(u.nilai_bayar);
+        });
       }
 
       // JURUS SAKTI: Memetakan Material
-      if(materialData) {
-          materialData.forEach(m => {
-              if(m.status !== 'REJECTED') {
-                  const unitId = (m.nama_proyek || "").toString().replace(/\s+/g, '').toUpperCase();
-                  realMatMap[unitId] = (realMatMap[unitId] || 0) + Number(m.total_biaya);
-              }
-          });
+      if (materialData) {
+        materialData.forEach(m => {
+          if (m.status !== 'REJECTED') {
+            const unitId = (m.nama_proyek || "").toString().replace(/\s+/g, '').toUpperCase();
+            realMatMap[unitId] = (realMatMap[unitId] || 0) + Number(m.total_biaya);
+          }
+        });
       }
-      
+
       let sumRAB = 0;
-      let sumRealisasiTotal = 0; 
+      let sumRealisasiTotal = 0;
       let countAktif = 0;
 
       proyeks.forEach(p => {
         const isAktif = p.status === 'BERJALAN';
-        if(isAktif) countAktif++;
+        if (isAktif) countAktif++;
 
         const rab = Number(p.nilai_proyek) || 0;
         const unitKunci = (p.nama_proyek || "").toString().replace(/\s+/g, '').toUpperCase(); // Kunci Pencocokan Global
-        
-        const rUpah = realUpahMap[unitKunci] || 0; 
-        const rMat = realMatMap[unitKunci] || 0;   
-        
+
+        const rUpah = realUpahMap[unitKunci] || 0;
+        const rMat = realMatMap[unitKunci] || 0;
+
         sumRAB += rab;
         sumRealisasiTotal += (rUpah + rMat);
 
@@ -262,252 +287,284 @@
       if (grandRABEl) grandRABEl.innerText = fmt(sumRAB);
       if (grandRealEl) grandRealEl.innerText = fmt(sumRealisasiTotal);
       document.getElementById("totalProyek").innerText = proyeks.length + " Proyek";
-      if(document.getElementById("totalProyekBerjalan")) {
-          document.getElementById("totalProyekBerjalan").innerText = countAktif + " Unit";
+      if (document.getElementById("totalProyekBerjalan")) {
+        document.getElementById("totalProyekBerjalan").innerText = countAktif + " Unit";
       }
     }
 
     // JURUS KONTROL STATUS: Aktifkan atau Nonaktifkan Proyek
     async function toggleStatus(id, currentStatus, nama) {
-        const nextStatus = currentStatus === 'BERJALAN' ? 'NONAKTIF' : 'BERJALAN';
-        const aksi = nextStatus === 'BERJALAN' ? 'MENGAKTIFKAN' : 'MENONAKTIFKAN';
-        
-        const confirmMsg = `⚠️ KONFIRMASI KEPUTUSAN:\n\nAnda akan ${aksi} unit proyek: ${nama}.\n\n(Unit yang nonaktif tidak akan muncul di menu pengajuan upah & alokasi material)`;
+      const nextStatus = currentStatus === 'BERJALAN' ? 'NONAKTIF' : 'BERJALAN';
+      const aksi = nextStatus === 'BERJALAN' ? 'MENGAKTIFKAN' : 'MENONAKTIFKAN';
 
-        if(confirm(confirmMsg)) {
-            const { error } = await client.from('master_proyek').update({ status: nextStatus }).eq('id', id);
-            if(!error) {
-                await catatLog('PROYEK', `Status ${nama} diubah menjadi ${nextStatus}`, 'fa-sync');
-                alert(`✅ Status ${nama} berhasil diperbarui.`);
-                loadProyek(); 
-            } else {
-                alert("❌ Gagal: " + error.message);
-            }
+      const confirmMsg = `⚠️ KONFIRMASI KEPUTUSAN:\n\nAnda akan ${aksi} unit proyek: ${nama}.\n\n(Unit yang nonaktif tidak akan muncul di menu pengajuan upah & alokasi material)`;
+
+      if (confirm(confirmMsg)) {
+        const { error } = await client.from('master_proyek').update({ status: nextStatus }).eq('id', id);
+        if (!error) {
+          await catatLog('PROYEK', `Status ${nama} diubah menjadi ${nextStatus}`, 'fa-sync');
+          alert(`✅ Status ${nama} berhasil diperbarui.`);
+          loadProyek();
+        } else {
+          alert("❌ Gagal: " + error.message);
         }
+      }
     }
 
     async function bukaAudit(tipe, namaProyek) {
-        const modal = document.getElementById('modalAudit');
-        const header = document.getElementById('auditHeader');
-        const body = document.getElementById('auditBody');
-        const title = document.getElementById('auditTitle');
-        const subtitle = document.getElementById('auditSubtitle');
-        const totalEl = document.getElementById('auditTotal');
+      const modal = document.getElementById('modalAudit');
+      const header = document.getElementById('auditHeader');
+      const body = document.getElementById('auditBody');
+      const title = document.getElementById('auditTitle');
+      const subtitle = document.getElementById('auditSubtitle');
+      const totalEl = document.getElementById('auditTotal');
 
-        modal.classList.remove('hidden');
-        body.innerHTML = '<tr><td colspan="3" class="p-10 text-center font-bold animate-pulse text-blue-600 italic">🔍 Sedang Menelusuri Log Transaksi...</td></tr>';
-        title.innerText = `AUDIT ${tipe}`;
-        subtitle.innerText = `Unit: ${namaProyek}`;
-        let total = 0;
+      modal.classList.remove('hidden');
+      body.innerHTML = '<tr><td colspan="3" class="p-10 text-center font-bold animate-pulse text-blue-600 italic">🔍 Sedang Menelusuri Log Transaksi...</td></tr>';
+      title.innerText = `AUDIT ${tipe}`;
+      subtitle.innerText = `Unit: ${namaProyek}`;
+      let total = 0;
 
-        if (tipe === 'UPAH') {
-            header.innerHTML = '<th class="p-3 border-b">Tanggal</th><th class="p-3 border-b">Keterangan Upah</th><th class="p-3 border-b text-right">Nilai Bayar</th>';
-            const { data } = await client.from('transaksi_upah').select('*').eq('kavling', namaProyek);
-            body.innerHTML = '';
-            if (data && data.length > 0) {
-                data.forEach(u => {
-                    total += Number(u.nilai_bayar || 0);
-                    body.innerHTML += `<tr class="hover:bg-blue-50"><td class="p-3 text-xs">${new Date(u.created_at || u.tanggal || u.created_at).toLocaleDateString('id-ID')}</td><td class="p-3 font-bold">${u.keterangan || 'Upah Tukang'}</td><td class="p-3 text-right font-mono font-bold">${fmt(u.nilai_bayar || 0)}</td></tr>`;
-                });
-            } else {
-                body.innerHTML = '<tr><td colspan="3" class="p-10 text-center text-gray-400">Belum ada realisasi upah.</td></tr>';
-            }
-        } else if (tipe === 'MATERIAL') {
-            header.innerHTML = '<th class="p-3 border-b">Tanggal</th><th class="p-3 border-b">Detail Material</th><th class="p-3 border-b text-right">Biaya</th>';
-            const { data } = await client.from('verifikasi_material').select('*, master_stok(nama_barang)').eq('nama_proyek', namaProyek).neq('status', 'REJECTED');
-            body.innerHTML = '';
-            if (data && data.length > 0) {
-                data.forEach(m => {
-                    const tanggal = new Date(m.tanggal || m.created_at || Date.now());
-                    total += Number(m.total_biaya || 0);
-                    body.innerHTML += `<tr class="hover:bg-red-50"><td class="p-3 text-xs">${tanggal.toLocaleDateString('id-ID')}</td><td class="p-3"><div class="font-bold">${m.master_stok?.nama_barang || 'Item'}</div><div class="text-[10px] italic text-gray-500">${m.keterangan || '-'}</div></td><td class="p-3 text-right font-mono font-bold">${fmt(m.total_biaya || 0)}</td></tr>`;
-                });
-            } else {
-                body.innerHTML = '<tr><td colspan="3" class="p-10 text-center text-gray-400">Belum ada realisasi material.</td></tr>';
-            }
+      if (tipe === 'UPAH') {
+        header.innerHTML = '<th class="p-3 border-b">Tanggal</th><th class="p-3 border-b">Keterangan Upah</th><th class="p-3 border-b text-right">Nilai Bayar</th>';
+        const { data } = await client.from('transaksi_upah').select('*').eq('kavling', namaProyek);
+        body.innerHTML = '';
+        if (data && data.length > 0) {
+          data.forEach(u => {
+            total += Number(u.nilai_bayar || 0);
+            body.innerHTML += `<tr class="hover:bg-blue-50"><td class="p-3 text-xs">${new Date(u.created_at || u.tanggal || u.created_at).toLocaleDateString('id-ID')}</td><td class="p-3 font-bold">${u.keterangan || 'Upah Tukang'}</td><td class="p-3 text-right font-mono font-bold">${fmt(u.nilai_bayar || 0)}</td></tr>`;
+          });
+        } else {
+          body.innerHTML = '<tr><td colspan="3" class="p-10 text-center text-gray-400">Belum ada realisasi upah.</td></tr>';
         }
+      } else if (tipe === 'MATERIAL') {
+        header.innerHTML = '<th class="p-3 border-b">Tanggal</th><th class="p-3 border-b">Detail Material</th><th class="p-3 border-b text-right">Biaya</th>';
+        const { data } = await client.from('verifikasi_material').select('*, master_stok(nama_barang)').eq('nama_proyek', namaProyek).neq('status', 'REJECTED');
+        body.innerHTML = '';
+        if (data && data.length > 0) {
+          data.forEach(m => {
+            const tanggal = new Date(m.tanggal || m.created_at || Date.now());
+            total += Number(m.total_biaya || 0);
+            body.innerHTML += `<tr class="hover:bg-red-50"><td class="p-3 text-xs">${tanggal.toLocaleDateString('id-ID')}</td><td class="p-3"><div class="font-bold">${m.master_stok?.nama_barang || 'Item'}</div><div class="text-[10px] italic text-gray-500">${m.keterangan || '-'}</div></td><td class="p-3 text-right font-mono font-bold">${fmt(m.total_biaya || 0)}</td></tr>`;
+          });
+        } else {
+          body.innerHTML = '<tr><td colspan="3" class="p-10 text-center text-gray-400">Belum ada realisasi material.</td></tr>';
+        }
+      }
 
-        totalEl.innerText = fmt(total);
+      totalEl.innerText = fmt(total);
     }
 
     // 2. LOGIKA FORM INPUT
     function updateNilaiTotal() {
-        const m = parseInt(document.getElementById("rabMaterial").value || 0);
-        const u = parseInt(document.getElementById("rabUpahTukang").value || 0);
-        const total = m + u;
-        document.getElementById("nilaiProyek").value = total;
-        document.getElementById("nilaiTotalPreview").innerText = fmt(total);
+      const m = parseInt(document.getElementById("rabMaterial").value || 0);
+      const u = parseInt(document.getElementById("rabUpahTukang").value || 0);
+      const total = m + u;
+      document.getElementById("nilaiProyek").value = total;
+      document.getElementById("nilaiTotalPreview").innerText = fmt(total);
     }
 
     // 3. AMBIL DATA BLOK (Dropdown)
     async function loadReferensiBlok() {
-        const select = document.getElementById("pilihNamaProyek");
-        const { data: refBlok } = await client.from('referensi_blok').select('id').order('id');
-        const { data: proyekAktif } = await client
-            .from('master_proyek')
-            .select('nama_proyek')
-            .eq('status', 'BERJALAN');
+      const select = document.getElementById("pilihNamaProyek");
+      const { data: refBlok } = await client.from('referensi_blok').select('id').order('id');
+      const { data: proyekAktif } = await client
+        .from('master_proyek')
+        .select('nama_proyek')
+        .eq('status', 'BERJALAN');
 
-        const activeSet = new Set(proyekAktif?.map(p => p.nama_proyek.toUpperCase().trim()) || []);
+      const activeSet = new Set(proyekAktif?.map(p => p.nama_proyek.toUpperCase().trim()) || []);
 
-        select.innerHTML = `
+      select.innerHTML = `
           <option value="" selected disabled>-- Pilih Blok / Proyek --</option>
           <option value="MANUAL" class="font-bold text-blue-600">➕ Input Nama Manual (Proyek Baru)</option>
           <option disabled class="bg-gray-100 text-gray-400">----------------------------------</option>
         `;
 
-        if(refBlok) {
-            refBlok
-                .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
-                .forEach(b => {
-                    const namaBlokFull = "Blok " + b.id;
-                    const isRunning = activeSet.has(namaBlokFull.toUpperCase());
-                    const opt = document.createElement("option");
-                    opt.value = namaBlokFull;
+      if (refBlok) {
+        refBlok
+          .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
+          .forEach(b => {
+            const namaBlokFull = "Blok " + b.id;
+            const isRunning = activeSet.has(namaBlokFull.toUpperCase());
+            const opt = document.createElement("option");
+            opt.value = namaBlokFull;
 
-                    if (isRunning) {
-                        opt.text = `🔒 ${namaBlokFull} (Sedang Dikerjakan)`;
-                        opt.disabled = true;
-                        opt.classList.add("bg-red-50", "text-red-300", "italic");
-                    } else {
-                        opt.text = namaBlokFull;
-                        opt.classList.add("font-bold", "text-gray-700");
-                    }
+            if (isRunning) {
+              opt.text = `🔒 ${namaBlokFull} (Sedang Dikerjakan)`;
+              opt.disabled = true;
+              opt.classList.add("bg-red-50", "text-red-300", "italic");
+            } else {
+              opt.text = namaBlokFull;
+              opt.classList.add("font-bold", "text-gray-700");
+            }
 
-                    select.appendChild(opt);
-                });
-        }
+            select.appendChild(opt);
+          });
+      }
 
-        toggleInputManual();
+      toggleInputManual();
     }
 
     // 4. TOGGLE INPUT MANUAL (PERBAIKAN UTAMA)
     function toggleInputManual() {
-        const dropdown = document.getElementById("pilihNamaProyek");
-        const panel = document.getElementById("manualInputPanel");
-        const input = document.getElementById("inputManualNama");
-        const kategoriSelect = document.getElementById("kategoriSelect");
-        const opsiRumah = kategoriSelect?.querySelector('option[value="Bangunan Rumah"]');
+      const dropdown = document.getElementById("pilihNamaProyek");
+      const panel = document.getElementById("manualInputPanel");
+      const input = document.getElementById("inputManualNama");
+      const kategoriSelect = document.getElementById("kategoriSelect");
+      const opsiRumah = kategoriSelect?.querySelector('option[value="Bangunan Rumah"]');
 
-        const val = dropdown.value;
+      const val = dropdown.value;
 
-        if (val === "MANUAL") {
-            panel.classList.remove("hidden");
-            panel.style.display = "block";
-            input.required = true;
-            input.focus();
+      if (val === "MANUAL") {
+        panel.classList.remove("hidden");
+        panel.style.display = "block";
+        input.required = true;
+        input.focus();
 
-            if (opsiRumah) {
-                opsiRumah.disabled = true;
-                opsiRumah.classList.add("text-gray-300", "italic");
-            }
-
-            if (kategoriSelect.value === "Bangunan Rumah") {
-                kategoriSelect.value = "Infrastruktur";
-                cekKategori();
-            }
-        } else {
-            panel.classList.add("hidden");
-            panel.style.display = "none";
-            input.required = false;
-
-            if (opsiRumah) {
-                opsiRumah.disabled = false;
-                opsiRumah.classList.remove("text-gray-300", "italic");
-            }
+        if (opsiRumah) {
+          opsiRumah.disabled = true;
+          opsiRumah.classList.add("text-gray-300", "italic");
         }
+
+        if (kategoriSelect.value === "Bangunan Rumah") {
+          kategoriSelect.value = "Infrastruktur";
+          cekKategori();
+        }
+      } else {
+        panel.classList.add("hidden");
+        panel.style.display = "none";
+        input.required = false;
+
+        if (opsiRumah) {
+          opsiRumah.disabled = false;
+          opsiRumah.classList.remove("text-gray-300", "italic");
+        }
+      }
     }
 
     // 5. CEK KATEGORI LAIN / INFRASTRUKTUR
     function cekKategori() {
-        const v = document.getElementById("kategoriSelect").value;
-        const l = document.getElementById("kategoriLain");
-        const b = document.getElementById("boxUploadRAB");
-        
-        l.classList.add("hidden"); 
-        b.classList.add("hidden");
-        
-        if(v === "LAINNYA") l.classList.remove("hidden");
-        if(v === "Infrastruktur") b.classList.remove("hidden");
+      const v = document.getElementById("kategoriSelect").value;
+      const l = document.getElementById("kategoriLain");
+      const b = document.getElementById("boxUploadRAB");
+
+      l.classList.add("hidden");
+      b.classList.add("hidden");
+
+      if (v === "LAINNYA") l.classList.remove("hidden");
+      if (v === "Infrastruktur") b.classList.remove("hidden");
     }
 
-    // 6. SIMPAN DATA KE SUPABASE
+    // 6. SIMPAN DATA KE SUPABASE (Updated: Masuk Approval Direksi)
     document.getElementById("formProyek").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        
+      e.preventDefault();
+
+      const btn = e.target.querySelector("button[type='submit']");
+      const btnOldText = btn.innerText;
+      btn.disabled = true;
+      btn.innerText = "Memproses...";
+
+      try {
+        // Ambil Session User
+        const session = PNAuth.getSession();
+        const requesterName = session?.user?.full_name || 'Admin Proyek';
+
         // Ambil Nilai Form
         const selNama = document.getElementById("pilihNamaProyek").value;
         let nama = selNama === "MANUAL" ? document.getElementById("inputManualNama").value : selNama;
-        
+
         const katSelect = document.getElementById("kategoriSelect").value;
         const kat = katSelect === "LAINNYA" ? document.getElementById("kategoriLain").value : katSelect;
-        
-        // Pastikan angka di-parse dengan benar
+
         const rabM = parseInt(document.getElementById("rabMaterial").value) || 0;
         const rabU = parseInt(document.getElementById("rabUpahTukang").value) || 0;
         const tot = parseInt(document.getElementById("nilaiProyek").value) || 0;
-        
+
         const tgl = document.getElementById("tglMulai").value;
         const file = document.getElementById("fileRAB").files[0];
         const lokasi = file ? "RAB_" + file.name : ""; // Simulasi nama file
 
-        if (!nama) { alert("Nama Proyek harus diisi!"); return; }
+        if (!nama) throw new Error("Nama Proyek harus diisi!");
 
-        // Insert ke Database
-        const { error } = await client.from('master_proyek').insert([{
-            nama_proyek: nama, 
-            kategori: kat, 
-            nilai_proyek: tot, 
-            rab_material: rabM,       // Kolom Baru
-            rab_upah_tukang: rabU,    // Kolom Baru
-            tanggal_mulai: tgl, 
-            lokasi: lokasi, 
-            status: 'BERJALAN'
+        // 1. Insert ke Database Proyek (Status: PENDING)
+        const { data: projData, error: projError } = await client.from('master_proyek').insert([{
+          nama_proyek: nama,
+          kategori: kat,
+          nilai_proyek: tot,
+          rab_material: rabM,
+          rab_upah_tukang: rabU,
+          tanggal_mulai: tgl,
+          lokasi: lokasi,
+          status: 'PENDING' // Tunggu approval
+        }]).select();
+
+        if (projError) throw new Error("Gagal Simpan Proyek: " + projError.message);
+
+        const newProyek = projData[0];
+
+        // 2. Masukkan ke Approval Queue
+        const { error: queueError } = await client.from('approval_queue').insert([{
+          source_table: 'master_proyek',
+          source_id: newProyek.id,
+          title: `Pengajuan Proyek Baru: ${nama}`,
+          description: `Kategori: ${kat} | Start: ${tgl}`,
+          amount: tot,
+          requester: requesterName,
+          status: 'PENDING'
         }]);
 
-        if(error) {
-            alert("Error Gagal Simpan: " + error.message + "\n\n(Cek apakah kolom 'rab_material' & 'rab_upah_tukang' sudah dibuat di Supabase?)");
-        } else { 
-            catatLog('PROYEK', `Menambahkan proyek baru: ${nama}`, 'fa-building');
-            alert("Berhasil Simpan Proyek!"); 
-            location.reload(); 
-        }
+        if (queueError) throw new Error("Gagal masuk antrian approval: " + queueError.message);
+
+        await catatLog('PROYEK', `Mengajukan proyek baru: ${nama} (Menunggu Approval)`, 'fa-file-signature');
+        alert("✅ Pengajuan Proyek Berhasil!\n\nData telah dikirim ke Dashboard Direksi untuk disetujui.");
+        location.reload();
+
+      } catch (err) {
+        console.error(err);
+        alert("❌ Error: " + err.message);
+        btn.disabled = false;
+        btn.innerText = btnOldText;
+      }
     });
 
     // 7. HAPUS DATA
     async function hapusProyek(id, nama) {
-        if(confirm(`Yakin hapus proyek: ${nama}?`)) {
-            const { error } = await client.from('master_proyek').delete().eq('id', id);
-            if(error) alert("Gagal hapus: " + error.message);
-            else loadProyek();
-        }
+      if (confirm(`Yakin hapus proyek: ${nama}?`)) {
+        const { error } = await client.from('master_proyek').delete().eq('id', id);
+        if (error) alert("Gagal hapus: " + error.message);
+        else loadProyek();
+      }
     }
   </script>
 
-  <div id="modalAudit" class="hidden fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-[100] backdrop-blur-sm">
+  <div id="modalAudit"
+    class="hidden fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-[100] backdrop-blur-sm">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-fade-in-up">
-        <div class="p-5 border-b bg-gray-50 flex justify-between items-center">
-            <div>
-                <h2 id="auditTitle" class="text-xl font-black text-slate-800 uppercase tracking-tight">Rincian Biaya</h2>
-                <p id="auditSubtitle" class="text-xs text-blue-600 font-bold italic"></p>
-            </div>
-            <button onclick="document.getElementById('modalAudit').classList.add('hidden')" class="text-gray-400 hover:text-red-500 font-black text-2xl transition">✕</button>
+      <div class="p-5 border-b bg-gray-50 flex justify-between items-center">
+        <div>
+          <h2 id="auditTitle" class="text-xl font-black text-slate-800 uppercase tracking-tight">Rincian Biaya</h2>
+          <p id="auditSubtitle" class="text-xs text-blue-600 font-bold italic"></p>
         </div>
-        <div class="p-0 max-h-[60vh] overflow-y-auto">
-            <table class="w-full text-left text-sm border-collapse">
-                <thead class="bg-slate-100 sticky top-0">
-                    <tr id="auditHeader">
-                        </tr>
-                </thead>
-                <tbody id="auditBody" class="divide-y">
-                    </tbody>
-            </table>
-        </div>
-        <div class="p-4 bg-slate-50 border-t flex justify-between items-center font-black">
-            <span class="text-slate-500 uppercase text-[10px]">Total Terakumulasi:</span>
-            <span id="auditTotal" class="text-lg text-slate-900">Rp 0</span>
-        </div>
+        <button onclick="document.getElementById('modalAudit').classList.add('hidden')"
+          class="text-gray-400 hover:text-red-500 font-black text-2xl transition">✕</button>
+      </div>
+      <div class="p-0 max-h-[60vh] overflow-y-auto">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead class="bg-slate-100 sticky top-0">
+            <tr id="auditHeader">
+            </tr>
+          </thead>
+          <tbody id="auditBody" class="divide-y">
+          </tbody>
+        </table>
+      </div>
+      <div class="p-4 bg-slate-50 border-t flex justify-between items-center font-black">
+        <span class="text-slate-500 uppercase text-[10px]">Total Terakumulasi:</span>
+        <span id="auditTotal" class="text-lg text-slate-900">Rp 0</span>
+      </div>
     </div>
   </div>
 </body>
+
 </html>

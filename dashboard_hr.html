@@ -11,6 +11,14 @@
     <script>
         // Check Auth: HR + Global Roles
         PNAuth.requireAuth(['hr', 'finance', 'direksi', 'superadmin']);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = PNAuth.getSession();
+            if (session) {
+                document.getElementById('nav-user-name').innerText = session.user.full_name;
+                document.getElementById('nav-user-role').innerText = session.user.role;
+            }
+        });
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
@@ -49,11 +57,20 @@
                 <p class="text-xs text-gray-500">Human Resources & Payroll Management</p>
             </div>
         </div>
-        <div class="flex gap-3">
-            <a href="dashboard_operasional.html"
-                class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded text-sm font-bold text-gray-600">
-                <i class="fas fa-arrow-left mr-2"></i> Dashboard Utama
+        <div class="flex items-center gap-4">
+            <a href="index.html" class="text-gray-400 hover:text-teal-600 transition" title="Home">
+                <i class="fas fa-home text-lg"></i>
             </a>
+            <div class="text-right hidden sm:block">
+                <p class="text-sm font-bold text-gray-700" id="nav-user-name">User</p>
+                <p class="text-xs text-teal-500 uppercase" id="nav-user-role">HR STAFF</p>
+            </div>
+            <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <button onclick="PNAuth.logout()" class="text-gray-400 hover:text-red-500 transition" title="Logout">
+                <i class="fas fa-power-off"></i>
+            </button>
         </div>
     </nav>
 
