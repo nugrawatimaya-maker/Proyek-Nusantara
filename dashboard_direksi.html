@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Direksi - Antrian Persetujuan</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Check Auth: Direksi, Finance, Superadmin
+        // User Request: Finance & Superadmin can see ALL dashboards.
+        PNAuth.requireAuth(['direksi', 'finance', 'superadmin']);
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            to {
+                background-position: -200% 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 p-2 rounded-lg">
+                        <i class="fas fa-shield-check text-white text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-gray-900 tracking-tight">Executive Approval Dashboard</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <!-- User Info & Logout -->
+                    <div class="text-right hidden md:block mr-2">
+                        <div id="user-display" class="text-sm font-bold text-gray-800">User</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-wider">Direksi</div>
+                    </div>
+
+                    <span id="env-badge"
+                        class="hidden px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest bg-amber-100 text-amber-700 border border-amber-200">Mode
+                        Dev</span>
+                    <button onclick="loadApprovalQueue()"
+                        class="text-gray-500 hover:text-blue-600 transition-colors p-2" title="Refresh Data">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+
+                    <button onclick="PNAuth.logout()"
+                        class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+                        <i class="fas fa-sign-out-alt"></i> Keluar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    </div>
+    </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
+            <p class="text-sm text-gray-500">Ringkasan aktivitas persetujuan dan metrik kunci.</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div
+                class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 relative overflow-hidden group hover:shadow-md transition-all">
+                <div
+                    class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110">
+                </div>
+                <div class="relative">
+                    <div class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Total Antrian</div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="stat-total-count" class="text-3xl font-bold text-gray-900">-</span>
+                        <span
+                            class="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-full">Pending</span>
+                    </div>
+                    <div class="mt-4 flex items-center gap-2 text-sm text-gray-400">
+                        <i class="fas fa-list-ul"></i>
+                        <span>Item menunggu review</span>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 relative overflow-hidden group hover:shadow-md transition-all">
+                <div
+                    class="absolute top-0 right-0 w-24 h-24 bg-green-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110">
+                </div>
+                <div class="relative">
+                    <div class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Total Nilai</div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="stat-total-value" class="text-3xl font-bold text-gray-900">-</span>
+                    </div>
+                    <div class="mt-4 flex items-center gap-2 text-sm text-green-600">
+                        <i class="fas fa-coins"></i>
+                        <span>Estimasi Rupiah</span>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 relative overflow-hidden group hover:shadow-md transition-all">
+                <div
+                    class="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110">
+                </div>
+                <div class="relative">
+                    <div class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-1">Kategori Terbanyak
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="stat-top-category" class="text-xl font-bold text-gray-900">-</span>
+                    </div>
+                    <div class="mt-4 flex items-center gap-2 text-sm text-purple-600">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Dominasi Pengajuan</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="mb-6 flex justify-between items-end">
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">Daftar Antrian</h2>
+                <p class="text-sm text-gray-500">Menampilkan pengajuan yang memerlukan validasi Anda.</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="bg-gray-50/50 border-b border-gray-100">
+                            <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Kategori</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Deskripsi Item</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase text-right">Nominal</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase text-center">Lampiran</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase">Diajukan</th>
+                            <th class="px-6 py-4 text-xs font-bold text-gray-400 uppercase text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="approval-queue-body" class="divide-y divide-gray-100">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Gunakan jembatan 'client' dari app_config.js
+        // fmt(n) juga sudah tersedia dari app_config.js jika Anda ingin format mata uang cepat
+
+        async function loadApprovalQueue() {
+            const tbody = document.getElementById('approval-queue-body');
+            tbody.innerHTML = `<tr><td colspan="5" class="py-20 text-center"><div class="flex flex-col items-center justify-center gap-3"><i class="fas fa-circle-notch fa-spin text-blue-600 text-3xl"></i><span class="text-gray-400 text-sm animate-pulse">Memuat data...</span></div></td></tr>`;
+
+            try {
+                // Debug: Cek koneksi client
+                if (!client || !client.from) throw new Error("Supabase Client belum terinisialisasi. Cek app_config.js");
+
+                // HANYA membaca dari tabel antrian terpusat 'approval_queue'
+                const { data, error } = await client
+                    .from('approval_queue')
+                    .select('id, title, description, amount, requester, created_at, source_table, source_id, status')
+                    .eq('status', 'PENDING')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                // --- UPDATE SUMMARY CARDS ---
+                updateDashboardStats(data || []);
+                // -------------------------------------
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-6 py-20 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="bg-green-50 text-green-500 w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-sm">
+                                        <i class="fas fa-check-double text-2xl"></i>
+                                    </div>
+                                    <h3 class="text-gray-900 font-semibold text-lg">Semua Beres!</h3>
+                                    <p class="text-gray-500 text-sm max-w-xs mx-auto mt-1">Tidak ada antrian persetujuan yang tertunda. Nikmati hari Anda!</p>
+                                </div>
+                            </td>
+                        </tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.map(item => {
+                    const requesterName = item.requester || 'Anonim';
+                    const requesterInitial = requesterName.charAt(0).toUpperCase();
+
+                    // Logic Lampiran PO
+                    let lampiranHtml = '<span class="text-gray-300">-</span>';
+                    // Note: source_table inserted by purchase_order_entry.html is 'purchase_order', not 'purchase_order_request'
+                    if (item.source_table === 'purchase_order' || item.source_table === 'purchase_order_request') {
+                        // Karena payload tidak ada, kita ganti dengan tombol lihat detail
+                        lampiranHtml = `
+                            <button onclick="viewPODetails('${item.source_id}', '${item.title}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 transition-colors text-xs font-semibold group-link">
+                                <i class="fas fa-eye"></i> Detail
+                            </button>`;
+                    }
+
+                    return `
+                    <tr class="group hover:bg-gray-50 transition-all border-b border-gray-100 last:border-0">
+                        <td class="px-6 py-5 align-top">
+                            <span class="inline-flex items-center px-2.5 py-1 text-[10px] font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-wide">
+                                ${item.source_table.replace('_', ' ')}
+                            </span>
+                        </td>
+                        <td class="px-6 py-5 align-top">
+                            <div class="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors">${item.title}</div>
+                            <div class="text-xs text-gray-500 mt-1 line-clamp-2">${item.description || '-'}</div>
+                        </td>
+                        <td class="px-6 py-5 text-right font-mono text-sm font-bold text-gray-900 align-top">
+                            ${typeof fmt !== 'undefined' ? fmt(item.amount) : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.amount)}
+                        </td>
+                        <td class="px-6 py-5 text-center align-top">
+                            ${lampiranHtml}
+                        </td>
+                        <td class="px-6 py-5 align-top">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-bold">
+                                    ${requesterInitial}
+                                </div>
+                                <div>
+                                    <div class="text-xs font-semibold text-gray-700">${requesterName}</div>
+                                    <div class="text-[10px] text-gray-400 uppercase mt-0.5">${new Date(item.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5 text-center align-top">
+                            <div class="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                                <button onclick="processApproval(${item.id}, 'APPROVED', '${item.source_table}', '${item.source_id}')" 
+                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-1 active:scale-95">
+                                    <i class="fas fa-check"></i> <span>Setuju</span>
+                                </button>
+                                <button onclick="processApproval(${item.id}, 'REJECTED', '${item.source_table}', '${item.source_id}')" 
+                                        class="bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-gray-500 px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1 active:scale-95">
+                                    <i class="fas fa-times"></i> <span>Tolak</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `}).join('');
+
+            } catch (err) {
+                console.error("Gagal load:", err);
+                const errorDetail = err.details || err.hint || err.message || JSON.stringify(err);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-10 text-center">
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl mx-auto">
+                                <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-3"></i>
+                                <h3 class="text-lg font-bold text-red-800 mb-1">Gagal Memuat Data</h3>
+                                <p class="text-sm text-red-600 mb-4">${err.message}</p>
+                                <div class="text-xs text-left bg-white p-3 rounded border border-red-100 font-mono text-red-500 overflow-auto">
+                                    Detail: ${errorDetail} <br>
+                                    Code: ${err.code || 'N/A'}
+                                </div>
+                                <div class="mt-4">
+                                     <button onclick="loadApprovalQueue()" class="bg-red-100 hover:bg-red-200 text-red-800 px-4 py-2 rounded-lg text-xs font-bold transition-colors">
+                                        Coba Lagi
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>`;
+            }
+        }
+
+        // --- NEW: Helper untuk menghitung statistik ---
+        function updateDashboardStats(data) {
+            // 1. Hitung Total
+            const totalCount = data.length;
+            const totalValue = data.reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+
+            // Hitung Kategori Terbanyak
+            const categoryCounts = {};
+            data.forEach(item => {
+                const cat = item.source_table.replace('_', ' ').toUpperCase();
+                categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+            });
+            const topCategory = Object.keys(categoryCounts).reduce((a, b) => categoryCounts[a] > categoryCounts[b] ? a : b, '-');
+
+            // Render ke Kartu
+            document.getElementById('stat-total-count').textContent = totalCount;
+            document.getElementById('stat-total-value').textContent = typeof fmt !== 'undefined' ? fmt(totalValue) : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalValue); // Fallback formatting
+            document.getElementById('stat-top-category').textContent = topCategory;
+        }
+
+
+        // --- NEW: View Detail Function (Placeholder until we implement full detail view) ---
+        async function viewPODetails(sourceId, title) {
+            // alert("Fitur Detail PO akan segera hadir! ID: " + sourceId);
+            // Implement fetch logic here if needed
+            try {
+                // Fetch basic info from purchase_order to get nomor_po
+                const { data: poItem, error } = await client.from('purchase_order').select('*').eq('id', sourceId).single();
+
+                if (error) {
+                    alert("Gagal mengambil detail PO: " + error.message);
+                    return;
+                }
+
+                if (poItem) {
+                    // Fetch all items with this nomor_po
+                    const { data: allItems, error: listError } = await client
+                        .from('purchase_order')
+                        .select('*')
+                        .eq('nomor_po', poItem.nomor_po);
+
+                    if (listError) throw listError;
+
+                    // Construct simple detail string
+                    let detailMsg = `Detail PO: ${poItem.nomor_po}\nVendor: ${poItem.nama_vendor}\n\nItem:\n`;
+                    allItems.forEach((it, idx) => {
+                        detailMsg += `${idx + 1}. ID Ref: ${it.req_id} - Rp ${new Intl.NumberFormat('id-ID').format(it.total_harga)}\n`;
+                    });
+
+                    alert(detailMsg);
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Terjadi kesalahan saat memuat detail.");
+            }
+        }
+
+        async function processApproval(queueId, action, sourceTable, sourceId) {
+            // 1. Konfirmasi User
+            const confirmMsg = action === 'APPROVED'
+                ? 'Apakah Anda yakin ingin MENYETUJUI pengajuan ini?'
+                : 'Apakah Anda yakin ingin MENOLAK pengajuan ini?';
+
+            if (!confirm(confirmMsg)) return;
+
+            // 2. UI Feedback (Loading State) - Disable semua tombol
+            const allBtns = document.querySelectorAll('button');
+            allBtns.forEach(btn => btn.disabled = true);
+            const originalCursor = document.body.style.cursor;
+            document.body.style.cursor = 'wait';
+
+            try {
+                // Fetch info untuk Logging
+                const { data: queueItem } = await client.from('approval_queue').select('title, requester').eq('id', queueId).single();
+                const titleCtx = queueItem?.title || 'Pengajuan';
+
+                // --- LOGIC: REJECTION ---
+                if (action === 'REJECTED') {
+                    const { error } = await client
+                        .from('approval_queue')
+                        .update({ status: 'REJECTED' })
+                        .eq('id', queueId);
+                    if (error) throw error;
+
+                    // Log
+                    await PNAuth.logActivity(`Direksi MENOLAK: ${titleCtx}`, 'APPROVAL', 'fa-times-circle');
+
+                    showToast('Pengajuan telah ditolak.', 'info');
+                }
+
+                // --- LOGIC: APPROVAL ---
+                else if (action === 'APPROVED') {
+                    // Kita gunakan Generic Approval untuk Purchase Order juga
+                    // karena data PO sudah ada di tabel purchase_order dengan status WAITING APPROVAL
+
+                    // if (sourceTable === 'purchase_order_request') { ... } // Legacy code removed
+
+                    await approveGeneric(queueId, sourceTable, sourceId);
+
+                    // Log
+                    await PNAuth.logActivity(`Direksi MENYETUJUI: ${titleCtx}`, 'APPROVAL', 'fa-check-circle');
+
+                    showToast('Pengajuan berhasil disetujui!', 'success');
+                }
+
+                // 3. Refresh Data
+                await loadApprovalQueue();
+
+            } catch (err) {
+                console.error("Process Error:", err);
+                alert("Gagal memproses: " + err.message);
+            } finally {
+                // Restore UI
+                allBtns.forEach(btn => btn.disabled = false);
+                document.body.style.cursor = originalCursor;
+            }
+        }
+
+        // Fungsi ini tidak lagi digunakan karena kita menggunakan approveGeneric
+        // Namun kita biarkan kosong atau hapus untuk menghindari error referensi jika ada
+        async function approvePurchaseOrder(queueId, sourceId) {
+            console.warn("approvePurchaseOrder called but deprecated. Using generic flow.");
+        }
+
+        async function approveGeneric(queueId, sourceTable, sourceId) {
+            // Update Source Table (misal: purchase_order, purchase_request, dll)
+            // Pastikan tabel target memiliki kolom 'status'
+            const { error: errSource } = await client.from(sourceTable).update({ status: 'APPROVED' }).eq('id', sourceId);
+
+            // Jika sourceTable tidak punya kolom status, kita abaikan error tertentu atau handle khusus
+            if (errSource) {
+                console.warn(`Gagal update status di ${sourceTable}: ${errSource.message}`);
+                // Lanjut update antrian
+            }
+
+            // Update Queue
+            const { error: errQueue } = await client.from('approval_queue').update({ status: 'APPROVED' }).eq('id', queueId);
+            if (errQueue) throw errQueue;
+        }
+
+        // Simple Toast Notification
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg text-white font-bold transition-all transform translate-y-10 opacity-0 z-50 ${type === 'success' ? 'bg-green-600' : 'bg-gray-800'}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            // Animate In
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            });
+
+            // Remove after 3s
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Jalankan saat startup
+        document.addEventListener('DOMContentLoaded', () => {
+            // Tampilkan badge DEV jika di mode DEV (sesuai app_config.js)
+            if (typeof CURRENT_ENV !== 'undefined' && CURRENT_ENV === 'DEV') {
+                document.getElementById('env-badge').classList.remove('hidden');
+            }
+            loadApprovalQueue();
+        });
+    </script>
+</body>
+
+</html>

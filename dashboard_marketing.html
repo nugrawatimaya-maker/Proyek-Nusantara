@@ -1,190 +1,249 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Marketing Gallery - Sunrise Group</title>
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  
-  <style>
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #f1f1f1; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Marketing Gallery - Sunrise Group</title>
 
-    /* Viewer Styles */
-    .viewer-container {
-        position: relative;
-        background-color: #1e293b; /* Slate-800 */
-        overflow: hidden;
-        touch-action: none; /* Mencegah scroll halaman saat geser peta di HP */
-        width: 100%;
-        height: 65vh; /* Tinggi menyesuaikan layar HP */
-        border-radius: 12px;
-        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-    }
-    
-    .imgwrap {
-        position: absolute;
-        top: 0; left: 0;
-        transform-origin: 0 0;
-        cursor: grab;
-        transition: transform 0.1s ease-out;
-    }
-    .imgwrap:active { cursor: grabbing; }
-    
-    .marker {
-        position: absolute;
-        transform: translate(-50%, -50%);
-        width: 24px; height: 24px;
-        background: #ef4444; /* Red-500 */
-        border: 2px solid white;
-        border-radius: 50%;
-        color: white;
-        font-size: 10px;
-        font-weight: bold;
-        display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        z-index: 10;
-        animation: pulse 2s infinite;
-    }
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Check Auth: Marketing + Global Roles
+        PNAuth.requireAuth(['marketing', 'finance', 'direksi', 'superadmin']);
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-    @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-    }
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
 
-    /* Animasi Card */
-    .project-card { transition: all 0.2s ease; }
-    .project-card:active { transform: scale(0.95); }
-  </style>
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Viewer Styles */
+        .viewer-container {
+            position: relative;
+            background-color: #1e293b;
+            /* Slate-800 */
+            overflow: hidden;
+            touch-action: none;
+            /* Mencegah scroll halaman saat geser peta di HP */
+            width: 100%;
+            height: 65vh;
+            /* Tinggi menyesuaikan layar HP */
+            border-radius: 12px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .imgwrap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            cursor: grab;
+            transition: transform 0.1s ease-out;
+        }
+
+        .imgwrap:active {
+            cursor: grabbing;
+        }
+
+        .marker {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            width: 24px;
+            height: 24px;
+            background: #ef4444;
+            /* Red-500 */
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* Animasi Card */
+        .project-card {
+            transition: all 0.2s ease;
+        }
+
+        .project-card:active {
+            transform: scale(0.95);
+        }
+    </style>
 </head>
+
 <body class="bg-slate-50 font-sans text-slate-800 min-h-screen flex flex-col">
 
-  <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg sticky top-0 z-50">
-    <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-      <div>
-        <h1 class="text-xl font-bold tracking-wide"><i class="fas fa-building mr-2"></i>Marketing Gallery</h1>
-        <p class="text-[10px] text-blue-100 opacity-80 uppercase tracking-wider">Sunrise Group Inventory</p>
-      </div>
-      <button onclick="toggleAdmin()" class="text-white/50 hover:text-white transition">
-        <i class="fas fa-cog"></i>
-      </button>
-    </div>
-  </header>
-
-  <main class="flex-grow p-4 max-w-5xl mx-auto w-full">
-    
-    <div id="menuView" class="animate-fade-in-down">
-      <div class="mb-4">
-        <h2 class="text-lg font-bold text-slate-700">Pilih Kawasan</h2>
-        <p class="text-sm text-slate-500">Silakan pilih proyek untuk melihat siteplan & ketersediaan.</p>
-      </div>
-
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="projectGrid">
+    <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold tracking-wide"><i class="fas fa-building mr-2"></i>Marketing Gallery</h1>
+                <p class="text-[10px] text-blue-100 opacity-80 uppercase tracking-wider">Sunrise Group Inventory</p>
+            </div>
+            <button onclick="toggleAdmin()" class="text-white/50 hover:text-white transition">
+                <i class="fas fa-cog"></i>
+            </button>
         </div>
-    </div>
+    </header>
 
-    <div id="siteplanView" class="hidden flex flex-col h-full">
-      <div class="flex justify-between items-center mb-3">
-        <button onclick="backToMenu()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-lg shadow-sm font-bold text-sm hover:bg-slate-50 flex items-center gap-2">
-            <i class="fas fa-arrow-left"></i> Kembali
-        </button>
-        <div class="text-right">
-            <h3 class="font-bold text-slate-800 text-sm leading-tight" id="activeProjectTitle">Nama Proyek</h3>
-            <span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">OPEN SALES</span>
+    <main class="flex-grow p-4 max-w-5xl mx-auto w-full">
+
+        <div id="menuView" class="animate-fade-in-down">
+            <div class="mb-4">
+                <h2 class="text-lg font-bold text-slate-700">Pilih Kawasan</h2>
+                <p class="text-sm text-slate-500">Silakan pilih proyek untuk melihat siteplan & ketersediaan.</p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="projectGrid">
+            </div>
         </div>
-      </div>
 
-      <div class="viewer-container relative shadow-inner border border-slate-300">
-        <div class="imgwrap" id="imgwrap">
-            <img id="siteImg" src="" alt="Siteplan belum tersedia" class="pointer-events-none select-none" />
-            <div id="overlay"></div> </div>
-        
-        <div id="emptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-400">
-            <i class="fas fa-image text-4xl mb-2 opacity-50"></i>
-            <p class="text-sm">Gambar siteplan belum diupload.</p>
-        </div>
-      </div>
-
-      <div class="mt-4 bg-white p-4 rounded-xl shadow-lg border border-slate-100 flex items-center gap-4">
-         <button class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200" onclick="adjustZoom(-0.2)">
-            <i class="fas fa-minus"></i>
-         </button>
-         <div class="flex-grow">
-             <input id="zoomRange" type="range" min="0.2" max="3" step="0.1" value="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-         </div>
-         <button class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200" onclick="adjustZoom(0.2)">
-            <i class="fas fa-plus"></i>
-         </button>
-      </div>
-
-      <div id="adminPanel" class="hidden mt-4 bg-orange-50 p-4 rounded-lg border border-orange-200 text-sm">
-        <h4 class="font-bold text-orange-800 mb-2"><i class="fas fa-tools"></i> Admin Tools</h4>
-        <div class="space-y-3">
-             <div class="flex gap-2">
-                <input type="file" id="fileUpload" class="text-xs w-full bg-white p-1 rounded border">
-                <button onclick="uploadCurrentSiteplan()" class="bg-orange-600 text-white px-3 py-1 rounded text-xs font-bold shrink-0">Upload Gambar</button>
-             </div>
-             <div class="flex justify-between items-center">
-                <span class="text-xs text-orange-700">Mode Marker: <b id="modeStatus">OFF</b></span>
-                <button onclick="toggleMarkerMode()" class="bg-orange-100 text-orange-700 border border-orange-300 px-3 py-1 rounded text-xs font-bold hover:bg-orange-200">
-                    <i class="fas fa-map-marker-alt"></i> Tambah / Hapus
+        <div id="siteplanView" class="hidden flex flex-col h-full">
+            <div class="flex justify-between items-center mb-3">
+                <button onclick="backToMenu()"
+                    class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-lg shadow-sm font-bold text-sm hover:bg-slate-50 flex items-center gap-2">
+                    <i class="fas fa-arrow-left"></i> Kembali
                 </button>
-             </div>
-             <p class="text-[10px] text-orange-600/70 italic">*Klik pada peta untuk menambah marker saat mode aktif.</p>
+                <div class="text-right">
+                    <h3 class="font-bold text-slate-800 text-sm leading-tight" id="activeProjectTitle">Nama Proyek</h3>
+                    <span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">OPEN
+                        SALES</span>
+                </div>
+            </div>
+
+            <div class="viewer-container relative shadow-inner border border-slate-300">
+                <div class="imgwrap" id="imgwrap">
+                    <img id="siteImg" src="" alt="Siteplan belum tersedia" class="pointer-events-none select-none" />
+                    <div id="overlay"></div>
+                </div>
+
+                <div id="emptyState"
+                    class="hidden absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                    <i class="fas fa-image text-4xl mb-2 opacity-50"></i>
+                    <p class="text-sm">Gambar siteplan belum diupload.</p>
+                </div>
+            </div>
+
+            <div class="mt-4 bg-white p-4 rounded-xl shadow-lg border border-slate-100 flex items-center gap-4">
+                <button
+                    class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200"
+                    onclick="adjustZoom(-0.2)">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <div class="flex-grow">
+                    <input id="zoomRange" type="range" min="0.2" max="3" step="0.1" value="1"
+                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                </div>
+                <button
+                    class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200"
+                    onclick="adjustZoom(0.2)">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+
+            <div id="adminPanel" class="hidden mt-4 bg-orange-50 p-4 rounded-lg border border-orange-200 text-sm">
+                <h4 class="font-bold text-orange-800 mb-2"><i class="fas fa-tools"></i> Admin Tools</h4>
+                <div class="space-y-3">
+                    <div class="flex gap-2">
+                        <input type="file" id="fileUpload" class="text-xs w-full bg-white p-1 rounded border">
+                        <button onclick="uploadCurrentSiteplan()"
+                            class="bg-orange-600 text-white px-3 py-1 rounded text-xs font-bold shrink-0">Upload
+                            Gambar</button>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-orange-700">Mode Marker: <b id="modeStatus">OFF</b></span>
+                        <button onclick="toggleMarkerMode()"
+                            class="bg-orange-100 text-orange-700 border border-orange-300 px-3 py-1 rounded text-xs font-bold hover:bg-orange-200">
+                            <i class="fas fa-map-marker-alt"></i> Tambah / Hapus
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-orange-600/70 italic">*Klik pada peta untuk menambah marker saat mode
+                        aktif.</p>
+                </div>
+            </div>
+
         </div>
-      </div>
+    </main>
 
-    </div>
-  </main>
+    <script>
+        // --- KONFIGURASI DATA ---
+        const PROJECTS = [
+            { name: 'Sunrise City Maros', color: 'bg-blue-600', icon: 'fa-city', desc: 'Hunian Modern Maros' },
+            { name: 'Sunrise City Pinrang', color: 'bg-indigo-600', icon: 'fa-home', desc: 'Kawasan Elite Pinrang' },
+            { name: 'Sunrise City Parepare', color: 'bg-cyan-600', icon: 'fa-building', desc: 'Pusat Kota Parepare' },
+            { name: 'Bumi Tirta Nusantara', color: 'bg-teal-600', icon: 'fa-leaf', desc: 'Asri & Nyaman' },
+            { name: 'Kost Sunrise Faisal', color: 'bg-purple-600', icon: 'fa-bed', desc: 'Kost Eksklusif Pusat' },
+            { name: 'Kost Sunrise Bantabantaeng', color: 'bg-pink-600', icon: 'fa-door-open', desc: 'Kost Strategis' }
+        ];
 
-  <script>
-    // --- KONFIGURASI DATA ---
-    const PROJECTS = [
-      { name: 'Sunrise City Maros',       color: 'bg-blue-600',   icon: 'fa-city',       desc: 'Hunian Modern Maros' },
-      { name: 'Sunrise City Pinrang',     color: 'bg-indigo-600', icon: 'fa-home',       desc: 'Kawasan Elite Pinrang' },
-      { name: 'Sunrise City Parepare',    color: 'bg-cyan-600',   icon: 'fa-building',   desc: 'Pusat Kota Parepare' },
-      { name: 'Bumi Tirta Nusantara',     color: 'bg-teal-600',   icon: 'fa-leaf',       desc: 'Asri & Nyaman' },
-      { name: 'Kost Sunrise Faisal',      color: 'bg-purple-600', icon: 'fa-bed',        desc: 'Kost Eksklusif Pusat' },
-      { name: 'Kost Sunrise Bantabantaeng',color: 'bg-pink-600',  icon: 'fa-door-open',  desc: 'Kost Strategis' }
-    ];
+        // --- STATE VARIABLES ---
+        const STORAGE_KEY = 'marketing_siteplans_v2';
+        let appData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        // Format Data: { "Nama Proyek": { image: "base64...", markers: [{x,y,label}, ...] } }
 
-    // --- STATE VARIABLES ---
-    const STORAGE_KEY = 'marketing_siteplans_v2';
-    let appData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); 
-    // Format Data: { "Nama Proyek": { image: "base64...", markers: [{x,y,label}, ...] } }
+        let currentProject = null;
+        let scale = 1;
+        let offsetX = 0, offsetY = 0;
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let isAdminMode = false;
+        let isMarkerMode = false;
 
-    let currentProject = null;
-    let scale = 1; 
-    let offsetX = 0, offsetY = 0;
-    let isDragging = false;
-    let startX = 0, startY = 0;
-    let isAdminMode = false;
-    let isMarkerMode = false;
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProjectGrid();
+            initViewerEvents();
+        });
 
-    // --- INIT ---
-    document.addEventListener('DOMContentLoaded', () => {
-        renderProjectGrid();
-        initViewerEvents();
-    });
+        // 1. RENDER MENU
+        function renderProjectGrid() {
+            const grid = document.getElementById('projectGrid');
+            grid.innerHTML = '';
 
-    // 1. RENDER MENU
-    function renderProjectGrid() {
-        const grid = document.getElementById('projectGrid');
-        grid.innerHTML = '';
-        
-        PROJECTS.forEach(p => {
-            const hasData = appData[p.name] && appData[p.name].image;
-            const statusBadge = hasData 
-                ? '<span class="absolute top-2 right-2 text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">Ready</span>' 
-                : '<span class="absolute top-2 right-2 text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-bold">No Data</span>';
+            PROJECTS.forEach(p => {
+                const hasData = appData[p.name] && appData[p.name].image;
+                const statusBadge = hasData
+                    ? '<span class="absolute top-2 right-2 text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">Ready</span>'
+                    : '<span class="absolute top-2 right-2 text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-bold">No Data</span>';
 
-            const card = `
+                const card = `
                 <div onclick="openProject('${p.name}')" class="project-card relative bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md hover:border-blue-200 h-36">
                     ${statusBadge}
                     <div class="w-12 h-12 ${p.color} text-white rounded-full flex items-center justify-center text-xl shadow-lg shadow-blue-200/50">
@@ -196,254 +255,255 @@
                     </div>
                 </div>
             `;
-            grid.innerHTML += card;
-        });
-    }
-
-    // 2. NAVIGASI
-    function openProject(name) {
-        if (name === 'Sunrise City Maros') {
-            window.location.href = 'Tabel Marketing.html';
-            return;
+                grid.innerHTML += card;
+            });
         }
-        currentProject = name;
-        document.getElementById('menuView').classList.add('hidden');
-        document.getElementById('siteplanView').classList.remove('hidden');
-        document.getElementById('activeProjectTitle').innerText = name;
-        
-        loadSiteplanData();
-    }
 
-    function backToMenu() {
-        currentProject = null;
-        document.getElementById('menuView').classList.remove('hidden');
-        document.getElementById('siteplanView').classList.add('hidden');
-        resetViewer();
-    }
-
-    // 3. LOGIKA VIEWER & DATA
-    function loadSiteplanData() {
-        const data = appData[currentProject];
-        const img = document.getElementById('siteImg');
-        const empty = document.getElementById('emptyState');
-        const overlay = document.getElementById('overlay');
-        
-        overlay.innerHTML = ''; // Clear markers
-
-        if (data && data.image) {
-            img.src = data.image;
-            img.classList.remove('hidden');
-            empty.classList.add('hidden');
-            img.onload = () => {
-                resetViewer();
-                renderMarkers(data.markers || []);
-            };
-        } else {
-            img.src = '';
-            img.classList.add('hidden');
-            empty.classList.remove('hidden');
-        }
-    }
-
-    function renderMarkers(markers) {
-        const overlay = document.getElementById('overlay');
-        overlay.innerHTML = '';
-        
-        // Ambil dimensi asli gambar (agar posisi % akurat)
-        const img = document.getElementById('siteImg');
-        const w = img.naturalWidth;
-        const h = img.naturalHeight;
-
-        markers.forEach((m, idx) => {
-            const div = document.createElement('div');
-            div.className = 'marker';
-            // Marker posisi disimpan dalam persentase (0.0 - 1.0)
-            div.style.left = (m.x * 100) + '%';
-            div.style.top = (m.y * 100) + '%';
-            div.innerHTML = idx + 1; // Nomor Kavling/Unit
-            
-            // Interaction
-            div.onclick = (e) => {
-                e.stopPropagation();
-                if(isMarkerMode) {
-                    if(confirm(`Hapus Marker No ${idx+1} (${m.label})?`)) {
-                        appData[currentProject].markers.splice(idx, 1);
-                        saveData();
-                        renderMarkers(appData[currentProject].markers);
-                    }
-                } else {
-                    alert(`Info Unit:\nLabel: ${m.label}\nStatus: Tersedia`);
-                }
-            };
-            overlay.appendChild(div);
-        });
-    }
-
-    // 4. INTERAKSI TOUCH & DRAG (MOBILE FRIENDLY)
-    function initViewerEvents() {
-        const wrap = document.getElementById('imgwrap');
-        const container = document.querySelector('.viewer-container');
-
-        // Mouse Events
-        container.addEventListener('mousedown', startDrag);
-        window.addEventListener('mousemove', doDrag);
-        window.addEventListener('mouseup', endDrag);
-
-        // Touch Events (HP)
-        container.addEventListener('touchstart', (e) => {
-            if(e.touches.length === 1) startDrag(e.touches[0]);
-        }, {passive: false});
-        
-        window.addEventListener('touchmove', (e) => {
-            if(isDragging && e.touches.length === 1) {
-                e.preventDefault(); // Stop scroll page
-                doDrag(e.touches[0]);
+        // 2. NAVIGASI
+        function openProject(name) {
+            if (name === 'Sunrise City Maros') {
+                window.location.href = 'Tabel Marketing.html';
+                return;
             }
-        }, {passive: false});
-        
-        window.addEventListener('touchend', endDrag);
+            currentProject = name;
+            document.getElementById('menuView').classList.add('hidden');
+            document.getElementById('siteplanView').classList.remove('hidden');
+            document.getElementById('activeProjectTitle').innerText = name;
 
-        // Click to Add Marker
-        wrap.addEventListener('click', (e) => {
-            if(!isMarkerMode || !currentProject) return;
-            
+            loadSiteplanData();
+        }
+
+        function backToMenu() {
+            currentProject = null;
+            document.getElementById('menuView').classList.remove('hidden');
+            document.getElementById('siteplanView').classList.add('hidden');
+            resetViewer();
+        }
+
+        // 3. LOGIKA VIEWER & DATA
+        function loadSiteplanData() {
+            const data = appData[currentProject];
             const img = document.getElementById('siteImg');
-            if(img.classList.contains('hidden')) return;
+            const empty = document.getElementById('emptyState');
+            const overlay = document.getElementById('overlay');
 
-            const rect = img.getBoundingClientRect();
-            // Hitung posisi relatif thd gambar (bukan layar)
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
-            
-            // Konversi ke persentase
-            const pctX = clickX / rect.width;
-            const pctY = clickY / rect.height;
+            overlay.innerHTML = ''; // Clear markers
 
-            const label = prompt("Masukkan Label Kavling / Unit:");
-            if(label) {
-                if(!appData[currentProject]) appData[currentProject] = { image: img.src, markers: [] };
-                if(!appData[currentProject].markers) appData[currentProject].markers = [];
-                
-                appData[currentProject].markers.push({ x: pctX, y: pctY, label: label });
-                saveData();
-                renderMarkers(appData[currentProject].markers);
+            if (data && data.image) {
+                img.src = data.image;
+                img.classList.remove('hidden');
+                empty.classList.add('hidden');
+                img.onload = () => {
+                    resetViewer();
+                    renderMarkers(data.markers || []);
+                };
+            } else {
+                img.src = '';
+                img.classList.add('hidden');
+                empty.classList.remove('hidden');
             }
+        }
+
+        function renderMarkers(markers) {
+            const overlay = document.getElementById('overlay');
+            overlay.innerHTML = '';
+
+            // Ambil dimensi asli gambar (agar posisi % akurat)
+            const img = document.getElementById('siteImg');
+            const w = img.naturalWidth;
+            const h = img.naturalHeight;
+
+            markers.forEach((m, idx) => {
+                const div = document.createElement('div');
+                div.className = 'marker';
+                // Marker posisi disimpan dalam persentase (0.0 - 1.0)
+                div.style.left = (m.x * 100) + '%';
+                div.style.top = (m.y * 100) + '%';
+                div.innerHTML = idx + 1; // Nomor Kavling/Unit
+
+                // Interaction
+                div.onclick = (e) => {
+                    e.stopPropagation();
+                    if (isMarkerMode) {
+                        if (confirm(`Hapus Marker No ${idx + 1} (${m.label})?`)) {
+                            appData[currentProject].markers.splice(idx, 1);
+                            saveData();
+                            renderMarkers(appData[currentProject].markers);
+                        }
+                    } else {
+                        alert(`Info Unit:\nLabel: ${m.label}\nStatus: Tersedia`);
+                    }
+                };
+                overlay.appendChild(div);
+            });
+        }
+
+        // 4. INTERAKSI TOUCH & DRAG (MOBILE FRIENDLY)
+        function initViewerEvents() {
+            const wrap = document.getElementById('imgwrap');
+            const container = document.querySelector('.viewer-container');
+
+            // Mouse Events
+            container.addEventListener('mousedown', startDrag);
+            window.addEventListener('mousemove', doDrag);
+            window.addEventListener('mouseup', endDrag);
+
+            // Touch Events (HP)
+            container.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) startDrag(e.touches[0]);
+            }, { passive: false });
+
+            window.addEventListener('touchmove', (e) => {
+                if (isDragging && e.touches.length === 1) {
+                    e.preventDefault(); // Stop scroll page
+                    doDrag(e.touches[0]);
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchend', endDrag);
+
+            // Click to Add Marker
+            wrap.addEventListener('click', (e) => {
+                if (!isMarkerMode || !currentProject) return;
+
+                const img = document.getElementById('siteImg');
+                if (img.classList.contains('hidden')) return;
+
+                const rect = img.getBoundingClientRect();
+                // Hitung posisi relatif thd gambar (bukan layar)
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+
+                // Konversi ke persentase
+                const pctX = clickX / rect.width;
+                const pctY = clickY / rect.height;
+
+                const label = prompt("Masukkan Label Kavling / Unit:");
+                if (label) {
+                    if (!appData[currentProject]) appData[currentProject] = { image: img.src, markers: [] };
+                    if (!appData[currentProject].markers) appData[currentProject].markers = [];
+
+                    appData[currentProject].markers.push({ x: pctX, y: pctY, label: label });
+                    saveData();
+                    renderMarkers(appData[currentProject].markers);
+                }
+            });
+        }
+
+        function startDrag(e) {
+            if (isMarkerMode) return; // Jangan drag kalau mau nambah marker
+            isDragging = true;
+            startX = e.clientX - offsetX;
+            startY = e.clientY - offsetY;
+            document.getElementById('imgwrap').style.cursor = 'grabbing';
+        }
+
+        function doDrag(e) {
+            if (!isDragging) return;
+            offsetX = e.clientX - startX;
+            offsetY = e.clientY - startY;
+            updateTransform();
+        }
+
+        function endDrag() {
+            isDragging = false;
+            document.getElementById('imgwrap').style.cursor = 'grab';
+        }
+
+        function adjustZoom(delta) {
+            let newScale = scale + delta;
+            if (newScale < 0.2) newScale = 0.2;
+            if (newScale > 4) newScale = 4;
+
+            scale = newScale;
+            document.getElementById('zoomRange').value = scale;
+            updateTransform();
+        }
+
+        // Zoom Slider Listener
+        document.getElementById('zoomRange').addEventListener('input', (e) => {
+            scale = parseFloat(e.target.value);
+            updateTransform();
         });
-    }
 
-    function startDrag(e) {
-        if(isMarkerMode) return; // Jangan drag kalau mau nambah marker
-        isDragging = true;
-        startX = e.clientX - offsetX;
-        startY = e.clientY - offsetY;
-        document.getElementById('imgwrap').style.cursor = 'grabbing';
-    }
-
-    function doDrag(e) {
-        if (!isDragging) return;
-        offsetX = e.clientX - startX;
-        offsetY = e.clientY - startY;
-        updateTransform();
-    }
-
-    function endDrag() {
-        isDragging = false;
-        document.getElementById('imgwrap').style.cursor = 'grab';
-    }
-
-    function adjustZoom(delta) {
-        let newScale = scale + delta;
-        if(newScale < 0.2) newScale = 0.2;
-        if(newScale > 4) newScale = 4;
-        
-        scale = newScale;
-        document.getElementById('zoomRange').value = scale;
-        updateTransform();
-    }
-    
-    // Zoom Slider Listener
-    document.getElementById('zoomRange').addEventListener('input', (e) => {
-        scale = parseFloat(e.target.value);
-        updateTransform();
-    });
-
-    function updateTransform() {
-        const wrap = document.getElementById('imgwrap');
-        wrap.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-    }
-
-    function resetViewer() {
-        scale = 1; offsetX = 0; offsetY = 0;
-        document.getElementById('zoomRange').value = 1;
-        updateTransform();
-    }
-
-    // 5. ADMIN UTILITIES
-    function toggleAdmin() {
-        isAdminMode = !isAdminMode;
-        const panel = document.getElementById('adminPanel');
-        if(isAdminMode) {
-             panel.classList.remove('hidden');
-             if(currentProject && document.getElementById('siteplanView').classList.contains('hidden')) {
-                 alert("Buka salah satu proyek dulu untuk mengeditnya.");
-             }
-        } else {
-             panel.classList.add('hidden');
-             isMarkerMode = false;
-             updateMarkerUI();
+        function updateTransform() {
+            const wrap = document.getElementById('imgwrap');
+            wrap.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
         }
-    }
 
-    function toggleMarkerMode() {
-        isMarkerMode = !isMarkerMode;
-        updateMarkerUI();
-    }
-
-    function updateMarkerUI() {
-        const status = document.getElementById('modeStatus');
-        const btn = document.querySelector('#adminPanel button i.fa-map-marker-alt').parentNode;
-        
-        if(isMarkerMode) {
-            status.innerText = "ON (Klik Peta)";
-            status.className = "text-red-600 font-bold";
-            btn.classList.add('bg-red-100', 'text-red-700', 'border-red-300');
-        } else {
-            status.innerText = "OFF";
-            status.className = "text-gray-600 font-bold";
-            btn.classList.remove('bg-red-100', 'text-red-700', 'border-red-300');
+        function resetViewer() {
+            scale = 1; offsetX = 0; offsetY = 0;
+            document.getElementById('zoomRange').value = 1;
+            updateTransform();
         }
-    }
 
-    function uploadCurrentSiteplan() {
-        if(!currentProject) return alert("Buka proyek dulu!");
-        const input = document.getElementById('fileUpload');
-        const file = input.files[0];
-        if(!file) return alert("Pilih file gambar dulu!");
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const base64 = e.target.result;
-            
-            // Simpan gambar ke struktur data
-            if(!appData[currentProject]) appData[currentProject] = { markers: [] };
-            appData[currentProject].image = base64;
-            
-            saveData();
-            loadSiteplanData(); // Refresh tampilan
-            alert("Gambar berhasil diupload untuk " + currentProject);
-            input.value = ''; // Reset input
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function saveData() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-            renderProjectGrid(); // Update badge 'Ready' di menu
-        } catch(e) {
-            alert("Gagal menyimpan (Quota Storage Penuh?). Kurangi ukuran gambar.");
+        // 5. ADMIN UTILITIES
+        function toggleAdmin() {
+            isAdminMode = !isAdminMode;
+            const panel = document.getElementById('adminPanel');
+            if (isAdminMode) {
+                panel.classList.remove('hidden');
+                if (currentProject && document.getElementById('siteplanView').classList.contains('hidden')) {
+                    alert("Buka salah satu proyek dulu untuk mengeditnya.");
+                }
+            } else {
+                panel.classList.add('hidden');
+                isMarkerMode = false;
+                updateMarkerUI();
+            }
         }
-    }
-  </script>
+
+        function toggleMarkerMode() {
+            isMarkerMode = !isMarkerMode;
+            updateMarkerUI();
+        }
+
+        function updateMarkerUI() {
+            const status = document.getElementById('modeStatus');
+            const btn = document.querySelector('#adminPanel button i.fa-map-marker-alt').parentNode;
+
+            if (isMarkerMode) {
+                status.innerText = "ON (Klik Peta)";
+                status.className = "text-red-600 font-bold";
+                btn.classList.add('bg-red-100', 'text-red-700', 'border-red-300');
+            } else {
+                status.innerText = "OFF";
+                status.className = "text-gray-600 font-bold";
+                btn.classList.remove('bg-red-100', 'text-red-700', 'border-red-300');
+            }
+        }
+
+        function uploadCurrentSiteplan() {
+            if (!currentProject) return alert("Buka proyek dulu!");
+            const input = document.getElementById('fileUpload');
+            const file = input.files[0];
+            if (!file) return alert("Pilih file gambar dulu!");
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const base64 = e.target.result;
+
+                // Simpan gambar ke struktur data
+                if (!appData[currentProject]) appData[currentProject] = { markers: [] };
+                appData[currentProject].image = base64;
+
+                saveData();
+                loadSiteplanData(); // Refresh tampilan
+                alert("Gambar berhasil diupload untuk " + currentProject);
+                input.value = ''; // Reset input
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+                renderProjectGrid(); // Update badge 'Ready' di menu
+            } catch (e) {
+                alert("Gagal menyimpan (Quota Storage Penuh?). Kurangi ukuran gambar.");
+            }
+        }
+    </script>
 </body>
+
 </html>

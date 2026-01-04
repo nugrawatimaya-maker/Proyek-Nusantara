@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login Kiosk - Proyek Nusantara</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .numpad-btn {
+            height: 60px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 12px;
+            transition: all 0.1s;
+        }
+
+        .numpad-btn:active {
+            transform: scale(0.95);
+            background-color: #e5e7eb;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-sm relative overflow-hidden">
+
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-50 text-blue-600 rounded-full mb-3">
+                <i class="fas fa-fingerprint text-xl"></i>
+            </div>
+            <h1 class="text-xl font-extrabold text-gray-800">Identifikasi Diri</h1>
+            <p class="text-xs text-gray-400">Masukkan 6-digit Kode Akses Anda</p>
+        </div>
+
+        <!-- Code Display -->
+        <div class="mb-6">
+            <div class="flex justify-center gap-2 mb-2" id="dotsContainer">
+                <!-- Dots will be injected here -->
+                <div class="w-4 h-4 rounded-full bg-gray-200 border border-gray-300"></div>
+                <div class="w-4 h-4 rounded-full bg-gray-200 border border-gray-300"></div>
+                <div class="w-4 h-4 rounded-full bg-gray-200 border border-gray-300"></div>
+                <div class="w-4 h-4 rounded-full bg-gray-200 border border-gray-300"></div>
+                <div class="w-4 h-4 rounded-full bg-gray-200 border border-gray-300"></div>
+                <div class="w-4 h-4 rounded-full bg-gray-200 border border-gray-300"></div>
+            </div>
+            <input type="password" id="codeHidden" class="opacity-0 absolute w-0 h-0" maxlength="6" inputmode="numeric">
+        </div>
+
+        <!-- Numpad -->
+        <div class="grid grid-cols-3 gap-3 mb-6 select-none">
+            <button class="numpad-btn bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="addDigit(1)">1</button>
+            <button class="numpad-btn bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="addDigit(2)">2</button>
+            <button class="numpad-btn bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="addDigit(3)">3</button>
+
+            <button class="numpad-btn bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="addDigit(4)">4</button>
+            <button class="numpad-btn bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="addDigit(5)">5</button>
+            <button class="numpad-btn bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="addDigit(6)">6</button>
+
+            <button class="numpad-btn bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="addDigit(7)">7</button>
+            <button class="numpad-btn bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="addDigit(8)">8</button>
+            <button class="numpad-btn bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="addDigit(9)">9</button>
+
+            <button class="numpad-btn bg-gray-50 hover:bg-red-50 text-red-500 text-lg" onclick="clearCode()"><i
+                    class="fas fa-trash"></i></button>
+            <button class="numpad-btn bg-gray-100 hover:bg-gray-200 text-gray-700" onclick="addDigit(0)">0</button>
+            <button class="numpad-btn bg-gray-50 hover:bg-orange-50 text-orange-500 text-lg" onclick="backspace()"><i
+                    class="fas fa-backspace"></i></button>
+        </div>
+
+        <!-- Status Message -->
+        <div id="statusMsg" class="min-h-[20px] text-center text-xs font-bold text-transparent transition-all">...</div>
+
+        <div class="mt-6 pt-4 border-t border-gray-100 text-center">
+            <p class="text-slate-400 text-xs tracking-widest font-mono">NLD. corp secure</p>
+        </div>
+
+    </div>
+
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        let currentCode = "";
+
+        function updateDisplay() {
+            const container = document.getElementById('dotsContainer');
+            let html = '';
+            for (let i = 0; i < 6; i++) {
+                if (i < currentCode.length) {
+                    // Filled dot
+                    html += '<div class="w-4 h-4 rounded-full bg-blue-600 shadow-md transform scale-110 transition-all"></div>';
+                } else {
+                    // Empty dot
+                    html += '<div class="w-4 h-4 rounded-full bg-gray-100 border border-gray-300 transition-all"></div>';
+                }
+            }
+            container.innerHTML = html;
+
+            // Auto submit
+            if (currentCode.length === 6) {
+                submitCode();
+            } else {
+                setStatus("", "");
+            }
+        }
+
+        function addDigit(num) {
+            if (currentCode.length < 6) {
+                currentCode += num.toString();
+                updateDisplay();
+            }
+        }
+
+        function backspace() {
+            currentCode = currentCode.slice(0, -1);
+            updateDisplay();
+        }
+
+        function clearCode() {
+            currentCode = "";
+            updateDisplay();
+        }
+
+        function setStatus(msg, colorClass) {
+            const el = document.getElementById('statusMsg');
+            el.innerText = msg;
+            el.className = `min-h-[20px] text-center text-xs font-bold transition-all ${colorClass}`;
+        }
+
+        async function submitCode() {
+            setStatus("Memverifikasi...", "text-blue-500 animate-pulse");
+
+            try {
+                // Kita panggil fungsi Auth yang baru (via RPC)
+                // Note: Harus pastikan auth.js sudah diupdate untuk handle loginByCode
+                // Atau kita panggil manual di sini jika auth.js belum siap
+
+                // Panggil RPC
+                const { data, error } = await window.client.rpc('verify_access_code', { input_code: currentCode });
+
+                if (error) throw error;
+
+                if (data && data.success) {
+                    setStatus(`Halo, ${data.full_name}! Mengalihkan...`, "text-green-600");
+
+                    // Simpan sesi manual
+                    PNAuth.setSession(data);
+
+                    // Log activity (optional, jika bisa)
+                    // PNAuth.logActivity(...) -> might need session first
+
+                    setTimeout(() => {
+                        // Redirect based on role
+                        if (data.role === 'direksi') window.location.href = 'dashboard_direksi.html';
+                        else if (data.role === 'finance') window.location.href = 'dashboard_finance.html';
+                        else if (data.role === 'hr') window.location.href = 'dashboard_hr.html';
+                        else if (data.role === 'operasional') window.location.href = 'dashboard_operasional.html';
+                        else if (data.role === 'superadmin') window.location.href = 'admin_karyawan.html'; // Default for admin
+                        else window.location.href = 'index.html';
+                    }, 1000);
+
+                } else {
+                    setStatus("Kode Tidak Dikenal!", "text-red-500");
+                    shakeScreen();
+                    setTimeout(clearCode, 1000);
+                }
+
+            } catch (err) {
+                console.error(err);
+                setStatus("Error Sistem: " + err.message, "text-red-500");
+                setTimeout(clearCode, 2000);
+            }
+        }
+
+        function shakeScreen() {
+            document.body.classList.add('animate-pulse'); // Simple effect
+            setTimeout(() => document.body.classList.remove('animate-pulse'), 300);
+        }
+
+        // Allow keyboard input
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') addDigit(parseInt(e.key));
+            if (e.key === 'Backspace') backspace();
+            if (e.key === 'Escape') clearCode();
+        });
+
+        // Check if already logged in?
+        if (PNAuth.getSession()) {
+            // Automatically redirect? Maybe not, allow re-login.
+        }
+
+        updateDisplay();
+    </script>
+</body>
+
+</html>

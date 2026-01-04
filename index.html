@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,40 +8,173 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;400;600;800&display=swap"
+    rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app_config.js"></script>
 
   <style>
     /* ... (CSS LAMA ANDA TETAP SAMA, TIDAK ADA PERUBAHAN) ... */
-    :root{ --gold-bg: rgba(204, 164, 59, 0.9); --pill-bg: #ffffff; --pill-text: #b8860b; }
-    *{ box-sizing:border-box; margin: 0; padding: 0; }
-    body{ font-family: 'Poppins', sans-serif; background: radial-gradient(circle at top, #1a1a20 0, #050608 45%, #000000 100%); color: white; min-height:100vh; display:flex; flex-direction: column; padding: 24px 5%; overflow-x: hidden; }
-    
-    .internal-badge { position: fixed; top: 14px; right: 18px; background: rgba(255,255,255,0.15); color: #ffe4a3; padding: 6px 14px; border-radius: 50px; font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(6px); z-index: 2000; pointer-events: none; }
-    
-    .hero { position: relative; width: 100%; max-width: 1300px; margin: 40px auto 40px auto; height: 70vh; min-height: 420px; border-radius: 24px; overflow: hidden; display: flex; align-items: flex-end; padding: 40px 48px; background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.65)), url("images/Gemini_Generated_Image_qvhdeuqvhdeuqvhd.png") center/cover no-repeat; box-shadow: 0 28px 60px rgba(0,0,0,0.55); }
-    .hero-content { position: relative; z-index: 1; max-width: 600px; }
-    .hero-title { font-size: clamp(30px, 5vw, 56px); font-weight: 800; margin-bottom: 8px; }
-    .hero-subtitle { font-size: clamp(20px, 3.6vw, 32px); font-family: 'Great Vibes', cursive; margin-bottom: 18px; }
-    .hero-tagline { font-size: 14px; max-width: 360px; line-height: 1.5; opacity: 0.95; }
-    
-    .bottom-panel { width: 100%; max-width: 1300px; margin: 0 auto 32px auto; }
-    .section-title { font-size: 14px; text-transform: uppercase; letter-spacing: 0.18em; color: #d6d6d6; margin-bottom: 10px; opacity: 0.75; }
-    .section-heading { font-size: 22px; font-weight: 700; margin-bottom: 22px; }
-    .cards-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
-    .role-card { background: rgba(255,255,255,0.10); border-radius: 20px; padding: 25px 20px; text-decoration: none; color: white; display: flex; flex-direction: column; gap: 12px; border: 1px solid rgba(255,255,255,0.18); transition: transform 0.25s; }
-    .role-card:hover { transform: translateY(-6px); background: rgba(255,255,255,0.16); }
-    .role-tag { align-self: flex-start; background: var(--pill-bg); color: var(--pill-text); font-size: 11px; font-weight: 800; text-transform: uppercase; padding: 6px 14px; border-radius: 50px; }
-    .role-title { font-size: 20px; font-weight: 800; }
-    .role-desc { font-size: 13px; opacity: 0.95; }
-    .footer-note { margin-top: 16px; font-size: 11px; color: #a8a8a8; opacity: 0.8; }
+    :root {
+      --gold-bg: rgba(204, 164, 59, 0.9);
+      --pill-bg: #ffffff;
+      --pill-text: #b8860b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: radial-gradient(circle at top, #1a1a20 0, #050608 45%, #000000 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 5%;
+      overflow-x: hidden;
+    }
+
+    .internal-badge {
+      position: fixed;
+      top: 14px;
+      right: 18px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffe4a3;
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(6px);
+      z-index: 2000;
+      pointer-events: none;
+    }
+
+    .hero {
+      position: relative;
+      width: 100%;
+      max-width: 1300px;
+      margin: 40px auto 40px auto;
+      height: 70vh;
+      min-height: 420px;
+      border-radius: 24px;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      padding: 40px 48px;
+      background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.65)), url("images/Gemini_Generated_Image_qvhdeuqvhdeuqvhd.png") center/cover no-repeat;
+      box-shadow: 0 28px 60px rgba(0, 0, 0, 0.55);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 600px;
+    }
+
+    .hero-title {
+      font-size: clamp(30px, 5vw, 56px);
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(20px, 3.6vw, 32px);
+      font-family: 'Great Vibes', cursive;
+      margin-bottom: 18px;
+    }
+
+    .hero-tagline {
+      font-size: 14px;
+      max-width: 360px;
+      line-height: 1.5;
+      opacity: 0.95;
+    }
+
+    .bottom-panel {
+      width: 100%;
+      max-width: 1300px;
+      margin: 0 auto 32px auto;
+    }
+
+    .section-title {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: #d6d6d6;
+      margin-bottom: 10px;
+      opacity: 0.75;
+    }
+
+    .section-heading {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 22px;
+    }
+
+    .cards-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .role-card {
+      background: rgba(255, 255, 255, 0.10);
+      border-radius: 20px;
+      padding: 25px 20px;
+      text-decoration: none;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      transition: transform 0.25s;
+    }
+
+    .role-card:hover {
+      transform: translateY(-6px);
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .role-tag {
+      align-self: flex-start;
+      background: var(--pill-bg);
+      color: var(--pill-text);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 50px;
+    }
+
+    .role-title {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .role-desc {
+      font-size: 13px;
+      opacity: 0.95;
+    }
+
+    .footer-note {
+      margin-top: 16px;
+      font-size: 11px;
+      color: #a8a8a8;
+      opacity: 0.8;
+    }
 
     /* =========================================
        STYLE BARU: ADMIN STEALTH MODE
        ========================================= */
-    
+
     /* Tombol Samar di Pojok Kanan Bawah */
     .stealth-admin-btn {
       position: fixed;
@@ -49,8 +183,8 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.05);
-      color: rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -61,20 +195,22 @@
     }
 
     .stealth-admin-btn:hover {
-      background: rgba(255,255,255,0.2);
-      color: rgba(255,255,255,1);
+      background: rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 1);
       transform: rotate(90deg);
-      border-color: rgba(255,255,255,0.3);
+      border-color: rgba(255, 255, 255, 0.3);
     }
 
     /* Modal Admin Panel */
     .admin-modal {
-      display: none; /* Default Hidden */
+      display: none;
+      /* Default Hidden */
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0, 0, 0, 0.8);
       backdrop-filter: blur(8px);
-      z-index: 100001; /* Dinaikkan agar di atas banner DEV */
+      z-index: 100001;
+      /* Dinaikkan agar di atas banner DEV */
       align-items: center;
       justify-content: center;
     }
@@ -86,54 +222,151 @@
       border-radius: 16px;
       border: 1px solid #333;
       padding: 24px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
       animation: popIn 0.3s ease;
     }
 
     @keyframes popIn {
-      from { transform: scale(0.9); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
 
     .admin-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 15px;
     }
-    .admin-title { font-weight: bold; color: #fff; font-size: 18px; }
-    .close-modal { cursor: pointer; color: #666; font-size: 20px; }
-    .close-modal:hover { color: #fff; }
+
+    .admin-title {
+      font-weight: bold;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    .close-modal {
+      cursor: pointer;
+      color: #666;
+      font-size: 20px;
+    }
+
+    .close-modal:hover {
+      color: #fff;
+    }
 
     /* Toggle Switch Style */
     .setting-row {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 15px; padding: 10px; background: #2a2a30; border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #2a2a30;
+      border-radius: 8px;
     }
-    .setting-label { font-size: 14px; color: #ccc; }
-    .setting-desc { font-size: 11px; color: #777; margin-top: 2px; }
 
-    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
+    .setting-label {
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    .setting-desc {
+      font-size: 11px;
+      color: #777;
+      margin-top: 2px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
     .slider {
-      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #444; transition: .4s; border-radius: 34px;
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #444;
+      transition: .4s;
+      border-radius: 34px;
     }
+
     .slider:before {
-      position: absolute; content: ""; height: 18px; width: 18px;
-      left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
     }
-    input:checked + .slider { background-color: #eab308; } /* Kuning Emas */
-    input:checked + .slider:before { transform: translateX(20px); }
+
+    input:checked+.slider {
+      background-color: #eab308;
+    }
+
+    /* Kuning Emas */
+    input:checked+.slider:before {
+      transform: translateX(20px);
+    }
 
     .btn-save {
-      width: 100%; background: #eab308; color: #000; font-weight: bold;
-      padding: 12px; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;
+      width: 100%;
+      background: #eab308;
+      color: #000;
+      font-weight: bold;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
     }
-    .btn-save:hover { background: #ca9a04; }
 
+    .btn-save:hover {
+      background: #ca9a04;
+    }
   </style>
 </head>
+
 <body>
   <div class="internal-badge">Internal</div>
+
+  <!-- AUTH HEADER (Moved to Left to prevent collision) -->
+  <div style="position: absolute; top: 24px; left: 30px; z-index: 100; display: flex; gap: 10px; align-items: center;">
+    <div id="auth-user-display"
+      style="display: none; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(4px); padding: 8px 16px; border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.2); font-size: 13px; font-weight: 600;">
+      <i class="fas fa-user-circle mr-2 text-yellow-500"></i> <span id="user-name-span">User</span>
+    </div>
+    <a id="btn-login-main" href="login.html"
+      style="text-decoration: none; background: #eab308; color: #000; padding: 8px 20px; border-radius: 50px; font-size: 13px; font-weight: 700; display: none; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3);">
+      <i class="fas fa-sign-in-alt mr-2"></i> Masuk
+    </a>
+    <button id="btn-logout-main" onclick="PNAuth.logout()"
+      style="cursor: pointer; background: rgba(255, 50, 50, 0.2); color: #ffadad; border: 1px solid rgba(255, 50, 50, 0.3); padding: 8px 16px; border-radius: 50px; font-size: 13px; font-weight: 600; display: none;">
+      <i class="fas fa-power-off"></i>
+    </button>
+  </div>
 
   <header class="hero">
     <div class="hero-content">
@@ -169,6 +402,11 @@
         <span class="role-tag">HR</span>
         <h3 class="role-title">Dashboard HR</h3>
         <p class="role-desc">Rekrutmen, data karyawan, administrasi SDM.</p>
+      </a>
+      <a class="role-card" href="dashboard_direksi.html" style="--pill-bg: #eab308; --pill-text: #3d2c00;">
+        <span class="role-tag">Direksi</span>
+        <h3 class="role-title">Persetujuan & Kontrol</h3>
+        <p class="role-desc">Validasi PO, upah tukang, dan master data proyek.</p>
       </a>
     </div>
 
@@ -236,8 +474,9 @@
 
       <div class="mb-4">
         <div class="setting-label mb-2">Darurat / Maintenance</div>
-        <button onclick="resetAppCache()" class="w-full bg-red-900/50 hover:bg-red-800 text-red-200 border border-red-800 p-2 rounded text-xs font-bold flex items-center justify-center gap-2 transition">
-            <i class="fas fa-trash-alt"></i> Hapus Cache & LocalStorage
+        <button onclick="resetAppCache()"
+          class="w-full bg-red-900/50 hover:bg-red-800 text-red-200 border border-red-800 p-2 rounded text-xs font-bold flex items-center justify-center gap-2 transition">
+          <i class="fas fa-trash-alt"></i> Hapus Cache & LocalStorage
         </button>
         <p class="text-[10px] text-gray-500 mt-1">*Gunakan jika Marketing Gallery error/penuh.</p>
       </div>
@@ -248,15 +487,57 @@
     </div>
   </div>
 
+  <script src="auth.js"></script>
   <script>
+    // --- AUTH DISPLAY & PROTECTION LOGIC ---
+    document.addEventListener("DOMContentLoaded", () => {
+      const session = PNAuth.getSession();
+      const loginBtn = document.getElementById('btn-login-main');
+      const logoutBtn = document.getElementById('btn-logout-main');
+      const userDisplay = document.getElementById('auth-user-display');
+      const nameSpan = document.getElementById('user-name-span');
+
+      // 1. Update UI Status
+      if (session) {
+        // User Logged In
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = 'block';
+        userDisplay.style.display = 'block';
+        nameSpan.innerText = session.user.full_name;
+      } else {
+        // Guest
+        loginBtn.style.display = 'block';
+        logoutBtn.style.display = 'none';
+        userDisplay.style.display = 'none';
+      }
+
+      // 2. Protect Dashboard Links
+      const dashboardLinks = document.querySelectorAll('.role-card');
+      dashboardLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          const currentSession = PNAuth.getSession();
+          if (!currentSession) {
+            e.preventDefault(); // Stop navigation
+
+            // Visual Feedback
+            link.style.transform = 'scale(0.98)';
+            setTimeout(() => link.style.transform = '', 100);
+
+            alert("🔒 Akses Terbatas.\nSilakan 'Masuk' terlebih dahulu untuk mengakses Dashboard.");
+            window.location.href = "login.html";
+          }
+        });
+      });
+    });
+
     // --- UPDATE SCRIPT ADMIN PANEL ---
-    const ADMIN_PASS = "dev123"; 
+    const ADMIN_PASS = "dev123";
 
     function bukaAdminPanel() {
       const pass = prompt("🔐 Kunci Akses Developer:");
       if (pass === ADMIN_PASS) {
         document.getElementById('adminModal').style.display = 'flex';
-        loadSettings(); 
+        loadSettings();
       } else if (pass !== null) {
         alert("⛔ Akses Ditolak!");
       }
@@ -291,13 +572,14 @@
     }
 
     function resetAppCache() {
-        if(confirm("⚠️ BAHAYA: Ini akan menghapus semua data tersimpan di browser (Cache Gambar Siteplan, Sesi Login, dll).\n\nLanjutkan?")) {
-            localStorage.clear();
-            sessionStorage.clear();
-            alert("✅ Cache Bersih. Halaman akan dimuat ulang.");
-            location.reload();
-        }
+      if (confirm("⚠️ BAHAYA: Ini akan menghapus semua data tersimpan di browser (Cache Gambar Siteplan, Sesi Login, dll).\n\nLanjutkan?")) {
+        localStorage.clear();
+        sessionStorage.clear();
+        alert("✅ Cache Bersih. Halaman akan dimuat ulang.");
+        location.reload();
+      }
     }
   </script>
 </body>
+
 </html>

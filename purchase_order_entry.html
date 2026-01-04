@@ -44,9 +44,12 @@
       <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold">
         <tr>
           <th class="p-4 text-center w-10"><input type="checkbox" id="chkAll" class="chk-item" onclick="toggleAll(this)"></th>
-          <th class="p-4">Tanggal & Staff</th>
-          <th class="p-4">Barang diminta & Stok Gudang</th>
-          <th class="p-4 w-40 text-right">Status</th>
+          <th class="p-4">Tanggal</th>
+          <th class="p-4">Barang</th>
+          <th class="p-4">Qty</th>
+          <th class="p-4">Satuan</th>
+          <th class="p-4">Stok</th>
+          <th class="p-4 text-right">Aksi</th>
         </tr>
       </thead>
       <tbody id="tabelAntrian" class="text-sm divide-y divide-gray-100">
@@ -138,8 +141,9 @@
 
         <div class="text-right flex justify-end gap-3">
             <button onclick="tutupModalBatch()" class="px-5 py-2 text-gray-500 hover:text-gray-800 font-bold text-sm">Batal</button>
-            <button id="btnTerbitkan" onclick="terbitkanPO()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2 transition hover:scale-105">
-                <i class="fas fa-check-circle"></i> <span>Terbitkan PO</span>
+            <button id="main-submit-btn" onclick="handleFinalSubmit()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+              <i class="fas fa-check-circle"></i>
+              <span>Simpan & Terbitkan PO</span>
             </button>
         </div>
     </div>
@@ -177,7 +181,7 @@
       tbody.innerHTML = "";
 
       if (listPending.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400 italic">Tidak ada permintaan pending.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Tidak ada permintaan pending.</td></tr>`;
         return;
       }
 
@@ -201,29 +205,20 @@
         const stokBadge = sisa === 0 
             ? `<span class="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200">Stok: 0</span>` 
             : `<span class="text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded border border-green-200">Stok: ${sisa}</span>`;
-
-        const badgeWarna = item.nama_proyek && item.nama_proyek.toLowerCase().includes('maros')
-            ? 'bg-blue-100 text-blue-800'
-            : 'bg-orange-100 text-orange-800';
-
+        
         tbody.innerHTML += `
           <tr class="hover:bg-yellow-50 border-b transition">
             <td class="p-4 text-center"><input type="checkbox" class="chk-item" value="${item.id}" onchange="cekCentang()"></td>
-            <td class="p-4">
-              <div class="font-bold text-gray-700">${new Date(item.created_at).toLocaleDateString('id-ID')}</div>
-              <div class="text-xs text-gray-500"><i class="fas fa-user-circle"></i> ${item.pengorder}</div>
+            <td class="p-4 text-xs">${new Date(item.created_at).toLocaleDateString('id-ID')}</td>
+            <td class="p-4 font-bold text-gray-800">${item.nama_barang}</td>
+            <td class="p-4">${item.jumlah}</td>
+            <td class="p-4 text-gray-500 text-sm">${item.satuan}</td>
+            <td class="p-4">${stokBadge}</td>
+            <td class="p-4 text-right">
+                <button onclick="rejectRequestItem(${item.id}, '${item.nama_barang}')" class="text-red-500 hover:text-red-700 p-2" title="Tolak permintaan ini">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
             </td>
-            <td class="p-4">
-              <div class="flex items-center gap-2">
-                  ${item.nama_proyek ? `<span class="text-[10px] font-bold ${badgeWarna} px-2 py-1 rounded">${item.nama_proyek}</span>` : ''}
-                  <div class="font-bold text-gray-800">${item.nama_barang}</div>
-              </div>
-              <div class="flex items-center gap-2 mt-1">
-                  <span class="text-xs bg-gray-200 px-2 py-0.5 rounded font-bold">Req: ${item.jumlah} ${item.satuan}</span>
-                  ${stokBadge}
-              </div>
-            </td>
-            <td class="p-4 text-right"><span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded">Pending Approval</span></td>
           </tr>`;
       });
     }
@@ -278,6 +273,27 @@
         document.getElementById("batchGrandTotal").innerText = "Rp 0";
     }
 
+    function updateButtonUI(totalAmount) {
+        const btn = document.getElementById('main-submit-btn');
+        if (!btn) return; // Guard clause if button not found
+        const btnText = btn.querySelector('span');
+        const btnIcon = btn.querySelector('i');
+
+        if (totalAmount > 1000000) {
+            // PERUBAHAN KE MODE DIREKTUR
+            btnText.innerText = "Ajukan Ke Direktur";
+            btnIcon.className = "fas fa-paper-plane";
+            btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            btn.classList.add('bg-orange-600', 'hover:bg-orange-700');
+        } else {
+            // KEMBALI KE MODE REGULER
+            btnText.innerText = "Simpan & Terbitkan PO";
+            btnIcon.className = "fas fa-check-circle";
+            btn.classList.remove('bg-orange-600', 'hover:bg-orange-700');
+            btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }
+    }
+
     function hitungTotalBatch() {
         let grandTotal = 0;
         for(let i=0; i<selectedIds.length; i++) {
@@ -288,6 +304,9 @@
             document.getElementById(`bsub-${i}`).innerText = fmt(sub);
         }
         document.getElementById("batchGrandTotal").innerText = fmt(grandTotal);
+
+        // Panggil fungsi untuk update UI Tombol berdasarkan grand total
+        updateButtonUI(grandTotal);
     }
 
     function autoIsiTempoBatch(selectEl) {
@@ -299,100 +318,169 @@
 
     function tutupModalBatch() { document.getElementById("modalBatch").classList.add("hidden"); }
 
-    // 4. TERBITKAN PO & DOWNLOAD PDF
-    async function terbitkanPO() {
-        const btn = document.getElementById("btnTerbitkan");
-        const vendorEl = document.getElementById("batchVendor");
-        const vendorName = vendorEl.value;
-        const vendorAddress = vendorEl.options[vendorEl.selectedIndex]?.getAttribute('data-alamat') || '-'; 
-        const tempo = document.getElementById("batchTempo").value;
+    function calculateGrandTotal() {
+        const totalText = document.getElementById('batchGrandTotal').innerText || 'Rp 0';
+        const numberString = totalText.replace(/Rp|\s|\./g, '').replace(',', '.');
+        return parseFloat(numberString) || 0;
+    }
 
-        if (!vendorName || !tempo) {
+    function _getPODataFromForm() {
+        const vendorEl = document.getElementById("batchVendor");
+        const vendor = vendorEl.value;
+        const jatuhTempo = document.getElementById("batchTempo").value;
+
+        if (!vendor || !jatuhTempo) {
             alert("⚠️ Harap pilih Vendor dan Tanggal Jatuh Tempo!");
-            return;
+            return null;
         }
 
         if (selectedIds.length === 0) {
             alert("⚠️ Tidak ada item yang dipilih.");
-            return;
+            return null;
         }
 
-        let payloadItems = [];
-        let pdfItems = [];
-
+        let items = [];
+        let total = 0;
         for (let i = 0; i < selectedIds.length; i++) {
-            const rowId = `bid-${i}`;
-            if (!document.getElementById(rowId)) continue;
-
-            const reqId = document.getElementById(rowId).value;
-            const harga = document.getElementById(`bharga-${i}`).value;
-            const jumlahValue = document.getElementById(`bqty-${i}`).value;
+            const hargaEl = document.getElementById(`bharga-${i}`);
             const namaBarang = document.getElementById(`bnama-${i}`).value;
-            const satuan = document.getElementById(`bsat-${i}`).value;
-
-            if (!harga || harga <= 0) {
+            
+            if (!hargaEl.value || hargaEl.value <= 0) {
                 alert(`⚠️ Harga untuk item '${namaBarang}' belum diisi atau 0.`);
+                hargaEl.focus();
+                return null;
+            }
+
+            const qty = parseFloat(document.getElementById(`bqty-${i}`).value) || 0;
+            const harga = parseFloat(hargaEl.value) || 0;
+            
+            items.push({
+                req_id: parseInt(document.getElementById(`bid-${i}`).value),
+                qty: qty,
+                harga: harga
+            });
+            total += (qty * harga);
+        }
+        return { vendor, jatuhTempo, items, total };
+    }
+
+    async function handleFinalSubmit() {
+        const totalAmount = calculateGrandTotal();
+        const isApprovalNeeded = totalAmount > 1000000;
+
+        const message = isApprovalNeeded 
+            ? "Total PO melebihi 1 Juta. PO akan disimpan dengan status 'Menunggu Persetujuan' dan diajukan ke Direksi. Lanjutkan?"
+            : "Anda akan membuat Purchase Order baru yang langsung disetujui. Lanjutkan?";
+
+        if (!confirm(message)) return;
+
+        const btn = document.getElementById('main-submit-btn');
+        const btnOriginalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
+
+        try {
+            const formData = _getPODataFromForm();
+            if (!formData) {
+                btn.disabled = false;
+                btn.innerHTML = btnOriginalText;
                 return;
             }
 
-            const barangIdValue = document.getElementById(`b-barangid-${i}`)?.value;
-            const barangIdInt = parseInt(barangIdValue, 10);
+            const { vendor, jatuhTempo, items, total } = formData;
+            const staffName = document.getElementById('bstaff-0')?.value || 'Finance Staff'; // Ambil dari item pertama
 
-            payloadItems.push({
-                req_id: parseInt(reqId, 10),
-                barang_id: isNaN(barangIdInt) ? null : barangIdInt,
-                harga: parseInt(harga, 10),
-                jumlah: parseInt(jumlahValue, 10)
-            });
-
-            pdfItems.push({
-                nama: namaBarang,
-                qty: jumlahValue,
-                satuan: satuan,
-                harga: harga,
-                total: (parseInt(harga, 10) * parseInt(jumlahValue, 10))
-            });
-        }
-
-        try {
-            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Memproses...`;
-            btn.disabled = true;
-
-            const { data, error } = await client.rpc('process_create_po_batch', {
-                p_vendor_name: vendorName,
-                p_jatuh_tempo: tempo,
-                p_items: payloadItems
-            });
-
-            if (error) throw error;
-
-            const pdfData = {
-                noPO: data.no_po,
-                tgl: new Date().toISOString().split('T')[0],
-                vendor: vendorName,
-                vendorAlamat: vendorAddress,
-                tempo: tempo,
-                items: pdfItems,
-                grandTotal: data.grand_total
-            };
+            // 1. Generate Nomor PO Unik
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const noPO = `PO/NLD/${year}/${month}/${Math.floor(Math.random() * 9000) + 1000}`;
             
-            generatePOPdf(pdfData);
+            // 2. Siapkan data untuk tabel purchase_order
+            const poStatus = isApprovalNeeded ? 'WAITING APPROVAL' : 'APPROVED';
+            const poRecords = items.map(item => ({
+                nomor_po: noPO,
+                nama_vendor: vendor,
+                jatuh_tempo: jatuhTempo,
+                req_id: item.req_id,
+                harga_satuan: item.harga,
+                total_harga: item.qty * item.harga,
+                status: poStatus,
+                dibuat_oleh: staffName
+            }));
 
-            alert(`✅ PO Berhasil Diterbitkan!\nNomor: ${data.no_po}`);
+            // 3. Simpan ke tabel purchase_order, dan ambil kembali data yang disimpan (terutama ID)
+            const { data: savedPO, error: poError } = await client
+                .from('purchase_order')
+                .insert(poRecords)
+                .select('id');
 
-            tutupModalBatch();
-            selectedIds = [];
-            cekCentang();
-            loadPendingRequests();
+            if (poError) throw poError;
+            if (!savedPO || savedPO.length === 0) throw new Error("Gagal menyimpan PO ke database.");
+
+            // 4. Update status inventory_req menjadi 'PROCESSED'
+            const processedReqIds = items.map(item => item.req_id);
+            await client.from('inventory_req').update({ status: 'PROCESSED' }).in('id', processedReqIds);
+
+            // 5. Jika butuh approval, kirim notifikasi ke Direksi
+            if (isApprovalNeeded) {
+                // Ambil ID dari salah satu record yang disimpan sebagai referensi
+                const representativePoId = savedPO[0].id;
+
+                const { error: queueError } = await client
+                    .from('approval_queue')
+                    .insert([{
+                        source_table: 'purchase_order',
+                        source_id: representativePoId, // ID ini mewakili keseluruhan PO dengan nomor_po yang sama
+                        title: `Persetujuan PO: ${noPO}`,
+                        description: `Vendor: ${vendor} | Total: ${fmt(total)}`,
+                        amount: total,
+                        status: 'PENDING'
+                    }]);
+                
+                if (queueError) {
+                    // Coba rollback atau beri pesan error spesifik
+                    throw new Error(`PO disimpan tapi gagal masuk antrian direksi: ${queueError.message}`);
+                }
+                
+                alert("✅ PO berhasil dibuat & telah diajukan ke Direktur untuk persetujuan.");
+            } else {
+                alert("✅ PO berhasil dibuat dan langsung disetujui.");
+            }
+
+            location.reload();
+
         } catch (err) {
-            console.error(err);
-            alert("❌ GAGAL MENERBITKAN PO:\n" + (err.message || err.details));
-        } finally {
-            btn.innerHTML = `<i class="fas fa-check-circle"></i> Terbitkan PO`;
+            alert("❌ Terjadi kesalahan: " + err.message);
+            console.error("Detail kegagalan:", err);
             btn.disabled = false;
+            btn.innerHTML = btnOriginalText;
         }
     }
 
+    async function rejectRequestItem(id, namaBarang) {
+        if (!confirm(`Anda yakin ingin MENOLAK permintaan untuk item "${namaBarang}"? Tindakan ini tidak bisa dibatalkan.`)) {
+            return;
+        }
+
+        try {
+            const { error } = await client
+                .from('inventory_req')
+                .update({ status: 'REJECTED' })
+                .eq('id', id);
+
+            if (error) {
+                throw error;
+            }
+
+            alert(`Permintaan untuk "${namaBarang}" telah ditolak.`);
+            loadPendingRequests(); // Muat ulang daftar permintaan
+        } catch (err) {
+            alert(`Gagal menolak permintaan: ${err.message}`);
+            console.error("Gagal menolak:", err);
+        }
+    }
+ 
     // 5. PDF GENERATOR ENGINE (JSPDF + AutoTable) - VERSI PRO
     function generatePOPdf(data) {
         const { jsPDF } = window.jspdf;
@@ -485,6 +573,29 @@
         doc.save(`${data.noPO}_${data.vendor}.pdf`);
     }
 
+    function renderActionButtons(item) {
+        const isOverLimit = item.grand_total_po > 1000000; // Cek limit 1 Juta
+
+        if (item.status === 'APPROVED') {
+            return `<button class="bg-green-600 text-white px-3 py-1 rounded" onclick="fetchDetailAndPrint('${item.nomor_po}', event)">
+                        <i class="fas fa-print"></i> Terbitkan PO
+                    </button>`;
+        } 
+        
+        if (item.status === 'WAITING APPROVAL') {
+            return `<span class="text-orange-500 font-bold italic text-sm">Menunggu Persetujuan...</span>`;
+        }
+
+        if (isOverLimit) {
+            return `<button class="bg-blue-600 text-white px-3 py-1 rounded" 
+                     onclick="ajukanKeDirektur(${item.id}, ${item.grand_total_po}, '${item.nomor_po}', '${item.nama_vendor}')">
+                        Ajukan ke Direktur
+                    </button>`;
+        }
+
+        return `<button class="bg-gray-600 text-white px-3 py-1 rounded">Simpan Lokal</button>`;
+    }
+
     async function cariRiwayat() {
         const tglMulai = document.getElementById("filterMulai").value;
         const tglAkhir = document.getElementById("filterAkhir").value;
@@ -496,7 +607,7 @@
 
         const { data, error } = await client
             .from('purchase_order')
-            .select('nomor_po, created_at, nama_vendor, jatuh_tempo, status, total_harga, req_id')
+            .select('id, nomor_po, created_at, nama_vendor, jatuh_tempo, status, total_harga, req_id')
             .gte('created_at', `${tglMulai} 00:00:00`)
             .lte('created_at', `${tglAkhir} 23:59:59`)
             .order('created_at', { ascending: false });
@@ -514,14 +625,17 @@
 
         const groups = {};
         data.forEach(row => {
-            if(!groups[row.nomor_po]) groups[row.nomor_po] = { 
-                tgl: row.created_at, 
-                vendor: row.nama_vendor, 
-                tempo: row.jatuh_tempo, 
-                status: row.status, 
-                grandTotal: 0, 
-                itemsCount: 0 
-            };
+            if(!groups[row.nomor_po]) {
+                groups[row.nomor_po] = { 
+                    id: row.id, // Store ID of the first item as a representative ID
+                    tgl: row.created_at, 
+                    vendor: row.nama_vendor, 
+                    tempo: row.jatuh_tempo, 
+                    status: row.status, 
+                    grandTotal: 0, 
+                    itemsCount: 0 
+                };
+            }
             groups[row.nomor_po].grandTotal += row.total_harga;
             groups[row.nomor_po].itemsCount += 1;
         });
@@ -529,26 +643,43 @@
         Object.keys(groups).forEach(noPO => {
             const g = groups[noPO];
             
+            const itemForButton = {
+                id: g.id,
+                grand_total_po: g.grandTotal,
+                nomor_po: noPO,
+                nama_vendor: g.vendor,
+                status: g.status
+            };
+
+            const statusColors = {
+                'WAITING APPROVAL': 'bg-orange-100 text-orange-700 border-orange-200',
+                'APPROVED': 'bg-blue-100 text-blue-700 border-blue-200',
+                'COMPLETE': 'bg-green-100 text-green-700 border-green-200',
+                'REJECTED': 'bg-red-100 text-red-700 border-red-200',
+                'DRAFT': 'bg-gray-100 text-gray-700 border-gray-200',
+            };
+            const statusStyle = statusColors[g.status] || 'bg-gray-100 text-gray-700 border-gray-200';
+
             tbody.innerHTML += `
                 <tr class="hover:bg-blue-50 border-b group transition">
                     <td class="p-4 font-bold text-gray-800">${noPO} <br> <span class="text-xs text-gray-500 font-normal">${new Date(g.tgl).toLocaleDateString('id-ID')}</span></td>
                     <td class="p-4 text-gray-700">${g.vendor}</td>
                     <td class="p-4 text-center"><span class="bg-gray-100 px-2 py-1 rounded text-xs font-bold border">${g.itemsCount} Item</span></td>
                     <td class="p-4 text-right font-bold font-mono text-green-700">${fmt(g.grandTotal)}</td>
-                    <td class="p-4 text-center"><span class="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded border border-green-200">${g.status}</span></td>
-                    <td class="p-4 text-center flex justify-center gap-2">
-                        <button onclick='fetchDetailAndPrint("${noPO}", event)' class="bg-gray-800 text-white px-3 py-1 rounded text-xs hover:bg-black transition shadow" title="Download PDF">
-                            <i class="fas fa-file-pdf"></i>
-                        </button>
-                        <button onclick='hapusPO("${noPO}")' class="bg-white text-red-600 border border-red-200 px-3 py-1 rounded text-xs hover:bg-red-50 transition shadow" title="Hapus Permanen">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+                    <td class="p-4 text-center"><span class="text-xs font-bold ${statusStyle} px-2 py-1 rounded border">${g.status || 'N/A'}</span></td>
+                    <td class="p-4 text-center">
+                        ${renderActionButtons(itemForButton)}
                     </td>
                 </tr>`;
         });
     }
 
     async function hapusPO(nomorPO) {
+        if (localStorage.getItem('APP_TEST_MODE') === 'true') {
+            alert("🔒 SIMULATION MODE ON\n\nAksi hapus dibatalkan. Tidak ada data yang akan dihapus dari database.");
+            return;
+        }
+
         if(!confirm(`⚠️ PERINGATAN KERAS:\n\nAnda akan menghapus ${nomorPO}.\n\nData permintaan barang ini akan DIHAPUS PERMANEN dan TIDAK AKAN KEMBALI ke antrian.\n\nApakah Anda yakin?`)) return;
 
         try {

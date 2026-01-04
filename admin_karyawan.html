@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Karyawan - Proyek Nusantara</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen p-6">
+
+    <div class="max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800"><i class="fas fa-users-cog text-blue-600 mr-2"></i>Manajemen
+                Karyawan</h1>
+            <div class="flex gap-2">
+                <a href="index.html"
+                    class="bg-white text-gray-600 hover:bg-gray-50 px-4 py-2 rounded-lg shadow border border-gray-200 text-sm font-medium">Dashboard</a>
+                <button onclick="PNAuth.logout()"
+                    class="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-medium">Logout</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- FORM INPUT -->
+            <div class="md:col-span-1">
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sticky top-6">
+                    <h2 class="text-lg font-bold mb-4">Tambah Karyawan</h2>
+                    <form id="addWorkerForm" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Lengkap</label>
+                            <input type="text" id="fullname"
+                                class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                required placeholder="Contoh: Budi Santoso">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Divisi / Role</label>
+                            <select id="role"
+                                class="w-full p-2 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                <option value="operasional">Operasional</option>
+                                <option value="finance">Finance</option>
+                                <option value="marketing">Marketing</option>
+                                <option value="hr">HR / SDM</option>
+                                <option value="direksi">Direksi</option>
+                                <option value="superadmin">Super Admin</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Kode Akses (6
+                                Digit)</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="accessCode"
+                                    class="w-full p-2 border border-blue-300 rounded font-mono text-center tracking-widest text-lg font-bold bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="123456" required maxlength="6">
+                                <button type="button" onclick="generateCode()"
+                                    class="bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded border border-gray-300"
+                                    title="Generate Random">
+                                    <i class="fas fa-random text-gray-600"></i>
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-gray-500 mt-1">Ketik manual atau klik dadu untuk acak.</p>
+                        </div>
+
+                        <button type="submit" id="btnSave"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition shadow-lg mt-2">
+                            <i class="fas fa-save mr-2"></i> Simpan Data
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TABLE LIST -->
+            <div class="md:col-span-2">
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-700">Daftar Karyawan Aktif</h3>
+                        <button onclick="loadWorkers()" class="text-xs text-blue-600 hover:underline"><i
+                                class="fas fa-sync"></i> Refresh</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-100 text-gray-600 uppercase text-xs font-bold">
+                                <tr>
+                                    <th class="px-4 py-3">Nama</th>
+                                    <th class="px-4 py-3">Role</th>
+                                    <th class="px-4 py-3">Kode Akses</th>
+                                    <th class="px-4 py-3 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="workerTable" class="divide-y divide-gray-100">
+                                <tr>
+                                    <td colspan="4" class="p-4 text-center text-gray-400">Memuat data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Check Auth: Admin Only
+        // Note: auth.js redirect ke login jika fail
+        PNAuth.requireAuth(['superadmin', 'direksi']);
+
+        // --- Utils ---
+        function getMyCode() {
+            const s = PNAuth.getSession();
+            return s ? s.user.access_code : null; // Asumsi access_code tersimpan di session login
+            // Jika access_code tidak disave saat verify_access_code, kita harus minta user login ulang 
+            // atau modif verify_access_code untuk return 'access_code' juga (tapi hati2).
+            // Workaround: verify_access_code sebaiknya tidak return 'access_code' ke storage demi keamanan?
+            // TAPI: Untuk admin, mereka butuh code mereka sendiri untuk auth RPC.
+            // Solusi: Kita minta input password/code lagi? Ribet.
+            // Solusi mudah: Saat login, simpan code di session storage (client side).
+            // Kalau di 'verify_worker_access' kita return 'access_code', orang bisa lihat di LocalStorage.
+            // Tapi User sendiri harusnya tahu kodenya. Jadi OK.
+        }
+
+        // --- Logic ---
+        function generateCode() {
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            document.getElementById('accessCode').value = code;
+        }
+
+        async function loadWorkers() {
+            const tbody = document.getElementById('workerTable');
+            tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-400"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
+
+            // Get Current Admin Code for Authorization
+            const mySession = PNAuth.getSession();
+            // Fallback: jika code tidak ada di session (misal login lama), prompt?
+            // Untuk sekarang asumsi user baru login. 
+            // Warning: Login sebelumnya mungkin belum nyimpan access_code di objek session.
+            // Kita coba tebak atau ambil dari localStorage jika ada hack, kalo ga ada:
+            const rawCode = prompt("Verifikasi Keamanan: Masukkan Kode Akses Admin Anda untuk melihat data:");
+            if (!rawCode) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-400">Verifikasi Gagal: Kode dibutuhkan. Refresh halaman.</td></tr>';
+                return;
+            }
+            const myCode = rawCode.trim();
+
+            // Call RPC: admin_list_employees
+            const { data, error } = await window.client.rpc('admin_list_employees', {
+                p_admin_code: myCode
+            });
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">Akses Ditolak / Gagal: ${error.message}</td></tr>`;
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400">Belum ada data karyawan.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map(w => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 font-medium text-gray-800">${w.full_name}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 rounded text-[10px] uppercase font-bold bg-gray-200 text-gray-700">${w.role}</span>
+                    </td>
+                    <td class="px-4 py-3 font-mono font-bold tracking-widest text-blue-600">
+                        ${w.access_code}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="deleteWorker('${w.id}', '${w.full_name}', '${myCode}')" class="text-red-500 hover:text-red-700 mx-1"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Simpan code di memory sementara untuk operasi create
+            window.tempAdminCode = myCode;
+        }
+
+        async function addWorker(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSave');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            const name = document.getElementById('fullname').value;
+            const role = document.getElementById('role').value;
+            const code = document.getElementById('accessCode').value;
+
+            let adminCode = window.tempAdminCode;
+            if (!adminCode) {
+                const p = prompt("Konfirmasi Admin: Masukkan Kode Anda");
+                if (p) adminCode = p.trim();
+            }
+
+            if (!adminCode) {
+                alert("Kode admin dibutuhkan!");
+                btn.innerHTML = '<i class="fas fa-save mr-2"></i> Simpan Data';
+                btn.disabled = false;
+                return;
+            }
+
+            try {
+                // Call RPC: admin_add_employee
+                const { data, error } = await window.client.rpc('admin_add_employee', {
+                    p_admin_code: adminCode,
+                    p_new_name: name,
+                    p_new_role: role,
+                    p_new_code: code
+                });
+
+                if (error) throw error;
+                if (!data.success) throw new Error(data.message || "Gagal menyimpan");
+
+                // Log Activity
+                await PNAuth.logActivity(`Admin mendaftarkan: ${name} (${role})`, 'ADMIN', 'fa-user-plus');
+
+                document.getElementById('addWorkerForm').reset();
+                generateCode();
+                loadWorkers(); // Refresh
+                alert("Sukses menambahkan karyawan!");
+
+            } catch (e) {
+                alert("Gagal: " + e.message);
+            } finally {
+                btn.innerHTML = '<i class="fas fa-save mr-2"></i> Simpan Data';
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteWorker(id, name, adminCode) {
+            if (!confirm(`Hapus akses untuk ${name}?`)) return;
+
+            try {
+                const { data, error } = await window.client.rpc('admin_delete_employee', {
+                    p_admin_code: adminCode,
+                    p_target_id: parseInt(id)
+                });
+
+                if (error) throw error;
+                if (!data.success) throw new Error(data.message);
+
+                loadWorkers();
+            } catch (e) {
+                alert("Gagal hapus: " + e.message);
+            }
+        }
+
+        document.getElementById('addWorkerForm').addEventListener('submit', addWorker);
+
+        // Init
+        generateCode();
+        // Delay load slightly so page renders
+        setTimeout(loadWorkers, 500);
+
+    </script>
+</body>
+
+</html>

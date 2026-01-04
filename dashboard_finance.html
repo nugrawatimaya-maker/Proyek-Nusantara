@@ -1,312 +1,350 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NLD Finance Hub</title>
-  
-  <script>
-    // Security Check
-    const kunci = sessionStorage.getItem("izin_akses");
-    if (!kunci || (kunci !== "finance" && kunci !== "superadmin")) {
-        window.location.href = "login_internal.html";
-        document.execCommand("Stop"); 
-    }
-  </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NLD Finance Hub</title>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Supabase Core Library MUST be loaded first -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <style>
-    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-    
-    /* Soft Gradient Background untuk Header */
-    .header-bg {
-        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-    }
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Check Auth: Finance, Direksi, Superadmin
+        PNAuth.requireAuth(['finance', 'direksi', 'superadmin']);
+    </script>
 
-    /* Card Menu Style ala Odoo */
-    .menu-card {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        cursor: pointer;
-    }
-    .menu-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    }
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    /* Skeleton Loading Animation */
-    .skeleton {
-        background: #e2e8f0;
-        background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
-        border-radius: 5px;
-        background-size: 200% 100%;
-        animation: 1.5s shine linear infinite;
-    }
-    @keyframes shine { to { background-position-x: -200%; } }
-  </style>
-</head>
-<body class="min-h-screen flex flex-col">
-
-  <nav class="bg-white border-b border-slate-100 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
-    <div class="flex items-center gap-3">
-        <div class="bg-indigo-600 text-white p-2 rounded-lg">
-            <i class="fas fa-cube text-lg"></i>
-        </div>
-        <div>
-            <h1 class="font-bold text-slate-800 text-lg leading-tight">NLD Financial & Acounting</h1>
-            <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Finance Module</p>
-        </div>
-    </div>
-    <div class="flex items-center gap-4">
-        <div class="text-right hidden sm:block">
-            <p class="text-sm font-bold text-slate-700">Wahyuni</p>
-            <p class="text-xs text-emerald-500">Online</p>
-        </div>
-        <button onclick="logout()" class="bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 p-2 rounded-full transition">
-            <i class="fas fa-power-off"></i>
-        </button>
-    </div>
-  </nav>
-
-  <main class="flex-grow p-6 max-w-7xl mx-auto w-full space-y-8">
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <div class="lg:col-span-1 bg-white rounded-3xl p-8 shadow-sm border border-slate-100 relative overflow-hidden flex flex-col justify-center">
-            <div class="absolute -right-6 -top-6 text-indigo-50 text-[150px] opacity-50 pointer-events-none">
-                <i class="fas fa-wallet"></i>
-            </div>
-            
-            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest mb-2">Total Likuiditas</p>
-            <h2 class="text-4xl font-black text-slate-800 mb-4 skeleton-text" id="mainSaldo"><span class="skeleton px-20 py-4 block w-1/2"></span></h2>
-            
-            <div class="flex gap-4 mt-2">
-                <div class="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-xs font-bold">
-                    <i class="fas fa-arrow-down"></i> <span id="inMonth">...</span> (In)
-                </div>
-                <div class="flex items-center gap-2 text-rose-600 bg-rose-50 px-3 py-1 rounded-full text-xs font-bold">
-                    <i class="fas fa-arrow-up"></i> <span id="outMonth">...</span> (Out)
-                </div>
-            </div>
-        </div>
-
-        <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-slate-700">Cash Flow Trend</h3>
-                <span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">Last 6 Months</span>
-            </div>
-            <div class="h-48 w-full">
-                <canvas id="simpleChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <div>
-        <h3 class="text-slate-500 font-bold text-sm uppercase tracking-wider mb-4 ml-1">Finance Apps</h3>
-        
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            
-            <a href="kas_masuk.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
-                <div class="h-14 w-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
-                    <i class="fas fa-hand-holding-dollar text-2xl"></i>
-                </div>
-                <h4 class="font-bold text-slate-700 group-hover:text-emerald-700">Kas Masuk</h4>
-                <p class="text-[10px] text-slate-400 mt-1">Pencatatan Inflow</p>
-            </a>
-
-            <a href="kas_keluar.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
-                <div class="h-14 w-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
-                    <i class="fas fa-file-invoice-dollar text-2xl"></i>
-                </div>
-                <h4 class="font-bold text-slate-700 group-hover:text-rose-700">Kas Keluar</h4>
-                <p class="text-[10px] text-slate-400 mt-1">Biaya Operasional</p>
-            </a>
-
-            <a href="purchase_order_entry.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group relative">
-                <div class="h-14 w-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
-                    <i class="fas fa-shopping-cart text-2xl"></i>
-                </div>
-                <h4 class="font-bold text-slate-700 group-hover:text-blue-700">Purchase Order</h4>
-                <p class="text-[10px] text-slate-400 mt-1">Order Barang</p>
-                
-                <span id="badgePO" class="hidden absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white">0</span>
-            </a>
-
-            <a href="verifikasi_accounting.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group relative">
-                <div class="h-14 w-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
-                    <i class="fas fa-check-double text-2xl"></i>
-                </div>
-                <h4 class="font-bold text-slate-700 group-hover:text-amber-700">Verifikasi</h4>
-                <p class="text-[10px] text-slate-400 mt-1">Approval Stok</p>
-                <span id="badgeVerif" class="hidden absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white">0</span>
-            </a>
-
-            <a href="monitoring_hutang.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group relative">
-                <div class="h-14 w-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
-                    <i class="fas fa-clock text-2xl"></i>
-                </div>
-                <h4 class="font-bold text-slate-700 group-hover:text-orange-700">Hutang (AP)</h4>
-                <p class="text-[10px] text-slate-400 mt-1">Jatuh Tempo</p>
-                <span id="badgeHutang" class="hidden absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white">!</span>
-            </a>
-
-            <a href="input_jurnal_umum.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
-                <div class="h-14 w-14 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
-                    <i class="fas fa-book-journal-whills text-2xl"></i>
-                </div>
-                <h4 class="font-bold text-slate-700 group-hover:text-purple-700">Jurnal Umum</h4>
-                <p class="text-[10px] text-slate-400 mt-1">Input Manual</p>
-            </a>
-
-            <a href="laporan_jurnal.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
-                <div class="h-14 w-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
-                    <i class="fas fa-chart-pie text-2xl"></i>
-                </div>
-                <h4 class="font-bold text-slate-700 group-hover:text-teal-700">Laporan</h4>
-                <p class="text-[10px] text-slate-400 mt-1">Buku Besar</p>
-            </a>
-
-            <a href="monitoring_aktiva_tetap.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
-                <div class="h-14 w-14 rounded-2xl bg-cyan-100 text-cyan-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
-                    <i class="fas fa-building text-2xl"></i>
-                </div>
-                <h4 class="font-bold text-slate-700 group-hover:text-cyan-700">Aktiva Tetap</h4>
-                <p class="text-[10px] text-slate-400 mt-1">Aset Perusahaan</p>
-            </a>
-
-            <a href="master_vendor.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
-                <div class="h-14 w-14 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
-                    <i class="fas fa-users text-2xl"></i>
-                </div>
-                <h4 class="font-bold text-slate-700 group-hover:text-pink-700">Vendor</h4>
-                <p class="text-[10px] text-slate-400 mt-1">Master Data</p>
-            </a>
-
-            <a href="activity_log.html" class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
-                <div class="h-14 w-14 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
-                    <i class="fas fa-history text-2xl"></i>
-                </div>
-                <h4 class="font-bold text-slate-700 group-hover:text-slate-900">Activity Log</h4>
-                <p class="text-[10px] text-slate-400 mt-1">Audit Trail</p>
-            </a>
-
-        </div>
-    </div>
-
-  </main>
-
-  <script>
-    // --- SUPABASE SETUP ---
-    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
-    const client = supabase.createClient(supabaseUrl, supabaseKey);
-    const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-
-    // --- LOGOUT ---
-    function logout() {
-        if(confirm("Keluar dari sistem?")) {
-            sessionStorage.removeItem("izin_akses");
-            window.location.href = "login_internal.html";
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
         }
-    }
 
-    // --- LOAD DATA ---
-    async function loadDashboard() {
-        // 1. Load Saldo Total
-        const { data: dSaldo } = await client.from('master_akun').select('saldo_akhir');
-        const totSaldo = dSaldo ? dSaldo.reduce((a, c) => a + (c.saldo_akhir || 0), 0) : 0;
-        
-        const elMain = document.getElementById("mainSaldo");
-        elMain.innerHTML = fmt(totSaldo);
-        elMain.classList.remove('skeleton-text'); // Hapus efek loading
-
-        // 2. Load In/Out Bulan Ini
-        const now = new Date();
-        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        
-        const { data: dTrans } = await client.from('transaksi')
-            .select('jumlah, jenis_transaksi')
-            .gte('tanggal', firstDay);
-        
-        let inM = 0, outM = 0;
-        if(dTrans) {
-            dTrans.forEach(t => {
-                if(t.jenis_transaksi === 'MASUK') inM += t.jumlah;
-                else outM += t.jumlah;
-            });
+        /* Soft Gradient Background untuk Header */
+        .header-bg {
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
         }
-        document.getElementById("inMonth").innerText = fmt(inM);
-        document.getElementById("outMonth").innerText = fmt(outM);
 
-        // 3. Load Badges (Notifikasi Merah di Menu)
-        const { count: countPO } = await client.from('inventory_req').select('*', { count: 'exact', head: true }).eq('status', 'PENDING');
-        updateBadge('badgePO', countPO);
-
-        const { count: countVerif } = await client.from('verifikasi_material').select('*', { count: 'exact', head: true }).eq('status', 'WAITING');
-        updateBadge('badgeVerif', countVerif);
-
-        // Hutang Jatuh Tempo (7 hari)
-        const { data: dHutang } = await client.from('purchase_order').select('jatuh_tempo').eq('status', 'DITERIMA');
-        let kritis = 0;
-        if(dHutang) {
-            const today = new Date();
-            dHutang.forEach(po => {
-                const jt = new Date(po.jatuh_tempo);
-                const diff = Math.ceil((jt - today) / (1000 * 60 * 60 * 24));
-                if(diff <= 7) kritis++;
-            });
+        /* Card Menu Style ala Odoo */
+        .menu-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
         }
-        updateBadge('badgeHutang', kritis, true);
-    }
 
-    function updateBadge(id, count, isExclamation = false) {
-        const el = document.getElementById(id);
-        if(count > 0) {
-            el.innerText = isExclamation ? "!" : count;
-            el.classList.remove('hidden');
+        .menu-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
-    }
 
-    // --- SIMPLE CHART CONFIG (Soft Colors) ---
-    const ctx = document.getElementById('simpleChart').getContext('2d');
-    
-    // Gradient Fill
-    const grad = ctx.createLinearGradient(0, 0, 0, 400);
-    grad.addColorStop(0, 'rgba(99, 102, 241, 0.5)'); // Indigo
-    grad.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+        /* Skeleton Loading Animation */
+        .skeleton {
+            background: #e2e8f0;
+            background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+            border-radius: 5px;
+            background-size: 200% 100%;
+            animation: 1.5s shine linear infinite;
+        }
 
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'], // Dummy Data (Bisa diganti real)
-            datasets: [{
-                label: 'Arus Kas Bersih',
-                data: [15000000, 23000000, 18000000, 32000000, 25000000, 40000000],
-                borderColor: '#6366f1',
-                backgroundColor: grad,
-                borderWidth: 2,
-                tension: 0.4,
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-                y: { display: false } // Hilangkan axis Y agar lebih bersih
+        @keyframes shine {
+            to {
+                background-position-x: -200%;
             }
         }
-    });
+    </style>
+</head>
 
-    loadDashboard();
-  </script>
+<body class="min-h-screen flex flex-col">
+
+    <nav class="bg-white border-b border-slate-100 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-lg">
+                <i class="fas fa-cube text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-slate-800 text-lg leading-tight">NLD Financial & Acounting</h1>
+                <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Finance Module</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="text-right hidden sm:block">
+                <p class="text-sm font-bold text-slate-700">Wahyuni</p>
+                <p class="text-xs text-emerald-500">Online</p>
+            </div>
+            <button onclick="logout()"
+                class="bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 p-2 rounded-full transition">
+                <i class="fas fa-power-off"></i>
+            </button>
+        </div>
+    </nav>
+
+    <main class="flex-grow p-6 max-w-7xl mx-auto w-full space-y-8">
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <div
+                class="lg:col-span-1 bg-white rounded-3xl p-8 shadow-sm border border-slate-100 relative overflow-hidden flex flex-col justify-center">
+                <div class="absolute -right-6 -top-6 text-indigo-50 text-[150px] opacity-50 pointer-events-none">
+                    <i class="fas fa-wallet"></i>
+                </div>
+
+                <p class="text-slate-400 font-bold text-xs uppercase tracking-widest mb-2">Total Likuiditas</p>
+                <h2 class="text-4xl font-black text-slate-800 mb-4 skeleton-text" id="mainSaldo"><span
+                        class="skeleton px-20 py-4 block w-1/2"></span></h2>
+
+                <div class="flex gap-4 mt-2">
+                    <div
+                        class="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-xs font-bold">
+                        <i class="fas fa-arrow-down"></i> <span id="inMonth">...</span> (In)
+                    </div>
+                    <div
+                        class="flex items-center gap-2 text-rose-600 bg-rose-50 px-3 py-1 rounded-full text-xs font-bold">
+                        <i class="fas fa-arrow-up"></i> <span id="outMonth">...</span> (Out)
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-700">Cash Flow Trend</h3>
+                    <span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">Last 6 Months</span>
+                </div>
+                <div class="h-48 w-full">
+                    <canvas id="simpleChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h3 class="text-slate-500 font-bold text-sm uppercase tracking-wider mb-4 ml-1">Finance Apps</h3>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+
+                <a href="kas_masuk.html"
+                    class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-hand-holding-dollar text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-emerald-700">Kas Masuk</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Pencatatan Inflow</p>
+                </a>
+
+                <a href="kas_keluar.html"
+                    class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-file-invoice-dollar text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-rose-700">Kas Keluar</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Biaya Operasional</p>
+                </a>
+
+                <a href="purchase_order_entry.html"
+                    class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group relative">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-shopping-cart text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-blue-700">Purchase Order</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Order Barang</p>
+
+                    <span id="badgePO"
+                        class="hidden absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white">0</span>
+                </a>
+
+                <a href="verifikasi_accounting.html"
+                    class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group relative">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-check-double text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-amber-700">Verifikasi</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Approval Stok</p>
+                    <span id="badgeVerif"
+                        class="hidden absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white">0</span>
+                </a>
+
+                <a href="monitoring_hutang.html"
+                    class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group relative">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-clock text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-orange-700">Hutang (AP)</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Jatuh Tempo</p>
+                    <span id="badgeHutang"
+                        class="hidden absolute top-4 right-4 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white">!</span>
+                </a>
+
+                <a href="input_jurnal_umum.html"
+                    class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-book-journal-whills text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-purple-700">Jurnal Umum</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Input Manual</p>
+                </a>
+
+                <a href="laporan_jurnal.html"
+                    class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-chart-pie text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-teal-700">Laporan</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Buku Besar</p>
+                </a>
+
+                <a href="monitoring_aktiva_tetap.html"
+                    class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-cyan-100 text-cyan-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-building text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-cyan-700">Aktiva Tetap</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Aset Perusahaan</p>
+                </a>
+
+                <a href="master_vendor.html"
+                    class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-users text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-pink-700">Vendor</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Master Data</p>
+                </a>
+
+                <a href="activity_log.html"
+                    class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-history text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-slate-900">Activity Log</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Audit Trail</p>
+                </a>
+
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- SUPABASE SETUP ---
+        // Client initialized globally in app_config.js as 'client'
+        const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+        // --- LOGOUT ---
+        function logout() {
+            if (confirm("Keluar dari sistem?")) {
+                sessionStorage.removeItem("izin_akses");
+                window.location.href = "login_internal.html";
+            }
+        }
+
+        // --- LOAD DATA ---
+        async function loadDashboard() {
+            // 1. Load Saldo Total
+            const { data: dSaldo } = await client.from('master_akun').select('saldo_akhir');
+            const totSaldo = dSaldo ? dSaldo.reduce((a, c) => a + (c.saldo_akhir || 0), 0) : 0;
+
+            const elMain = document.getElementById("mainSaldo");
+            elMain.innerHTML = fmt(totSaldo);
+            elMain.classList.remove('skeleton-text'); // Hapus efek loading
+
+            // 2. Load In/Out Bulan Ini
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+            const { data: dTrans } = await client.from('transaksi')
+                .select('jumlah, jenis_transaksi')
+                .gte('tanggal', firstDay);
+
+            let inM = 0, outM = 0;
+            if (dTrans) {
+                dTrans.forEach(t => {
+                    if (t.jenis_transaksi === 'MASUK') inM += t.jumlah;
+                    else outM += t.jumlah;
+                });
+            }
+            document.getElementById("inMonth").innerText = fmt(inM);
+            document.getElementById("outMonth").innerText = fmt(outM);
+
+            // 3. Load Badges (Notifikasi Merah di Menu)
+            const { count: countPO } = await client.from('inventory_req').select('*', { count: 'exact', head: true }).eq('status', 'PENDING');
+            updateBadge('badgePO', countPO);
+
+            const { count: countVerif } = await client.from('verifikasi_material').select('*', { count: 'exact', head: true }).eq('status', 'WAITING');
+            updateBadge('badgeVerif', countVerif);
+
+            // Hutang Jatuh Tempo (7 hari)
+            const { data: dHutang } = await client.from('purchase_order').select('jatuh_tempo').eq('status', 'DITERIMA');
+            let kritis = 0;
+            if (dHutang) {
+                const today = new Date();
+                dHutang.forEach(po => {
+                    const jt = new Date(po.jatuh_tempo);
+                    const diff = Math.ceil((jt - today) / (1000 * 60 * 60 * 24));
+                    if (diff <= 7) kritis++;
+                });
+            }
+            updateBadge('badgeHutang', kritis, true);
+        }
+
+        function updateBadge(id, count, isExclamation = false) {
+            const el = document.getElementById(id);
+            if (count > 0) {
+                el.innerText = isExclamation ? "!" : count;
+                el.classList.remove('hidden');
+            }
+        }
+
+        // --- SIMPLE CHART CONFIG (Soft Colors) ---
+        const ctx = document.getElementById('simpleChart').getContext('2d');
+
+        // Gradient Fill
+        const grad = ctx.createLinearGradient(0, 0, 0, 400);
+        grad.addColorStop(0, 'rgba(99, 102, 241, 0.5)'); // Indigo
+        grad.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'], // Dummy Data (Bisa diganti real)
+                datasets: [{
+                    label: 'Arus Kas Bersih',
+                    data: [15000000, 23000000, 18000000, 32000000, 25000000, 40000000],
+                    borderColor: '#6366f1',
+                    backgroundColor: grad,
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 0,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                    y: { display: false } // Hilangkan axis Y agar lebih bersih
+                }
+            }
+        });
+
+        loadDashboard();
+    </script>
 </body>
+
 </html>
