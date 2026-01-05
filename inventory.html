@@ -11,6 +11,11 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.default.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+  <script src="auth.js"></script>
+  <script>
+    // Cek Auth
+    PNAuth.requireAuth(['operasional', 'finance', 'direksi', 'superadmin', 'admin_gudang']);
+  </script>
   <style>
     /* Kustomisasi tampilan pilihan yang sudah dipilih dari Tom Select */
     .ts-control .item {

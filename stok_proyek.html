@@ -756,17 +756,16 @@
                         // Konfirmasi User
                         if (!confirm(`Keluarkan ${jumlah} unit ke proyek: ${proyek}?`)) return;
 
-                        // --- GENERATE NOMOR PO OTOMATIS ---
-                        const tglInput = new Date().toISOString().split('T')[0];
-                        const { data: noPOBaru, error: errGen } = await client.rpc('generate_po_number', {
-                            p_tanggal: tglInput
-                        });
+                        // --- GENERATE ID TRANSAKSI (CLIENT SIDE) ---
+                        // Fix 05 Jan 2026: Bypass RPC 'generate_po_number' karena tabel purchase_orders tidak relevan untuk pemakaian internal
+                        const today = new Date();
+                        const yyyy = today.getFullYear();
+                        const mm = String(today.getMonth() + 1).padStart(2, '0');
+                        const dd = String(today.getDate()).padStart(2, '0');
+                        const randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4 digit random
+                        const noPOBaru = `OUT-${yyyy}${mm}${dd}-${randomSuffix}`;
 
-                        if (errGen) {
-                            alert("⚠️ Gagal generate nomor PO: " + errGen.message);
-                            return;
-                        }
-                        console.log("Nomor PO baru:", noPOBaru);
+                        console.log("ID Transaksi Baru:", noPOBaru);
 
                         // 1. Insert ke Verifikasi Material (Jembatan ke Accounting)
                         // Hitung total biaya (Estimasi)
