@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pengajuan Biaya (Expense Request)</title>
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- App Config & Auth -->
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+    <style>
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .hidden-field {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-orange-50 font-sans text-slate-800 p-6">
+
+    <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
+        <div>
+            <div class="flex items-center gap-3">
+                <div class="bg-orange-600 text-white w-10 h-10 flex items-center justify-center rounded-lg shadow">
+                    <i class="fas fa-file-invoice-dollar text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800">Pengajuan Biaya</h1>
+                    <p class="text-sm text-slate-500">Permintaan Dana / Kasbon (Advance)</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="bukaModal()"
+                class="bg-orange-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-orange-700 transition">
+                <i class="fas fa-plus mr-1"></i> Buat Pengajuan
+            </button>
+            <a href="index.html"
+                class="bg-white border border-slate-300 text-slate-600 px-4 py-2 rounded shadow hover:bg-slate-50 font-bold transition">
+                <i class="fas fa-home"></i> Home
+            </a>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 border-b bg-orange-50 flex justify-between items-center">
+            <h3 class="font-bold text-slate-700">Daftar Pengajuan Saya</h3>
+            <div class="text-xs text-slate-500 font-bold" id="userBadge">Memuat user...</div>
+        </div>
+        <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-600 uppercase font-bold text-xs">
+                <tr>
+                    <th class="p-4">Tanggal & Ref</th>
+                    <th class="p-4">Tipe & Keperluan</th>
+                    <th class="p-4 text-right">Estimasi (Rp)</th>
+                    <th class="p-4 text-right">Realisasi (Rp)</th>
+                    <th class="p-4 text-center">Status</th>
+                    <th class="p-4 text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="listPengajuan" class="divide-y divide-slate-100 text-slate-700">
+                <tr>
+                    <td colspan="6" class="p-8 text-center text-slate-400">Sedang memuat data...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- MODAL PENGAJUAN BARU -->
+    <div id="modalForm" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity"></div>
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div
+                class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg p-6 animate-fade-in-up">
+                <button onclick="tutupModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i
+                        class="fas fa-times text-xl"></i></button>
+
+                <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Form Pengajuan Dana</h2>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Tanggal Diperlukan</label>
+                            <input type="date" id="reqDate"
+                                class="w-full border p-2 rounded bg-slate-50 outline-none focus:border-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Divisi (Auto)</label>
+                            <input type="text" id="reqDivisi"
+                                class="w-full border p-2 rounded bg-gray-100 text-gray-500 font-bold cursor-not-allowed"
+                                readonly>
+                        </div>
+                    </div>
+
+                    <!-- TIPE PENGAJUAN -->
+                    <div class="bg-orange-50 p-3 rounded border border-orange-100">
+                        <label class="block text-xs font-bold text-orange-800 mb-1">Jenis Pengajuan</label>
+                        <select id="reqType"
+                            class="w-full border p-2 rounded outline-none focus:border-orange-500 font-bold text-slate-700"
+                            onchange="toggleFields()">
+                            <option value="UMUM">Biaya Umum / Operasional</option>
+                            <option value="REIMBURSE">Reimbursement Biaya (Ganti Uang)</option>
+                            <option value="PETTY">Pengajuan Kas Kecil (Topup/Baru)</option>
+                            <option value="DINAS">Perjalanan Dinas</option>
+                            <option value="EVENT">Event / Acara Kantor</option>
+                        </select>
+                    </div>
+
+                    <!-- CONDITIONAL FIELDS -->
+
+                    <!-- 1. Petty Cash Fields -->
+                    <div id="fieldPetty" class="hidden-field bg-gray-50 p-3 rounded border border-gray-200 space-y-3">
+                        <h4 class="text-xs font-bold text-slate-600 border-b pb-1">Info Kas Kecil Sebelumnya</h4>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Saldo Awal Sebelumnya
+                                (Rp)</label>
+                            <input type="number" id="pcPrevBalance" class="w-full border p-1 rounded text-sm text-right"
+                                placeholder="0">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Total Terpakai (Realisasi)
+                                (Rp)</label>
+                            <input type="number" id="pcRealization" class="w-full border p-1 rounded text-sm text-right"
+                                placeholder="0">
+                        </div>
+                    </div>
+
+                    <!-- 2. Reimbursement Fields (SIMPLIFIED) -->
+                    <div id="fieldReimburse" class="hidden-field space-y-4">
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-inner">
+
+                            <!-- Quick Tags -->
+                            <div class="flex flex-wrap gap-2 mb-3 justify-center">
+                                <button type="button" onclick="quickFill('Bensin')"
+                                    class="px-3 py-1 bg-white border border-blue-200 rounded-full text-xs font-bold text-blue-600 hover:bg-blue-100 transition shadow-sm">+
+                                    Bensin</button>
+                                <button type="button" onclick="quickFill('Tol')"
+                                    class="px-3 py-1 bg-white border border-blue-200 rounded-full text-xs font-bold text-blue-600 hover:bg-blue-100 transition shadow-sm">+
+                                    E-Toll</button>
+                                <button type="button" onclick="quickFill('Parkir')"
+                                    class="px-3 py-1 bg-white border border-blue-200 rounded-full text-xs font-bold text-blue-600 hover:bg-blue-100 transition shadow-sm">+
+                                    Parkir</button>
+                                <button type="button" onclick="quickFill('Makan')"
+                                    class="px-3 py-1 bg-white border border-blue-200 rounded-full text-xs font-bold text-blue-600 hover:bg-blue-100 transition shadow-sm">+
+                                    Makan</button>
+                            </div>
+
+                            <!-- Input Row -->
+                            <div
+                                class="grid grid-cols-12 gap-2 mb-2 bg-white p-2 rounded-lg border border-blue-100 shadow-sm">
+                                <div class="col-span-12 md:col-span-4">
+                                    <label class="block text-[10px] text-gray-400 font-bold ml-1">Jenis Biaya</label>
+                                    <input type="text" id="itemName" placeholder="Cth: Grab"
+                                        class="w-full border-b border-gray-200 p-1 text-sm outline-none focus:border-blue-500 font-bold text-slate-700"
+                                        onkeypress="handleEnter(event)">
+                                </div>
+                                <div class="col-span-6 md:col-span-3">
+                                    <label class="block text-[10px] text-gray-400 font-bold ml-1">Total (Rp)</label>
+                                    <input type="number" id="itemAmount" placeholder="0"
+                                        class="w-full border-b border-gray-200 p-1 text-sm outline-none focus:border-blue-500 font-mono text-right"
+                                        onkeypress="handleEnter(event)">
+                                </div>
+                                <div class="col-span-6 md:col-span-3">
+                                    <label class="block text-[10px] text-gray-400 font-bold ml-1">Nota
+                                        (Opsional)</label>
+                                    <input type="file" id="itemProof"
+                                        class="w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                </div>
+                                <div class="col-span-12 md:col-span-2 flex items-end">
+                                    <button type="button" onclick="addItem()"
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded font-bold text-xs shadow transition">
+                                        <i class="fas fa-plus"></i> Tambah
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- List Container -->
+                        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                            <table class="w-full text-sm">
+                                <thead
+                                    class="bg-slate-50 text-[10px] text-slate-500 uppercase font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left w-1/3">Jenis Biaya</th>
+                                        <th class="px-4 py-2 text-right w-1/4">Total</th>
+                                        <th class="px-4 py-2 text-center">Nota</th>
+                                        <th class="px-4 py-2 text-center w-10">#</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reimItemsBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                            <div id="emptyReimMsg" class="p-6 text-center">
+                                <p class="text-xs text-slate-400 italic">Belum ada item biaya.</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 flex justify-between items-center border-t border-blue-100">
+                                <span class="text-xs font-bold text-blue-900">Total Yang Diajukan</span>
+                                <span class="text-lg font-bold text-blue-700" id="totalDisplay">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Dinas/Event Fields -->
+                    <div id="fieldWorkPlan" class="hidden-field bg-purple-50 p-3 rounded border border-purple-100">
+                        <label class="block text-xs font-bold text-purple-800 mb-1"><i
+                                class="fas fa-briefcase mr-1"></i> Upload Rencana Kerja / TOR</label>
+                        <input type="file" id="planDoc"
+                            class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200">
+                    </div>
+
+                    <!-- Wrapper for Global Fields (Hidden for Reimburse) -->
+                    <div id="globalFields" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Estimasi Biaya (Rp)</label>
+                            <input type="number" id="reqAmount"
+                                class="w-full border p-2 rounded font-bold text-right text-lg outline-none focus:border-orange-500 bg-white"
+                                placeholder="0">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Keperluan Detail</label>
+                            <textarea id="reqDesc"
+                                class="w-full border p-2 rounded outline-none focus:border-orange-500" rows="3"
+                                placeholder="Jelaskan detail kebutuhan dana ini..."></textarea>
+                        </div>
+                    </div>
+
+                    <button onclick="simpanPengajuan()"
+                        class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg shadow mt-2 transition">
+                        <i class="fas fa-paper-plane mr-2"></i> AJUKAN PERMINTAAN
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL REALISASI -->
+    <div id="modalReal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <div class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm transition-opacity"></div>
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div
+                class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md animate-fade-in-up">
+                <div class="bg-green-600 p-4 flex justify-between items-center text-white">
+                    <h3 class="font-bold text-lg"><i class="fas fa-receipt mr-2"></i>Form Realisasi Dana</h3>
+                    <button onclick="tutupModalReal()" class="hover:text-green-200"><i
+                            class="fas fa-times text-xl"></i></button>
+                </div>
+
+                <div class="p-6 space-y-4">
+                    <input type="hidden" id="realId">
+                    <div class="bg-gray-100 p-3 rounded text-sm mb-2">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-gray-500">Total Diterima (Advance):</span>
+                            <span class="font-bold text-gray-800" id="displayAdvance">Rp 0</span>
+                        </div>
+                        <div class="text-xs text-gray-500 italic" id="displayDesc">-</div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Pemakaian Aktual (Rp)</label>
+                        <input type="number" id="realAmount" onkeyup="hitungSelisih()"
+                            class="w-full border p-2 rounded font-bold text-right text-lg border-green-500 focus:ring-2 focus:ring-green-300"
+                            placeholder="0">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Bukti Transaksi (Foto/PDF)</label>
+                        <input type="file" id="realProof"
+                            class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                    </div>
+
+                    <div class="border-t border-dashed border-gray-300 pt-3 mt-2">
+                        <label class="block text-xs font-bold text-slate-500 mb-1 text-center">Selisih
+                            Settlement</label>
+                        <div id="displaySelisih" class="text-center text-xl font-bold text-slate-700">Rp 0</div>
+                        <p id="selisihNote" class="text-center text-[10px] text-gray-500 mt-1">Isi aktual dulu...</p>
+                    </div>
+
+                    <button onclick="simpanRealisasi()"
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg shadow mt-2 transition">
+                        <i class="fas fa-check-circle mr-2"></i> SIMPAN REALISASI
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIG & AUTH ---
+        let currentUser = null;
+        let activeAdvanceAmount = 0;
+        let reimbursementItems = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = window.PNAuth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            currentUser = session.user;
+            document.getElementById('userBadge').innerText = `${currentUser.full_name} (${currentUser.role})`;
+
+            // Map Division
+            let userDiv = "Umum";
+            const role = currentUser.role.toLowerCase();
+            if (role.includes('finance') || role.includes('accounting')) userDiv = "Finance & Accounting";
+            else if (role.includes('marketing') || role.includes('sales')) userDiv = "Marketing & Sales";
+            else if (role.includes('hr') || role.includes('ga')) userDiv = "HRD & GA";
+            else if (role.includes('proyek') || role.includes('teknik')) userDiv = "Operasional Proyek";
+
+            document.getElementById('reqDivisi').value = userDiv;
+            document.getElementById('reqDate').valueAsDate = new Date();
+
+            loadPengajuan();
+        });
+
+        // --- 2. DYNAMIC FIELDS LOGIC ---
+        function toggleFields() {
+            const type = document.getElementById("reqType").value;
+            const globalFields = document.getElementById("globalFields");
+
+            // Reset
+            document.getElementById("fieldPetty").style.display = 'none';
+            document.getElementById("fieldReimburse").style.display = 'none';
+            document.getElementById("fieldWorkPlan").style.display = 'none';
+
+            // Show Globals by default
+            globalFields.style.display = 'block';
+
+            if (type === 'PETTY') {
+                document.getElementById("fieldPetty").style.display = 'block';
+            } else if (type === 'REIMBURSE') {
+                document.getElementById("fieldReimburse").style.display = 'block';
+                // HIDE Globals for Reimburse (Simplified View)
+                globalFields.style.display = 'none';
+                reimbursementItems = []; // Reset items
+                renderReimItems();
+            } else if (type === 'DINAS' || type === 'EVENT') {
+                document.getElementById("fieldWorkPlan").style.display = 'block';
+            }
+        }
+
+        // --- 3. REIMBURSEMENT ITEM LOGIC ---
+        function quickFill(name) {
+            document.getElementById('itemName').value = name;
+            document.getElementById('itemAmount').focus();
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') addItem();
+        }
+
+        function addItem() {
+            const nameEl = document.getElementById('itemName');
+            const amtEl = document.getElementById('itemAmount');
+            const proofEl = document.getElementById('itemProof');
+
+            const name = nameEl.value.trim();
+            const amt = Number(amtEl.value);
+            const hasProof = proofEl.value ? true : false; // Check if file selected
+
+            if (!name || amt <= 0) return alert("Mohon lengkapi nama item dan nominal.");
+
+            reimbursementItems.push({ name, amount: amt, hasProof });
+
+            nameEl.value = "";
+            amtEl.value = "";
+            proofEl.value = ""; // Reset file input
+            nameEl.focus();
+
+            renderReimItems();
+        }
+
+        function removeItem(index) {
+            reimbursementItems.splice(index, 1);
+            renderReimItems();
+        }
+
+        function renderReimItems() {
+            const tbody = document.getElementById('reimItemsBody');
+            const emptyMsg = document.getElementById('emptyReimMsg');
+            const totalDisplay = document.getElementById('totalDisplay');
+
+            tbody.innerHTML = "";
+            let total = 0;
+
+            if (reimbursementItems.length === 0) {
+                emptyMsg.style.display = 'block';
+            } else {
+                emptyMsg.style.display = 'none';
+
+                reimbursementItems.forEach((item, index) => {
+                    total += item.amount;
+                    const proofIcon = item.hasProof
+                        ? `<span class="text-green-500" title="Ada Nota"><i class="fas fa-check-circle"></i></span>`
+                        : `<span class="text-gray-300" title="Tanpa Nota">-</span>`;
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-blue-50 transition group">
+                            <td class="px-4 py-2 text-slate-700 font-bold">${item.name}</td>
+                            <td class="px-4 py-2 text-right font-mono text-slate-600">${window.fmt(item.amount)}</td>
+                            <td class="px-4 py-2 text-center">${proofIcon}</td>
+                            <td class="px-4 py-2 text-center">
+                                <button onclick="removeItem(${index})" class="text-gray-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Update Summaries
+            totalDisplay.innerText = window.fmt(total);
+        }
+
+        // --- 4. LOAD DATA ---
+        async function loadPengajuan() {
+            const { data, error } = await window.client
+                .from('transaksi')
+                .select('*')
+                .eq('request_by_id', currentUser.id)
+                .or('jenis_transaksi.eq.PENGAJUAN,jenis_transaksi.eq.ADVANCE_CAIR,jenis_transaksi.eq.REALIZED,jenis_transaksi.eq.REJECTED')
+                .order('tanggal', { ascending: false });
+
+            const tbody = document.getElementById("listPengajuan");
+            tbody.innerHTML = "";
+
+            if (error) { console.error(error); return; }
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 italic">Belum ada pengajuan biaya.</td></tr>`;
+                return;
+            }
+
+            data.forEach(item => {
+                let statusBadge = "";
+                let actionBtn = "-";
+
+                if (item.jenis_transaksi === 'PENGAJUAN') {
+                    statusBadge = `<span class="bg-orange-100 text-orange-600 px-2 py-1 rounded-full text-xs font-bold">PENDING</span>`;
+                    actionBtn = `<button class="text-xs text-red-500 underline" onclick="alert('Simulasi Batal')">Batal</button>`;
+                } else if (item.jenis_transaksi === 'ADVANCE_CAIR') {
+                    statusBadge = `<span class="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs font-bold animate-pulse">UANG CAIR</span>`;
+                    actionBtn = `<button onclick="bukaModalReal(${item.id}, ${item.jumlah}, '${escapeHtml(item.keterangan)}')" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-700 shadow">Realisasi</button>`;
+                } else if (item.jenis_transaksi === 'REALIZED') {
+                    statusBadge = `<span class="bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-xs font-bold">SELESAI</span>`;
+                    actionBtn = `<span class="text-green-600 text-xs"><i class="fas fa-check"></i></span>`;
+                } else if (item.jenis_transaksi === 'REJECTED') {
+                    statusBadge = `<span class="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-bold">DITOLAK</span>`;
+                    actionBtn = `<span class="text-red-400 text-xs"><i class="fas fa-times-circle"></i></span>`;
+                }
+
+                let realisasiDisplay = "-";
+                if (item.jenis_transaksi === 'REALIZED') {
+                    const match = item.keterangan.match(/\[REAL:(\d+)\]/);
+                    if (match) realisasiDisplay = window.fmt(Number(match[1]));
+                }
+
+                let typeDisplay = "UMUM";
+                let descClean = item.keterangan;
+                if (item.keterangan.startsWith('[')) {
+                    const parts = item.keterangan.split('] ');
+                    if (parts.length > 1) {
+                        typeDisplay = parts[0].replace('[', '');
+                        descClean = parts[1];
+                    }
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 border-b">
+                        <td class="p-4">
+                            <div class="font-bold text-xs text-orange-600">REQ-#${item.id}</div>
+                            <div class="text-xs text-slate-500">${new Date(item.tanggal).toLocaleDateString('id-ID')}</div>
+                        </td>
+                        <td class="p-4">
+                            <span class="text-[10px] font-bold bg-slate-200 px-1 rounded text-slate-600">${typeDisplay}</span>
+                            <div class="text-sm mt-1">${descClean.split('[REAL')[0]}</div>
+                        </td>
+                        <td class="p-4 text-right font-mono">${window.fmt(item.jumlah)}</td>
+                        <td class="p-4 text-right font-mono font-bold text-slate-700">${realisasiDisplay}</td>
+                        <td class="p-4 text-center">${statusBadge}</td>
+                        <td class="p-4 text-center">${actionBtn}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // --- 5. SUBMIT REQUEST ---
+        async function simpanPengajuan() {
+            const date = document.getElementById('reqDate').value;
+            const div = document.getElementById('reqDivisi').value; // Readonly
+            const type = document.getElementById('reqType').value;
+
+            // Logic handled separately for Reimburse (Items) vs Others (Global Fields)
+            let amt = 0;
+            let desc = "";
+
+            let extraInfo = "";
+            let validationError = "";
+
+            if (type === 'REIMBURSE') {
+                if (reimbursementItems.length === 0) return alert("Tambahkan minimal 1 item biaya!");
+
+                // Calc total from items
+                amt = reimbursementItems.reduce((sum, item) => sum + item.amount, 0);
+
+                // Join items as description
+                const itemDesc = reimbursementItems.map(i => `${i.name} (${window.fmt(i.amount)})${i.hasProof ? ' [Ada Nota]' : ''}`).join(', ');
+                desc = `Rincian: ${itemDesc}`;
+
+                extraInfo = " | [Multi-Item]";
+            } else {
+                // Normal Logic
+                amt = Number(document.getElementById('reqAmount').value);
+                desc = document.getElementById('reqDesc').value;
+                if (!amt || !desc) return alert("Lengkapi data nominal dan keperluan!");
+
+                if (type === 'PETTY') {
+                    const prevBal = document.getElementById('pcPrevBalance').value;
+                    const prevReal = document.getElementById('pcRealization').value;
+                    if (prevBal && prevReal) extraInfo = ` | PrevBal: ${window.fmt(prevBal)}, Real: ${window.fmt(prevReal)}`;
+                    else validationError = "Mohon isi info Petty Cash sebelumnya!";
+                } else if (type === 'DINAS' || type === 'EVENT') {
+                    const file = document.getElementById('planDoc').value;
+                    if (!file) validationError = "Wajib upload Rencana Kerja/TOR!";
+                    extraInfo = " | [Ada Rencana Kerja]";
+                }
+            }
+
+            if (!date) return alert("Pilih tanggal!");
+            if (validationError) return alert(validationError);
+
+            const finalDesc = `[${type}] [${div}] ${desc}${extraInfo}`;
+
+            const payload = {
+                tanggal: date,
+                jumlah: amt,
+                keterangan: finalDesc,
+                jenis_transaksi: 'PENGAJUAN',
+                request_by_id: currentUser.id,
+                akun: 'KASBON_KARYAWAN'
+            };
+
+            const { error } = await window.client.from('transaksi').insert([payload]);
+            if (error) alert("Gagal request: " + error.message);
+            else {
+                alert("✅ Pengajuan berhasil dikirim!");
+                tutupModal();
+                loadPengajuan();
+            }
+        }
+
+        function bukaModalReal(id, amount, desc) {
+            document.getElementById('realId').value = id;
+            document.getElementById('displayAdvance').innerText = window.fmt(amount);
+            document.getElementById('displayDesc').innerText = desc;
+            activeAdvanceAmount = amount;
+            document.getElementById('realAmount').value = "";
+            document.getElementById('displaySelisih').innerText = "Rp 0";
+            document.getElementById('modalReal').classList.remove('hidden');
+        }
+
+        function tutupModalReal() { document.getElementById('modalReal').classList.add('hidden'); }
+        async function simpanRealisasi() {
+            const id = document.getElementById('realId').value;
+            const actual = Number(document.getElementById('realAmount').value);
+            const file = document.getElementById('realProof').value; // In prod, upload to storage
+
+            if (actual <= 0) return alert("Nominal tidak valid!");
+            if (!file) return alert("Wajib upload bukti!");
+
+            const descLabel = document.getElementById('displayDesc').innerText;
+            const { error } = await window.client.from('transaksi').update({
+                jenis_transaksi: 'REALIZED',
+                keterangan: `${descLabel} [REAL:${actual}]`
+            }).eq('id', id);
+
+            if (error) alert(error.message);
+            else {
+                alert("Realisasi Disimpan!");
+                tutupModalReal();
+                loadPengajuan();
+            }
+        }
+        function hitungSelisih() {
+            const actual = Number(document.getElementById('realAmount').value);
+            const diff = activeAdvanceAmount - actual;
+            const el = document.getElementById('displaySelisih');
+            el.innerText = window.fmt(Math.abs(diff));
+            if (diff > 0) {
+                el.className = "text-center text-xl font-bold text-blue-600";
+                document.getElementById('selisihNote').innerText = "Refund ke Kantor";
+            } else if (diff < 0) {
+                el.className = "text-center text-xl font-bold text-red-600";
+                document.getElementById('selisihNote').innerText = "Reimburse ke Karyawan";
+            } else {
+                el.className = "text-center text-xl font-bold text-green-600";
+                document.getElementById('selisihNote').innerText = "Klop";
+            }
+        }
+
+        function bukaModal() { document.getElementById('modalForm').classList.remove('hidden'); }
+        function tutupModal() { document.getElementById('modalForm').classList.add('hidden'); }
+        function escapeHtml(text) { return text.replace(/'/g, "\\'"); }
+    </script>
+</body>
+
+</html>

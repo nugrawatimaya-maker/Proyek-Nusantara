@@ -5,9 +5,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Master Chart of Accounts (COA)</title>
+    <!-- Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- App Config & Auth -->
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
     <style>
         body {
             font-family: "Segoe UI", sans-serif;
@@ -33,10 +37,44 @@
         .kat-beban {
             border-left: 4px solid #f97316;
         }
+
+        /* Toast Animation */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        .toast-enter {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        .toast-exit {
+            animation: fadeOut 0.3s ease-out forwards;
+        }
     </style>
 </head>
 
 <body class="p-6 text-gray-800">
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2"></div>
 
     <div class="max-w-5xl mx-auto mb-6 flex justify-between items-center">
         <div>
@@ -45,12 +83,13 @@
             <p class="text-sm text-gray-500">Nomor Akun Otomatis & Terstandarisasi</p>
         </div>
         <div class="flex gap-2">
-            <button onclick="bukaModal()"
-                class="bg-indigo-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-indigo-700 text-sm">
+            <!-- Tombol Tambah: Visible for Finance & Superadmin -->
+            <button id="btnAdd" onclick="bukaModal()"
+                class="hidden bg-indigo-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-indigo-700 text-sm transition transform hover:scale-105">
                 <i class="fas fa-plus mr-1"></i> Tambah Akun Baru
             </button>
             <button onclick="window.history.back()"
-                class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm">
+                class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm transition transform hover:scale-105">
                 <i class="fas fa-arrow-left"></i> Kembali
             </button>
         </div>
@@ -58,7 +97,7 @@
 
     <div class="max-w-5xl mx-auto mb-4">
         <input type="text" id="searchInput" onkeyup="filterTabel()" placeholder="Cari nama akun atau nomor..."
-            class="w-full border p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            class="w-full border p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition">
     </div>
 
     <div class="max-w-5xl mx-auto bg-white rounded-lg shadow overflow-hidden">
@@ -73,22 +112,25 @@
             </thead>
             <tbody id="tabelBody" class="divide-y divide-gray-100">
                 <tr>
-                    <td colspan="4" class="p-6 text-center text-gray-400">Memuat data...</td>
+                    <td colspan="4" class="p-6 text-center text-gray-400"><i
+                            class="fas fa-spinner fa-spin mr-2"></i>Memuat data...</td>
                 </tr>
             </tbody>
         </table>
     </div>
 
-    <div id="modalForm" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-        <div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-md relative animate-fade-in-up">
+    <!-- Modal Form -->
+    <div id="modalForm"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 backdrop-blur-sm transition-opacity">
+        <div
+            class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-md relative animate-fade-in-up transform scale-100 transition-transform">
             <h2 id="modalTitle" class="text-xl font-bold mb-4 text-indigo-900 border-b pb-2">Tambah Akun</h2>
 
             <input type="hidden" id="editId">
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Kategori Utama (Pilih untuk
-                        Auto-Number)</label>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Kategori Utama</label>
                     <select id="inputKategori" onchange="generateNomorOtomatis()"
                         class="w-full border p-2 rounded bg-slate-50 font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500">
                         <option value="">-- Pilih Kategori --</option>
@@ -111,13 +153,14 @@
                     <div class="col-span-1">
                         <label class="block text-xs font-bold text-gray-600 mb-1">Kode Akun</label>
                         <input type="text" id="inputKode"
-                            class="w-full border p-2 rounded font-mono bg-yellow-50 font-bold text-gray-800"
+                            class="w-full border p-2 rounded font-mono bg-yellow-50 font-bold text-gray-800 focus:ring-2 focus:ring-indigo-500"
                             placeholder="Otomatis...">
-                        <p class="text-[9px] text-gray-400 mt-1">*Bisa diedit jika perlu</p>
+                        <p class="text-[9px] text-gray-400 mt-1" id="kodeHelp">*Otomatis / Bisa diedit manual</p>
                     </div>
                     <div class="col-span-2">
                         <label class="block text-xs font-bold text-gray-600 mb-1">Nama Akun</label>
-                        <input type="text" id="inputNama" class="w-full border p-2 rounded font-bold"
+                        <input type="text" id="inputNama"
+                            class="w-full border p-2 rounded font-bold focus:ring-2 focus:ring-indigo-500"
                             placeholder="Cth: Biaya Iklan FB">
                     </div>
                 </div>
@@ -125,88 +168,91 @@
 
             <div class="mt-6 flex justify-end gap-2">
                 <button onclick="tutupModal()"
-                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-bold text-sm">Batal</button>
+                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-bold text-sm transition">Batal</button>
                 <button onclick="simpanData()"
-                    class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold text-sm">Simpan</button>
+                    class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold text-sm transition shadow-lg flex items-center">
+                    <i class="fas fa-save mr-2"></i> Simpan
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-        const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
-        const client = supabase.createClient(supabaseUrl, supabaseKey);
+        let allAkunData = [];
+        let currentUserRole = '';
 
-        let allAkunData = []; // Simpan data lokal untuk referensi auto-number
-
-        // --- LOGIKA UTAMA: AUTO NUMBER ---
-        function generateNomorOtomatis() {
-            const kategori = document.getElementById("inputKategori").value;
-            const kodeInput = document.getElementById("inputKode");
-
-            // 1. Tentukan Prefix berdasarkan Kategori
-            let prefix = "";
-            switch (kategori) {
-                case "Aset Lancar": prefix = "1-1"; break;     // 1-1xxx
-                case "Aset Tetap": prefix = "1-2"; break;      // 1-2xxx
-                case "Kewajiban": prefix = "2-1"; break;       // 2-1xxx
-                case "Modal": prefix = "3-1"; break;           // 3-1xxx
-                case "Pendapatan": prefix = "4-1"; break;      // 4-1xxx
-                case "HPP": prefix = "5-1"; break;             // 5-1xxx
-                case "Beban Operasional": prefix = "6-1"; break; // 6-1xxx
-                case "Beban Lainnya": prefix = "7-1"; break;   // 7-1xxx
-                default: prefix = "";
-            }
-
-            if (prefix === "") {
-                kodeInput.value = "";
+        // --- INIT & AUTH ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Cek Session
+            const session = PNAuth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
                 return;
             }
+            currentUserRole = session.user.role;
 
-            // 2. Cari Nomor Tertinggi yang sudah ada dengan prefix tersebut
-            let maxUrut = 0;
+            // Setup UI based on Role
+            setupRoleAccess();
 
-            allAkunData.forEach(akun => {
-                if (akun.kode_akun && akun.kode_akun.startsWith(prefix)) {
-                    // Ambil 3 digit belakang (misal 1-1005 -> ambil 005)
-                    const parts = akun.kode_akun.split('-'); // ["1", "1005"]
-                    if (parts.length > 1) {
-                        const suffix = parts[1]; // "1005"
-                        // Ambil 3 digit terakhir dari suffix
-                        const urutan = parseInt(suffix.slice(-3));
-                        if (urutan > maxUrut) maxUrut = urutan;
-                    }
-                }
-            });
+            // Load Data
+            loadData();
+        });
 
-            // 3. Tambahkan 1 untuk nomor baru
-            const nextUrut = maxUrut + 1;
+        function setupRoleAccess() {
+            // Tambah Akun: Boleh Finance & Superadmin
+            if (currentUserRole === 'superadmin' || currentUserRole === 'finance') {
+                document.getElementById('btnAdd').classList.remove('hidden');
+            }
+        }
 
-            // 4. Format jadi 3 digit (001, 002, dst)
-            const paddedUrut = nextUrut.toString().padStart(3, '0');
+        // --- TOAST NOTIFICATION ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
 
-            // 5. Gabungkan (Prefix + Sub-Kategori Index + Urut)
-            // Kita pakai format sederhana: Prefix + "0" + Urut (1-1 + 006 -> 1-1006)
-            // Atau ikuti pola user: "1-1001". Digit ke-2 adalah sub-kelompok. 
-            // Agar aman, kita pakai logika sederhana: Prefix + paddedUrut.
-            // Misal Prefix "1-1". Max "1-1005". Next "1-1006".
+            let bgClass, icon;
+            if (type === 'success') {
+                bgClass = 'bg-green-600';
+                icon = 'fa-check-circle';
+            } else if (type === 'error') {
+                bgClass = 'bg-red-600';
+                icon = 'fa-exclamation-circle';
+            } else {
+                bgClass = 'bg-blue-600';
+                icon = 'fa-info-circle';
+            }
 
-            // Kita perlu memastikan format suffix konsisten. Jika user pakai 4 digit suffix (1001), 
-            // maka kita generate 4 digit suffix.
+            toast.className = `${bgClass} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 toast-enter min-w-[300px]`;
+            toast.innerHTML = `
+                <i class="fas ${icon} text-lg"></i>
+                <span class="font-semibold text-sm">${message}</span>
+            `;
 
-            // Cek suffix existing terakhir untuk menentukan panjang digit
-            let nextSuffix = (1000 + nextUrut).toString(); // Mulai dari 1001
+            container.appendChild(toast);
 
-            kodeInput.value = `${prefix.split('-')[0]}-${nextSuffix}`;
+            // Auto remove
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
 
         // --- LOAD DATA ---
         async function loadData() {
-            const { data, error } = await client.from('master_akun').select('*').order('kode_akun', { ascending: true });
+            const { data, error } = await window.client
+                .from('master_akun')
+                .select('*')
+                .order('kode_akun', { ascending: true });
+
+            if (error) {
+                showToast("Gagal memuat data: " + error.message, 'error');
+                return;
+            }
 
             const tbody = document.getElementById("tabelBody");
             tbody.innerHTML = "";
-            allAkunData = data || []; // Simpan ke variabel global
+            allAkunData = data || [];
 
             if (data && data.length > 0) {
                 data.forEach(akun => {
@@ -218,14 +264,30 @@
                     else if (kat.includes('pendapatan')) cssClass = "kat-pendapatan";
                     else if (kat.includes('beban') || kat.includes('hpp')) cssClass = "kat-beban";
 
+                    // Logic Action Buttons: Hanya Superadmin yang bisa Edit/Hapus
+                    let actionButtons = '';
+                    if (currentUserRole === 'superadmin') {
+                        actionButtons = `
+                            <button onclick="editAkun(${akun.id}, '${akun.kode_akun}', '${akun.nama_akun}', '${akun.kategori}')" 
+                                class="text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded transition hover:bg-blue-100" title="Edit">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <button onclick="hapusAkun(${akun.id}, '${akun.nama_akun}')" 
+                                class="text-red-600 hover:text-red-800 bg-red-50 p-2 rounded transition hover:bg-red-100" title="Hapus">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+                    } else {
+                        actionButtons = `<span class="text-gray-300 text-xs italic">Read Only</span>`;
+                    }
+
                     tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 border-b group">
+                    <tr class="hover:bg-slate-50 border-b group transition-colors">
                         <td class="p-4 font-mono font-bold text-indigo-900 ${cssClass}">${akun.kode_akun || '-'}</td>
                         <td class="p-4 font-bold text-gray-700">${akun.nama_akun}</td>
-                        <td class="p-4"><span class="bg-gray-100 px-2 py-1 rounded text-xs font-bold uppercase border">${akun.kategori}</span></td>
-                        <td class="p-4 text-center flex justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition">
-                            <button onclick="editAkun(${akun.id}, '${akun.kode_akun}', '${akun.nama_akun}', '${akun.kategori}')" class="text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded"><i class="fas fa-pencil-alt"></i></button>
-                            <button onclick="hapusAkun(${akun.id}, '${akun.nama_akun}')" class="text-red-600 hover:text-red-800 bg-red-50 p-2 rounded"><i class="fas fa-trash"></i></button>
+                        <td class="p-4"><span class="bg-gray-100 px-2 py-1 rounded text-xs font-bold uppercase border text-gray-600">${akun.kategori}</span></td>
+                        <td class="p-4 text-center flex justify-center gap-2">
+                            ${actionButtons}
                         </td>
                     </tr>
                 `;
@@ -235,25 +297,103 @@
             }
         }
 
+        // --- AUTO NUMBER LOGIC ---
+        function generateNomorOtomatis() {
+            // Hanya generate jika mode tambah (editId kosong) atau user memaksa
+            const id = document.getElementById("editId").value;
+            if (id) return; // Jangan ubah otomatis saat edit, kecuali manual
+
+            const kategori = document.getElementById("inputKategori").value;
+            const kodeInput = document.getElementById("inputKode");
+
+            let prefix = "";
+            switch (kategori) {
+                case "Aset Lancar": prefix = "1-1"; break;
+                case "Aset Tetap": prefix = "1-2"; break;
+                case "Kewajiban": prefix = "2-1"; break;
+                case "Modal": prefix = "3-1"; break;
+                case "Pendapatan": prefix = "4-1"; break;
+                case "HPP": prefix = "5-1"; break;
+                case "Beban Operasional": prefix = "6-1"; break;
+                case "Beban Lainnya": prefix = "7-1"; break;
+                default: prefix = "";
+            }
+
+            if (prefix === "") {
+                kodeInput.value = "";
+                return;
+            }
+
+            let maxUrut = 0;
+            allAkunData.forEach(akun => {
+                if (akun.kode_akun && akun.kode_akun.startsWith(prefix)) {
+                    const parts = akun.kode_akun.split('-');
+                    if (parts.length > 1) {
+                        const suffix = parts[1];
+                        const urutan = parseInt(suffix.slice(-3)); // Ambil 3 digit terakhir
+                        if (!isNaN(urutan) && urutan > maxUrut) maxUrut = urutan;
+                    }
+                }
+            });
+
+            const nextUrut = maxUrut + 1;
+            const nextSuffix = (1000 + nextUrut).toString(); // Start 1001 logic preserved
+            kodeInput.value = `${prefix.split('-')[0]}-${nextSuffix}`;
+        }
+
         // --- CRUD ---
         function bukaModal() {
             document.getElementById("modalForm").classList.remove("hidden");
             document.getElementById("modalTitle").innerText = "Tambah Akun Baru";
             document.getElementById("editId").value = "";
+
+            // Reset Fields
             document.getElementById("inputKode").value = "";
             document.getElementById("inputNama").value = "";
             document.getElementById("inputKategori").value = "";
+
+            // Unlock Kode & Kategori
+            const inputKode = document.getElementById("inputKode");
+            const inputKategori = document.getElementById("inputKategori");
+            inputKode.readOnly = false;
+            inputKode.classList.remove('bg-gray-100', 'text-gray-500', 'cursor-not-allowed');
+            inputKode.classList.add('bg-yellow-50');
+            inputKategori.disabled = false;
+
+            document.getElementById("kodeHelp").innerText = "*Otomatis / Bisa diedit manual";
         }
 
-        function tutupModal() { document.getElementById("modalForm").classList.add("hidden"); }
+        function tutupModal() {
+            document.getElementById("modalForm").classList.add("hidden");
+        }
 
         function editAkun(id, kode, nama, kat) {
+            // Double check role
+            if (currentUserRole !== 'superadmin') {
+                showToast("Akses Ditolak: Hanya Superadmin yang boleh mengedit.", 'error');
+                return;
+            }
+
             document.getElementById("modalForm").classList.remove("hidden");
             document.getElementById("modalTitle").innerText = "Edit Akun";
             document.getElementById("editId").value = id;
-            document.getElementById("inputKode").value = kode;
+
+            const inputKode = document.getElementById("inputKode");
+            const inputKategori = document.getElementById("inputKategori");
+
+            inputKode.value = kode;
             document.getElementById("inputNama").value = nama;
-            document.getElementById("inputKategori").value = kat;
+            inputKategori.value = kat;
+
+            // Lock Kode & Kategori (Safety)
+            inputKode.readOnly = true;
+            inputKode.classList.remove('bg-yellow-50');
+            inputKode.classList.add('bg-gray-100', 'text-gray-500', 'cursor-not-allowed');
+
+            // Optional: Lock Kategori also to prevent numbering mess
+            // inputKategori.disabled = true; 
+
+            document.getElementById("kodeHelp").innerText = "*Kode Akun tidak dapat diubah (Permanent)";
         }
 
         async function simpanData() {
@@ -262,50 +402,78 @@
             const nama = document.getElementById("inputNama").value;
             const kat = document.getElementById("inputKategori").value;
 
-            if (!nama || !kat) return alert("Nama dan Kategori wajib diisi!");
+            if (!nama || !kat) return showToast("Nama dan Kategori wajib diisi!", 'error');
+            if (!kode) return showToast("Kode Akun wajib diisi!", 'error');
+
+            // Role Check for Edit vs Insert
+            if (id && currentUserRole !== 'superadmin') return showToast("Anda tidak memiliki izin mengedit.", 'error');
+            if (!id && (currentUserRole !== 'superadmin' && currentUserRole !== 'finance')) return showToast("Anda tidak memiliki izin menambah data.", 'error');
 
             // Validasi Duplikat Kode (Hanya saat insert baru)
             if (!id) {
                 const isExist = allAkunData.find(a => a.kode_akun === kode);
-                if (isExist) return alert(`Kode Akun ${kode} sudah digunakan oleh "${isExist.nama_akun}". Mohon gunakan kode lain.`);
+                if (isExist) return showToast(`Kode Akun ${kode} sudah digunakan oleh "${isExist.nama_akun}".`, 'error');
             }
 
             const payload = { kode_akun: kode, nama_akun: nama, kategori: kat };
 
             let error;
             if (id) {
-                const res = await client.from('master_akun').update(payload).eq('id', id);
+                const res = await window.client.from('master_akun').update(payload).eq('id', id);
                 error = res.error;
             } else {
-                const res = await client.from('master_akun').insert([payload]);
+                const res = await window.client.from('master_akun').insert([payload]);
                 error = res.error;
             }
 
-            if (error) alert("Gagal: " + error.message);
-            else { tutupModal(); loadData(); }
+            if (error) {
+                showToast("Gagal menyimpan: " + error.message, 'error');
+            } else {
+                showToast("Data berhasil disimpan!", 'success');
+                tutupModal();
+                loadData();
+
+                // Log activity
+                const activity = id ? `Edit Akun ${kode}` : `Tambah Akun ${kode}`;
+                if (window.PNAuth && window.PNAuth.logActivity) {
+                    window.PNAuth.logActivity(activity, 'MASTER_COA', 'fa-book');
+                }
+            }
         }
 
         async function hapusAkun(id, nama) {
-            if (!confirm(`Yakin hapus akun "${nama}"?`)) return;
-            const { error } = await client.from('master_akun').delete().eq('id', id);
-            if (error) alert("Gagal: " + error.message);
-            else loadData();
+            if (currentUserRole !== 'superadmin') return showToast("Akses Ditolak: Hanya Superadmin.", 'error');
+
+            if (!confirm(`Yakin hapus akun "${nama}"?\n\nPERINGATAN: Pastikan akun ini tidak digunakan di jurnal transaksi!`)) return;
+
+            const { error } = await window.client.from('master_akun').delete().eq('id', id);
+
+            if (error) {
+                showToast("Gagal menghapus: " + error.message, 'error');
+            } else {
+                showToast("Akun berhasil dihapus.", 'success');
+                loadData();
+                if (window.PNAuth && window.PNAuth.logActivity) {
+                    window.PNAuth.logActivity(`Hapus Akun ${nama}`, 'MASTER_COA', 'fa-trash');
+                }
+            }
         }
 
         function filterTabel() {
             const filter = document.getElementById("searchInput").value.toUpperCase();
             const tr = document.getElementById("tabelBody").getElementsByTagName("tr");
             for (let i = 0; i < tr.length; i++) {
-                const tdNama = tr[i].getElementsByTagName("td")[1];
                 const tdKode = tr[i].getElementsByTagName("td")[0];
+                const tdNama = tr[i].getElementsByTagName("td")[1];
                 if (tdNama || tdKode) {
-                    if (tdNama.innerText.toUpperCase().indexOf(filter) > -1 || tdKode.innerText.toUpperCase().indexOf(filter) > -1) tr[i].style.display = "";
-                    else tr[i].style.display = "none";
+                    if (tdNama.innerText.toUpperCase().indexOf(filter) > -1 || tdKode.innerText.toUpperCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
                 }
             }
         }
-
-        loadData();
     </script>
 </body>
 

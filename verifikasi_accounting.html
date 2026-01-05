@@ -26,7 +26,15 @@
           class="fas fa-arrow-left mr-2"></i>Dashboard</a>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+    <div class="mb-4 flex space-x-2">
+      <button onclick="switchTab('material')" id="btnTabMaterial"
+        class="px-4 py-2 bg-blue-600 text-white rounded font-bold shadow transition">Verifikasi Material</button>
+      <button onclick="switchTab('expense')" id="btnTabExpense"
+        class="px-4 py-2 bg-white text-gray-600 rounded font-bold hover:bg-gray-100 transition">Approval Biaya</button>
+    </div>
+
+    <!-- TAB MATERIAL -->
+    <div id="tabMaterial" class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
       <table class="w-full text-left border-collapse">
         <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold">
           <tr>
@@ -45,6 +53,25 @@
         </tbody>
       </table>
     </div>
+
+    <!-- TAB EXPENSE -->
+    <div id="tabExpense" class="hidden bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+      <table class="w-full text-left border-collapse">
+        <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-bold">
+          <tr>
+            <th class="p-4 border-b">Tanggal</th>
+            <th class="p-4 border-b">Detail Pengajuan</th>
+            <th class="p-4 border-b text-right">Nominal</th>
+            <th class="p-4 border-b text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="bodyExpense">
+          <tr>
+            <td colspan="4" class="p-10 text-center text-gray-400">Memuat data pengajuan...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -52,7 +79,32 @@
     const client = window.client || supabase.createClient("https://nbpxmramqufvxiikxbve.supabase.co", "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN");
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
-    async function loadWaitingList() {
+    let currentTab = 'material';
+
+    function switchTab(tab) {
+      currentTab = tab;
+      const btnMat = document.getElementById('btnTabMaterial');
+      const btnExp = document.getElementById('btnTabExpense');
+      const viewMat = document.getElementById('tabMaterial');
+      const viewExp = document.getElementById('tabExpense');
+
+      if (tab === 'material') {
+        btnMat.className = "px-4 py-2 bg-blue-600 text-white rounded font-bold shadow transition";
+        btnExp.className = "px-4 py-2 bg-white text-gray-600 rounded font-bold hover:bg-gray-100 transition";
+        viewMat.classList.remove('hidden');
+        viewExp.classList.add('hidden');
+        loadMaterial();
+      } else {
+        btnMat.className = "px-4 py-2 bg-white text-gray-600 rounded font-bold hover:bg-gray-100 transition";
+        btnExp.className = "px-4 py-2 bg-blue-600 text-white rounded font-bold shadow transition";
+        viewMat.classList.add('hidden');
+        viewExp.classList.remove('hidden');
+        loadExpense();
+      }
+    }
+
+    // --- MATERIAL Functions ---
+    async function loadMaterial() {
       const { data, error } = await client
         .from('verifikasi_material')
         .select(`*, master_stok(nama_barang, satuan, harga_estimasi)`)
@@ -63,7 +115,7 @@
       tbody.innerHTML = "";
 
       if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400 italic">Semua data telah diverifikasi.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400 italic">Semua data material telah diverifikasi.</td></tr>`;
         return;
       }
 
@@ -101,12 +153,9 @@
 
       if (!errJurnal) {
         await client.from('verifikasi_material').update({ status: 'POSTED' }).eq('id', id);
-
-        // Log System
         if (window.catatLog) await window.catatLog('KEUANGAN', `Posting Jurnal Material Project ${proyek}`, 'fa-book');
-
         alert("✅ Berhasil diposting!");
-        loadWaitingList();
+        loadMaterial();
       } else {
         alert("Gagal posting: " + errJurnal.message);
       }
@@ -114,40 +163,127 @@
 
     async function rejectItem(id) {
       if (!confirm("⚠️ TOLAK TRANSAKSI?\nBarang akan dimasukkan kembali ke saldo gudang.")) return;
-
-      const { data: item } = await client
-        .from('verifikasi_material')
-        .select('barang_id, jumlah, nama_proyek, keterangan')
-        .eq('id', id)
-        .single();
-
+      const { data: item } = await client.from('verifikasi_material').select('barang_id, jumlah, nama_proyek, keterangan').eq('id', id).single();
       if (item) {
-        const { data: stokSkrg } = await client
-          .from('master_stok')
-          .select('total_stok')
-          .eq('id', item.barang_id)
-          .single();
-
+        const { data: stokSkrg } = await client.from('master_stok').select('total_stok').eq('id', item.barang_id).single();
         await client.from('master_stok').update({ total_stok: stokSkrg.total_stok + item.jumlah }).eq('id', item.barang_id);
-
         await client.from('stok_history').insert([{
-          barang_id: item.barang_id,
-          jenis_transaksi: 'REJECT ACCOUNTING',
-          jumlah: item.jumlah,
-          keterangan: `Reject Proyek ${item.nama_proyek}: ${item.keterangan}`
+          barang_id: item.barang_id, jenis_transaksi: 'REJECT ACCOUNTING', jumlah: item.jumlah, keterangan: `Reject Proyek ${item.nama_proyek}: ${item.keterangan}`
         }]);
-
-        // Log System
         if (window.catatLog) await window.catatLog('KEUANGAN', `Reject & Refund Material: ${item.nama_proyek}`, 'fa-undo');
       }
-
       await client.from('verifikasi_material').update({ status: 'REJECTED' }).eq('id', id);
-
       alert("✅ Berhasil! Stok telah dikembalikan ke kolom MASUK.");
-      loadWaitingList();
+      loadMaterial();
     }
 
-    loadWaitingList();
+    // --- EXPENSE Functions ---
+    async function loadExpense() {
+      const tbody = document.getElementById("bodyExpense");
+      tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400">Memuat data pengajuan...</td></tr>`;
+
+      const { data, error } = await client
+        .from('transaksi')
+        .select('*')
+        .eq('jenis_transaksi', 'PENGAJUAN')
+        .order('tanggal', { ascending: false });
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-red-500">Error: ${error.message}</td></tr>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400 italic">Tidak ada pengajuan biaya yang pending.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = "";
+      data.forEach(item => {
+        // Parse Description for better display (Type & Divisi)
+        let typeDisplay = "UMUM";
+        let divDisplay = "-";
+        let descClean = item.keterangan;
+
+        // Example format: "[REIMBURSE] [MARKETING] Beli bensin..."
+        if (item.keterangan.startsWith('[')) {
+          // simple parser
+          const parts = item.keterangan.match(/^\[(.*?)\] \[(.*?)\] (.*)$/);
+          if (parts && parts.length >= 4) {
+            typeDisplay = parts[1];
+            divDisplay = parts[2];
+            descClean = parts[3];
+          } else {
+            // Fallback check just Type
+            const parts2 = item.keterangan.match(/^\[(.*?)\] (.*)$/);
+            if (parts2 && parts2.length >= 3) {
+              typeDisplay = parts2[1];
+              descClean = parts2[2];
+            }
+          }
+        }
+
+        // Extra logic for Multi-Item parsing if needed, but display text is fine
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-blue-50 border-b transition">
+                <td class="p-4 text-sm">
+                    <div class="font-bold text-gray-700">${new Date(item.tanggal).toLocaleDateString('id-ID')}</div>
+                    <div class="text-xs text-gray-400">ID: #${item.id}</div>
+                </td>
+                <td class="p-4">
+                    <div class="flex gap-2 mb-1">
+                        <span class="text-[10px] uppercase font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">${typeDisplay}</span>
+                        <span class="text-[10px] uppercase font-bold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">${divDisplay}</span>
+                    </div>
+                    <div class="text-sm text-gray-800">${descClean}</div>
+                </td>
+                <td class="p-4 text-right font-mono font-bold text-orange-600">${fmt(item.jumlah)}</td>
+                <td class="p-4 text-center">
+                    <div class="flex flex-col gap-2 items-center">
+                        <button onclick="approveExpense(${item.id})" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-green-700 w-full shadow-sm">Setujui & Cairkan</button>
+                        <button onclick="rejectExpense(${item.id})" class="bg-red-50 text-red-600 px-3 py-1.5 rounded text-xs font-bold hover:bg-red-100 w-full border border-red-200">Tolak</button>
+                    </div>
+                </td>
+            </tr>`;
+      });
+    }
+
+    async function approveExpense(id) {
+      if (!confirm("Setujui pengajuan ini?\nStatus akan berubah menjadi 'UANG CAIR'.")) return;
+
+      // Update status to ADVANCE_CAIR
+      const { error } = await client
+        .from('transaksi')
+        .update({ jenis_transaksi: 'ADVANCE_CAIR' })
+        .eq('id', id);
+
+      if (error) alert("Gagal: " + error.message);
+      else {
+        if (window.catatLog) await window.catatLog('KEUANGAN', `Approve Expense ID: ${id}`, 'fa-check-double');
+        alert("✅ Pengajuan Disetujui!");
+        loadExpense();
+      }
+    }
+
+    async function rejectExpense(id) {
+      if (!confirm("Tolak pengajuan ini?")) return;
+
+      const { error } = await client
+        .from('transaksi')
+        .update({ jenis_transaksi: 'REJECTED' })
+        .eq('id', id);
+
+      if (error) alert("Gagal: " + error.message);
+      else {
+        if (window.catatLog) await window.catatLog('KEUANGAN', `Reject Expense ID: ${id}`, 'fa-times');
+        alert("❌ Pengajuan Ditolak!");
+        loadExpense();
+      }
+    }
+
+    // Init
+    loadMaterial();
   </script>
 </body>
 

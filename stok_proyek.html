@@ -761,7 +761,6 @@
 
                         const { error: errVerif } = await client.from('verifikasi_material').insert([{
                             tanggal: new Date(),
-                            // nomor_po: noPOBaru, <-- Hapus kolom ini karena tidak ada di DB
                             nama_proyek: proyek,
                             barang_id: barangId,
                             jumlah: jumlah,
@@ -1116,7 +1115,9 @@
                         return;
                     }
 
-                    const mutasiProyekIni = data ? data.filter(r => masterIndex[String(r.barang_id)]) : [];
+                    // HAPUS FILTER KETAT: Tampilkan semua data meskipun barang_id tidak ada di masterIndex
+                    // const mutasiProyekIni = data ? data.filter(r => masterIndex[String(r.barang_id)]) : [];
+                    const mutasiProyekIni = data || [];
 
                     tbody.innerHTML = "";
 
@@ -1134,9 +1135,17 @@
                         const isMasuk = q > 0;
                         const jumlahAbs = Math.abs(q);
 
-                        const item = masterIndex[String(r.barang_id)] || {};
-                        const namaBarang = item.nama_barang || `ID:${r.barang_id}`;
-                        const satuan = item.satuan || 'Unit';
+                        // Handle item unknown
+                        const item = masterIndex[String(r.barang_id)];
+                        let namaBarang, satuan;
+
+                        if (item) {
+                            namaBarang = item.nama_barang;
+                            satuan = item.satuan || 'Unit';
+                        } else {
+                            namaBarang = `<span class="text-gray-400 font-bold italic">⚠️ Item Unknown (ID: ${r.barang_id})</span>`;
+                            satuan = 'Unit';
+                        }
 
                         const colMasuk = isMasuk ? `<span class="font-bold text-emerald-600">+${jumlahAbs} ${satuan}</span>` : `<span class="text-gray-300">-</span>`;
                         const colKeluar = !isMasuk ? `<span class="font-bold text-red-600">-${jumlahAbs} ${satuan}</span>` : `<span class="text-gray-300">-</span>`;

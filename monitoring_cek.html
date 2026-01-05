@@ -1,156 +1,164 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>Monitoring Cek & Giro Mundur</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <title>Monitoring Cek & Giro Mundur</title>
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- App Config & Auth -->
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
 </head>
+
 <body class="bg-gray-100 font-sans text-gray-800 p-6">
 
-  <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
-    <div>
-      <h1 class="text-2xl font-bold text-indigo-900"><i class="fas fa-money-check mr-2"></i>Register Cek & Giro</h1>
-      <p class="text-sm text-gray-500">Kontrol Jadwal Pencairan Cek Keluar</p>
+    <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-indigo-900"><i class="fas fa-money-check mr-2"></i>Register Cek & Giro
+            </h1>
+            <p class="text-sm text-gray-500">Kontrol Jadwal Pencairan Cek Keluar</p>
+        </div>
+        <a href="dashboard_finance.html"
+            class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm transition transform hover:scale-105">
+            <i class="fas fa-arrow-left"></i> Dashboard Finance
+        </a>
     </div>
-    <a href="dashboard_operasional.html" class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm">
-        <i class="fas fa-arrow-left"></i> Dashboard
-    </a>
-  </div>
 
-  <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-      <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500">
-          <div class="text-xs text-gray-500 font-bold uppercase">Total Cek Beredar (Outstanding)</div>
-          <div class="text-2xl font-bold text-blue-700 mt-1" id="totalOutstanding">Rp 0</div>
-          <p class="text-xs text-gray-400 mt-1">Uang belum ditarik vendor</p>
-      </div>
-      <div class="bg-white p-4 rounded shadow border-l-4 border-orange-500">
-          <div class="text-xs text-gray-500 font-bold uppercase">Cair Minggu Ini</div>
-          <div class="text-2xl font-bold text-orange-600 mt-1" id="cairMingguIni">Rp 0</div>
-          <p class="text-xs text-gray-400 mt-1">Siapkan dana segera!</p>
-      </div>
-      <div class="bg-white p-4 rounded shadow border-l-4 border-green-500">
-          <div class="text-xs text-gray-500 font-bold uppercase">Sudah Cair (Cleared)</div>
-          <div class="text-2xl font-bold text-green-600 mt-1" id="totalCair">Rp 0</div>
-          <p class="text-xs text-gray-400 mt-1">Riwayat sukses</p>
-      </div>
-  </div>
-
-  <div class="max-w-6xl mx-auto bg-white rounded-lg shadow overflow-hidden">
-    <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
-        <h3 class="font-bold text-gray-700">Jadwal Pencairan Cek</h3>
-        <select id="filterStatus" class="border p-2 rounded text-sm" onchange="loadCek()">
-            <option value="ALL">Semua Cek</option>
-            <option value="OUTSTANDING">Belum Cair (Outstanding)</option>
-            <option value="CLEARED">Sudah Cair (Lewat Tanggal)</option>
-        </select>
+    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-white p-4 rounded shadow border-l-4 border-blue-500">
+            <div class="text-xs text-gray-500 font-bold uppercase">Total Cek Beredar (Outstanding)</div>
+            <div class="text-2xl font-bold text-blue-700 mt-1" id="totalOutstanding">Rp 0</div>
+            <p class="text-xs text-gray-400 mt-1">Uang belum ditarik vendor</p>
+        </div>
+        <div class="bg-white p-4 rounded shadow border-l-4 border-orange-500">
+            <div class="text-xs text-gray-500 font-bold uppercase">Cair Minggu Ini</div>
+            <div class="text-2xl font-bold text-orange-600 mt-1" id="cairMingguIni">Rp 0</div>
+            <p class="text-xs text-gray-400 mt-1">Siapkan dana segera!</p>
+        </div>
+        <div class="bg-white p-4 rounded shadow border-l-4 border-green-500">
+            <div class="text-xs text-gray-500 font-bold uppercase">Sudah Cair (Cleared)</div>
+            <div class="text-2xl font-bold text-green-600 mt-1" id="totalCair">Rp 0</div>
+            <p class="text-xs text-gray-400 mt-1">Riwayat sukses</p>
+        </div>
     </div>
-    
-    <table class="w-full text-left text-sm">
-        <thead class="bg-gray-100 text-gray-600 font-bold uppercase">
-            <tr>
-                <th class="p-4">Tgl Jatuh Tempo</th>
-                <th class="p-4">Nomor Cek / Ref</th>
-                <th class="p-4">Keterangan / Vendor</th>
-                <th class="p-4">Bank Sumber</th>
-                <th class="p-4 text-right">Nominal</th>
-                <th class="p-4 text-center">Status</th>
-            </tr>
-        </thead>
-        <tbody id="bodyCek" class="divide-y divide-gray-100">
-            <tr><td colspan="6" class="p-6 text-center text-gray-400">Memuat data...</td></tr>
-        </tbody>
-    </table>
-  </div>
 
-  <script>
-    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
-    const client = supabase.createClient(supabaseUrl, supabaseKey);
-    const fmt = (n) => new Intl.NumberFormat('id-ID', {style: 'currency', currency: 'IDR'}).format(n);
+    <div class="max-w-6xl mx-auto bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
+            <h3 class="font-bold text-gray-700">Jadwal Pencairan Cek</h3>
+            <select id="filterStatus" class="border p-2 rounded text-sm" onchange="loadCek()">
+                <option value="ALL">Semua Cek</option>
+                <option value="OUTSTANDING">Belum Cair (Outstanding)</option>
+                <option value="CLEARED">Sudah Cair (Lewat Tanggal)</option>
+            </select>
+        </div>
 
-    async function loadCek() {
-        const filter = document.getElementById("filterStatus").value;
-        const today = new Date();
-        today.setHours(0,0,0,0);
+        <table class="w-full text-left text-sm">
+            <thead class="bg-gray-100 text-gray-600 font-bold uppercase">
+                <tr>
+                    <th class="p-4">Tgl Jatuh Tempo</th>
+                    <th class="p-4">Nomor Cek / Ref</th>
+                    <th class="p-4">Keterangan / Vendor</th>
+                    <th class="p-4">Bank Sumber</th>
+                    <th class="p-4 text-right">Nominal</th>
+                    <th class="p-4 text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody id="bodyCek" class="divide-y divide-gray-100">
+                <tr>
+                    <td colspan="6" class="p-6 text-center text-gray-400">Memuat data...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
-        // Ambil Transaksi yang jenisnya KELUAR dan Keterangan mengandung 'Ref:' atau 'Cek:'
-        // Asumsi: Saat bayar di Tagihan Vendor, kita simpan No Cek di keterangan
-        const { data, error } = await client
-            .from('transaksi')
-            .select('*')
-            .eq('jenis_transaksi', 'KELUAR')
-            .ilike('keterangan', '%Ref:%') // Filter kasar untuk mencari transaksi cek
-            .order('tanggal', { ascending: true });
+    <script>
+        // Config handled by app_config.js (window.client)
 
-        if(error) { alert("Error: " + error.message); return; }
-
-        const tbody = document.getElementById("bodyCek");
-        tbody.innerHTML = "";
-
-        let totalOut = 0;
-        let totalMingguIni = 0;
-        let totalCair = 0;
-
-        // Hitung batas minggu ini (7 hari kedepan)
-        const nextWeek = new Date();
-        nextWeek.setDate(today.getDate() + 7);
-
-        data.forEach(t => {
-            const tglCair = new Date(t.tanggal);
-            let status = "";
-            let badge = "";
-
-            // Logika Status
-            if (tglCair < today) {
-                status = "CLEARED"; // Sudah lewat tanggal, asumsi sudah cair
-                badge = `<span class="bg-gray-200 text-gray-600 px-2 py-1 rounded text-xs font-bold">CAIR / LALU</span>`;
-                totalCair += t.jumlah;
-            } else if (tglCair.getTime() === today.getTime()) {
-                status = "OUTSTANDING";
-                badge = `<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold animate-pulse">HARI INI</span>`;
-                totalOut += t.jumlah;
-                totalMingguIni += t.jumlah;
-            } else {
-                status = "OUTSTANDING";
-                const diffDays = Math.ceil((tglCair - today) / (1000 * 60 * 60 * 24));
-                badge = `<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-bold">${diffDays} Hari Lagi</span>`;
-                totalOut += t.jumlah;
-                if(tglCair <= nextWeek) totalMingguIni += t.jumlah;
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.PNAuth && !window.PNAuth.getSession()) {
+                window.location.href = 'login.html';
+                return;
             }
+            loadCek();
+        });
 
-            // Filter Tampilan
-            if (filter !== "ALL" && filter !== status && !(filter === "OUTSTANDING" && status === "OUTSTANDING")) return;
+        async function loadCek() {
+            const filter = document.getElementById("filterStatus").value;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-            // Parsing No Cek dari Keterangan (Format: "Ket (Ref: NO_CEK)")
-            let noCek = "-";
-            let vendor = t.keterangan;
-            if(t.keterangan.includes("Ref:")) {
-                const parts = t.keterangan.split("(Ref:");
-                vendor = parts[0].trim();
-                noCek = parts[1].replace(")", "").trim();
-            }
+            // Ambil Transaksi yang jenisnya KELUAR dan Keterangan mengandung 'Ref:' atau 'Cek:'
+            const { data, error } = await window.client
+                .from('transaksi')
+                .select('*')
+                .eq('jenis_transaksi', 'KELUAR')
+                .ilike('keterangan', '%Ref:%') // Filter kasar untuk mencari transaksi cek (Convention based)
+                .order('tanggal', { ascending: true });
 
-            tbody.innerHTML += `
+            if (error) { alert("Error: " + error.message); return; }
+
+            const tbody = document.getElementById("bodyCek");
+            tbody.innerHTML = "";
+
+            let totalOut = 0;
+            let totalMingguIni = 0;
+            let totalCair = 0;
+
+            const nextWeek = new Date();
+            nextWeek.setDate(today.getDate() + 7);
+
+            data.forEach(t => {
+                const tglCair = new Date(t.tanggal);
+                let status = "";
+                let badge = "";
+
+                if (tglCair < today) {
+                    status = "CLEARED";
+                    badge = `<span class="bg-gray-200 text-gray-600 px-2 py-1 rounded text-xs font-bold">CAIR / LALU</span>`;
+                    totalCair += t.jumlah;
+                } else if (tglCair.getTime() === today.getTime()) {
+                    status = "OUTSTANDING";
+                    badge = `<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold animate-pulse">HARI INI</span>`;
+                    totalOut += t.jumlah;
+                    totalMingguIni += t.jumlah;
+                } else {
+                    status = "OUTSTANDING";
+                    const diffDays = Math.ceil((tglCair - today) / (1000 * 60 * 60 * 24));
+                    badge = `<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-bold">${diffDays} Hari Lagi</span>`;
+                    totalOut += t.jumlah;
+                    if (tglCair <= nextWeek) totalMingguIni += t.jumlah;
+                }
+
+                if (filter !== "ALL" && filter !== status && !(filter === "OUTSTANDING" && status === "OUTSTANDING")) return;
+
+                let noCek = "-";
+                let vendor = t.keterangan;
+                if (t.keterangan.includes("Ref:")) {
+                    const parts = t.keterangan.split("(Ref:");
+                    vendor = parts[0].trim();
+                    noCek = parts[1].replace(")", "").trim();
+                }
+
+                tbody.innerHTML += `
                 <tr class="hover:bg-indigo-50 border-b">
                     <td class="p-4 font-mono font-bold text-indigo-900">${tglCair.toLocaleDateString('id-ID')}</td>
                     <td class="p-4 font-bold">${noCek}</td>
                     <td class="p-4 text-gray-600">${vendor}</td>
                     <td class="p-4 text-gray-500 text-xs">${t.bank_sumber}</td>
-                    <td class="p-4 text-right font-bold text-red-600">${fmt(t.jumlah)}</td>
+                    <td class="p-4 text-right font-bold text-red-600">${window.fmt(t.jumlah)}</td>
                     <td class="p-4 text-center">${badge}</td>
                 </tr>
             `;
-        });
+            });
 
-        // Update Summary
-        document.getElementById("totalOutstanding").innerText = fmt(totalOut);
-        document.getElementById("cairMingguIni").innerText = fmt(totalMingguIni);
-        document.getElementById("totalCair").innerText = fmt(totalCair);
-    }
-
-    loadCek();
-  </script>
+            document.getElementById("totalOutstanding").innerText = window.fmt(totalOut);
+            document.getElementById("cairMingguIni").innerText = window.fmt(totalMingguIni);
+            document.getElementById("totalCair").innerText = window.fmt(totalCair);
+        }
+    </script>
 </body>
+
 </html>

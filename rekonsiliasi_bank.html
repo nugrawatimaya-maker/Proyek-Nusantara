@@ -1,246 +1,420 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>Rekonsiliasi Bank</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <style>
-    body { font-family: "Segoe UI", sans-serif; background: #f0f9ff; }
-    .chk-rekon { transform: scale(1.3); cursor: pointer; }
-  </style>
+    <meta charset="UTF-8" />
+    <title>Rekonsiliasi Bank</title>
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- App Config & Auth -->
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #f0f9ff;
+        }
+
+        .chk-rekon {
+            transform: scale(1.3);
+            cursor: pointer;
+        }
+
+        /* Modal Transition */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+    </style>
 </head>
+
 <body class="p-6 text-gray-800">
 
-  <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
-    <div>
-      <h1 class="text-2xl font-bold text-sky-800"><i class="fas fa-balance-scale mr-2"></i>Rekonsiliasi Bank</h1>
-      <p class="text-sm text-gray-500">Cocokkan data Sistem dengan Rekening Koran</p>
-    </div>
-    <a href="dashboard_operasional.html" class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm">
-      <i class="fas fa-arrow-left"></i> Dashboard
-    </a>
-  </div>
-
-  <div class="max-w-6xl mx-auto bg-white p-4 rounded-lg shadow mb-6 border-l-4 border-sky-600 flex flex-wrap gap-4 items-end">
-      
-      <div class="w-full md:w-1/4">
-          <label class="block text-xs font-bold text-gray-600 mb-1">Pilih Akun Bank</label>
-          <select id="pilihBank" class="w-full border p-2 rounded" onchange="loadTransaksi()">
-              <option value="">-- Pilih Bank --</option>
-              </select>
-      </div>
-
-      <div class="w-full md:w-1/4">
-          <label class="block text-xs font-bold text-gray-600 mb-1">Saldo Akhir di Rekening Koran</label>
-          <input type="number" id="saldoBank" class="w-full border p-2 rounded font-bold text-right" placeholder="0" onkeyup="hitungSelisih()">
-      </div>
-
-      <div class="w-full md:w-1/3 text-right ml-auto">
-          <p class="text-xs text-gray-500 font-bold uppercase">Selisih (Unreconciled)</p>
-          <h2 class="text-3xl font-bold text-red-600" id="displaySelisih">Rp 0</h2>
-          <p class="text-[10px] text-gray-400">Target selisih harus Rp 0</p>
-      </div>
-  </div>
-
-  <div class="max-w-6xl mx-auto bg-white rounded-lg shadow overflow-hidden">
-    <div class="p-3 bg-sky-100 border-b border-sky-200 flex justify-between items-center">
-        <h3 class="font-bold text-sky-800">Transaksi Belum Klop (Outstanding)</h3>
-        <button onclick="simpanRekon()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-1 rounded text-sm font-bold shadow">
-            <i class="fas fa-check-double mr-1"></i> Simpan Hasil Rekon
-        </button>
+    <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-sky-800"><i class="fas fa-balance-scale mr-2"></i>Rekonsiliasi Bank</h1>
+            <p class="text-sm text-gray-500">Cocokkan data Sistem dengan Rekening Koran</p>
+        </div>
+        <!-- Back to Finance Dashboard -->
+        <a href="dashboard_finance.html"
+            class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm transition transform hover:scale-105">
+            <i class="fas fa-arrow-left"></i> Dashboard Finance
+        </a>
     </div>
 
-    <table class="w-full text-left text-sm">
-        <thead class="bg-sky-50 text-sky-900 font-bold uppercase">
-            <tr>
-                <th class="p-3 text-center w-12">Match</th>
-                <th class="p-3">Tanggal</th>
-                <th class="p-3">Keterangan</th>
-                <th class="p-3 text-right text-green-700">Masuk (Debit)</th>
-                <th class="p-3 text-right text-red-700">Keluar (Kredit)</th>
-            </tr>
-        </thead>
-        <tbody id="bodyRekon" class="divide-y divide-gray-100">
-            <tr><td colspan="5" class="p-6 text-center text-gray-400">Pilih bank dulu...</td></tr>
-        </tbody>
-        <tfoot class="bg-gray-50 font-bold text-gray-700">
-            <tr>
-                <td colspan="3" class="p-3 text-right">Total Tercatat di Sistem:</td>
-                <td class="p-3 text-right text-green-700" id="totalMasuk">0</td>
-                <td class="p-3 text-right text-red-700" id="totalKeluar">0</td>
-            </tr>
-            <tr>
-                <td colspan="3" class="p-3 text-right">Saldo Buku (Sistem):</td>
-                <td colspan="2" class="p-3 text-right text-xl text-blue-800" id="saldoBuku">Rp 0</td>
-            </tr>
-        </tfoot>
-    </table>
-  </div>
+    <div
+        class="max-w-6xl mx-auto bg-white p-4 rounded-lg shadow mb-6 border-l-4 border-sky-600 flex flex-wrap gap-4 items-end">
 
-  <script>
-    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
-    const client = supabase.createClient(supabaseUrl, supabaseKey);
-    const fmt = (n) => new Intl.NumberFormat('id-ID', {style: 'currency', currency: 'IDR'}).format(n);
+        <div class="w-full md:w-1/4">
+            <label class="block text-xs font-bold text-gray-600 mb-1">Pilih Akun Bank</label>
+            <select id="pilihBank" class="w-full border p-2 rounded focus:ring-2 focus:ring-sky-500"
+                onchange="loadTransaksi()">
+                <option value="">-- Pilih Bank --</option>
+            </select>
+        </div>
 
-    let listTrans = [];
-    let saldoSistem = 0;
+        <div class="w-full md:w-1/4">
+            <label class="block text-xs font-bold text-gray-600 mb-1">Saldo Akhir di Rekening Koran</label>
+            <input type="number" id="saldoBank"
+                class="w-full border p-2 rounded font-bold text-right focus:ring-2 focus:ring-sky-500" placeholder="0"
+                onkeyup="hitungSelisih()">
+        </div>
 
-    // INIT
-    async function init() {
-        const { data } = await client.from('master_akun').select('nama_akun').order('nama_akun');
-        const sel = document.getElementById("pilihBank");
-        if(data) {
-            data.forEach(a => {
-                if(a.nama_akun.toLowerCase().includes('bank')) {
-                    sel.innerHTML += `<option value="${a.nama_akun}">${a.nama_akun}</option>`;
-                }
-            });
+        <div class="w-full md:w-1/3 text-right ml-auto">
+            <p class="text-xs text-gray-500 font-bold uppercase">Selisih (Unreconciled)</p>
+            <h2 class="text-3xl font-bold text-red-600 transition-colors duration-500" id="displaySelisih">Rp 0</h2>
+            <p class="text-[10px] text-gray-400">Target selisih harus Rp 0</p>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-3 bg-sky-100 border-b border-sky-200 flex justify-between items-center">
+            <h3 class="font-bold text-sky-800">Transaksi Belum Klop (Outstanding)</h3>
+            <div class="flex gap-2">
+                <button onclick="bukaModalAdjustment()"
+                    class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1 rounded text-sm font-bold shadow transition transform hover:scale-105">
+                    <i class="fas fa-plus-circle mr-1"></i> Buat Penyesuaian
+                </button>
+                <button onclick="simpanRekon()"
+                    class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-1 rounded text-sm font-bold shadow transition transform hover:scale-105">
+                    <i class="fas fa-check-double mr-1"></i> Simpan Hasil Rekon
+                </button>
+            </div>
+        </div>
+
+        <table class="w-full text-left text-sm">
+            <thead class="bg-sky-50 text-sky-900 font-bold uppercase">
+                <tr>
+                    <th class="p-3 text-center w-12">Match</th>
+                    <th class="p-3">Tanggal</th>
+                    <th class="p-3">Keterangan</th>
+                    <th class="p-3 text-right text-green-700">Masuk (Debit)</th>
+                    <th class="p-3 text-right text-red-700">Keluar (Kredit)</th>
+                </tr>
+            </thead>
+            <tbody id="bodyRekon" class="divide-y divide-gray-100">
+                <tr>
+                    <td colspan="5" class="p-6 text-center text-gray-400">Pilih bank dulu...</td>
+                </tr>
+            </tbody>
+            <tfoot class="bg-gray-50 font-bold text-gray-700">
+                <tr>
+                    <td colspan="3" class="p-3 text-right">Total Tercatat di Sistem:</td>
+                    <td class="p-3 text-right text-green-700" id="totalMasuk">0</td>
+                    <td class="p-3 text-right text-red-700" id="totalKeluar">0</td>
+                </tr>
+                <tr>
+                    <td colspan="3" class="p-3 text-right">Saldo Buku (Sistem):</td>
+                    <td colspan="2" class="p-3 text-right text-xl text-blue-800" id="saldoBuku">Rp 0</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- MODAL ADJUSTMENT -->
+    <div id="modalAdj"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
+            <div class="bg-amber-500 p-4 flex justify-between items-center text-white">
+                <h3 class="font-bold text-lg"><i class="fas fa-magic mr-2"></i>Buat Penyesuaian</h3>
+                <button onclick="tutupModalAdj()" class="hover:text-amber-200"><i
+                        class="fas fa-times text-xl"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Jenis Penyesuaian</label>
+                    <select id="adjType" class="w-full border p-2 rounded bg-amber-50 font-bold text-gray-700"
+                        onchange="loadAkunAdjustment()">
+                        <option value="BIAYA">Biaya Bank (Admin/Pajak)</option>
+                        <option value="PENDAPATAN">Pendapatan Bunga (Jasa Giro)</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Tanggal</label>
+                        <input type="date" id="adjDate" class="w-full border p-2 rounded">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Nominal (Rp)</label>
+                        <input type="number" id="adjAmount" class="w-full border p-2 rounded text-right font-bold"
+                            placeholder="0">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Akun Lawan</label>
+                    <select id="adjAccount" class="w-full border p-2 rounded">
+                        <option value="">-- Pilih Akun --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Keterangan</label>
+                    <textarea id="adjDesc" class="w-full border p-2 rounded text-sm" rows="2"
+                        placeholder="Cth: Admin Bank Bulan Juni..."></textarea>
+                </div>
+
+                <div class="bg-blue-50 p-2 rounded text-[10px] text-blue-600 flex gap-2 items-start">
+                    <i class="fas fa-info-circle mt-0.5"></i>
+                    <span>Transaksi akan langsung dicatat ke Buku Bank sebagai <b>MASUK/KELUAR</b> (Final) agar saldo
+                        klop.</span>
+                </div>
+
+                <button onclick="simpanAdjustment()"
+                    class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded shadow transition">
+                    <i class="fas fa-save mr-1"></i> Simpan & Masukkan ke Rekon
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Config handled by app_config.js (window.client)
+
+        let listTrans = [];
+        let saldoSistem = 0;
+        let allAkun = [];
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.PNAuth && !window.PNAuth.getSession()) {
+                window.location.href = 'login.html';
+                return;
+            }
+            init();
+            document.getElementById('adjDate').valueAsDate = new Date();
+        });
+
+        async function init() {
+            // Load All Akun for Dropdowns
+            const { data } = await window.client.from('master_akun').select('nama_akun, kategori').order('nama_akun');
+            allAkun = data || [];
+
+            const sel = document.getElementById("pilihBank");
+            if (allAkun) {
+                allAkun.forEach(a => {
+                    if (a.nama_akun.toLowerCase().includes('bank')) {
+                        sel.innerHTML += `<option value="${a.nama_akun}">${a.nama_akun}</option>`;
+                    }
+                });
+            }
         }
-    }
 
-    // LOAD TRANSAKSI
-    async function loadTransaksi() {
-        const bank = document.getElementById("pilihBank").value;
-        if(!bank) return;
+        // --- LOAD TRANSAKSI ---
+        async function loadTransaksi() {
+            const bank = document.getElementById("pilihBank").value;
+            if (!bank) return;
 
-        // Ambil transaksi yg bank_sumber (keluar) atau akun (masuk) sesuai bank
-        // Dan Status Rekon FALSE (Belum dicocokkan)
-        const { data, error } = await client
-            .from('transaksi')
-            .select('*')
-            .eq('is_reconciled', false) // Hanya yg belum rekon
-            .or(`bank_sumber.eq.${bank},akun.eq.${bank}`) // Filter Bank
-            .order('tanggal', { ascending: true });
+            // Ambil transaksi yg belum direkonsiliasi
+            const { data, error } = await window.client
+                .from('transaksi')
+                .select('*')
+                .eq('is_reconciled', false)
+                .or(`bank_sumber.eq.${bank},akun.eq.${bank}`)
+                .order('tanggal', { ascending: true });
 
-        const tbody = document.getElementById("bodyRekon");
-        tbody.innerHTML = "";
-        listTrans = data || [];
-        
-        let totM = 0, totK = 0;
-        saldoSistem = 0; // Seharusnya ambil saldo awal, tp kita simulasi dr mutasi
+            const tbody = document.getElementById("bodyRekon");
+            tbody.innerHTML = "";
+            listTrans = data || [];
 
-        if(listTrans.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400">Semua transaksi sudah rekon (klop)!</td></tr>`;
-        }
+            let totM = 0, totK = 0;
+            saldoSistem = 0;
 
-        listTrans.forEach((t, idx) => {
-            // Tentukan Masuk/Keluar relatif thd Bank
-            let isMasuk = false;
-            // Jika jenis MASUK dan akun tujuannya adalah Bank ini
-            // ATAU jika jenis KELUAR tapi akun tujuannya Bank ini (transfer antar bank) - kasus jarang
-            // Sederhananya: 
-            if(t.jenis_transaksi === 'MASUK' && t.akun === bank) isMasuk = true; // Salah logika di sistem lama mgkn?
-            // Perbaikan Logika Umum:
-            // Kas Masuk: Akun = Sumber, Bank_Sumber = Tujuan? Tidak, struktur kas masuk biasanya: Akun=Pendapatan, Bank=Tujuan
-            // Kas Keluar: Akun = Biaya, Bank_Sumber = Asal
-            
-            // Asumsi struktur data:
-            // KELUAR -> bank_sumber = BANK INI
-            // MASUK ->  bank_sumber (atau kolom target) = BANK INI. 
-            // Mari kita cek struktur kas_masuk user (biasanya kolom 'bank_sumber' di kas masuk itu tujuan).
-            
-            // Simplifikasi Display:
-            let displayMasuk = 0;
-            let displayKeluar = 0;
-
-            if (t.jenis_transaksi === 'MASUK') { 
-                displayMasuk = t.jumlah; 
-                totM += t.jumlah;
-                saldoSistem += t.jumlah;
-            } else { 
-                displayKeluar = t.jumlah;
-                totK += t.jumlah;
-                saldoSistem -= t.jumlah;
+            if (listTrans.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400">Semua transaksi sudah rekon (klop)!</td></tr>`;
             }
 
-            tbody.innerHTML += `
-                <tr class="hover:bg-sky-50 border-b">
+            listTrans.forEach((t, idx) => {
+                let isMasuk = false;
+                if (t.jenis_transaksi === 'MASUK') isMasuk = true;
+                else isMasuk = false;
+
+                let displayMasuk = 0;
+                let displayKeluar = 0;
+
+                if (isMasuk) {
+                    displayMasuk = t.jumlah;
+                    totM += t.jumlah;
+                    saldoSistem += t.jumlah;
+                } else {
+                    displayKeluar = t.jumlah;
+                    totK += t.jumlah;
+                    saldoSistem -= t.jumlah;
+                }
+
+                tbody.innerHTML += `
+                <tr class="hover:bg-sky-50 border-b transition-colors">
                     <td class="p-3 text-center">
-                        <input type="checkbox" class="chk-rekon" value="${t.id}" onchange="hitungSelisih()">
+                        <input type="checkbox" class="chk-rekon w-5 h-5 text-sky-600 rounded focus:ring-sky-500" value="${t.id}" onchange="hitungSelisih()">
                     </td>
                     <td class="p-3 text-gray-600">${new Date(t.tanggal).toLocaleDateString('id-ID')}</td>
                     <td class="p-3 font-bold text-gray-700">${t.keterangan}</td>
-                    <td class="p-3 text-right text-green-700 font-mono">${displayMasuk ? fmt(displayMasuk) : '-'}</td>
-                    <td class="p-3 text-right text-red-700 font-mono">${displayKeluar ? fmt(displayKeluar) : '-'}</td>
+                    <td class="p-3 text-right text-green-700 font-mono">${displayMasuk ? window.fmt(displayMasuk) : '-'}</td>
+                    <td class="p-3 text-right text-red-700 font-mono">${displayKeluar ? window.fmt(displayKeluar) : '-'}</td>
                 </tr>
             `;
-        });
+            });
 
-        document.getElementById("totalMasuk").innerText = fmt(totM);
-        document.getElementById("totalKeluar").innerText = fmt(totK);
-        
-        // Saldo Buku dihitung simple dari mutasi outstanding (Asumsi saldo awal 0 untuk demo)
-        // Di real app, saldo buku diambil dari Master Akun -> Saldo Saat Ini
-        // Kita hitung selisih
-        hitungSelisih();
-    }
+            document.getElementById("totalMasuk").innerText = window.fmt(totM);
+            document.getElementById("totalKeluar").innerText = window.fmt(totK);
 
-    function hitungSelisih() {
-        // Logika Rekon:
-        // Saldo Bank (Input User) - Saldo Buku (Sistem) + Cek Beredar (Yg blm dicentang)
-        // Cara paling mudah:
-        // User centang yg ADA di koran. 
-        // Yg TIDAK dicentang adalah selisih (Outstanding).
-        
-        const saldoBankInput = Number(document.getElementById("saldoBank").value);
-        
-        // Hitung total item yang BELUM dicentang (Unreconciled Items)
-        let outstandingBalance = 0;
-        const checkboxes = document.querySelectorAll('.chk-rekon');
-        
-        checkboxes.forEach((chk, idx) => {
-            if(!chk.checked) {
-                // Item ini ada di sistem, tapi tidak ada di bank (Outstanding)
-                // Jika Keluar (Cek Beredar) -> Menambah kembali saldo bank
-                // Jika Masuk (Deposit in Transit) -> Mengurangi saldo bank
-                
-                // Ambil data dr array
-                const t = listTrans.find(x => x.id == chk.value);
-                if(t.jenis_transaksi === 'KELUAR') outstandingBalance += t.jumlah; // Uang blm keluar
-                else outstandingBalance -= t.jumlah; // Uang blm masuk
+            hitungSelisih();
+        }
+
+        function hitungSelisih() {
+            const saldoBankInput = Number(document.getElementById("saldoBank").value);
+
+            let outstandingBalance = 0;
+            const checkboxes = document.querySelectorAll('.chk-rekon');
+
+            checkboxes.forEach((chk, idx) => {
+                if (!chk.checked) {
+                    const t = listTrans.find(x => x.id == chk.value);
+                    if (t.jenis_transaksi === 'KELUAR') outstandingBalance += t.jumlah;
+                    else outstandingBalance -= t.jumlah;
+                }
+            });
+
+            document.getElementById("displaySelisih").innerText = window.fmt(outstandingBalance);
+
+            const label = document.getElementById("displaySelisih");
+            if (outstandingBalance === 0 && checkboxes.length > 0) {
+                label.className = "text-3xl font-bold text-green-600 transition-colors duration-500";
+                label.innerHTML = `${window.fmt(0)} <i class='fas fa-check-circle ml-2'></i> KLOP`;
+            } else {
+                label.className = "text-3xl font-bold text-red-600 transition-colors duration-500";
             }
-        });
-
-        // Rumus Selisih Sederhana:
-        // Jika semua dicentang, Saldo Bank harusnya match dengan Saldo Transaksi yg dicentang.
-        // Disini kita hanya menampilkan total outstanding sebagai 'Selisih'
-        
-        document.getElementById("displaySelisih").innerText = fmt(outstandingBalance);
-        
-        const label = document.getElementById("displaySelisih");
-        if(outstandingBalance === 0) {
-            label.className = "text-3xl font-bold text-green-600";
-            label.innerHTML += " <i class='fas fa-check-circle'></i> KLOP";
-        } else {
-            label.className = "text-3xl font-bold text-red-600";
         }
-    }
 
-    async function simpanRekon() {
-        const checked = document.querySelectorAll('.chk-rekon:checked');
-        if(checked.length === 0) return alert("Pilih transaksi yang sesuai rekening koran!");
-        
-        if(!confirm(`Yakin rekonsiliasi ${checked.length} transaksi ini? Data akan hilang dari list ini.`)) return;
+        async function simpanRekon() {
+            const checked = document.querySelectorAll('.chk-rekon:checked');
+            if (checked.length === 0) return alert("Pilih transaksi yang sesuai rekening koran!");
 
-        const ids = Array.from(checked).map(c => c.value);
-        const tgl = new Date().toISOString().split('T')[0];
+            if (!confirm(`Yakin rekonsiliasi ${checked.length} transaksi ini?`)) return;
 
-        const { error } = await client
-            .from('transaksi')
-            .update({ is_reconciled: true, tgl_rekon: tgl })
-            .in('id', ids);
+            const ids = Array.from(checked).map(c => c.value);
+            const tgl = new Date().toISOString().split('T')[0];
 
-        if(error) alert("Gagal: " + error.message);
-        else {
-            alert("Rekonsiliasi Berhasil!");
-            loadTransaksi();
+            const { error } = await window.client
+                .from('transaksi')
+                .update({ is_reconciled: true, tgl_rekon: tgl })
+                .in('id', ids);
+
+            if (error) {
+                alert("Gagal: " + error.message);
+            } else {
+                alert("Rekonsiliasi Berhasil!");
+                loadTransaksi();
+                if (window.PNAuth && window.PNAuth.logActivity) {
+                    window.PNAuth.logActivity(`Rekonsiliasi ${checked.length} Transaksi`, 'FINANCE', 'fa-check-double');
+                }
+            }
         }
-    }
 
-    init();
-  </script>
+        // --- QUICK ADJUSTMENT LOGIC ---
+        function bukaModalAdjustment() {
+            const bank = document.getElementById("pilihBank").value;
+            if (!bank) return alert("Pilih Bank Terlebih Dahulu!");
+
+            document.getElementById("modalAdj").classList.remove("hidden");
+            loadAkunAdjustment();
+        }
+
+        function tutupModalAdj() {
+            document.getElementById("modalAdj").classList.add("hidden");
+        }
+
+        function loadAkunAdjustment() {
+            const type = document.getElementById("adjType").value; // BIAYA or PENDAPATAN
+            const sel = document.getElementById("adjAccount");
+            sel.innerHTML = '<option value="">-- Pilih Akun Lawan --</option>';
+
+            // Filter Akun based on Type
+            // Biaya -> Beban (6-xxx, 7-xxx)
+            // Pendapatan -> Pendapatan (4-xxx), Pendapatan Lain (7-xxx?) - tergantung COA
+
+            allAkun.forEach(a => {
+                const kat = a.kategori ? a.kategori.toLowerCase() : "";
+                const nama = a.nama_akun;
+
+                if (type === 'BIAYA') {
+                    // Show Beban
+                    if (kat.includes('beban') || nama.includes('Administrasi') || nama.includes('Pajak')) {
+                        sel.innerHTML += `<option value="${nama}">${nama}</option>`;
+                    }
+                } else {
+                    // Show Pendapatan
+                    if (kat.includes('pendapatan') || nama.includes('Bunga') || nama.includes('Jasa')) {
+                        sel.innerHTML += `<option value="${nama}">${nama}</option>`;
+                    }
+                }
+            });
+        }
+
+        async function simpanAdjustment() {
+            const bank = document.getElementById("pilihBank").value;
+            const type = document.getElementById("adjType").value;
+            const date = document.getElementById("adjDate").value;
+            const amount = Number(document.getElementById("adjAmount").value);
+            const account = document.getElementById("adjAccount").value;
+            const desc = document.getElementById("adjDesc").value;
+
+            if (!date || !amount || !account) return alert("Data penyesuaian belum lengkap!");
+
+            // Prep Payload
+            // BIAYA -> KELUAR (Bank Sumber = Bank Ini)
+            // PENDAPATAN -> MASUK (Bank Sumber = Bank Ini? Di tabel kas_masuk bank_sumber itu tujuan. Agak rancu.
+            // Mari kita cek standard kas_masuk user sebelumnya.
+            // Di kas_masuk.html: bank_sumber = akunTarget (Bank Penerima). akun = akunSumber (Pendapatan).
+            // Jadi untk PENDAPATAN (MASUK):
+            // bank_sumber = BANK INI
+            // akun = AKUN PENDAPATAN
+
+            const payload = {
+                tanggal: date,
+                jumlah: amount,
+                keterangan: desc + " [AUTO-ADJ]",
+                nama_proyek: null,
+                is_reconciled: false // Masuk sbg outstanding dulu biar bisa dichecklist
+            };
+
+            if (type === 'BIAYA') {
+                payload.jenis_transaksi = 'KELUAR';
+                payload.bank_sumber = bank; // Uang keluar dari bank ini
+                payload.akun = account;     // Ke akun beban ini
+            } else {
+                payload.jenis_transaksi = 'MASUK';
+                payload.bank_sumber = bank; // Masuk ke bank ini (Logic kas_masuk: bank_sumber = Debit/Target)
+                payload.akun = account;     // Dari sumber pendapatan ini
+            }
+
+            const { error } = await window.client.from('transaksi').insert([payload]);
+
+            if (error) {
+                alert("Gagal menyimpan penyesuaian: " + error.message);
+            } else {
+                alert("Penyesuaian Berhasil Disimpan!");
+                tutupModalAdj();
+                // Reset Form Short
+                document.getElementById("adjAmount").value = "";
+                document.getElementById("adjDesc").value = "";
+                loadTransaksi(); // Refresh list to show new item
+
+                if (window.PNAuth && window.PNAuth.logActivity) {
+                    window.PNAuth.logActivity(`Adjustment ${type}: Rp ${window.fmt(amount)}`, 'FINANCE', 'fa-magic');
+                }
+            }
+        }
+    </script>
 </body>
+
 </html>

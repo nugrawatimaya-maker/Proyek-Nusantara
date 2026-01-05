@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Test Log Insert</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+</head>
+
+<body style="font-family: monospace; padding: 20px;">
+    <h2>Diagnostic Tool: Log Activity</h2>
+    <div id="result">Running test...</div>
+
+    <script>
+        async function runTest() {
+            const output = document.getElementById('result');
+
+            // 1. Check Client
+            if (!window.client) {
+                output.innerHTML += "<br>[ERROR] window.client is undefined!";
+                return;
+            }
+            output.innerHTML += "<br>[OK] window.client detected.";
+
+            // 2. Check Session
+            if (typeof PNAuth === 'undefined') {
+                output.innerHTML += "<br>[ERROR] PNAuth library missing!";
+                return;
+            }
+            const session = PNAuth.getSession();
+            if (!session) {
+                output.innerHTML += "<br>[WARN] No Session found. Creating dummy session...";
+                PNAuth.setSession({ full_name: 'TestBot', role: 'admin', id: 999 });
+            } else {
+                output.innerHTML += `<br>[OK] Session found for: ${session.user.full_name}`;
+            }
+
+            // 3. Try Insert
+            output.innerHTML += "<br>Attempting specific insert to 'activity_logs'...";
+
+            try {
+                const payload = {
+                    user_name: 'TestBot',
+                    aktivitas: 'Diagnostic Test Log ' + new Date().toISOString(),
+                    tipe: 'SYSTEM',
+                    icon: 'fa-bug'
+                };
+
+                const { data, error } = await window.client
+                    .from('activity_logs')
+                    .insert([payload]);
+
+                if (error) {
+                    output.innerHTML += `<br><span style="color:red">[FAIL] Insert Error: ${JSON.stringify(error)}</span>`;
+                    console.error(error);
+                } else {
+                    output.innerHTML += `<br><span style="color:green">[SUCCESS] Inserted. Data: ${JSON.stringify(data)}</span>`;
+                }
+
+            } catch (e) {
+                output.innerHTML += `<br>[EXCEPTION] ${e.message}`;
+            }
+        }
+
+        setTimeout(runTest, 1000);
+    </script>
+</body>
+
+</html>

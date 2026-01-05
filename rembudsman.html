@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Rembudsman (Reimbursement)</title>
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- App Config & Auth -->
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+</head>
+
+<body class="bg-slate-50 font-sans text-slate-800 p-6">
+
+    <div class="max-w-5xl mx-auto mb-6 flex justify-between items-center">
+        <div>
+            <div class="flex items-center gap-3">
+                <div class="bg-teal-600 text-white w-10 h-10 flex items-center justify-center rounded-lg shadow">
+                    <i class="fas fa-receipt text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800">Rembudsman</h1>
+                    <p class="text-sm text-slate-500">Klaim Penggantian Dana Operasional</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="bukaModal()"
+                class="bg-teal-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-teal-700 transition">
+                <i class="fas fa-plus mr-1"></i> Ajukan Klaim
+            </button>
+            <a href="index.html"
+                class="bg-white border border-slate-300 text-slate-600 px-4 py-2 rounded shadow hover:bg-slate-50 font-bold transition">
+                <i class="fas fa-home"></i> Home
+            </a>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
+            <h3 class="font-bold text-slate-700">Riwayat Pengajuan</h3>
+            <span class="text-xs bg-teal-100 text-teal-700 px-2 py-1 rounded font-bold">Bulan Ini</span>
+        </div>
+        <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-600 uppercase font-bold text-xs">
+                <tr>
+                    <th class="p-4">Tanggal</th>
+                    <th class="p-4">Keterangan</th>
+                    <th class="p-4">Kategori</th>
+                    <th class="p-4 text-right">Nominal</th>
+                    <th class="p-4 text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                <tr>
+                    <td colspan="5" class="p-8 text-center text-slate-400 italic">
+                        Belum ada data pengajuan rembudsman.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- MODAL FORM -->
+    <div id="modalForm"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative animate-fade-in-up">
+            <button onclick="tutupModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i
+                    class="fas fa-times text-xl"></i></button>
+
+            <h2 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Form Reimbursement</h2>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Tanggal Transaksi</label>
+                    <input type="date" class="w-full border p-2 rounded bg-slate-50 outline-none focus:border-teal-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Kategori Biaya</label>
+                    <select class="w-full border p-2 rounded outline-none focus:border-teal-500">
+                        <option>Bensin / Transport</option>
+                        <option>Konsumsi / Jamuan</option>
+                        <option>Alat Tulis Kantor</option>
+                        <option>Lainnya</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Nominal (Rp)</label>
+                    <input type="number"
+                        class="w-full border p-2 rounded font-bold text-right outline-none focus:border-teal-500"
+                        placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Keterangan Detail</label>
+                    <textarea class="w-full border p-2 rounded outline-none focus:border-teal-500" rows="3"
+                        placeholder="Jelaskan kebutuhan..."></textarea>
+                </div>
+
+                <button
+                    class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-lg shadow mt-2 transition">
+                    <i class="fas fa-paper-plane mr-2"></i> KIRIM PENGAJUAN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Placeholder: Auth Check (Uncomment when ready)
+            // if(window.PNAuth && !window.PNAuth.getSession()) window.location.href = 'login.html';
+        });
+
+        function bukaModal() {
+            document.getElementById('modalForm').classList.remove('hidden');
+        }
+
+        function tutupModal() {
+            document.getElementById('modalForm').classList.add('hidden');
+        }
+    </script>
+</body>
+
+</html>

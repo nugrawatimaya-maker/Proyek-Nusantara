@@ -74,8 +74,6 @@
             </div>
         </div>
     </nav>
-    </div>
-    </div>
     </nav>
 
     <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -219,7 +217,6 @@
                     let lampiranHtml = '<span class="text-gray-300">-</span>';
                     // Note: source_table inserted by purchase_order_entry.html is 'purchase_order', not 'purchase_order_request'
                     if (item.source_table === 'purchase_order' || item.source_table === 'purchase_order_request') {
-                        // Karena payload tidak ada, kita ganti dengan tombol lihat detail
                         lampiranHtml = `
                             <button onclick="viewPODetails('${item.source_id}', '${item.title}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 transition-colors text-xs font-semibold group-link">
                                 <i class="fas fa-eye"></i> Detail
@@ -256,12 +253,12 @@
                         </td>
                         <td class="px-6 py-5 text-center align-top">
                             <div class="flex justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                                <button onclick="processApproval(${item.id}, 'APPROVED', '${item.source_table}', '${item.source_id}')" 
-                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-1 active:scale-95">
+                                <button onclick="processApproval(${item.id}, 'APPROVED', '${item.source_table}', '${item.source_id}', this)" 
+                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-1 active:scale-95 btn-approve-${item.id}">
                                     <i class="fas fa-check"></i> <span>Setuju</span>
                                 </button>
-                                <button onclick="processApproval(${item.id}, 'REJECTED', '${item.source_table}', '${item.source_id}')" 
-                                        class="bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-gray-500 px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1 active:scale-95">
+                                <button onclick="processApproval(${item.id}, 'REJECTED', '${item.source_table}', '${item.source_id}', this)" 
+                                        class="bg-white border border-gray-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-gray-500 px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1 active:scale-95 btn-reject-${item.id}">
                                     <i class="fas fa-times"></i> <span>Tolak</span>
                                 </button>
                             </div>
@@ -316,20 +313,25 @@
 
 
         // --- NEW: View Detail Function (Placeholder until we implement full detail view) ---
+        // --- NEW: View Detail Function with MODAL (Fixed Item Name) ---
         async function viewPODetails(sourceId, title) {
-            // alert("Fitur Detail PO akan segera hadir! ID: " + sourceId);
-            // Implement fetch logic here if needed
+            const modal = document.getElementById('detailModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+
+            // Show Modal (Loading State)
+            modal.classList.remove('hidden');
+            modalTitle.textContent = title || 'Detail Item';
+            modalContent.innerHTML = `<div class="flex justify-center p-8"><i class="fas fa-circle-notch fa-spin text-blue-600 text-2xl"></i></div>`;
+
             try {
-                // Fetch basic info from purchase_order to get nomor_po
+                // Fetch basic info
                 const { data: poItem, error } = await client.from('purchase_order').select('*').eq('id', sourceId).single();
 
-                if (error) {
-                    alert("Gagal mengambil detail PO: " + error.message);
-                    return;
-                }
+                if (error) throw error;
 
                 if (poItem) {
-                    // Fetch all items with this nomor_po
+                    // 1. Fetch items from purchase_order
                     const { data: allItems, error: listError } = await client
                         .from('purchase_order')
                         .select('*')
@@ -337,21 +339,113 @@
 
                     if (listError) throw listError;
 
-                    // Construct simple detail string
-                    let detailMsg = `Detail PO: ${poItem.nomor_po}\nVendor: ${poItem.nama_vendor}\n\nItem:\n`;
-                    allItems.forEach((it, idx) => {
-                        detailMsg += `${idx + 1}. ID Ref: ${it.req_id} - Rp ${new Intl.NumberFormat('id-ID').format(it.total_harga)}\n`;
+
+                    // 2. Extract req_ids to fetch Item Names & Project from inventory_req
+                    const reqIds = allItems.map(it => it.req_id).filter(id => id);
+
+                    let reqMap = {}; // Maps ID -> { nama_barang, nama_proyek }
+                    if (reqIds.length > 0) {
+                        const { data: reqData } = await client
+                            .from('inventory_req')
+                            .select('id, nama_barang, nama_proyek')
+                            .in('id', reqIds);
+
+                        if (reqData) {
+                            reqData.forEach(r => {
+                                reqMap[r.id] = {
+                                    nama: r.nama_barang,
+                                    proyek: r.nama_proyek
+                                };
+                            });
+                        }
+                    }
+
+                    // 3. Fetch Stock Info from master_stok
+                    // We need a list of unique (nama_barang, nama_proyek) pairs to query or just query by nama_barang and filter later
+                    const itemNames = Object.values(reqMap).map(r => r.nama).filter((v, i, a) => a.indexOf(v) === i);
+
+                    let stockMap = {}; // Maps "nama_barang|nama_proyek" -> total_stok
+                    if (itemNames.length > 0) {
+                        const { data: stockData } = await client
+                            .from('master_stok')
+                            .select('nama_barang, lokasi, total_stok') // lokasi = nama_proyek
+                            .in('nama_barang', itemNames);
+
+                        if (stockData) {
+                            stockData.forEach(s => {
+                                const key = `${s.nama_barang}|${s.lokasi}`;
+                                stockMap[key] = s.total_stok;
+                            });
+                        }
+                    }
+
+                    // Build Content
+                    let html = `
+                        <div class="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-500 block text-xs uppercase">Nomor PO</span>
+                                    <span class="font-mono font-bold text-gray-800">${poItem.nomor_po}</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500 block text-xs uppercase">Vendor</span>
+                                    <span class="font-bold text-gray-800">${poItem.nama_vendor}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Item Barang</h4>
+                        <div class="border rounded-lg overflow-hidden">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-gray-100 text-gray-600 font-bold border-b">
+                                    <tr>
+                                        <th class="px-4 py-2">Item</th>
+                                        <th class="px-4 py-2">Proyek</th>
+                                        <th class="px-4 py-2 text-center">Sisa Stok Gudang</th>
+                                        <th class="px-4 py-2 text-right">Harga Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y">
+                    `;
+
+                    allItems.forEach(it => {
+                        const dataReq = reqMap[it.req_id] || { nama: `Item Ref: ${it.req_id}`, proyek: '-' };
+                        const realName = dataReq.nama;
+                        const proyek = dataReq.proyek;
+
+                        // Look up stock
+                        const stockKey = `${realName}|${proyek}`;
+                        const currentStock = stockMap[stockKey] !== undefined ? stockMap[stockKey] : '-';
+
+                        html += `
+                            <tr>
+                                <td class="px-4 py-2 text-gray-700 font-medium">${realName}</td>
+                                <td class="px-4 py-2 text-blue-600 font-medium text-xs">${proyek}</td>
+                                <td class="px-4 py-2 text-center font-mono text-xs">${currentStock}</td>
+                                <td class="px-4 py-2 text-right font-mono">${new Intl.NumberFormat('id-ID').format(it.total_harga)}</td>
+                            </tr>
+                        `;
                     });
 
-                    alert(detailMsg);
+                    html += `</tbody></table></div>`;
+                    modalContent.innerHTML = html;
+                } else {
+                    modalContent.innerHTML = `<p class="text-red-500 text-center">Data tidak ditemukan.</p>`;
                 }
             } catch (e) {
                 console.error(e);
-                alert("Terjadi kesalahan saat memuat detail.");
+                modalContent.innerHTML = `
+                    <div class="bg-red-50 text-red-600 p-4 rounded-lg">
+                        <i class="fas fa-exclamation-circle mr-2"></i> Gagal memuat detail: ${e.message}
+                    </div>
+                `;
             }
         }
 
-        async function processApproval(queueId, action, sourceTable, sourceId) {
+        function closeModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        async function processApproval(queueId, action, sourceTable, sourceId, btnElement) {
             // 1. Konfirmasi User
             const confirmMsg = action === 'APPROVED'
                 ? 'Apakah Anda yakin ingin MENYETUJUI pengajuan ini?'
@@ -359,11 +453,13 @@
 
             if (!confirm(confirmMsg)) return;
 
-            // 2. UI Feedback (Loading State) - Disable semua tombol
+            // 2. UI Feedback (Loading State) - Disable semua tombol & Show Spinner
             const allBtns = document.querySelectorAll('button');
             allBtns.forEach(btn => btn.disabled = true);
-            const originalCursor = document.body.style.cursor;
-            document.body.style.cursor = 'wait';
+
+            // Set Loading Icon on clicked button
+            const originalContent = btnElement.innerHTML;
+            btnElement.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Proses...`;
 
             try {
                 // Fetch info untuk Logging
@@ -386,11 +482,6 @@
 
                 // --- LOGIC: APPROVAL ---
                 else if (action === 'APPROVED') {
-                    // Kita gunakan Generic Approval untuk Purchase Order juga
-                    // karena data PO sudah ada di tabel purchase_order dengan status WAITING APPROVAL
-
-                    // if (sourceTable === 'purchase_order_request') { ... } // Legacy code removed
-
                     await approveGeneric(queueId, sourceTable, sourceId);
 
                     // Log
@@ -405,18 +496,13 @@
             } catch (err) {
                 console.error("Process Error:", err);
                 alert("Gagal memproses: " + err.message);
-            } finally {
-                // Restore UI
+                // Restore button content if error, because we might not reload
+                btnElement.innerHTML = originalContent;
                 allBtns.forEach(btn => btn.disabled = false);
-                document.body.style.cursor = originalCursor;
             }
         }
 
-        // Fungsi ini tidak lagi digunakan karena kita menggunakan approveGeneric
-        // Namun kita biarkan kosong atau hapus untuk menghindari error referensi jika ada
-        async function approvePurchaseOrder(queueId, sourceId) {
-            console.warn("approvePurchaseOrder called but deprecated. Using generic flow.");
-        }
+
 
         async function approveGeneric(queueId, sourceTable, sourceId) {
             // Tentukan status target berdasarkan tabel
@@ -469,6 +555,46 @@
             loadApprovalQueue();
         });
     </script>
+
+    <!-- MODAL DETAIL -->
+    <div id="detailModal" class="hidden fixed inset-0 z-[100] overflow-y-auto" aria-labelledby="modal-title"
+        role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"
+                onclick="closeModal()"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div
+                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div
+                            class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                            <i class="fas fa-info text-blue-600"></i>
+                        </div>
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modalTitle">
+                                Detail Pengajuan
+                            </h3>
+                            <div class="mt-4" id="modalContent">
+                                <!-- Content will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="closeModal()"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Tutup
+                    </button>
+                    <!-- Optional: Add Approve button inside modal if needed in future -->
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>
