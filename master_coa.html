@@ -1,191 +1,224 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Master Chart of Accounts (COA)</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <style>
-    body { font-family: "Segoe UI", sans-serif; background: #f1f5f9; }
-    .kat-aset { border-left: 4px solid #3b82f6; }
-    .kat-kewajiban { border-left: 4px solid #ef4444; }
-    .kat-modal { border-left: 4px solid #eab308; }
-    .kat-pendapatan { border-left: 4px solid #22c55e; }
-    .kat-beban { border-left: 4px solid #f97316; }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Master Chart of Accounts (COA)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #f1f5f9;
+        }
+
+        .kat-aset {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .kat-kewajiban {
+            border-left: 4px solid #ef4444;
+        }
+
+        .kat-modal {
+            border-left: 4px solid #eab308;
+        }
+
+        .kat-pendapatan {
+            border-left: 4px solid #22c55e;
+        }
+
+        .kat-beban {
+            border-left: 4px solid #f97316;
+        }
+    </style>
 </head>
+
 <body class="p-6 text-gray-800">
 
-  <div class="max-w-5xl mx-auto mb-6 flex justify-between items-center">
-    <div>
-      <h1 class="text-2xl font-bold text-slate-800"><i class="fas fa-list-ol mr-2 text-indigo-600"></i>Daftar Akun (COA)</h1>
-      <p class="text-sm text-gray-500">Nomor Akun Otomatis & Terstandarisasi</p>
-    </div>
-    <div class="flex gap-2">
-        <button onclick="bukaModal()" class="bg-indigo-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-indigo-700 text-sm">
-            <i class="fas fa-plus mr-1"></i> Tambah Akun Baru
-        </button>
-        <a href="dashboard_operasional.html" class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm">
-            <i class="fas fa-arrow-left"></i> Dashboard
-        </a>
-    </div>
-  </div>
-
-  <div class="max-w-5xl mx-auto mb-4">
-      <input type="text" id="searchInput" onkeyup="filterTabel()" placeholder="Cari nama akun atau nomor..." class="w-full border p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-  </div>
-
-  <div class="max-w-5xl mx-auto bg-white rounded-lg shadow overflow-hidden">
-    <table class="w-full text-left text-sm">
-      <thead class="bg-slate-100 text-slate-600 uppercase font-bold">
-        <tr>
-          <th class="p-4 w-32">Kode Akun</th>
-          <th class="p-4">Nama Akun</th>
-          <th class="p-4">Kategori</th>
-          <th class="p-4 text-center w-24">Aksi</th>
-        </tr>
-      </thead>
-      <tbody id="tabelBody" class="divide-y divide-gray-100">
-        <tr><td colspan="4" class="p-6 text-center text-gray-400">Memuat data...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div id="modalForm" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-md relative animate-fade-in-up">
-        <h2 id="modalTitle" class="text-xl font-bold mb-4 text-indigo-900 border-b pb-2">Tambah Akun</h2>
-        
-        <input type="hidden" id="editId">
-
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">Kategori Utama (Pilih untuk Auto-Number)</label>
-                <select id="inputKategori" onchange="generateNomorOtomatis()" class="w-full border p-2 rounded bg-slate-50 font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500">
-                    <option value="">-- Pilih Kategori --</option>
-                    <optgroup label="Neraca">
-                        <option value="Aset Lancar">Aset Lancar (1-1xxx)</option>
-                        <option value="Aset Tetap">Aset Tetap (1-2xxx)</option>
-                        <option value="Kewajiban">Kewajiban (2-1xxx)</option>
-                        <option value="Modal">Modal (3-1xxx)</option>
-                    </optgroup>
-                    <optgroup label="Laba Rugi">
-                        <option value="Pendapatan">Pendapatan (4-1xxx)</option>
-                        <option value="HPP">HPP (5-1xxx)</option>
-                        <option value="Beban Operasional">Beban Operasional (6-1xxx)</option>
-                        <option value="Beban Lainnya">Beban Lainnya (7-1xxx)</option>
-                    </optgroup>
-                </select>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2">
-                <div class="col-span-1">
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Kode Akun</label>
-                    <input type="text" id="inputKode" class="w-full border p-2 rounded font-mono bg-yellow-50 font-bold text-gray-800" placeholder="Otomatis...">
-                    <p class="text-[9px] text-gray-400 mt-1">*Bisa diedit jika perlu</p>
-                </div>
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Nama Akun</label>
-                    <input type="text" id="inputNama" class="w-full border p-2 rounded font-bold" placeholder="Cth: Biaya Iklan FB">
-                </div>
-            </div>
+    <div class="max-w-5xl mx-auto mb-6 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800"><i class="fas fa-list-ol mr-2 text-indigo-600"></i>Daftar Akun
+                (COA)</h1>
+            <p class="text-sm text-gray-500">Nomor Akun Otomatis & Terstandarisasi</p>
         </div>
-
-        <div class="mt-6 flex justify-end gap-2">
-            <button onclick="tutupModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-bold text-sm">Batal</button>
-            <button onclick="simpanData()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold text-sm">Simpan</button>
+        <div class="flex gap-2">
+            <button onclick="bukaModal()"
+                class="bg-indigo-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-indigo-700 text-sm">
+                <i class="fas fa-plus mr-1"></i> Tambah Akun Baru
+            </button>
+            <button onclick="window.history.back()"
+                class="bg-gray-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-gray-700 text-sm">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
         </div>
     </div>
-  </div>
 
-  <script>
-    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
-    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    <div class="max-w-5xl mx-auto mb-4">
+        <input type="text" id="searchInput" onkeyup="filterTabel()" placeholder="Cari nama akun atau nomor..."
+            class="w-full border p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+    </div>
 
-    let allAkunData = []; // Simpan data lokal untuk referensi auto-number
+    <div class="max-w-5xl mx-auto bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-600 uppercase font-bold">
+                <tr>
+                    <th class="p-4 w-32">Kode Akun</th>
+                    <th class="p-4">Nama Akun</th>
+                    <th class="p-4">Kategori</th>
+                    <th class="p-4 text-center w-24">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="tabelBody" class="divide-y divide-gray-100">
+                <tr>
+                    <td colspan="4" class="p-6 text-center text-gray-400">Memuat data...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
-    // --- LOGIKA UTAMA: AUTO NUMBER ---
-    function generateNomorOtomatis() {
-        const kategori = document.getElementById("inputKategori").value;
-        const kodeInput = document.getElementById("inputKode");
+    <div id="modalForm" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-md relative animate-fade-in-up">
+            <h2 id="modalTitle" class="text-xl font-bold mb-4 text-indigo-900 border-b pb-2">Tambah Akun</h2>
 
-        // 1. Tentukan Prefix berdasarkan Kategori
-        let prefix = "";
-        switch (kategori) {
-            case "Aset Lancar": prefix = "1-1"; break;     // 1-1xxx
-            case "Aset Tetap": prefix = "1-2"; break;      // 1-2xxx
-            case "Kewajiban": prefix = "2-1"; break;       // 2-1xxx
-            case "Modal": prefix = "3-1"; break;           // 3-1xxx
-            case "Pendapatan": prefix = "4-1"; break;      // 4-1xxx
-            case "HPP": prefix = "5-1"; break;             // 5-1xxx
-            case "Beban Operasional": prefix = "6-1"; break; // 6-1xxx
-            case "Beban Lainnya": prefix = "7-1"; break;   // 7-1xxx
-            default: prefix = "";
-        }
+            <input type="hidden" id="editId">
 
-        if (prefix === "") {
-            kodeInput.value = "";
-            return;
-        }
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">Kategori Utama (Pilih untuk
+                        Auto-Number)</label>
+                    <select id="inputKategori" onchange="generateNomorOtomatis()"
+                        class="w-full border p-2 rounded bg-slate-50 font-bold text-gray-700 focus:ring-2 focus:ring-indigo-500">
+                        <option value="">-- Pilih Kategori --</option>
+                        <optgroup label="Neraca">
+                            <option value="Aset Lancar">Aset Lancar (1-1xxx)</option>
+                            <option value="Aset Tetap">Aset Tetap (1-2xxx)</option>
+                            <option value="Kewajiban">Kewajiban (2-1xxx)</option>
+                            <option value="Modal">Modal (3-1xxx)</option>
+                        </optgroup>
+                        <optgroup label="Laba Rugi">
+                            <option value="Pendapatan">Pendapatan (4-1xxx)</option>
+                            <option value="HPP">HPP (5-1xxx)</option>
+                            <option value="Beban Operasional">Beban Operasional (6-1xxx)</option>
+                            <option value="Beban Lainnya">Beban Lainnya (7-1xxx)</option>
+                        </optgroup>
+                    </select>
+                </div>
 
-        // 2. Cari Nomor Tertinggi yang sudah ada dengan prefix tersebut
-        let maxUrut = 0;
-        
-        allAkunData.forEach(akun => {
-            if (akun.kode_akun && akun.kode_akun.startsWith(prefix)) {
-                // Ambil 3 digit belakang (misal 1-1005 -> ambil 005)
-                const parts = akun.kode_akun.split('-'); // ["1", "1005"]
-                if (parts.length > 1) {
-                    const suffix = parts[1]; // "1005"
-                    // Ambil 3 digit terakhir dari suffix
-                    const urutan = parseInt(suffix.slice(-3)); 
-                    if (urutan > maxUrut) maxUrut = urutan;
-                }
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="col-span-1">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Kode Akun</label>
+                        <input type="text" id="inputKode"
+                            class="w-full border p-2 rounded font-mono bg-yellow-50 font-bold text-gray-800"
+                            placeholder="Otomatis...">
+                        <p class="text-[9px] text-gray-400 mt-1">*Bisa diedit jika perlu</p>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Nama Akun</label>
+                        <input type="text" id="inputNama" class="w-full border p-2 rounded font-bold"
+                            placeholder="Cth: Biaya Iklan FB">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-2">
+                <button onclick="tutupModal()"
+                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-bold text-sm">Batal</button>
+                <button onclick="simpanData()"
+                    class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-bold text-sm">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+        const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
+        const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let allAkunData = []; // Simpan data lokal untuk referensi auto-number
+
+        // --- LOGIKA UTAMA: AUTO NUMBER ---
+        function generateNomorOtomatis() {
+            const kategori = document.getElementById("inputKategori").value;
+            const kodeInput = document.getElementById("inputKode");
+
+            // 1. Tentukan Prefix berdasarkan Kategori
+            let prefix = "";
+            switch (kategori) {
+                case "Aset Lancar": prefix = "1-1"; break;     // 1-1xxx
+                case "Aset Tetap": prefix = "1-2"; break;      // 1-2xxx
+                case "Kewajiban": prefix = "2-1"; break;       // 2-1xxx
+                case "Modal": prefix = "3-1"; break;           // 3-1xxx
+                case "Pendapatan": prefix = "4-1"; break;      // 4-1xxx
+                case "HPP": prefix = "5-1"; break;             // 5-1xxx
+                case "Beban Operasional": prefix = "6-1"; break; // 6-1xxx
+                case "Beban Lainnya": prefix = "7-1"; break;   // 7-1xxx
+                default: prefix = "";
             }
-        });
 
-        // 3. Tambahkan 1 untuk nomor baru
-        const nextUrut = maxUrut + 1;
-        
-        // 4. Format jadi 3 digit (001, 002, dst)
-        const paddedUrut = nextUrut.toString().padStart(3, '0');
-        
-        // 5. Gabungkan (Prefix + Sub-Kategori Index + Urut)
-        // Kita pakai format sederhana: Prefix + "0" + Urut (1-1 + 006 -> 1-1006)
-        // Atau ikuti pola user: "1-1001". Digit ke-2 adalah sub-kelompok. 
-        // Agar aman, kita pakai logika sederhana: Prefix + paddedUrut.
-        // Misal Prefix "1-1". Max "1-1005". Next "1-1006".
-        
-        // Kita perlu memastikan format suffix konsisten. Jika user pakai 4 digit suffix (1001), 
-        // maka kita generate 4 digit suffix.
-        
-        // Cek suffix existing terakhir untuk menentukan panjang digit
-        let nextSuffix = (1000 + nextUrut).toString(); // Mulai dari 1001
-        
-        kodeInput.value = `${prefix.split('-')[0]}-${nextSuffix}`;
-    }
+            if (prefix === "") {
+                kodeInput.value = "";
+                return;
+            }
 
-    // --- LOAD DATA ---
-    async function loadData() {
-        const { data, error } = await client.from('master_akun').select('*').order('kode_akun', { ascending: true });
-        
-        const tbody = document.getElementById("tabelBody");
-        tbody.innerHTML = "";
-        allAkunData = data || []; // Simpan ke variabel global
+            // 2. Cari Nomor Tertinggi yang sudah ada dengan prefix tersebut
+            let maxUrut = 0;
 
-        if(data && data.length > 0) {
-            data.forEach(akun => {
-                let cssClass = "border-l-4 border-gray-300";
-                const kat = akun.kategori.toLowerCase();
-                if(kat.includes('aset')) cssClass = "kat-aset";
-                else if(kat.includes('kewajiban') || kat.includes('hutang')) cssClass = "kat-kewajiban";
-                else if(kat.includes('modal')) cssClass = "kat-modal";
-                else if(kat.includes('pendapatan')) cssClass = "kat-pendapatan";
-                else if(kat.includes('beban') || kat.includes('hpp')) cssClass = "kat-beban";
+            allAkunData.forEach(akun => {
+                if (akun.kode_akun && akun.kode_akun.startsWith(prefix)) {
+                    // Ambil 3 digit belakang (misal 1-1005 -> ambil 005)
+                    const parts = akun.kode_akun.split('-'); // ["1", "1005"]
+                    if (parts.length > 1) {
+                        const suffix = parts[1]; // "1005"
+                        // Ambil 3 digit terakhir dari suffix
+                        const urutan = parseInt(suffix.slice(-3));
+                        if (urutan > maxUrut) maxUrut = urutan;
+                    }
+                }
+            });
 
-                tbody.innerHTML += `
+            // 3. Tambahkan 1 untuk nomor baru
+            const nextUrut = maxUrut + 1;
+
+            // 4. Format jadi 3 digit (001, 002, dst)
+            const paddedUrut = nextUrut.toString().padStart(3, '0');
+
+            // 5. Gabungkan (Prefix + Sub-Kategori Index + Urut)
+            // Kita pakai format sederhana: Prefix + "0" + Urut (1-1 + 006 -> 1-1006)
+            // Atau ikuti pola user: "1-1001". Digit ke-2 adalah sub-kelompok. 
+            // Agar aman, kita pakai logika sederhana: Prefix + paddedUrut.
+            // Misal Prefix "1-1". Max "1-1005". Next "1-1006".
+
+            // Kita perlu memastikan format suffix konsisten. Jika user pakai 4 digit suffix (1001), 
+            // maka kita generate 4 digit suffix.
+
+            // Cek suffix existing terakhir untuk menentukan panjang digit
+            let nextSuffix = (1000 + nextUrut).toString(); // Mulai dari 1001
+
+            kodeInput.value = `${prefix.split('-')[0]}-${nextSuffix}`;
+        }
+
+        // --- LOAD DATA ---
+        async function loadData() {
+            const { data, error } = await client.from('master_akun').select('*').order('kode_akun', { ascending: true });
+
+            const tbody = document.getElementById("tabelBody");
+            tbody.innerHTML = "";
+            allAkunData = data || []; // Simpan ke variabel global
+
+            if (data && data.length > 0) {
+                data.forEach(akun => {
+                    let cssClass = "border-l-4 border-gray-300";
+                    const kat = akun.kategori.toLowerCase();
+                    if (kat.includes('aset')) cssClass = "kat-aset";
+                    else if (kat.includes('kewajiban') || kat.includes('hutang')) cssClass = "kat-kewajiban";
+                    else if (kat.includes('modal')) cssClass = "kat-modal";
+                    else if (kat.includes('pendapatan')) cssClass = "kat-pendapatan";
+                    else if (kat.includes('beban') || kat.includes('hpp')) cssClass = "kat-beban";
+
+                    tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 border-b group">
                         <td class="p-4 font-mono font-bold text-indigo-900 ${cssClass}">${akun.kode_akun || '-'}</td>
                         <td class="p-4 font-bold text-gray-700">${akun.nama_akun}</td>
@@ -196,83 +229,84 @@
                         </td>
                     </tr>
                 `;
-            });
-        } else {
-            tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400">Belum ada data akun.</td></tr>`;
-        }
-    }
-
-    // --- CRUD ---
-    function bukaModal() {
-        document.getElementById("modalForm").classList.remove("hidden");
-        document.getElementById("modalTitle").innerText = "Tambah Akun Baru";
-        document.getElementById("editId").value = "";
-        document.getElementById("inputKode").value = "";
-        document.getElementById("inputNama").value = "";
-        document.getElementById("inputKategori").value = "";
-    }
-
-    function tutupModal() { document.getElementById("modalForm").classList.add("hidden"); }
-
-    function editAkun(id, kode, nama, kat) {
-        document.getElementById("modalForm").classList.remove("hidden");
-        document.getElementById("modalTitle").innerText = "Edit Akun";
-        document.getElementById("editId").value = id;
-        document.getElementById("inputKode").value = kode;
-        document.getElementById("inputNama").value = nama;
-        document.getElementById("inputKategori").value = kat;
-    }
-
-    async function simpanData() {
-        const id = document.getElementById("editId").value;
-        const kode = document.getElementById("inputKode").value;
-        const nama = document.getElementById("inputNama").value;
-        const kat = document.getElementById("inputKategori").value;
-
-        if(!nama || !kat) return alert("Nama dan Kategori wajib diisi!");
-        
-        // Validasi Duplikat Kode (Hanya saat insert baru)
-        if(!id) {
-            const isExist = allAkunData.find(a => a.kode_akun === kode);
-            if(isExist) return alert(`Kode Akun ${kode} sudah digunakan oleh "${isExist.nama_akun}". Mohon gunakan kode lain.`);
-        }
-
-        const payload = { kode_akun: kode, nama_akun: nama, kategori: kat };
-
-        let error;
-        if(id) {
-            const res = await client.from('master_akun').update(payload).eq('id', id);
-            error = res.error;
-        } else {
-            const res = await client.from('master_akun').insert([payload]);
-            error = res.error;
-        }
-
-        if(error) alert("Gagal: " + error.message);
-        else { tutupModal(); loadData(); }
-    }
-
-    async function hapusAkun(id, nama) {
-        if(!confirm(`Yakin hapus akun "${nama}"?`)) return;
-        const { error } = await client.from('master_akun').delete().eq('id', id);
-        if(error) alert("Gagal: " + error.message);
-        else loadData();
-    }
-
-    function filterTabel() {
-        const filter = document.getElementById("searchInput").value.toUpperCase();
-        const tr = document.getElementById("tabelBody").getElementsByTagName("tr");
-        for (let i = 0; i < tr.length; i++) {
-            const tdNama = tr[i].getElementsByTagName("td")[1];
-            const tdKode = tr[i].getElementsByTagName("td")[0];
-            if (tdNama || tdKode) {
-                if (tdNama.innerText.toUpperCase().indexOf(filter) > -1 || tdKode.innerText.toUpperCase().indexOf(filter) > -1) tr[i].style.display = "";
-                else tr[i].style.display = "none";
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400">Belum ada data akun.</td></tr>`;
             }
         }
-    }
 
-    loadData();
-  </script>
+        // --- CRUD ---
+        function bukaModal() {
+            document.getElementById("modalForm").classList.remove("hidden");
+            document.getElementById("modalTitle").innerText = "Tambah Akun Baru";
+            document.getElementById("editId").value = "";
+            document.getElementById("inputKode").value = "";
+            document.getElementById("inputNama").value = "";
+            document.getElementById("inputKategori").value = "";
+        }
+
+        function tutupModal() { document.getElementById("modalForm").classList.add("hidden"); }
+
+        function editAkun(id, kode, nama, kat) {
+            document.getElementById("modalForm").classList.remove("hidden");
+            document.getElementById("modalTitle").innerText = "Edit Akun";
+            document.getElementById("editId").value = id;
+            document.getElementById("inputKode").value = kode;
+            document.getElementById("inputNama").value = nama;
+            document.getElementById("inputKategori").value = kat;
+        }
+
+        async function simpanData() {
+            const id = document.getElementById("editId").value;
+            const kode = document.getElementById("inputKode").value;
+            const nama = document.getElementById("inputNama").value;
+            const kat = document.getElementById("inputKategori").value;
+
+            if (!nama || !kat) return alert("Nama dan Kategori wajib diisi!");
+
+            // Validasi Duplikat Kode (Hanya saat insert baru)
+            if (!id) {
+                const isExist = allAkunData.find(a => a.kode_akun === kode);
+                if (isExist) return alert(`Kode Akun ${kode} sudah digunakan oleh "${isExist.nama_akun}". Mohon gunakan kode lain.`);
+            }
+
+            const payload = { kode_akun: kode, nama_akun: nama, kategori: kat };
+
+            let error;
+            if (id) {
+                const res = await client.from('master_akun').update(payload).eq('id', id);
+                error = res.error;
+            } else {
+                const res = await client.from('master_akun').insert([payload]);
+                error = res.error;
+            }
+
+            if (error) alert("Gagal: " + error.message);
+            else { tutupModal(); loadData(); }
+        }
+
+        async function hapusAkun(id, nama) {
+            if (!confirm(`Yakin hapus akun "${nama}"?`)) return;
+            const { error } = await client.from('master_akun').delete().eq('id', id);
+            if (error) alert("Gagal: " + error.message);
+            else loadData();
+        }
+
+        function filterTabel() {
+            const filter = document.getElementById("searchInput").value.toUpperCase();
+            const tr = document.getElementById("tabelBody").getElementsByTagName("tr");
+            for (let i = 0; i < tr.length; i++) {
+                const tdNama = tr[i].getElementsByTagName("td")[1];
+                const tdKode = tr[i].getElementsByTagName("td")[0];
+                if (tdNama || tdKode) {
+                    if (tdNama.innerText.toUpperCase().indexOf(filter) > -1 || tdKode.innerText.toUpperCase().indexOf(filter) > -1) tr[i].style.display = "";
+                    else tr[i].style.display = "none";
+                }
+            }
+        }
+
+        loadData();
+    </script>
 </body>
+
 </html>
