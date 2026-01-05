@@ -74,3 +74,31 @@ window.client = {
 };
 
 console.log("✅ app_config.js Siap. Variable 'client' sudah aktif.");
+
+// ==========================================
+// 3. GLOBAL UTILITIES
+// ==========================================
+window.catatLog = async function(tipe, pesan, icon = 'fa-info-circle') {
+    let user = "SYSTEM";
+    // Coba ambil user dari PNAuth (auth.js) jika sudah diload
+    if (typeof PNAuth !== 'undefined' && PNAuth.getSession) {
+        const session = PNAuth.getSession();
+        if (session && session.user) {
+            user = session.user.full_name || session.user.username;
+        }
+    }
+
+    try {
+        // Gunakan _realClient atau window.client
+        const { error } = await _realClient.from('activity_logs').insert([{
+            user_name: user,
+            tipe: tipe,
+            aktivitas: pesan,
+            icon: icon
+        }]);
+        
+        if (error) console.error("⚠️ Gagal mencatat log:", error.message);
+    } catch (e) {
+        console.error("⚠️ Sistem Log Error:", e);
+    }
+};

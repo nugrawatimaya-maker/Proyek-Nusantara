@@ -412,20 +412,6 @@
             </div>
 
             <script>
-                async function catatLog(tipe, pesan, icon = 'fa-info-circle') {
-                    const user = "SUPERADMIN";
-                    try {
-                        const { error } = await client.from('activity_logs').insert([{
-                            user_name: user,
-                            tipe: tipe,
-                            aktivitas: pesan,
-                            icon: icon
-                        }]);
-                        if (error) console.error("Gagal mencatat log:", error);
-                    } catch (e) {
-                        console.error("Error Log:", e);
-                    }
-                }
                 const escHtml = (s) => String(s ?? '')
                     .replace(/&/g, '&amp;')
                     .replace(/</g, '&lt;')
@@ -775,12 +761,12 @@
 
                         const { error: errVerif } = await client.from('verifikasi_material').insert([{
                             tanggal: new Date(),
-                            nomor_po: noPOBaru,
+                            // nomor_po: noPOBaru, <-- Hapus kolom ini karena tidak ada di DB
                             nama_proyek: proyek,
                             barang_id: barangId,
                             jumlah: jumlah,
                             total_biaya: totalBiaya,
-                            keterangan: ket,
+                            keterangan: `${ket} [Ref: ${noPOBaru}]`, // Pindahkan nomor PO ke sini
                             status: 'WAITING'
                         }]);
 
@@ -797,6 +783,13 @@
                         if (errUpdate) {
                             return alert("❌ Gagal mengurangi stok master: " + errUpdate.message);
                         }
+
+                        // --- LOG SYSTEM ---
+                        await catatLog(
+                            'PROYEK',
+                            `Pemakaian Material: ${jumlah} Unit (Ref: ${proyek})`,
+                            'fa-dolly-flatbed'
+                        );
 
                         // 3. Catat History (PENTING: Cek Error Disini)
                         const { error: errHist } = await client.from('stok_history').insert([{

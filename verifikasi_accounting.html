@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
   <title>Accounting - Verifikasi Material</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Use Shared Config -->
+  <script src="app_config.js"></script>
+  <script src="auth.js"></script>
+  <script>PNAuth.requireAuth(['finance', 'superadmin']);</script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-gray-100 font-sans p-6">
   <div class="max-w-6xl mx-auto">
     <div class="flex justify-between items-center mb-6">
@@ -14,7 +22,8 @@
         <h1 class="text-2xl font-bold text-gray-800">Verifikasi Pengeluaran Material</h1>
         <p class="text-sm text-gray-500">Validasi pemakaian harian sebelum masuk ke Jurnal Umum</p>
       </div>
-      <a href="dashboard_finance.html" class="bg-gray-600 text-white px-4 py-2 rounded text-sm font-bold"><i class="fas fa-arrow-left mr-2"></i>Dashboard</a>
+      <a href="dashboard_finance.html" class="bg-gray-600 text-white px-4 py-2 rounded text-sm font-bold"><i
+          class="fas fa-arrow-left mr-2"></i>Dashboard</a>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
@@ -30,30 +39,30 @@
           </tr>
         </thead>
         <tbody id="bodyVerifikasi">
-          <tr><td colspan="6" class="p-10 text-center text-gray-400">Memuat antrean verifikasi...</td></tr>
+          <tr>
+            <td colspan="6" class="p-10 text-center text-gray-400">Memuat antrean verifikasi...</td>
+          </tr>
         </tbody>
       </table>
     </div>
   </div>
 
   <script>
-    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
-    const client = supabase.createClient(supabaseUrl, supabaseKey);
+    // Use Shared Client
+    const client = window.client || supabase.createClient("https://nbpxmramqufvxiikxbve.supabase.co", "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN");
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
     async function loadWaitingList() {
       const { data, error } = await client
         .from('verifikasi_material')
         .select(`*, master_stok(nama_barang, satuan, harga_estimasi)`)
-        // Gunakan filter .ilike agar tidak peduli huruf besar/kecil statusnya
         .ilike('status', 'waiting')
         .order('tanggal', { ascending: false });
 
       const tbody = document.getElementById("bodyVerifikasi");
       tbody.innerHTML = "";
 
-      if(!data || data.length === 0) {
+      if (!data || data.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400 italic">Semua data telah diverifikasi.</td></tr>`;
         return;
       }
@@ -83,15 +92,19 @@
     }
 
     async function postingKeJurnal(id, total, proyek, ket) {
-      if(!confirm("Posting pengeluaran ini ke Jurnal Umum?")) return;
+      if (!confirm("Posting pengeluaran ini ke Jurnal Umum?")) return;
 
       const { error: errJurnal } = await client.from('jurnal_umum').insert([
-        { tanggal: new Date(), nomor_referensi: 'MAT-'+id, keterangan: `Material: ${proyek} - ${ket}`, nama_akun: 'Beban Proyek', debit: total, kredit: 0 },
-        { tanggal: new Date(), nomor_referensi: 'MAT-'+id, keterangan: `Material: ${proyek} - ${ket}`, nama_akun: 'Persediaan Material', debit: 0, kredit: total }
+        { tanggal: new Date(), nomor_referensi: 'MAT-' + id, keterangan: `Material: ${proyek} - ${ket}`, nama_akun: 'Beban Proyek', debit: total, kredit: 0 },
+        { tanggal: new Date(), nomor_referensi: 'MAT-' + id, keterangan: `Material: ${proyek} - ${ket}`, nama_akun: 'Persediaan Material', debit: 0, kredit: total }
       ]);
 
-      if(!errJurnal) {
+      if (!errJurnal) {
         await client.from('verifikasi_material').update({ status: 'POSTED' }).eq('id', id);
+
+        // Log System
+        if (window.catatLog) await window.catatLog('KEUANGAN', `Posting Jurnal Material Project ${proyek}`, 'fa-book');
+
         alert("✅ Berhasil diposting!");
         loadWaitingList();
       } else {
@@ -100,9 +113,8 @@
     }
 
     async function rejectItem(id) {
-      if(!confirm("⚠️ TOLAK TRANSAKSI?\nBarang akan dimasukkan kembali ke saldo gudang.")) return;
+      if (!confirm("⚠️ TOLAK TRANSAKSI?\nBarang akan dimasukkan kembali ke saldo gudang.")) return;
 
-      // 1. Ambil detail data yang akan ditolak
       const { data: item } = await client
         .from('verifikasi_material')
         .select('barang_id, jumlah, nama_proyek, keterangan')
@@ -110,29 +122,27 @@
         .single();
 
       if (item) {
-        // 2. Ambil saldo stok saat ini
         const { data: stokSkrg } = await client
           .from('master_stok')
           .select('total_stok')
           .eq('id', item.barang_id)
           .single();
 
-        // 3. JURUS PERBAIKAN: Kembalikan stok & Catat Riwayat sebagai MASUK (Positif)
-        // Update saldo utama
         await client.from('master_stok').update({ total_stok: stokSkrg.total_stok + item.jumlah }).eq('id', item.barang_id);
-        
-        // Simpan ke History dengan angka POSITIF agar muncul di kolom MASUK
-        await client.from('stok_history').insert([{ 
-            barang_id: item.barang_id, 
-            jenis_transaksi: 'REJECT ACCOUNTING', // Gunakan kata kunci ini
-            jumlah: item.jumlah, // PASTIKAN POSITIF (Contoh: 1, bukan -1)
-            keterangan: `Reject Proyek ${item.nama_proyek}: ${item.keterangan}` 
+
+        await client.from('stok_history').insert([{
+          barang_id: item.barang_id,
+          jenis_transaksi: 'REJECT ACCOUNTING',
+          jumlah: item.jumlah,
+          keterangan: `Reject Proyek ${item.nama_proyek}: ${item.keterangan}`
         }]);
+
+        // Log System
+        if (window.catatLog) await window.catatLog('KEUANGAN', `Reject & Refund Material: ${item.nama_proyek}`, 'fa-undo');
       }
 
-      // 4. Ubah status menjadi REJECTED agar hilang dari realisasi Master Proyek
       await client.from('verifikasi_material').update({ status: 'REJECTED' }).eq('id', id);
-      
+
       alert("✅ Berhasil! Stok telah dikembalikan ke kolom MASUK.");
       loadWaitingList();
     }
@@ -140,4 +150,5 @@
     loadWaitingList();
   </script>
 </body>
+
 </html>
