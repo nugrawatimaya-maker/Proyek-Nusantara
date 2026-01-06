@@ -95,7 +95,7 @@
                 <div class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Tanggal Diperlukan</label>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Tanggal Pengajuan</label>
                             <input type="date" id="reqDate"
                                 class="w-full border p-2 rounded bg-slate-50 outline-none focus:border-orange-500">
                         </div>
@@ -163,7 +163,13 @@
                             <!-- Input Row -->
                             <div
                                 class="grid grid-cols-12 gap-2 mb-2 bg-white p-2 rounded-lg border border-blue-100 shadow-sm">
-                                <div class="col-span-12 md:col-span-4">
+                                <div class="col-span-12 md:col-span-3">
+                                    <label class="block text-[10px] text-gray-400 font-bold ml-1">Tanggal Nota</label>
+                                    <input type="date" id="itemDate"
+                                        class="w-full border-b border-gray-200 p-1 text-xs outline-none focus:border-blue-500 font-mono text-slate-600"
+                                        onkeypress="handleEnter(event)">
+                                </div>
+                                <div class="col-span-12 md:col-span-3">
                                     <label class="block text-[10px] text-gray-400 font-bold ml-1">Jenis Biaya</label>
                                     <input type="text" id="itemName" placeholder="Cth: Grab"
                                         class="w-full border-b border-gray-200 p-1 text-sm outline-none focus:border-blue-500 font-bold text-slate-700"
@@ -175,16 +181,16 @@
                                         class="w-full border-b border-gray-200 p-1 text-sm outline-none focus:border-blue-500 font-mono text-right"
                                         onkeypress="handleEnter(event)">
                                 </div>
-                                <div class="col-span-6 md:col-span-3">
-                                    <label class="block text-[10px] text-gray-400 font-bold ml-1">Nota
-                                        (Opsional)</label>
-                                    <input type="file" id="itemProof"
-                                        class="w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                                </div>
-                                <div class="col-span-12 md:col-span-2 flex items-end">
+                                <div class="col-span-12 md:col-span-3 flex items-end gap-1">
+                                    <div class="w-full">
+                                        <label class="block text-[10px] text-gray-400 font-bold ml-1">Nota
+                                            (Opsional)</label>
+                                        <input type="file" id="itemProof"
+                                            class="w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                    </div>
                                     <button type="button" onclick="addItem()"
-                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded font-bold text-xs shadow transition">
-                                        <i class="fas fa-plus"></i> Tambah
+                                        class="bg-blue-600 hover:bg-blue-700 text-white py-1.5 px-3 rounded font-bold text-xs shadow transition">
+                                        <i class="fas fa-plus"></i> Add
                                     </button>
                                 </div>
                             </div>
@@ -196,7 +202,8 @@
                                 <thead
                                     class="bg-slate-50 text-[10px] text-slate-500 uppercase font-bold border-b border-slate-200">
                                     <tr>
-                                        <th class="px-4 py-2 text-left w-1/3">Jenis Biaya</th>
+                                        <th class="px-4 py-2 text-left w-1/4">Tanggal</th>
+                                        <th class="px-4 py-2 text-left w-1/4">Jenis Biaya</th>
                                         <th class="px-4 py-2 text-right w-1/4">Total</th>
                                         <th class="px-4 py-2 text-center">Nota</th>
                                         <th class="px-4 py-2 text-center w-10">#</th>
@@ -268,7 +275,7 @@
                             <span class="text-gray-500">Total Diterima (Advance):</span>
                             <span class="font-bold text-gray-800" id="displayAdvance">Rp 0</span>
                         </div>
-                        <div class="text-xs text-gray-500 italic" id="displayDesc">-</div>
+                        <div class="text-xs text-gray-400 italic" id="displayDesc">-</div>
                     </div>
 
                     <div>
@@ -307,26 +314,32 @@
         let reimbursementItems = [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            const session = window.PNAuth.getSession();
-            if (!session) {
-                window.location.href = 'login.html';
-                return;
+            // Safe Check for PNAuth
+            if (window.PNAuth) {
+                const session = window.PNAuth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                currentUser = session.user;
+                document.getElementById('userBadge').innerText = `${currentUser.full_name} (${currentUser.role})`;
+
+                // Map Division
+                let userDiv = "Umum";
+                const role = currentUser.role.toLowerCase();
+                if (role.includes('finance') || role.includes('accounting')) userDiv = "Finance & Accounting";
+                else if (role.includes('marketing') || role.includes('sales')) userDiv = "Marketing & Sales";
+                else if (role.includes('hr') || role.includes('ga')) userDiv = "HRD & GA";
+                else if (role.includes('proyek') || role.includes('teknik')) userDiv = "Operasional Proyek";
+
+                document.getElementById('reqDivisi').value = userDiv;
+                document.getElementById('reqDate').valueAsDate = new Date(); // Default today
+
+                loadPengajuan();
+            } else {
+                console.error("Auth module missing");
+                document.getElementById('userBadge').innerText = "Auth Error";
             }
-            currentUser = session.user;
-            document.getElementById('userBadge').innerText = `${currentUser.full_name} (${currentUser.role})`;
-
-            // Map Division
-            let userDiv = "Umum";
-            const role = currentUser.role.toLowerCase();
-            if (role.includes('finance') || role.includes('accounting')) userDiv = "Finance & Accounting";
-            else if (role.includes('marketing') || role.includes('sales')) userDiv = "Marketing & Sales";
-            else if (role.includes('hr') || role.includes('ga')) userDiv = "HRD & GA";
-            else if (role.includes('proyek') || role.includes('teknik')) userDiv = "Operasional Proyek";
-
-            document.getElementById('reqDivisi').value = userDiv;
-            document.getElementById('reqDate').valueAsDate = new Date();
-
-            loadPengajuan();
         });
 
         // --- 2. DYNAMIC FIELDS LOGIC ---
@@ -335,19 +348,19 @@
             const globalFields = document.getElementById("globalFields");
 
             // Reset
-            document.getElementById("fieldPetty").style.display = 'none';
-            document.getElementById("fieldReimburse").style.display = 'none';
-            document.getElementById("fieldWorkPlan").style.display = 'none';
+            if (document.getElementById("fieldPetty")) document.getElementById("fieldPetty").style.display = 'none';
+            if (document.getElementById("fieldReimburse")) document.getElementById("fieldReimburse").style.display = 'none';
+            if (document.getElementById("fieldWorkPlan")) document.getElementById("fieldWorkPlan").style.display = 'none';
 
             // Show Globals by default
-            globalFields.style.display = 'block';
+            if (globalFields) globalFields.style.display = 'block';
 
             if (type === 'PETTY') {
                 document.getElementById("fieldPetty").style.display = 'block';
             } else if (type === 'REIMBURSE') {
                 document.getElementById("fieldReimburse").style.display = 'block';
                 // HIDE Globals for Reimburse (Simplified View)
-                globalFields.style.display = 'none';
+                if (globalFields) globalFields.style.display = 'none';
                 reimbursementItems = []; // Reset items
                 renderReimItems();
             } else if (type === 'DINAS' || type === 'EVENT') {
@@ -355,9 +368,13 @@
             }
         }
 
-        // --- 3. REIMBURSEMENT ITEM LOGIC ---
+        // --- 3. REIMBURSEMENT ITEM LOGIC (ROBUST & DEBUGGED) ---
         function quickFill(name) {
             document.getElementById('itemName').value = name;
+            const dateEl = document.getElementById('itemDate');
+            if (dateEl && !dateEl.value) {
+                dateEl.valueAsDate = new Date();
+            }
             document.getElementById('itemAmount').focus();
         }
 
@@ -366,78 +383,136 @@
         }
 
         function addItem() {
-            const nameEl = document.getElementById('itemName');
-            const amtEl = document.getElementById('itemAmount');
-            const proofEl = document.getElementById('itemProof');
+            try {
+                const nameEl = document.getElementById('itemName');
+                const dateEl = document.getElementById('itemDate');
+                const amtEl = document.getElementById('itemAmount');
+                const proofEl = document.getElementById('itemProof');
 
-            const name = nameEl.value.trim();
-            const amt = Number(amtEl.value);
-            const hasProof = proofEl.value ? true : false; // Check if file selected
+                if (!nameEl || !dateEl || !amtEl) {
+                    alert("Error: Input elements not found!");
+                    return;
+                }
 
-            if (!name || amt <= 0) return alert("Mohon lengkapi nama item dan nominal.");
+                const name = nameEl.value.trim();
+                let dateVal = dateEl.value;
+                const amt = Number(amtEl.value);
+                const hasProof = proofEl && proofEl.value ? true : false;
 
-            reimbursementItems.push({ name, amount: amt, hasProof });
+                // 1. Validation & Auto-fill
+                if (!dateVal) {
+                    const today = new Date().toISOString().split('T')[0];
+                    dateVal = today;
+                    dateEl.value = today;
+                }
 
-            nameEl.value = "";
-            amtEl.value = "";
-            proofEl.value = ""; // Reset file input
-            nameEl.focus();
+                if (!name) { alert("Mohon isi Jenis Biaya (misal: Bensin, Parkir)"); nameEl.focus(); return; }
+                if (!amt || amt <= 0) { alert("Mohon isi Nominal Biaya"); amtEl.focus(); return; }
 
-            renderReimItems();
+                // 2. Add to Array
+                reimbursementItems.push({
+                    name: name,
+                    date: dateVal,
+                    amount: amt,
+                    hasProof: hasProof
+                });
+
+                // 3. Reset Fields (Keep Date)
+                nameEl.value = "";
+                amtEl.value = "";
+                if (proofEl) proofEl.value = "";
+                nameEl.focus();
+
+                // 4. Render
+                renderReimItems();
+
+            } catch (e) {
+                alert("Error in addItem: " + e.message);
+                console.error(e);
+            }
         }
 
         function removeItem(index) {
-            reimbursementItems.splice(index, 1);
-            renderReimItems();
+            if (confirm("Hapus item ini?")) {
+                reimbursementItems.splice(index, 1);
+                renderReimItems();
+            }
         }
 
         function renderReimItems() {
-            const tbody = document.getElementById('reimItemsBody');
-            const emptyMsg = document.getElementById('emptyReimMsg');
-            const totalDisplay = document.getElementById('totalDisplay');
+            try {
+                const tbody = document.getElementById('reimItemsBody');
+                const emptyMsg = document.getElementById('emptyReimMsg');
+                const totalDisplay = document.getElementById('totalDisplay');
 
-            tbody.innerHTML = "";
-            let total = 0;
+                if (!tbody) return;
 
-            if (reimbursementItems.length === 0) {
-                emptyMsg.style.display = 'block';
-            } else {
-                emptyMsg.style.display = 'none';
+                tbody.innerHTML = "";
+                let total = 0;
 
-                reimbursementItems.forEach((item, index) => {
-                    total += item.amount;
-                    const proofIcon = item.hasProof
-                        ? `<span class="text-green-500" title="Ada Nota"><i class="fas fa-check-circle"></i></span>`
-                        : `<span class="text-gray-300" title="Tanpa Nota">-</span>`;
+                if (reimbursementItems.length === 0) {
+                    if (emptyMsg) emptyMsg.style.display = 'block';
+                } else {
+                    if (emptyMsg) emptyMsg.style.display = 'none';
 
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-blue-50 transition group">
+                    reimbursementItems.forEach((item, index) => {
+                        total += item.amount;
+
+                        const proofIcon = item.hasProof
+                            ? `<span class="text-green-500" title="Ada Nota"><i class="fas fa-check-circle"></i></span>`
+                            : `<span class="text-gray-300" title="Tanpa Nota">-</span>`;
+
+                        let dateFmt = item.date;
+                        try {
+                            const d = new Date(item.date);
+                            if (!isNaN(d)) dateFmt = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                        } catch (e) { }
+
+                        // Safe fmt
+                        const fmtAmt = (window.fmt) ? window.fmt(item.amount) : item.amount.toLocaleString();
+
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-blue-50 transition group border-b border-slate-50";
+                        tr.innerHTML = `
+                            <td class="px-4 py-2 text-slate-500 text-xs text-center font-mono">${dateFmt}</td>
                             <td class="px-4 py-2 text-slate-700 font-bold">${item.name}</td>
-                            <td class="px-4 py-2 text-right font-mono text-slate-600">${window.fmt(item.amount)}</td>
+                            <td class="px-4 py-2 text-right font-mono text-slate-600">${fmtAmt}</td>
                             <td class="px-4 py-2 text-center">${proofIcon}</td>
                             <td class="px-4 py-2 text-center">
-                                <button onclick="removeItem(${index})" class="text-gray-300 hover:text-red-500 transition"><i class="fas fa-trash"></i></button>
+                                <button onclick="removeItem(${index})" class="text-gray-300 hover:text-red-500 transition btn-remove-item"><i class="fas fa-trash"></i></button>
                             </td>
-                        </tr>
-                    `;
-                });
-            }
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
 
-            // Update Summaries
-            totalDisplay.innerText = window.fmt(total);
+                // Update Summaries
+                if (totalDisplay) {
+                    const fmtTotal = (window.fmt) ? window.fmt(total) : total.toLocaleString();
+                    totalDisplay.innerText = fmtTotal;
+                }
+            } catch (e) {
+                alert("Error in renderReimItems: " + e.message);
+                console.error(e);
+            }
         }
 
-        // --- 4. LOAD DATA ---
+
+        // --- 4. LOAD DATA (FIXED: CLIENT SIDE FILTER) ---
         async function loadPengajuan() {
+            if (!window.client) return;
+
+            // FIX: Don't filter by request_by_id column as it doesn't exist
             const { data, error } = await window.client
                 .from('transaksi')
                 .select('*')
-                .eq('request_by_id', currentUser.id)
+                // .eq('request_by_id', currentUser.id) <--- REMOVED
                 .or('jenis_transaksi.eq.PENGAJUAN,jenis_transaksi.eq.ADVANCE_CAIR,jenis_transaksi.eq.REALIZED,jenis_transaksi.eq.REJECTED')
                 .order('tanggal', { ascending: false });
 
             const tbody = document.getElementById("listPengajuan");
-            tbody.innerHTML = "";
+            if (tbody) tbody.innerHTML = "";
+            else return;
 
             if (error) { console.error(error); return; }
             if (!data || data.length === 0) {
@@ -445,7 +520,22 @@
                 return;
             }
 
-            data.forEach(item => {
+            // Client Side Filter for Current User
+            // We look for [REQ:USER_ID] in the keterangan
+            const myData = data.filter(item => {
+                if (!item.keterangan) return false;
+                // Old data might not have the tag, so we might lose old data that wasn't tagged.
+                // But for now this enables the new system.
+                // Optionally, if user is admin/finance, they might see all? No, this is "Pengajuan SAYA"
+                return item.keterangan.includes(`[REQ:${currentUser.id}]`);
+            });
+
+            if (myData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 italic">Belum ada riwayat pengajuan Anda.</td></tr>`;
+                return;
+            }
+
+            myData.forEach(item => {
                 let statusBadge = "";
                 let actionBtn = "-";
 
@@ -466,18 +556,28 @@
                 let realisasiDisplay = "-";
                 if (item.jenis_transaksi === 'REALIZED') {
                     const match = item.keterangan.match(/\[REAL:(\d+)\]/);
-                    if (match) realisasiDisplay = window.fmt(Number(match[1]));
+                    if (match) realisasiDisplay = transformFmt(Number(match[1]));
                 }
 
                 let typeDisplay = "UMUM";
                 let descClean = item.keterangan;
+
+                // Clean tags from display
+                // remove [REQ:...]
+                descClean = descClean.replace(/\[REQ:.*?\]/g, '').trim();
+
                 if (item.keterangan.startsWith('[')) {
+                    // Try to parse [TYPE] [DIV] DESC
                     const parts = item.keterangan.split('] ');
                     if (parts.length > 1) {
                         typeDisplay = parts[0].replace('[', '');
-                        descClean = parts[1];
+                        descClean = item.keterangan.substring(item.keterangan.indexOf('] ') + 2);
+                        // clean again just in case
+                        descClean = descClean.replace(/\[REQ:.*?\]/g, '').trim();
                     }
                 }
+
+                function transformFmt(n) { return (window.fmt) ? window.fmt(n) : n; }
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 border-b">
@@ -487,9 +587,9 @@
                         </td>
                         <td class="p-4">
                             <span class="text-[10px] font-bold bg-slate-200 px-1 rounded text-slate-600">${typeDisplay}</span>
-                            <div class="text-sm mt-1">${descClean.split('[REAL')[0]}</div>
+                            <div class="text-sm mt-1 max-w-xs break-words">${descClean.split('[REAL')[0]}</div>
                         </td>
-                        <td class="p-4 text-right font-mono">${window.fmt(item.jumlah)}</td>
+                        <td class="p-4 text-right font-mono">${transformFmt(item.jumlah)}</td>
                         <td class="p-4 text-right font-mono font-bold text-slate-700">${realisasiDisplay}</td>
                         <td class="p-4 text-center">${statusBadge}</td>
                         <td class="p-4 text-center">${actionBtn}</td>
@@ -518,7 +618,12 @@
                 amt = reimbursementItems.reduce((sum, item) => sum + item.amount, 0);
 
                 // Join items as description
-                const itemDesc = reimbursementItems.map(i => `${i.name} (${window.fmt(i.amount)})${i.hasProof ? ' [Ada Nota]' : ''}`).join(', ');
+                // Format: [DATE] ITEM (AMT) [Ada Nota]
+                const itemDesc = reimbursementItems.map(i => {
+                    const fmtAmt = (window.fmt) ? window.fmt(i.amount) : i.amount;
+                    return `[${i.date}] ${i.name} (${fmtAmt})${i.hasProof ? ' [Ada Nota]' : ''}`;
+                }).join(', ');
+
                 desc = `Rincian: ${itemDesc}`;
 
                 extraInfo = " | [Multi-Item]";
@@ -531,7 +636,10 @@
                 if (type === 'PETTY') {
                     const prevBal = document.getElementById('pcPrevBalance').value;
                     const prevReal = document.getElementById('pcRealization').value;
-                    if (prevBal && prevReal) extraInfo = ` | PrevBal: ${window.fmt(prevBal)}, Real: ${window.fmt(prevReal)}`;
+
+                    const fmt = window.fmt || ((n) => n);
+
+                    if (prevBal && prevReal) extraInfo = ` | PrevBal: ${fmt(prevBal)}, Real: ${fmt(prevReal)}`;
                     else validationError = "Mohon isi info Petty Cash sebelumnya!";
                 } else if (type === 'DINAS' || type === 'EVENT') {
                     const file = document.getElementById('planDoc').value;
@@ -543,29 +651,46 @@
             if (!date) return alert("Pilih tanggal!");
             if (validationError) return alert(validationError);
 
-            const finalDesc = `[${type}] [${div}] ${desc}${extraInfo}`;
+            // FIX: Add [REQ:USER_ID] tag to description
+            const userTag = ` [REQ:${currentUser.id}]`;
+            const finalDesc = `[${type}] [${div}] ${desc}${extraInfo}${userTag}`;
 
             const payload = {
                 tanggal: date,
                 jumlah: amt,
                 keterangan: finalDesc,
                 jenis_transaksi: 'PENGAJUAN',
-                request_by_id: currentUser.id,
+                // request_by_id: currentUser.id, <--- REMOVED (Column not found)
                 akun: 'KASBON_KARYAWAN'
             };
 
             const { error } = await window.client.from('transaksi').insert([payload]);
             if (error) alert("Gagal request: " + error.message);
             else {
-                alert("✅ Pengajuan berhasil dikirim!");
-                tutupModal();
-                loadPengajuan();
+                // Success
+                if (type === 'REIMBURSE') {
+                    if (confirm("✅ Reimbursement Terkirim!\n\nApakah Anda ingin menambahkan Reimbursement lainnya?")) {
+                        // Reset Form for new entry
+                        reimbursementItems = [];
+                        renderReimItems();
+                        document.getElementById('itemName').focus();
+                    } else {
+                        tutupModal();
+                        loadPengajuan();
+                    }
+                } else {
+                    alert("✅ Pengajuan berhasil dikirim!");
+                    tutupModal();
+                    loadPengajuan();
+                }
             }
         }
 
         function bukaModalReal(id, amount, desc) {
             document.getElementById('realId').value = id;
-            document.getElementById('displayAdvance').innerText = window.fmt(amount);
+            if (window.fmt) document.getElementById('displayAdvance').innerText = window.fmt(amount);
+            else document.getElementById('displayAdvance').innerText = amount;
+
             document.getElementById('displayDesc').innerText = desc;
             activeAdvanceAmount = amount;
             document.getElementById('realAmount').value = "";
@@ -599,7 +724,11 @@
             const actual = Number(document.getElementById('realAmount').value);
             const diff = activeAdvanceAmount - actual;
             const el = document.getElementById('displaySelisih');
-            el.innerText = window.fmt(Math.abs(diff));
+
+            const val = Math.abs(diff);
+            if (window.fmt) el.innerText = window.fmt(val);
+            else el.innerText = val;
+
             if (diff > 0) {
                 el.className = "text-center text-xl font-bold text-blue-600";
                 document.getElementById('selisihNote').innerText = "Refund ke Kantor";
