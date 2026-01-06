@@ -180,23 +180,68 @@
                 // Debug: Cek koneksi client
                 if (!client || !client.from) throw new Error("Supabase Client belum terinisialisasi. Cek app_config.js");
 
-                // HANYA membaca dari tabel antrian terpusat 'approval_queue'
-                const { data, error } = await client
+                // --- 1. Fetch from 'approval_queue' (Old System / PO) ---
+                const p1 = client
                     .from('approval_queue')
                     .select('id, title, description, amount, requester, created_at, source_table, source_id, status')
                     .eq('status', 'PENDING')
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
+                // --- 2. Fetch from 'transaksi' (New Expense Requests) ---
+                const p2 = client
+                    .from('transaksi')
+                    .select('*')
+                    .eq('jenis_transaksi', 'PENGAJUAN') // Filter pending expense
+                    .order('tanggal', { ascending: false });
+
+                const [resQueue, resTrans] = await Promise.all([p1, p2]);
+
+                if (resQueue.error) throw resQueue.error;
+                if (resTrans.error) throw resTrans.error;
+
+                const dataQueue = resQueue.data || [];
+                const dataTrans = resTrans.data || [];
+
+                // --- 3. Normalize & Merge Data ---
+                // Map 'transaksi' items to look like 'approval_queue' items
+                const mappedTrans = dataTrans.map(t => {
+                    // Parse Requester from [REQ:ID] if possible, or just use [DIV] part
+                    let reqName = "Karyawan";
+                    let title = "Pengajuan Biaya";
+
+                    if (t.keterangan) {
+                        // Try to extract Divisi or Name
+                        const match = t.keterangan.match(/\[(.*?)\]/);
+                        if (match) title = `Request ${match[1]}`; // e.g. Request UMUM
+                    }
+
+                    return {
+                        id: t.id, // Use same ID, but handle action differently
+                        source_table: 'transaksi', // Marker
+                        source_id: t.id,
+                        title: title,
+                        description: t.keterangan,
+                        amount: t.jumlah,
+                        requester: reqName, // We don't have name easily, maybe fetch later?
+                        created_at: t.tanggal, // use date
+                        status: 'PENDING',
+                        is_transaksi: true // Flag
+                    };
+                });
+
+                const combinedData = [...dataQueue, ...mappedTrans];
+
+                // Sort by date desc
+                combinedData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
                 // --- UPDATE SUMMARY CARDS ---
-                updateDashboardStats(data || []);
+                updateDashboardStats(combinedData || []);
                 // -------------------------------------
 
-                if (!data || data.length === 0) {
+                if (combinedData.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="5" class="px-6 py-20 text-center">
+                            <td colspan="6" class="px-6 py-20 text-center">
                                 <div class="flex flex-col items-center">
                                     <div class="bg-green-50 text-green-500 w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-sm">
                                         <i class="fas fa-check-double text-2xl"></i>
@@ -468,11 +513,30 @@
 
                 // --- LOGIC: REJECTION ---
                 if (action === 'REJECTED') {
-                    const { error } = await client
-                        .from('approval_queue')
-                        .update({ status: 'REJECTED' })
-                        .eq('id', queueId);
-                    if (error) throw error;
+                    if (sourceTable === 'transaksi') {
+                        const { error } = await client.from('transaksi').update({ jenis_transaksi: 'REJECTED' }).eq('id', queueId);
+                        if (error) throw error;
+                    } else if (sourceTable === 'purchase_order') {
+                        // REJECT PO -> Update ALL items with same nomor_po
+                        await updateStatusPO(sourceId, 'REJECTED');
+
+                        const { error } = await client
+                            .from('approval_queue')
+                            .update({ status: 'REJECTED' })
+                            .eq('id', queueId);
+                        if (error) throw error;
+                    } else {
+                        const { error } = await client
+                            .from('approval_queue')
+                            .update({ status: 'REJECTED' })
+                            .eq('id', queueId);
+                        if (error) throw error;
+
+                        // Try update source status if column exists
+                        await client.from(sourceTable).update({ status: 'REJECTED' }).eq('id', sourceId).then(res => {
+                            if (res.error) console.warn("Generic reject update failed for", sourceTable);
+                        });
+                    }
 
                     // Log
                     await PNAuth.logActivity(`Direksi MENOLAK: ${titleCtx}`, 'APPROVAL', 'fa-times-circle');
@@ -482,7 +546,19 @@
 
                 // --- LOGIC: APPROVAL ---
                 else if (action === 'APPROVED') {
-                    await approveGeneric(queueId, sourceTable, sourceId);
+                    if (sourceTable === 'transaksi') {
+                        // Approve Transaksi -> Status 'ADVANCE_CAIR' (Funds Released)
+                        const { error } = await client.from('transaksi').update({ jenis_transaksi: 'ADVANCE_CAIR' }).eq('id', queueId);
+                        if (error) throw error;
+                    } else if (sourceTable === 'purchase_order') {
+                        await updateStatusPO(sourceId, 'APPROVED');
+
+                        // Update Queue
+                        const { error: errQueue } = await client.from('approval_queue').update({ status: 'APPROVED' }).eq('id', queueId);
+                        if (errQueue) throw errQueue;
+                    } else {
+                        await approveGeneric(queueId, sourceTable, sourceId);
+                    }
 
                     // Log
                     await PNAuth.logActivity(`Direksi MENYETUJUI: ${titleCtx}`, 'APPROVAL', 'fa-check-circle');
@@ -502,7 +578,25 @@
             }
         }
 
+        // Helper khusus untuk update status PO massal berdasarkan ID salah satu item
+        async function updateStatusPO(representativeId, newStatus) {
+            // 1. Ambil nomor_po dari item perwakilan
+            const { data: poItem, error: fetchError } = await client
+                .from('purchase_order')
+                .select('nomor_po')
+                .eq('id', representativeId)
+                .single();
 
+            if (fetchError || !poItem) throw new Error("Gagal mengambil data PO untuk update status via ID: " + representativeId);
+
+            // 2. Update SEMUA item dengan nomor_po tersebut
+            const { error: updateError } = await client
+                .from('purchase_order')
+                .update({ status: newStatus })
+                .eq('nomor_po', poItem.nomor_po);
+
+            if (updateError) throw new Error("Gagal update massal status PO: " + updateError.message);
+        }
 
         async function approveGeneric(queueId, sourceTable, sourceId) {
             // Tentukan status target berdasarkan tabel

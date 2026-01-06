@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix PO Status</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app_config.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100 min-h-screen p-10">
+    <div class="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-8">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-4">
+            <i class="fas fa-tools text-blue-600 mr-2"></i>Perbaikan Status PO
+        </h1>
+        <p class="text-gray-600 mb-6">
+            Alat ini akan mendeteksi PO yang sudah disetujui oleh Direksi (di <code>approval_queue</code>)
+            tetapi statusnya masih <b>WAITING APPROVAL</b> di daftar PO.
+        </p>
+
+        <div class="mb-6">
+            <button onclick="checkStuckPOs()"
+                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition font-bold">
+                <i class="fas fa-search mr-2"></i>Cek PO Bermasalah
+            </button>
+        </div>
+
+        <div id="results" class="space-y-4"></div>
+    </div>
+
+    <script>
+        async function checkStuckPOs() {
+            const container = document.getElementById('results');
+            container.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i><p>Memeriksa data...</p></div>';
+
+            try {
+                // 1. Get all APPROVED approval requests for purchase_order
+                const { data: approvedQueue, error: errQueue } = await client
+                    .from('approval_queue')
+                    .select('id, source_id, title, status')
+                    .eq('source_table', 'purchase_order')
+                    .eq('status', 'APPROVED');
+
+                if (errQueue) throw errQueue;
+                if (!approvedQueue || approvedQueue.length === 0) {
+                    container.innerHTML = '<div class="p-4 bg-green-50 text-green-700 border border-green-200 rounded">Tidak ada riwayat approval PO yang ditemukan.</div>';
+                    return;
+                }
+
+                // 2. Check actual PO status for these items
+                let stuckList = [];
+
+                for (const q of approvedQueue) {
+                    // source_id is just ONE id of the PO items. We need the nomor_po to check ALL items.
+                    const { data: poItem } = await client
+                        .from('purchase_order')
+                        .select('nomor_po, status')
+                        .eq('id', q.source_id)
+                        .single();
+
+                    if (poItem) {
+                        // Check if ANY item with this nomor_po is still WAITING APPROVAL
+                        const { data: checkStuck } = await client
+                            .from('purchase_order')
+                            .select('id')
+                            .eq('nomor_po', poItem.nomor_po)
+                            .neq('status', 'APPROVED') // Should be APPROVED
+                            .limit(1);
+
+                        // If we found strict non-approved items, it's a candidate for fixing
+                        if (checkStuck && checkStuck.length > 0) {
+                            stuckList.push({
+                                nomor_po: poItem.nomor_po,
+                                queue_id: q.id,
+                                current_status: poItem.status // Status of the representative item might be Approved or Waiting depending on the glitch
+                            });
+                        }
+                    }
+                }
+
+                if (stuckList.length === 0) {
+                    container.innerHTML = `
+                        <div class="p-4 bg-green-100 text-green-800 border border-green-200 rounded flex items-center gap-3">
+                            <i class="fas fa-check-circle text-2xl"></i>
+                            <div>
+                                <strong>Semua Bersih!</strong><br>
+                                Tidak ditemukan PO yang statusnya tidak sinkron.
+                            </div>
+                        </div>`;
+                } else {
+                    container.innerHTML = `
+                        <div class="p-4 bg-orange-50 border border-orange-200 rounded mb-4">
+                            <strong>Ditemukan ${stuckList.length} PO bermasalah.</strong><br>
+                            Klik "Perbaiki" untuk menyamakan status menjadi APPROVED.
+                        </div>
+                    `;
+
+                    stuckList.forEach(item => {
+                        const el = document.createElement('div');
+                        el.className = 'border p-4 rounded flex justify-between items-center bg-white shadow-sm';
+                        el.innerHTML = `
+                            <div>
+                                <div class="font-bold text-lg">${item.nomor_po}</div>
+                                <div class="text-sm text-gray-500">Queue: APPROVED | PO Status: <span class="text-red-500 font-bold">MISMATCH</span></div>
+                            </div>
+                            <button onclick="fixPO('${item.nomor_po}', this)" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm font-bold">
+                                <i class="fas fa-magic mr-1"></i> Perbaiki
+                            </button>
+                        `;
+                        container.appendChild(el);
+                    });
+                }
+
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `<div class="p-4 bg-red-100 text-red-700 border border-red-200 rounded">Error: ${err.message}</div>`;
+            }
+        }
+
+        async function fixPO(nomorPO, btn) {
+            if (!confirm(`Yakin update status PO ${nomorPO} menjadi APPROVED?`)) return;
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                const { error } = await client
+                    .from('purchase_order')
+                    .update({ status: 'APPROVED' })
+                    .eq('nomor_po', nomorPO);
+
+                if (error) throw error;
+
+                btn.className = "bg-gray-100 text-green-600 px-3 py-2 rounded text-sm font-bold border border-green-200 cursor-default";
+                btn.innerHTML = '<i class="fas fa-check mr-1"></i> Terperbaiki';
+
+            } catch (err) {
+                alert("Gagal: " + err.message);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

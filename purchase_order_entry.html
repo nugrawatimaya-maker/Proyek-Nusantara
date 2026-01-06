@@ -621,29 +621,101 @@
             doc.save(`${data.noPO}_${data.vendor}.pdf`);
         }
 
-        function renderActionButtons(item) {
-            const isOverLimit = item.grand_total_po > 1000000; // Cek limit 1 Juta
+        async function ajukanKeDirektur(id, grandTotal, nomorPO, namaVendor) {
+            if (!confirm(`Ajukan PO ${nomorPO} (Total: ${fmt(grandTotal)}) ke Direktur?`)) return;
 
-            if (item.status === 'APPROVED') {
-                return `<button class="bg-green-600 text-white px-3 py-1 rounded" onclick="fetchDetailAndPrint('${item.nomor_po}', event)">
-                        <i class="fas fa-print"></i> Terbitkan PO
-                    </button>`;
+            try {
+                // Priority: Add to approval queue
+                const { error: queueError } = await client
+                    .from('approval_queue')
+                    .insert([{
+                        source_table: 'purchase_order',
+                        source_id: id,
+                        title: `Persetujuan PO: ${nomorPO}`,
+                        description: `Vendor: ${namaVendor} | Total: ${fmt(grandTotal)}`,
+                        amount: grandTotal,
+                        requester: 'Finance Staff',
+                        status: 'PENDING'
+                    }]);
+
+                if (queueError) throw new Error("Gagal masuk antrian approval: " + queueError.message);
+
+                // Update status
+                const { error: poError } = await client
+                    .from('purchase_order')
+                    .update({ status: 'WAITING APPROVAL' })
+                    .eq('id', id);
+
+                if (poError) throw new Error("Gagal update status PO: " + poError.message);
+
+                alert("✅ Berhasil diajukan ke Direktur.");
+                cariRiwayat();
+
+            } catch (err) {
+                alert("❌ Terjadi kesalahan: " + err.message);
+                console.error(err);
             }
-
-            if (item.status === 'WAITING APPROVAL') {
-                return `<span class="text-orange-500 font-bold italic text-sm">Menunggu Persetujuan...</span>`;
-            }
-
-            if (isOverLimit) {
-                return `<button class="bg-blue-600 text-white px-3 py-1 rounded" 
-                     onclick="ajukanKeDirektur(${item.id}, ${item.grand_total_po}, '${item.nomor_po}', '${item.nama_vendor}')">
-                        Ajukan ke Direktur
-                    </button>`;
-            }
-
-            return `<button class="bg-gray-600 text-white px-3 py-1 rounded">Simpan Lokal</button>`;
         }
 
+        function renderActionButtons(item) {
+            if (item.status === 'WAITING APPROVAL') {
+                return `<span class="text-orange-500 font-bold italic text-xs"><i class="fas fa-clock"></i> Menunggu Persetujuan...</span>`;
+            }
+
+            if (item.status === 'APPROVED' || item.status === 'COMPLETE') {
+                return `
+                <div class="flex gap-2 justify-center">
+                    <button class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs shadow" 
+                        onclick="fetchDetailAndPrint('${item.nomor_po}', event)">
+                        <i class="fas fa-print"></i> Cetak PO
+                    </button>
+                    ${renderDeleteButton(item)}
+                </div>
+            `;
+            }
+
+            if (item.status === 'REJECTED') {
+                return `
+                <div class="flex gap-2 justify-center items-center">
+                    <span class="text-red-500 font-bold text-xs">Ditolak</span>
+                    ${renderDeleteButton(item)}
+                </div>
+            `;
+            }
+
+            // Limit check
+            const isOverLimit = item.grand_total_po > 1000000;
+
+            if (isOverLimit) {
+                return `
+                <div class="flex gap-2 justify-center">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs shadow" 
+                         onclick="ajukanKeDirektur(${item.id}, ${item.grand_total_po}, '${item.nomor_po}', '${item.nama_vendor}')">
+                            <i class="fas fa-paper-plane"></i> Ajukan ke Direktur
+                    </button>
+                    ${renderDeleteButton(item)}
+                </div>`;
+            } else {
+                return `
+                <div class="flex gap-2 justify-center">
+                    <button class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs shadow" 
+                        onclick="fetchDetailAndPrint('${item.nomor_po}', event)">
+                        <i class="fas fa-print"></i> Cetak PO
+                    </button>
+                    ${renderDeleteButton(item)}
+                </div>
+            `;
+            }
+        }
+
+        function renderDeleteButton(item) {
+            return `
+            <button class="bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded text-xs" 
+                onclick="hapusPO('${item.nomor_po}')" title="Hapus PO">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        }
         async function cariRiwayat() {
             const tglMulai = document.getElementById("filterMulai").value;
             const tglAkhir = document.getElementById("filterAkhir").value;
