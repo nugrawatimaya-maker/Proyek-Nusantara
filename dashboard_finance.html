@@ -102,45 +102,65 @@
 
     <main class="flex-grow p-6 max-w-7xl mx-auto w-full space-y-8">
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- VIEW: OVERVIEW (Hidden by default) -->
+        <div id="view-overview" class="hidden space-y-6">
+            <button onclick="switchView('menu')"
+                class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition">
+                <i class="fas fa-arrow-left"></i> Kembali ke Menu
+            </button>
 
-            <div
-                class="lg:col-span-1 bg-white rounded-3xl p-8 shadow-sm border border-slate-100 relative overflow-hidden flex flex-col justify-center">
-                <div class="absolute -right-6 -top-6 text-indigo-50 text-[150px] opacity-50 pointer-events-none">
-                    <i class="fas fa-wallet"></i>
-                </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                <p class="text-slate-400 font-bold text-xs uppercase tracking-widest mb-2">Total Likuiditas</p>
-                <h2 class="text-4xl font-black text-slate-800 mb-4 skeleton-text" id="mainSaldo"><span
-                        class="skeleton px-20 py-4 block w-1/2"></span></h2>
-
-                <div class="flex gap-4 mt-2">
-                    <div
-                        class="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-xs font-bold">
-                        <i class="fas fa-arrow-down"></i> <span id="inMonth">...</span> (In)
+                <div
+                    class="lg:col-span-1 bg-white rounded-3xl p-8 shadow-sm border border-slate-100 relative overflow-hidden flex flex-col justify-center">
+                    <div class="absolute -right-6 -top-6 text-indigo-50 text-[150px] opacity-50 pointer-events-none">
+                        <i class="fas fa-wallet"></i>
                     </div>
-                    <div
-                        class="flex items-center gap-2 text-rose-600 bg-rose-50 px-3 py-1 rounded-full text-xs font-bold">
-                        <i class="fas fa-arrow-up"></i> <span id="outMonth">...</span> (Out)
+
+                    <p class="text-slate-400 font-bold text-xs uppercase tracking-widest mb-2">Total Likuiditas</p>
+                    <h2 class="text-4xl font-black text-slate-800 mb-4 skeleton-text" id="mainSaldo"><span
+                            class="skeleton px-20 py-4 block w-1/2"></span></h2>
+
+                    <div class="flex gap-4 mt-2">
+                        <div
+                            class="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-xs font-bold">
+                            <i class="fas fa-arrow-down"></i> <span id="inMonth">...</span> (In)
+                        </div>
+                        <div
+                            class="flex items-center gap-2 text-rose-600 bg-rose-50 px-3 py-1 rounded-full text-xs font-bold">
+                            <i class="fas fa-arrow-up"></i> <span id="outMonth">...</span> (Out)
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-slate-700">Cash Flow Trend</h3>
-                    <span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">Last 6 Months</span>
-                </div>
-                <div class="h-48 w-full">
-                    <canvas id="simpleChart"></canvas>
+                <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-700">Cash Flow Trend</h3>
+                        <span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">Last 6 Months</span>
+                    </div>
+                    <div class="h-48 w-full">
+                        <canvas id="simpleChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div>
+        <!-- VIEW: MENU (Default) -->
+        <div id="view-menu">
             <h3 class="text-slate-500 font-bold text-sm uppercase tracking-wider mb-4 ml-1">Finance Apps</h3>
 
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+
+                <!-- NEW CARD: OVERVIEW -->
+                <div onclick="switchView('overview')"
+                    class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group cursor-pointer">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-chart-line text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-indigo-700">Overview</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Statistik & Trend</p>
+                </div>
 
                 <a href="kas_masuk.html"
                     class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
@@ -283,6 +303,7 @@
 
             </div>
         </div>
+        </div>
 
     </main>
 
@@ -300,6 +321,16 @@
         }
 
         // --- LOAD DATA ---
+        function switchView(viewName) {
+            if (viewName === 'overview') {
+                document.getElementById('view-menu').classList.add('hidden');
+                document.getElementById('view-overview').classList.remove('hidden');
+            } else {
+                document.getElementById('view-menu').classList.remove('hidden');
+                document.getElementById('view-overview').classList.add('hidden');
+            }
+        }
+
         async function loadDashboard() {
             // 1. Load Saldo Total
             const { data: dSaldo } = await client.from('master_akun').select('saldo_akhir');

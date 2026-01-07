@@ -1,25 +1,31 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AP Command Center - Nusantara Land</title>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
 
     <style>
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #f1f5f9; 
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f1f5f9;
             color: #1e293b;
         }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
         /* Glassmorphism Cards */
         .glass-panel {
             background: rgba(255, 255, 255, 0.95);
@@ -29,178 +35,316 @@
             box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        
+
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
 
         /* Animations */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-enter { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-enter {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
     </style>
 </head>
+
 <body class="min-h-screen flex flex-col">
 
     <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-200">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-4">
-                <div class="bg-indigo-600 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                <div
+                    class="bg-indigo-600 text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
                     <i class="fas fa-chart-pie"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-extrabold text-slate-800 tracking-tight leading-tight">CONTROL DATA HUTANG</h1>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Finance & Accounting Module</p>
+                    <h1 class="text-lg font-extrabold text-slate-800 tracking-tight leading-tight">CONTROL DATA HUTANG
+                    </h1>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Finance & Accounting
+                        Module</p>
                 </div>
-            </div
-            <div class="flex gap-3">
-                <button onclick="window.location.href='dashboard_finance.html'" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition bg-slate-100 rounded-lg">
-                    <i class="fas fa-arrow-left mr-2"></i>Dashboard
-                </button>
-                <button onclick="refreshData()" class="bg-indigo-50 text-indigo-600 w-10 h-10 rounded-lg hover:bg-indigo-100 transition flex items-center justify-center">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
+            </div <div class="flex gap-3">
+            <button onclick="window.location.href='dashboard_finance.html'"
+                class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition bg-slate-100 rounded-lg">
+                <i class="fas fa-arrow-left mr-2"></i>Dashboard
+            </button>
+            <button onclick="refreshData()"
+                class="bg-indigo-50 text-indigo-600 w-10 h-10 rounded-lg hover:bg-indigo-100 transition flex items-center justify-center">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
         </div>
     </nav>
 
     <main class="flex-grow max-w-7xl mx-auto w-full p-6 space-y-6">
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="glass-panel p-5 border-l-4 border-indigo-600">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">Total Hutang (Outstanding)</p>
-                        <h3 class="text-2xl font-black text-slate-800 mt-1" id="kpiTotal">Rp 0</h3>
+        <!-- VIEW: MENU (DEFAULT) -->
+        <div id="view-menu" class="animate-enter">
+            <h3 class="text-slate-500 font-bold text-sm uppercase tracking-wider mb-6 ml-1">Modul Hutang (AP)</h3>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Card Overview -->
+                <div onclick="switchApp('overview')"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-3xl mb-4 group-hover:rotate-12 transition">
+                        <i class="fas fa-chart-pie"></i>
                     </div>
-                    <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600"><i class="fas fa-wallet"></i></div>
+                    <h3 class="font-bold text-slate-700 text-lg">Overview</h3>
+                    <p class="text-xs text-slate-400 mt-1">Metrik & Analisa</p>
                 </div>
-                <div class="mt-3 text-xs text-slate-500 flex items-center gap-1">
-                    <i class="fas fa-file-invoice"></i> <span id="kpiCount">0</span> Faktur Belum Lunas
-                </div>
-            </div>
 
-            <div class="glass-panel p-5 border-l-4 border-red-500">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">Jatuh Tempo (Overdue)</p>
-                        <h3 class="text-2xl font-black text-red-600 mt-1" id="kpiOverdue">Rp 0</h3>
+                <!-- Card Hutang Vendor -->
+                <div onclick="switchApp('vendor')"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl mb-4 group-hover:rotate-12 transition">
+                        <i class="fas fa-store"></i>
                     </div>
-                    <div class="p-2 bg-red-50 rounded-lg text-red-600"><i class="fas fa-exclamation-circle"></i></div>
+                    <h3 class="font-bold text-slate-700 text-lg">Hutang Vendor</h3>
+                    <p class="text-xs text-slate-400 mt-1">Daftar Tagihan PO</p>
                 </div>
-                <p class="mt-3 text-[10px] font-bold text-red-400 bg-red-50 inline-block px-2 py-1 rounded">PRIORITAS PEMBAYARAN</p>
-            </div>
 
-            <div class="glass-panel p-5 border-l-4 border-orange-400">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">Akan Jatuh Tempo (7 Hari)</p>
-                        <h3 class="text-2xl font-black text-orange-600 mt-1" id="kpiDueSoon">Rp 0</h3>
+                <!-- Card Hutang Bank -->
+                <div onclick="alert('Modul Hutang Bank segera hadir!')"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 opacity-75 grayscale hover:grayscale-0">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-3xl mb-4">
+                        <i class="fas fa-landmark"></i>
                     </div>
-                    <div class="p-2 bg-orange-50 rounded-lg text-orange-600"><i class="fas fa-clock"></i></div>
+                    <h3 class="font-bold text-slate-700 text-lg">Hutang Bank</h3>
+                    <p class="text-xs text-slate-400 mt-1">Pinjaman & Bunga</p>
                 </div>
-                 <div class="mt-3 text-xs text-slate-500">Persiapkan Cashflow</div>
-            </div>
 
-             <div class="glass-panel p-5 border-l-4 border-emerald-500">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">Hutang Lancar (>30 Hari)</p>
-                        <h3 class="text-2xl font-black text-emerald-600 mt-1" id="kpiSafe">Rp 0</h3>
+                <!-- Card Hutang Lahan -->
+                <div onclick="alert('Modul Hutang Lahan segera hadir!')"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 opacity-75 grayscale hover:grayscale-0">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-3xl mb-4">
+                        <i class="fas fa-map-marked-alt"></i>
                     </div>
-                    <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600"><i class="fas fa-check-circle"></i></div>
+                    <h3 class="font-bold text-slate-700 text-lg">Hutang Lahan</h3>
+                    <p class="text-xs text-slate-400 mt-1">Termin Tanah</p>
                 </div>
-                 <div class="mt-3 text-xs text-slate-500">Aman Terkendali</div>
-            </div>
-        </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="glass-panel p-5 col-span-2">
-                <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
-                    <i class="fas fa-chart-bar text-indigo-500"></i> Analisa Umur Hutang (Aging Schedule)
-                </h3>
-                <div id="chartAging" class="w-full h-[250px]"></div>
-            </div>
-            
-            <div class="glass-panel p-5">
-                <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
-                    <i class="fas fa-users text-indigo-500"></i> Top 5 Vendor Exposure
-                </h3>
-                <div id="chartVendor" class="w-full h-[250px]"></div>
-            </div>
-        </div>
-
-        <div class="glass-panel p-4 flex flex-col md:flex-row gap-4 justify-between items-center sticky top-24 z-40 shadow-sm">
-            <div class="flex items-center gap-2 w-full md:w-auto">
-                <div class="relative w-full md:w-64">
-                    <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
-                    <input type="text" id="searchInput" onkeyup="applyFilters()" 
-                        placeholder="Cari No. PO, Vendor, atau Proyek..." 
-                        class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition">
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-                
-                <select id="filterStatus" onchange="applyFilters()" class="bg-white border border-slate-200 text-xs font-bold text-slate-600 py-2 px-3 rounded-lg outline-none focus:border-indigo-500">
-                    <option value="ALL">Semua Status</option>
-                    <option value="OVERDUE">🔴 Terlambat (Overdue)</option>
-                    <option value="WARNING">🟠 Segera (Warning)</option>
-                    <option value="SAFE">🟢 Aman (Safe)</option>
-                </select>
-
-                <select id="sortBy" onchange="applyFilters()" class="bg-white border border-slate-200 text-xs font-bold text-slate-600 py-2 px-3 rounded-lg outline-none focus:border-indigo-500">
-                    <option value="date_asc">📅 Jatuh Tempo (Terdekat)</option>
-                    <option value="date_desc">📅 Jatuh Tempo (Terlama)</option>
-                    <option value="amount_desc">💰 Nilai (Terbesar)</option>
-                    <option value="amount_asc">💰 Nilai (Terkecil)</option>
-                </select>
-
-                <div class="flex bg-slate-100 p-1 rounded-lg">
-                    <button onclick="switchView('list')" id="btnViewList" class="px-3 py-1.5 rounded text-xs font-bold transition bg-white text-indigo-600 shadow-sm">
-                        <i class="fas fa-list mr-1"></i> Detail
-                    </button>
-                    <button onclick="switchView('group')" id="btnViewGroup" class="px-3 py-1.5 rounded text-xs font-bold transition text-slate-500 hover:text-slate-800">
-                        <i class="fas fa-layer-group mr-1"></i> Vendor
-                    </button>
+                <!-- Card Reimburse -->
+                <div onclick="alert('Modul Reimburse segera hadir!')"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 opacity-75 grayscale hover:grayscale-0">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center text-3xl mb-4">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-700 text-lg">Reimburse</h3>
+                    <p class="text-xs text-slate-400 mt-1">Klaim Karyawan</p>
                 </div>
             </div>
         </div>
 
-        <div class="glass-panel overflow-hidden min-h-[400px]">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 text-slate-500 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                        <tr id="tableHeader">
+        <!-- VIEW: OVERVIEW -->
+        <div id="view-overview" class="hidden space-y-6 animate-enter">
+            <button onclick="switchApp('menu')"
+                class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition">
+                <i class="fas fa-arrow-left"></i> Kembali ke Menu
+            </button>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="glass-panel p-5 border-l-4 border-indigo-600">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Total Hutang (Outstanding)</p>
+                            <h3 class="text-2xl font-black text-slate-800 mt-1" id="kpiTotal">Rp 0</h3>
+                        </div>
+                        <div class="p-2 bg-indigo-50 rounded-lg text-indigo-600"><i class="fas fa-wallet"></i></div>
+                    </div>
+                    <div class="mt-3 text-xs text-slate-500 flex items-center gap-1">
+                        <i class="fas fa-file-invoice"></i> <span id="kpiCount">0</span> Faktur Belum Lunas
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 border-l-4 border-red-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Jatuh Tempo (Overdue)</p>
+                            <h3 class="text-2xl font-black text-red-600 mt-1" id="kpiOverdue">Rp 0</h3>
+                        </div>
+                        <div class="p-2 bg-red-50 rounded-lg text-red-600"><i class="fas fa-exclamation-circle"></i>
+                        </div>
+                    </div>
+                    <p class="mt-3 text-[10px] font-bold text-red-400 bg-red-50 inline-block px-2 py-1 rounded">
+                        PRIORITAS PEMBAYARAN</p>
+                </div>
+
+                <div class="glass-panel p-5 border-l-4 border-orange-400">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Akan Jatuh Tempo (7 Hari)</p>
+                            <h3 class="text-2xl font-black text-orange-600 mt-1" id="kpiDueSoon">Rp 0</h3>
+                        </div>
+                        <div class="p-2 bg-orange-50 rounded-lg text-orange-600"><i class="fas fa-clock"></i></div>
+                    </div>
+                    <div class="mt-3 text-xs text-slate-500">Persiapkan Cashflow</div>
+                </div>
+
+                <div class="glass-panel p-5 border-l-4 border-emerald-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Hutang Lancar (>30 Hari)</p>
+                            <h3 class="text-2xl font-black text-emerald-600 mt-1" id="kpiSafe">Rp 0</h3>
+                        </div>
+                        <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600"><i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-xs text-slate-500">Aman Terkendali</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="glass-panel p-5 col-span-2">
+                    <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <i class="fas fa-chart-bar text-indigo-500"></i> Analisa Umur Hutang (Aging Schedule)
+                    </h3>
+                    <div id="chartAging" class="w-full h-[250px]"></div>
+                </div>
+
+                <div class="glass-panel p-5">
+                    <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <i class="fas fa-users text-indigo-500"></i> Top 5 Vendor Exposure
+                    </h3>
+                    <div id="chartVendor" class="w-full h-[250px]"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: VENDOR LIST -->
+        <div id="view-vendor" class="hidden space-y-6 animate-enter">
+            <button onclick="switchApp('menu')"
+                class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition">
+                <i class="fas fa-arrow-left"></i> Kembali ke Menu
+            </button>
+
+            <div
+                class="glass-panel p-4 flex flex-col md:flex-row gap-4 justify-between items-center sticky top-24 z-40 shadow-sm">
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                    <div class="relative w-full md:w-64">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
+                        <input type="text" id="searchInput" onkeyup="applyFilters()"
+                            placeholder="Cari No. PO, Vendor, atau Proyek..."
+                            class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+
+                    <select id="filterStatus" onchange="applyFilters()"
+                        class="bg-white border border-slate-200 text-xs font-bold text-slate-600 py-2 px-3 rounded-lg outline-none focus:border-indigo-500">
+                        <option value="ALL">Semua Status</option>
+                        <option value="OVERDUE">🔴 Terlambat (Overdue)</option>
+                        <option value="WARNING">🟠 Segera (Warning)</option>
+                        <option value="SAFE">🟢 Aman (Safe)</option>
+                    </select>
+
+                    <select id="sortBy" onchange="applyFilters()"
+                        class="bg-white border border-slate-200 text-xs font-bold text-slate-600 py-2 px-3 rounded-lg outline-none focus:border-indigo-500">
+                        <option value="date_asc">📅 Jatuh Tempo (Terdekat)</option>
+                        <option value="date_desc">📅 Jatuh Tempo (Terlama)</option>
+                        <option value="amount_desc">💰 Nilai (Terbesar)</option>
+                        <option value="amount_asc">💰 Nilai (Terkecil)</option>
+                    </select>
+
+                    <div class="flex bg-slate-100 p-1 rounded-lg">
+                        <button onclick="switchView('list')" id="btnViewList"
+                            class="px-3 py-1.5 rounded text-xs font-bold transition bg-white text-indigo-600 shadow-sm">
+                            <i class="fas fa-list mr-1"></i> Detail
+                        </button>
+                        <button onclick="switchView('group')" id="btnViewGroup"
+                            class="px-3 py-1.5 rounded text-xs font-bold transition text-slate-500 hover:text-slate-800">
+                            <i class="fas fa-layer-group mr-1"></i> Vendor
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel overflow-hidden min-h-[400px]">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead
+                            class="bg-slate-50 text-slate-500 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                            <tr id="tableHeader">
                             </tr>
-                    </thead>
-                    <tbody id="dataTableBody" class="divide-y divide-slate-100 bg-white">
+                        </thead>
+                        <tbody id="dataTableBody" class="divide-y divide-slate-100 bg-white">
                         </tbody>
-                </table>
-            </div>
-            
-            <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20">
-                <div class="bg-slate-100 p-4 rounded-full text-slate-300 text-4xl mb-3">
-                    <i class="fas fa-search"></i>
+                    </table>
                 </div>
-                <p class="text-slate-500 font-bold">Tidak ada data ditemukan</p>
-            </div>
-        </div>
 
+                <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20">
+                    <div class="bg-slate-100 p-4 rounded-full text-slate-300 text-4xl mb-3">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <p class="text-slate-500 font-bold">Tidak ada data ditemukan</p>
+                </div>
+            </div>
+
+        </div>
     </main>
 
     <script>
         // --- CONFIGURATION ---
         const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-        const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+        const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
         const client = supabase.createClient(supabaseUrl, supabaseKey);
-        
+
         let rawData = [];
         let filteredData = [];
         let currentView = 'list'; // 'list' or 'group'
         let chartAgingInstance = null;
         let chartVendorInstance = null;
+
+
+        // Navigation Logic
+        function switchApp(appName) {
+            // Hide All
+            ['view-menu', 'view-overview', 'view-vendor'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+
+            // Show Target
+            document.getElementById(`view-${appName}`).classList.remove('hidden');
+
+            // Special Actions
+            if (appName === 'overview') {
+                setTimeout(() => {
+                    if (chartAgingInstance) chartAgingInstance.updateOptions({});
+                    if (chartVendorInstance) chartVendorInstance.updateOptions({});
+                }, 100);
+            }
+        }
 
         const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
@@ -212,12 +356,12 @@
 
         async function refreshData() {
             const btn = document.querySelector('.fa-sync-alt');
-            if(btn) btn.classList.add('fa-spin');
+            if (btn) btn.classList.add('fa-spin');
 
             // Asumsi: View database Anda bernama ap_monitoring_vw
             // Kolom yang diharapkan: nomor_po, nama_vendor, nama_proyek, tanggal_po, jatuh_tempo, total_tagihan, status_po
             const { data, error } = await client
-                .from('ap_monitoring_vw') 
+                .from('ap_monitoring_vw')
                 .select('*');
 
             if (error) {
@@ -231,10 +375,10 @@
                     const jt = new Date(item.jatuh_tempo);
                     const diffTime = jt - today;
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    
+
                     let status = 'SAFE';
                     let bucket = '> 60 Hari';
-                    
+
                     if (diffDays < 0) { status = 'OVERDUE'; bucket = 'Overdue'; }
                     else if (diffDays <= 7) { status = 'WARNING'; bucket = '0 - 7 Hari'; }
                     else if (diffDays <= 30) { status = 'SAFE'; bucket = '8 - 30 Hari'; }
@@ -242,11 +386,11 @@
 
                     return { ...item, _diffDays: diffDays, _status: status, _bucket: bucket };
                 });
-                
+
                 applyFilters();
             }
 
-            if(btn) btn.classList.remove('fa-spin');
+            if (btn) btn.classList.remove('fa-spin');
         }
 
         function applyFilters() {
@@ -256,12 +400,12 @@
 
             // 1. Filtering
             filteredData = rawData.filter(item => {
-                const matchKey = (item.nomor_po || '').toLowerCase().includes(keyword) || 
-                                 (item.nama_vendor || '').toLowerCase().includes(keyword) ||
-                                 (item.nama_proyek || '').toLowerCase().includes(keyword);
-                
+                const matchKey = (item.nomor_po || '').toLowerCase().includes(keyword) ||
+                    (item.nama_vendor || '').toLowerCase().includes(keyword) ||
+                    (item.nama_proyek || '').toLowerCase().includes(keyword);
+
                 const matchStatus = statusFilter === 'ALL' || item._status === statusFilter;
-                
+
                 return matchKey && matchStatus;
             });
 
@@ -283,7 +427,7 @@
 
         function updateKPIs() {
             let total = 0, overdue = 0, warning = 0, safe = 0;
-            
+
             filteredData.forEach(d => {
                 const val = d.total_tagihan || 0;
                 total += val;
@@ -327,7 +471,7 @@
                     const statusConfig = {
                         'OVERDUE': { bg: 'bg-red-100', text: 'text-red-700', label: 'TERLAMBAT' },
                         'WARNING': { bg: 'bg-orange-100', text: 'text-orange-700', label: 'SEGERA' },
-                        'SAFE':    { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'AMAN' }
+                        'SAFE': { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'AMAN' }
                     };
                     const s = statusConfig[item._status];
 
@@ -394,9 +538,9 @@
                     groups[v].count += 1;
                     if (item._status === 'OVERDUE') groups[v].overdue += item.total_tagihan;
                 });
-                
+
                 // Convert to array and sort by total
-                const groupArr = Object.values(groups).sort((a,b) => b.total - a.total);
+                const groupArr = Object.values(groups).sort((a, b) => b.total - a.total);
 
                 groupArr.forEach(g => {
                     const tr = document.createElement('tr');
@@ -421,9 +565,9 @@
             // 1. Prepare Aging Data
             const buckets = { 'Overdue': 0, '0-30 Hari': 0, '31-60 Hari': 0, '> 60 Hari': 0 };
             filteredData.forEach(d => {
-                if(d._diffDays < 0) buckets['Overdue'] += d.total_tagihan;
-                else if(d._diffDays <= 30) buckets['0-30 Hari'] += d.total_tagihan;
-                else if(d._diffDays <= 60) buckets['31-60 Hari'] += d.total_tagihan;
+                if (d._diffDays < 0) buckets['Overdue'] += d.total_tagihan;
+                else if (d._diffDays <= 30) buckets['0-30 Hari'] += d.total_tagihan;
+                else if (d._diffDays <= 60) buckets['31-60 Hari'] += d.total_tagihan;
                 else buckets['> 60 Hari'] += d.total_tagihan;
             });
 
@@ -431,7 +575,7 @@
             const vendorMap = {};
             filteredData.forEach(d => vendorMap[d.nama_vendor] = (vendorMap[d.nama_vendor] || 0) + d.total_tagihan);
             const topVendors = Object.entries(vendorMap)
-                .sort((a,b) => b[1] - a[1])
+                .sort((a, b) => b[1] - a[1])
                 .slice(0, 5);
 
             // --- ApexCharts Config ---
@@ -462,14 +606,14 @@
             };
 
             // Render / Update
-            if(chartAgingInstance) { chartAgingInstance.updateOptions(agingOptions); } 
-            else { 
+            if (chartAgingInstance) { chartAgingInstance.updateOptions(agingOptions); }
+            else {
                 chartAgingInstance = new ApexCharts(document.querySelector("#chartAging"), agingOptions);
                 chartAgingInstance.render();
             }
 
-            if(chartVendorInstance) { chartVendorInstance.updateOptions(vendorOptions); } 
-            else { 
+            if (chartVendorInstance) { chartVendorInstance.updateOptions(vendorOptions); }
+            else {
                 chartVendorInstance = new ApexCharts(document.querySelector("#chartVendor"), vendorOptions);
                 chartVendorInstance.render();
             }
@@ -482,7 +626,7 @@
             const btnList = document.getElementById('btnViewList');
             const btnGroup = document.getElementById('btnViewGroup');
 
-            if(view === 'list') {
+            if (view === 'list') {
                 btnList.className = "px-3 py-1.5 rounded text-xs font-bold transition bg-white text-indigo-600 shadow-sm";
                 btnGroup.className = "px-3 py-1.5 rounded text-xs font-bold transition text-slate-500 hover:text-slate-800";
             } else {
@@ -583,21 +727,26 @@
 
     </script>
 
-    <div id="modalDokumen" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-enter">
+    <div id="modalDokumen"
+        class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm transition-opacity">
+        <div
+            class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-enter">
             <div class="p-4 border-b flex justify-between items-center bg-slate-50">
                 <div>
                     <h3 class="font-bold text-lg text-slate-800" id="docTitle">Verifikasi Dokumen</h3>
                     <p class="text-xs text-slate-500" id="docSubtitle">No. PO: -</p>
                 </div>
-                <button onclick="tutupModalDokumen()" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-red-600 hover:bg-red-50 transition flex items-center justify-center font-bold">✕</button>
+                <button onclick="tutupModalDokumen()"
+                    class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-red-600 hover:bg-red-50 transition flex items-center justify-center font-bold">✕</button>
             </div>
 
             <div class="flex border-b border-slate-200 bg-white px-4 pt-2 gap-2">
-                <button onclick="switchTab('PO')" id="tabPO" class="px-4 py-2 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 transition">
+                <button onclick="switchTab('PO')" id="tabPO"
+                    class="px-4 py-2 text-sm font-bold border-b-2 border-indigo-600 text-indigo-600 transition">
                     <i class="fas fa-file-contract mr-2"></i>Purchase Order (PO)
                 </button>
-                <button onclick="switchTab('NOTA')" id="tabNota" class="px-4 py-2 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition">
+                <button onclick="switchTab('NOTA')" id="tabNota"
+                    class="px-4 py-2 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition">
                     <i class="fas fa-file-invoice-dollar mr-2"></i>Nota / Invoice
                 </button>
             </div>
@@ -611,7 +760,8 @@
                 <img id="docImage" class="h-full w-auto object-contain rounded-lg shadow-sm hidden" src="">
 
                 <div id="docEmpty" class="text-center">
-                    <div class="bg-slate-200 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400 text-2xl">
+                    <div
+                        class="bg-slate-200 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400 text-2xl">
                         <i class="fas fa-file-slash"></i>
                     </div>
                     <p id="docEmptyText" class="text-slate-500 font-bold">Dokumen tidak dilampirkan</p>
@@ -620,11 +770,13 @@
 
             <div class="p-4 border-t bg-white flex justify-between items-center">
                 <p class="text-xs text-slate-400 italic">*Pastikan nominal dan item sesuai sebelum membayar.</p>
-                <a id="btnDownload" href="#" target="_blank" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center gap-2">
+                <a id="btnDownload" href="#" target="_blank"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center gap-2">
                     <i class="fas fa-download"></i> Unduh File Asli
                 </a>
             </div>
         </div>
     </div>
 </body>
+
 </html>

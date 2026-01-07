@@ -1,353 +1,851 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Laporan Keuangan Terintegrasi</title>
-  
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Laporan Keuangan Terintegrasi</title>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-  
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-    body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; padding-bottom: 80px; }
-    
-    /* MENU SCROLL */
-    .mobile-scroll-menu { display: flex; overflow-x: auto; gap: 10px; padding: 4px; scrollbar-width: none; }
-    .mobile-scroll-menu::-webkit-scrollbar { display: none; }
-    .menu-pill { white-space: nowrap; padding: 8px 16px; border-radius: 50px; font-size: 11px; font-weight: 700; border: 1px solid #cbd5e1; background: white; color: #64748b; transition: all 0.2s; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-    .menu-pill.active { background: #2563eb; color: white; border-color: #2563eb; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3); }
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-    /* CARD STYLE */
-    .trx-card { background: white; border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; position: relative; overflow: hidden; }
-  </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 80px;
+        }
+
+        /* CUSTOM STYLES */
+        .nav-tab.active {
+            background: white;
+            color: #2563eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .paper-look {
+            background: white;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            min-height: 500px;
+        }
+    </style>
 </head>
+
 <body>
 
-  <nav class="bg-white border-b px-4 py-3 sticky top-0 z-50 shadow-sm flex justify-between items-center">
-    <div class="flex items-center gap-3">
-        <div class="bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-lg shadow-blue-200 shadow-lg"><i class="fas fa-chart-pie text-xs"></i></div>
-        <div>
-            <h1 class="text-sm font-bold text-slate-800 leading-tight">Laporan Keuangan</h1>
-            <p class="text-[10px] text-slate-500">Nusantara Land</p>
+    <nav class="bg-white border-b px-4 py-3 sticky top-0 z-50 shadow-sm flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div
+                class="bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-lg shadow-blue-200 shadow-lg">
+                <i class="fas fa-chart-pie text-xs"></i>
+            </div>
+            <div>
+                <h1 class="text-sm font-bold text-slate-800 leading-tight">Laporan Keuangan</h1>
+                <p class="text-[10px] text-slate-500">Nusantara Land</p>
+            </div>
         </div>
-    </div>
-    <a href="dashboard_operasional.html" class="bg-slate-50 text-slate-400 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xs"></i></a>
-  </nav>
+        <a href="dashboard_operasional.html"
+            class="bg-slate-50 text-slate-400 w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100"><i
+                class="fas fa-arrow-left text-xs"></i></a>
+    </nav>
 
-  <div class="bg-white p-3 border-b">
-      <div class="flex gap-2 items-center bg-slate-50 p-2 rounded-lg border border-slate-200">
-          <div class="flex-1 flex items-center gap-2 text-xs">
-              <input type="date" id="tglMulai" class="bg-transparent font-bold text-slate-700 w-full outline-none">
-              <i class="fas fa-arrow-right text-slate-300 text-[10px]"></i>
-              <input type="date" id="tglSelesai" class="bg-transparent font-bold text-slate-700 w-full outline-none">
-          </div>
-          <button onclick="loadData()" class="bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center shadow active:scale-95 transition"><i class="fas fa-search text-xs"></i></button>
-      </div>
-  </div>
+    <!-- CONTAINER UTAMA -->
+    <main class="flex-grow max-w-7xl mx-auto w-full p-4 md:p-6 space-y-6">
 
-  <div class="bg-white border-b py-3 px-4 sticky top-[120px] z-40">
-      <div class="mobile-scroll-menu">
-        <div onclick="pilihLaporan('JURNAL', this)" class="menu-pill active"><i class="fas fa-list-ul"></i> Jurnal Umum</div>
-        <div onclick="pilihLaporan('BUKU_BESAR', this)" class="menu-pill"><i class="fas fa-book"></i> Buku Besar</div>
-        <div onclick="pilihLaporan('NERACA_SALDO', this)" class="menu-pill"><i class="fas fa-balance-scale"></i> Neraca Saldo</div>
-        <div onclick="pilihLaporan('LABA_RUGI', this)" class="menu-pill"><i class="fas fa-coins"></i> Laba Rugi</div>
-        <div onclick="pilihLaporan('NERACA', this)" class="menu-pill"><i class="fas fa-building"></i> Neraca</div>
-      </div>
-  </div>
+        <!-- VIEW: MENU GRID (DEFAULT) -->
+        <div id="view-menu" class="animate-enter">
+            <h3 class="text-slate-500 font-bold text-sm uppercase tracking-wider mb-6 ml-1">Pilih Laporan</h3>
 
-  <main class="p-4 md:p-6 max-w-5xl mx-auto">
-      <div class="mb-4 flex justify-between items-end">
-          <div>
-              <h2 id="judulLap" class="text-lg font-bold text-slate-800">JURNAL UMUM</h2>
-              <p class="text-xs text-slate-500" id="subJudul">Periode: -</p>
-          </div>
-      </div>
-      
-      <div id="kontenScreen" class="text-sm pb-20">
-          <div class="py-10 text-center"><i class="fas fa-filter opacity-30 text-4xl mb-2"></i><p class="text-xs text-slate-400">Pilih tanggal untuk melihat data</p></div>
-      </div>
-  </main>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 
-  <div class="fixed bottom-6 right-6">
-      <button onclick="downloadPDF()" class="bg-red-600 hover:bg-red-700 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition active:scale-90 z-50">
-          <i class="fas fa-file-pdf fa-lg"></i>
-      </button>
-  </div>
-
-  <script>
-    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
-    const client = supabase.createClient(supabaseUrl, supabaseKey);
-    const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-    const fmtNum = (n) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(n);
-
-    let currentType = 'JURNAL';
-    let rawData = [];
-    let akunMap = {}; 
-
-    const today = new Date();
-    document.getElementById("tglMulai").valueAsDate = new Date(today.getFullYear(), today.getMonth(), 1);
-    document.getElementById("tglSelesai").valueAsDate = today;
-
-    function pilihLaporan(type, el) {
-        currentType = type;
-        document.querySelectorAll('.menu-pill').forEach(c => c.classList.remove('active'));
-        el.classList.add('active');
-        
-        const mapJudul = {
-            'JURNAL': 'JURNAL UMUM', 'BUKU_BESAR': 'BUKU BESAR',
-            'NERACA_SALDO': 'NERACA SALDO', 'LABA_RUGI': 'LAPORAN LABA RUGI', 'NERACA': 'NERACA KEUANGAN'
-        };
-        document.getElementById("judulLap").innerText = mapJudul[type];
-        loadData();
-    }
-
-    async function loadData() {
-        const start = document.getElementById("tglMulai").value;
-        const end = document.getElementById("tglSelesai").value;
-        document.getElementById("subJudul").innerText = `${new Date(start).toLocaleDateString('id-ID')} s/d ${new Date(end).toLocaleDateString('id-ID')}`;
-        document.getElementById("kontenScreen").innerHTML = `<div class="py-10 text-center"><i class="fas fa-spinner fa-spin text-blue-500"></i> Loading Data...</div>`;
-
-        const { data: jurnal } = await client.from('jurnal_umum').select('*').gte('tanggal', start).lte('tanggal', end).order('tanggal', { ascending: true });
-        const { data: master } = await client.from('master_akun').select('nama_akun, kode_akun');
-
-        akunMap = {};
-        if(master) master.forEach(m => { akunMap[m.nama_akun] = m.kode_akun; });
-        rawData = jurnal || [];
-
-        renderScreen(); // Render Tampilan Layar HP
-    }
-
-    // ==========================================
-    // 1. RENDER SCREEN (TAMPILAN HP) - LENGKAP
-    // ==========================================
-    function renderScreen() {
-        let html = `<div class="space-y-3">`;
-        const saldos = hitungSaldo();
-
-        // A. JURNAL UMUM
-        if(currentType === 'JURNAL') {
-            rawData.forEach(r => {
-                const kode = akunMap[r.nama_akun] || '-';
-                const isD = r.debit > 0;
-                const style = isD ? 'border-l-4 border-green-500' : 'border-l-4 border-red-500 ml-4 bg-slate-50';
-                html += `
-                <div class="bg-white p-3 rounded shadow-sm border ${style} flex justify-between">
-                    <div>
-                        <div class="text-[10px] text-slate-400 font-mono">${new Date(r.tanggal).toLocaleDateString('id-ID')} • ${kode}</div>
-                        <div class="font-bold text-sm text-slate-800">${r.nama_akun}</div>
-                        <div class="text-xs text-slate-500 italic truncate w-48">${r.keterangan || '-'}</div>
+                <!-- CARD: JURNAL UMUM -->
+                <div onclick="pilihLaporan('JURNAL', null)"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 bg-white rounded-xl shadow border border-slate-100 transition-all">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-3xl mb-4 group-hover:-rotate-12 transition">
+                        <i class="fas fa-list-ul"></i>
                     </div>
-                    <div class="text-right">
-                        <div class="font-bold text-sm ${isD ? 'text-green-600' : 'text-red-600'}">${fmt(isD ? r.debit : r.kredit)}</div>
+                    <h3 class="font-bold text-slate-700 text-lg">Jurnal Umum</h3>
+                    <p class="text-xs text-slate-400 mt-1">Log Transaksi Lengkap</p>
+                </div>
+
+                <!-- CARD: BUKU BESAR -->
+                <div onclick="pilihLaporan('BUKU_BESAR', null)"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 bg-white rounded-xl shadow border border-slate-100 transition-all">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-3xl mb-4 group-hover:rotate-12 transition">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-700 text-lg">Buku Besar</h3>
+                    <p class="text-xs text-slate-400 mt-1">Rincian Per Akun</p>
+                </div>
+
+                <!-- CARD: NERACA SALDO -->
+                <div onclick="pilihLaporan('NERACA_SALDO', null)"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 bg-white rounded-xl shadow border border-slate-100 transition-all">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl mb-4 group-hover:-rotate-12 transition">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-700 text-lg">Neraca Saldo</h3>
+                    <p class="text-xs text-slate-400 mt-1">Ringkasan Saldo Akun</p>
+                </div>
+
+                <!-- CARD: ARUS KAS -->
+                <div onclick="pilihLaporan('ARUS_KAS', null)"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 bg-white rounded-xl shadow border border-slate-100 transition-all">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center text-3xl mb-4 group-hover:rotate-12 transition">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-700 text-lg">Arus Kas</h3>
+                    <p class="text-xs text-slate-400 mt-1">Cash Flow In/Out</p>
+                </div>
+
+                <!-- CARD: LABA RUGI -->
+                <div onclick="pilihLaporan('LABA_RUGI', null)"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 bg-white rounded-xl shadow border border-slate-100 transition-all">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-3xl mb-4 group-hover:-rotate-12 transition">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-700 text-lg">Laba Rugi</h3>
+                    <p class="text-xs text-slate-400 mt-1">Profit & Loss</p>
+                </div>
+
+                <!-- CARD: NERACA -->
+                <div onclick="pilihLaporan('NERACA', null)"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 bg-white rounded-xl shadow border border-slate-100 transition-all">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-cyan-100 text-cyan-600 flex items-center justify-center text-3xl mb-4 group-hover:rotate-12 transition">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-700 text-lg">Neraca</h3>
+                    <p class="text-xs text-slate-400 mt-1">Posisi Keuangan</p>
+                </div>
+
+                <!-- CARD: ANALISIS KEUANGAN -->
+                <div onclick="pilihLaporan('ANALISIS', null)"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 bg-white rounded-xl shadow border border-slate-100 transition-all">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-3xl mb-4 group-hover:-rotate-12 transition">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-700 text-lg">Analisis</h3>
+                    <p class="text-xs text-slate-400 mt-1">Rasio & Kesehatan</p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- VIEW: REPORT DETAIL (HIDDEN INITIALLY) -->
+        <div id="view-report" class="hidden space-y-4">
+
+            <!-- Back Button -->
+            <button onclick="switchView('menu')"
+                class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition mb-2">
+                <i class="fas fa-arrow-left"></i> Kembali ke Menu Laporan
+            </button>
+
+            <!-- FILTER SECTION (Moved Inside) -->
+            <div class="bg-white border rounded-xl shadow-sm p-4">
+                <div class="flex flex-col md:flex-row gap-3 items-center justify-between">
+
+                    <!-- Date Filter -->
+                    <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-lg border border-slate-200">
+                        <input type="date" id="tglMulai"
+                            class="bg-transparent text-sm font-bold text-slate-700 outline-none px-2">
+                        <span class="text-slate-400 text-xs">s/d</span>
+                        <input type="date" id="tglSelesai"
+                            class="bg-transparent text-sm font-bold text-slate-700 outline-none px-2">
+                        <button onclick="loadData()"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-xs font-bold transition shadow-sm">
+                            <i class="fas fa-filter mr-1"></i> Terapkan
+                        </button>
+                    </div>
+
+                    <!-- Mini Tabs (Optional for quick switching) -->
+                    <div class="w-full md:w-auto overflow-x-auto">
+                        <div class="flex gap-2 p-1 bg-slate-100 rounded-lg">
+                            <button onclick="pilihLaporan('JURNAL', this)"
+                                class="nav-tab active px-3 py-1 rounded text-[10px] font-bold transition whitespace-nowrap"
+                                id="tab-JURNAL">Jurnal</button>
+                            <button onclick="pilihLaporan('BUKU_BESAR', this)"
+                                class="nav-tab px-3 py-1 rounded text-[10px] font-bold transition whitespace-nowrap"
+                                id="tab-BUKU_BESAR">Buku Besar</button>
+                            <button onclick="pilihLaporan('NERACA_SALDO', this)"
+                                class="nav-tab px-3 py-1 rounded text-[10px] font-bold transition whitespace-nowrap"
+                                id="tab-NERACA_SALDO">Neraca Saldo</button>
+                            <button onclick="pilihLaporan('ARUS_KAS', this)"
+                                class="nav-tab px-3 py-1 rounded text-[10px] font-bold transition whitespace-nowrap"
+                                id="tab-ARUS_KAS">Arus Kas</button>
+                            <button onclick="pilihLaporan('LABA_RUGI', this)"
+                                class="nav-tab px-3 py-1 rounded text-[10px] font-bold transition whitespace-nowrap"
+                                id="tab-LABA_RUGI">Laba Rugi</button>
+                            <button onclick="pilihLaporan('NERACA', this)"
+                                class="nav-tab px-3 py-1 rounded text-[10px] font-bold transition whitespace-nowrap"
+                                id="tab-NERACA">Neraca</button>
+                            <button onclick="pilihLaporan('ANALISIS', this)"
+                                class="nav-tab px-3 py-1 rounded text-[10px] font-bold transition whitespace-nowrap"
+                                id="tab-ANALISIS">Analisis</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+
+
+            <!-- REPORT CONTAINER (PAPER LOOK) -->
+            <div class="paper-look rounded-xl overflow-hidden">
+
+                <!-- Report Header inside Paper -->
+                <div class="bg-slate-50 border-b p-6 flex justify-between items-start">
+                    <div>
+                        <h2 id="judulLap" class="text-2xl font-black text-slate-800 tracking-tight">JURNAL UMUM</h2>
+                        <p class="text-sm font-medium text-slate-500 mt-1" id="subJudul">Periode: -</p>
+                    </div>
+                    <div
+                        class="bg-indigo-600 text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-lg">
+                        <i class="fas fa-file-invoice-dollar text-lg"></i>
+                    </div>
+                </div>
+
+                <!-- Quick Search -->
+                <div class="px-6 py-2 bg-white border-b flex items-center gap-2">
+                    <i class="fas fa-search text-slate-300"></i>
+                    <input type="text" id="quickSearch" onkeyup="filterLaporan()"
+                        placeholder="Cari akun, nominal, atau keterangan..."
+                        class="w-full outline-none text-sm font-bold text-slate-600 placeholder:font-normal h-8">
+                </div>
+
+                <div id="kontenScreen" class="p-6 text-sm min-h-[400px]">
+                    <div class="flex flex-col items-center justify-center h-64 text-slate-400">
+                        <i class="fas fa-filter text-4xl mb-3 opacity-20"></i>
+                        <p>Silakan pilih periode laporan di atas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="fixed bottom-6 right-6">
+        <button onclick="downloadPDF()"
+            class="bg-red-600 hover:bg-red-700 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition active:scale-90 z-50">
+            <i class="fas fa-file-pdf fa-lg"></i>
+        </button>
+    </div>
+
+    <script>
+        const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+        const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
+        const client = supabase.createClient(supabaseUrl, supabaseKey);
+        const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+        const fmtNum = (n) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(n);
+
+        let currentType = 'JURNAL';
+        let rawData = [];
+        let akunMap = {};
+
+        const today = new Date();
+        document.getElementById("tglMulai").valueAsDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        document.getElementById("tglSelesai").valueAsDate = today;
+
+        function switchView(viewName) {
+            ['view-menu', 'view-report'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+        }
+
+        function pilihLaporan(type, el) {
+            currentType = type;
+            switchView('report');
+
+            // Reset active class on mini tabs
+            document.querySelectorAll('.nav-tab').forEach(c => {
+                c.classList.remove('active', 'bg-white', 'text-blue-600', 'shadow-sm');
+                c.classList.add('text-slate-500');
+            });
+
+            // Set Active only if el is provided (clicked from tab)
+            // If clicked from Menu Grid, we auto-select the matching tab
+            let tabEl = el || document.getElementById(`tab-${type}`);
+            if (tabEl) {
+                tabEl.classList.add('active', 'bg-white', 'text-blue-600', 'shadow-sm');
+                tabEl.classList.remove('text-slate-500');
+            }
+
+            const mapJudul = {
+                'JURNAL': 'JURNAL UMUM', 'BUKU_BESAR': 'BUKU BESAR',
+                'NERACA_SALDO': 'NERACA SALDO', 'LABA_RUGI': 'LAPORAN LABA RUGI',
+                'NERACA': 'NERACA KEUANGAN', 'ARUS_KAS': 'LAPORAN ARUS KAS',
+                'ANALISIS': 'ANALISIS KEUANGAN'
+            };
+            document.getElementById("judulLap").innerText = mapJudul[type];
+            loadData();
+        }
+
+        async function loadData() {
+            const start = document.getElementById("tglMulai").value;
+            const end = document.getElementById("tglSelesai").value;
+            document.getElementById("subJudul").innerText = `${new Date(start).toLocaleDateString('id-ID')} s/d ${new Date(end).toLocaleDateString('id-ID')}`;
+            document.getElementById("kontenScreen").innerHTML = `<div class="py-10 text-center"><i class="fas fa-spinner fa-spin text-blue-500"></i> Loading Data...</div>`;
+
+            const { data: jurnal } = await client.from('jurnal_umum').select('*').gte('tanggal', start).lte('tanggal', end).order('tanggal', { ascending: true });
+            const { data: master } = await client.from('master_akun').select('nama_akun, kode_akun');
+
+            akunMap = {};
+            if (master) master.forEach(m => { akunMap[m.nama_akun] = m.kode_akun; });
+            rawData = jurnal || [];
+
+            renderScreen(); // Render Tampilan Layar HP
+        }
+
+        // ==========================================
+        // 1. RENDER SCREEN (TAMPILAN HP) - INTERAKTIF
+        // ==========================================
+        function renderScreen() {
+            let html = `<div class="space-y-3" id="reportValues">`;
+            const saldos = hitungSaldo();
+
+            // A. JURNAL UMUM
+            if (currentType === 'JURNAL') {
+                // Add Header for Jurnal
+                html += `<div class="hidden md:grid grid-cols-12 gap-4 border-b-2 border-slate-200 pb-2 mb-2 font-bold text-xs uppercase text-slate-500 tracking-wider sticky top-0 bg-white z-10">
+                        <div class="col-span-2">Tanggal</div>
+                        <div class="col-span-2">Kode Akun</div>
+                        <div class="col-span-4">Keterangan</div>
+                        <div class="col-span-4 text-right">Debit / Kredit</div>
+                    </div>`;
+
+                rawData.forEach(r => {
+                    const kode = akunMap[r.nama_akun] || '-';
+                    const isD = r.debit > 0;
+
+                    // Search Keyword Check
+                    const searchStr = `${r.nama_akun} ${r.keterangan} ${kode} ${r.debit} ${r.kredit}`.toLowerCase();
+
+                    html += `
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-3 border-b hover:bg-slate-50 transition items-center report-item" data-search="${searchStr}">
+                    <div class="col-span-1 md:col-span-2 text-xs font-mono text-slate-500 flex items-center gap-2">
+                        <span class="md:hidden font-bold w-20">Tanggal:</span>
+                        ${new Date(r.tanggal).toLocaleDateString('id-ID')}
+                    </div>
+                    <div class="col-span-1 md:col-span-2 text-xs font-bold text-slate-700 flex items-center gap-2">
+                         <span class="md:hidden font-bold w-20">Kode:</span>
+                        ${kode}
+                    </div>
+                    <div class="col-span-1 md:col-span-4">
+                        <div class="font-bold text-slate-800">${r.nama_akun}</div>
+                        <div class="text-xs text-slate-500 italic truncate">${r.keterangan || '-'}</div>
+                    </div>
+                    <div class="col-span-1 md:col-span-4 text-right flex justify-between md:block items-center">
+                         <span class="md:hidden font-bold text-xs">Nominal:</span>
+                         <div>
+                            <div class="font-mono font-bold ${isD ? 'text-slate-800' : 'text-slate-400'}">${isD ? fmt(r.debit) : '-'}</div>
+                            <div class="font-mono font-bold ${!isD ? 'text-slate-800' : 'text-slate-400'}">${!isD ? fmt(r.kredit) : '-'}</div>
+                         </div>
                     </div>
                 </div>`;
-            });
+                });
 
-        // B. BUKU BESAR
-        } else if(currentType === 'BUKU_BESAR') {
-            const groups = {};
-            rawData.forEach(r => { if(!groups[r.nama_akun]) groups[r.nama_akun] = []; groups[r.nama_akun].push(r); });
-            Object.keys(groups).sort().forEach(akun => {
-                 let s = 0;
-                 html += `<div class="bg-white rounded border shadow-sm overflow-hidden mb-3"><div class="bg-blue-50 p-2 font-bold text-xs border-b text-blue-800">${akun}</div><div class="divide-y">`;
-                 groups[akun].forEach(r => {
-                     s += (r.debit - r.kredit);
-                     html += `<div class="p-2 flex justify-between text-xs"><div class="w-2/3"><div>${new Date(r.tanggal).toLocaleDateString('id-ID')}</div><div class="text-slate-500 italic">${r.keterangan}</div></div><div class="text-right font-bold ${s>=0?'text-green-600':'text-red-600'}">${fmt(s)}</div></div>`;
-                 });
-                 html += `</div></div>`;
-            });
+                // B. BUKU BESAR (ACCORDION STYLE)
+            } else if (currentType === 'BUKU_BESAR') {
+                const groups = {};
+                rawData.forEach(r => { if (!groups[r.nama_akun]) groups[r.nama_akun] = []; groups[r.nama_akun].push(r); });
 
-        // C. NERACA SALDO
-        } else if(currentType === 'NERACA_SALDO') {
-            html += `<div class="bg-white rounded shadow border divide-y">`;
-            let tD=0, tK=0;
-            Object.keys(saldos).sort().forEach(akun => {
-                const net = saldos[akun].debit - saldos[akun].kredit;
-                if(net === 0) return;
-                const isD = net > 0; const nom = Math.abs(net);
-                if(isD) tD+=nom; else tK+=nom;
-                html += `<div class="p-3 flex justify-between text-xs"><span class="font-bold text-slate-700">${akun}</span><span class="${isD?'text-slate-800':'text-red-600'} font-bold">${fmt(nom)} (${isD?'D':'K'})</span></div>`;
-            });
-            html += `<div class="p-3 bg-slate-800 text-white flex justify-between font-bold text-xs"><span>TOTAL</span><span>D: ${fmt(tD)} | K: ${fmt(tK)}</span></div></div>`;
+                Object.keys(groups).sort().forEach(akun => {
+                    let s = 0;
+                    let rows = '';
+                    // Hitung saldo detail dulu
+                    groups[akun].forEach(r => {
+                        s += (r.debit - r.kredit);
+                        const searchStr = `${r.keterangan} ${r.debit} ${r.kredit}`.toLowerCase();
+                        rows += `
+                     <div class="grid grid-cols-12 gap-2 p-3 border-b border-slate-100 hover:bg-slate-50 text-xs report-item" data-search="${searchStr}">
+                        <div class="col-span-2 text-slate-500">${new Date(r.tanggal).toLocaleDateString('id-ID')}</div>
+                        <div class="col-span-6 italic text-slate-600">${r.keterangan || '-'}</div>
+                        <div class="col-span-2 text-right ${r.debit > 0 ? 'text-slate-800' : '-'}">${r.debit > 0 ? fmt(r.debit) : '-'}</div>
+                        <div class="col-span-2 text-right ${r.kredit > 0 ? 'text-slate-800' : '-'}">${r.kredit > 0 ? fmt(r.kredit) : '-'}</div>
+                     </div>`;
+                    });
 
-        // D. LABA RUGI
-        } else if(currentType === 'LABA_RUGI') {
-            let inc=0, exp=0;
-            let incHtml = '', expHtml = '';
-            for(let [ak, v] of Object.entries(saldos)) {
-                let net = v.debit - v.kredit;
-                if(ak.match(/pendapatan|penjualan/i) && net !== 0) {
-                    let val = Math.abs(net); inc+=val; incHtml += cardLine(ak, val, 'text-green-600');
-                } else if(ak.match(/beban|biaya|gaji|listrik/i) && net !== 0) {
-                    let val = Math.abs(net); exp+=val; expHtml += cardLine(ak, val, 'text-red-600');
+                    const searchGroup = `${akun} ${s}`.toLowerCase();
+
+                    html += `
+                 <details class="group border border-slate-200 rounded-lg mb-3 overflow-hidden transition-all duration-300 open:shadow-md report-group" data-search="${searchGroup}">
+                    <summary class="flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none list-none">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-chevron-right text-slate-400 text-xs group-open:rotate-90 transition-transform duration-200"></i>
+                            <span class="font-bold text-slate-700 text-sm">${akun}</span>
+                            <span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">${groups[akun].length} Trx</span>
+                        </div>
+                        <div class="font-mono font-bold ${s >= 0 ? 'text-blue-700' : 'text-red-600'}">
+                            Saldo: ${fmt(s)}
+                        </div>
+                    </summary>
+                    <div class="bg-white">
+                        <div class="grid grid-cols-12 gap-2 p-2 bg-slate-50 font-bold text-[10px] uppercase text-slate-400 tracking-wider">
+                            <div class="col-span-2">Tanggal</div><div class="col-span-6">Keterangan</div><div class="col-span-2 text-right">Debit</div><div class="col-span-2 text-right">Kredit</div>
+                        </div>
+                        ${rows}
+                        <div class="p-3 bg-indigo-50 text-right text-xs font-bold border-t border-indigo-100 text-indigo-800">
+                             Saldo Akhir: ${fmt(s)}
+                        </div>
+                    </div>
+                 </details>`;
+                });
+
+                // C. NERACA SALDO & LAINNYA (WITH VISUAL BARS)
+            } else {
+                // Logic generic (Neraca Saldo, Laba Rugi, Neraca, Analisis)
+                const saldoMap = (currentType === 'NERACA_SALDO' || currentType === 'ARUS_KAS' || currentType === 'ANALISIS') ? saldos : filterSaldosByType(saldos, currentType);
+
+                // Cari nilai max (Skip untuk Arus Kas & Analisis karena punya logic sendiri)
+                let maxVal = 0;
+                if (currentType !== 'ARUS_KAS' && currentType !== 'ANALISIS') {
+                    Object.values(saldoMap).forEach(v => {
+                        const n = Math.abs(currentType === 'NERACA_SALDO' ? (v.debit - v.kredit) : v);
+                        if (n > maxVal) maxVal = n;
+                    });
+                }
+
+                // GROUPING: Jika Neraca/Laba Rugi, pisahkan based on category
+                if (currentType === 'NERACA_SALDO') {
+                    // Simple List for Neraca Saldo
+                    let tD = 0, tK = 0;
+                    Object.keys(saldoMap).sort().forEach(akun => {
+                        const net = saldoMap[akun].debit - saldoMap[akun].kredit;
+                        if (net === 0) return;
+                        const isD = net > 0; const nom = Math.abs(net);
+                        if (isD) tD += nom; else tK += nom;
+                        const pct = maxVal > 0 ? (nom / maxVal) * 100 : 0;
+
+                        html += renderBarRow(akun, nom, isD ? 'D' : 'K', pct, isD ? 'bg-blue-100' : 'bg-red-100', isD ? 'text-blue-700' : 'text-red-700');
+                    });
+                    html += `<div class="p-4 bg-slate-800 text-white flex justify-between font-bold text-sm rounded-lg mt-4 shadow-lg"><span>TOTAL</span><span>Debit: ${fmt(tD)} | Kredit: ${fmt(tK)}</span></div>`;
+
+                    // F. ARUS KAS
+                } else if (currentType === 'ARUS_KAS') {
+                    let inflow = {}, outflow = {};
+                    let totalIn = 0, totalOut = 0;
+                    let maxVal = 0;
+                    let hasData = false;
+
+                    // Keywords untuk deteksi akun Kas/Bank
+                    // Tambahkan nama bank umum di Indonesia jika nama akun tidak mengandung kata "Bank"
+                    const validCashRegex = /kas|bank|cash|tunai|bca|mandiri|bri|bni|cimb|danamon|permata|wallet|dompet/i;
+
+                    for (let [ak, v] of Object.entries(saldos)) {
+                        if (ak.match(validCashRegex)) {
+                            // Inflow (Debit pada Kas)
+                            if (v.debit > 0) {
+                                inflow[ak] = v.debit;
+                                totalIn += v.debit;
+                                if (v.debit > maxVal) maxVal = v.debit;
+                                hasData = true;
+                            }
+                            // Outflow (Kredit pada Kas)
+                            if (v.kredit > 0) {
+                                outflow[ak] = v.kredit;
+                                totalOut += v.kredit;
+                                if (v.kredit > maxVal) maxVal = v.kredit;
+                                hasData = true;
+                            }
+                        }
+                    }
+
+                    if (!hasData) {
+                        html += `<div class="flex flex-col items-center justify-center py-12 text-slate-400">
+                            <i class="fas fa-search-dollar text-4xl mb-3 opacity-50"></i>
+                            <p class="font-bold">Tidak ada transaksi Kas/Bank ditemukan</p>
+                            <p class="text-xs">Coba periksa kembali filter tanggal atau nama akun Anda.</p>
+                          </div>`;
+                    } else {
+                        // Section Inflow
+                        html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight pt-2">Arus Masuk (Penerimaan)</div>`;
+                        if (Object.keys(inflow).length === 0) html += `<div class="text-xs text-slate-400 italic mb-4">Tidak ada data penerimaan kas</div>`;
+                        Object.keys(inflow).forEach(ak => html += renderBarRow(ak, inflow[ak], '', maxVal > 0 ? (inflow[ak] / maxVal) * 100 : 0, 'bg-emerald-100', 'text-emerald-700'));
+                        html += `<div class="text-right font-bold text-emerald-600 border-t border-dashed border-emerald-300 pt-2 mb-6">Total Masuk: ${fmt(totalIn)}</div>`;
+
+                        // Section Outflow
+                        html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight">Arus Keluar (Pengeluaran)</div>`;
+                        if (Object.keys(outflow).length === 0) html += `<div class="text-xs text-slate-400 italic mb-4">Tidak ada data pengeluaran kas</div>`;
+                        Object.keys(outflow).forEach(ak => html += renderBarRow(ak, outflow[ak], '', maxVal > 0 ? (outflow[ak] / maxVal) * 100 : 0, 'bg-rose-100', 'text-rose-700'));
+                        html += `<div class="text-right font-bold text-rose-600 border-t border-dashed border-rose-300 pt-2 mb-6">Total Keluar: ${fmt(totalOut)}</div>`;
+
+                        // Net Cash Flow
+                        const netFlow = totalIn - totalOut;
+                        html += `<div class="${netFlow >= 0 ? 'bg-blue-600' : 'bg-orange-500'} text-white p-6 rounded-xl shadow-xl flex justify-between items-center mt-4">
+                            <div>
+                                <div class="text-sm opacity-80 uppercase font-bold tracking-widest">Surplus / Defisit Kas (Net)</div>
+                                <div class="text-3xl font-black mt-1">${fmt(netFlow)}</div>
+                                <div class="text-[10px] mt-1 opacity-75">*Perubahan saldo kas periode ini</div>
+                            </div>
+                            <i class="fas fa-exchange-alt text-4xl opacity-50"></i>
+                         </div>`;
+                    }
+                } else if (currentType === 'LABA_RUGI') {
+                    const { inc, exp, incTotal, expTotal } = saldoMap;
+                    html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight">Pendapatan</div>`;
+                    Object.keys(inc).forEach(ak => html += renderBarRow(ak, inc[ak], '', (inc[ak] / maxVal) * 100, 'bg-emerald-100', 'text-emerald-700'));
+                    html += `<div class="text-right font-bold text-emerald-600 border-t border-dashed border-emerald-300 pt-2 mb-6">Total Pendapatan: ${fmt(incTotal)}</div>`;
+
+                    html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight">Beban & Biaya</div>`;
+                    Object.keys(exp).forEach(ak => html += renderBarRow(ak, exp[ak], '', (exp[ak] / maxVal) * 100, 'bg-rose-100', 'text-rose-700'));
+                    html += `<div class="text-right font-bold text-rose-600 border-t border-dashed border-rose-300 pt-2 mb-6">Total Beban: ${fmt(expTotal)}</div>`;
+
+                    const laba = incTotal - expTotal;
+                    html += `<div class="${laba >= 0 ? 'bg-indigo-600' : 'bg-orange-600'} text-white p-6 rounded-xl shadow-xl flex justify-between items-center mt-4">
+                            <div><div class="text-sm opacity-80 uppercase font-bold tracking-widest">Laba / Rugi Bersih</div><div class="text-3xl font-black mt-1">${fmt(laba)}</div></div>
+                            <i class="fas ${laba >= 0 ? 'fa-chart-line' : 'fa-chart-area'} text-4xl opacity-50"></i>
+                         </div>`;
+
+                } else if (currentType === 'NERACA') {
+                    const { ast, pas, astTotal, pasTotal } = saldoMap;
+                    html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight pt-2">Aset (Harta)</div>`;
+                    Object.keys(ast).forEach(ak => html += renderBarRow(ak, ast[ak], '', (ast[ak] / maxVal) * 100, 'bg-cyan-100', 'text-cyan-700'));
+                    html += `<div class="text-right font-bold text-cyan-600 border-t border-dashed border-cyan-300 pt-2 mb-6">Total Aset: ${fmt(astTotal)}</div>`;
+
+                    html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight">Pasiva (Hutang)</div>`;
+                    Object.keys(pas).forEach(ak => html += renderBarRow(ak, pas[ak], '', (pas[ak] / maxVal) * 100, 'bg-orange-100', 'text-orange-700'));
+                    html += `<div class="text-right font-bold text-orange-600 border-t border-dashed border-orange-300 pt-2 mb-6">Total Kewajiban: ${fmt(pasTotal)}</div>`;
+
+                    const modal = astTotal - pasTotal;
+                    html += `<div class="mt-4 p-4 border-2 border-dashed border-indigo-200 rounded-lg bg-indigo-50/50 flex justify-between items-center text-indigo-900">
+                    <span class="font-bold">Estimasi Modal / Ekuitas</span><span class="font-black text-xl">${fmt(modal)}</span>
+                </div>`;
+                }
+                // G. ANALISIS KEUANGAN
+                else if (currentType === 'ANALISIS') {
+                    // CALCULATE VARIABLES
+                    let currentAssets = 0, currentLiabilities = 0;
+                    let totalRevenue = 0, totalExpense = 0;
+                    let totalDebt = 0, totalEquity = 0;
+
+                    for (let [ak, v] of Object.entries(saldos)) {
+                        let net = v.debit - v.kredit;
+
+                        // 1. Current Assets (Kas, Bank, Piutang, Persediaan)
+                        if (ak.match(/kas|bank|piutang|persediaan/i)) currentAssets += net;
+
+                        // 2. Current Liabilities (Hutang) - Normally Credit Balance (Negative net)
+                        // We take absolute value for ratio calc
+                        if (ak.match(/hutang/i)) currentLiabilities += Math.abs(net);
+
+                        // 3. Profitability
+                        let netPL = v.kredit - v.debit;
+                        if (ak.match(/pendapatan|penjualan/i)) totalRevenue += netPL;
+                        if (ak.match(/beban|biaya|gaji|listrik/i)) totalExpense += Math.abs(v.debit - v.kredit);
+                    }
+
+                    // RATIO CALCULATIONS
+                    const currentRatio = currentLiabilities > 0 ? (currentAssets / currentLiabilities) : (currentAssets > 0 ? 99 : 0);
+                    const netProfit = totalRevenue - totalExpense;
+                    const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+                    const oprRatio = totalRevenue > 0 ? (totalExpense / totalRevenue) * 100 : 0;
+
+                    // RENDER CARDS
+                    html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-6">`;
+
+                    // CARD 1: LIQUIDITY
+                    let crColor = currentRatio >= 1.5 ? 'text-green-600' : (currentRatio >= 1.0 ? 'text-yellow-600' : 'text-red-600');
+                    let crStatus = currentRatio >= 1.5 ? 'Sangat Sehat' : (currentRatio >= 1.0 ? 'Cukup Aman' : 'Waspada');
+                    let crIcon = currentRatio >= 1.0 ? 'fa-check-circle' : 'fa-exclamation-triangle';
+
+                    html += `
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between h-48">
+                    <div>
+                        <h4 class="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2">Likuiditas (Current Ratio)</h4>
+                        <div class="text-4xl font-black ${crColor}">${currentRatio.toFixed(2)}x</div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <i class="fas ${crIcon} ${crColor}"></i>
+                            <span class="font-bold text-sm ${crColor}">${crStatus}</span>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-4 border-t pt-2">
+                        Kemampuan membayar hutang jangka pendek dengan aset lancar. Target: > 1.0x
+                    </div>
+                </div>`;
+
+                    // CARD 2: PROFITABILITY
+                    let npmColor = netMargin >= 20 ? 'text-emerald-600' : (netMargin > 0 ? 'text-blue-600' : 'text-red-600');
+                    let npmStatus = netMargin >= 20 ? 'High Profit' : (netMargin > 0 ? 'Profitable' : 'Loss');
+
+                    html += `
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between h-48">
+                    <div>
+                        <h4 class="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2">Profitabilitas (Net Margin)</h4>
+                        <div class="text-4xl font-black ${npmColor}">${netMargin.toFixed(1)}%</div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <i class="fas fa-chart-pie ${npmColor}"></i>
+                            <span class="font-bold text-sm ${npmColor}">${npmStatus}</span>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-4 border-t pt-2">
+                        Persentase keuntungan bersih dari total pendapatan.
+                    </div>
+                </div>`;
+
+                    // CARD 3: OPERATIONAL EFFICIENCY
+                    let oprColor = oprRatio <= 60 ? 'text-green-600' : (oprRatio <= 85 ? 'text-yellow-600' : 'text-red-600');
+
+                    html += `
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between h-48">
+                    <div>
+                        <h4 class="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2">Efisiensi (BOPO)</h4>
+                        <div class="text-4xl font-black ${oprColor}">${oprRatio.toFixed(1)}%</div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="font-bold text-sm text-slate-600">dari Pendapatan</span>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-4 border-t pt-2">
+                        Beban Operasional terhadap Pendapatan Operasional. Makin kecil makin efisien.
+                    </div>
+                </div>`;
+
+                    html += `</div>`; // End Grid
+
+                    // RECOMMENDATION SECTION
+                    html += `
+                <div class="mt-6 p-5 bg-indigo-50 rounded-xl border border-indigo-100">
+                    <h4 class="font-bold text-indigo-900 mb-2"><i class="fas fa-lightbulb text-yellow-500 mr-2"></i>Insight Keuangan</h4>
+                    <p class="text-sm text-indigo-800 leading-relaxed">
+                        Berdasarkan data periode ini, perusahaan mencatatkan <strong>${netMargin > 0 ? 'Keuntungan' : 'Kerugian'}</strong> sebesar <strong>${fmt(netProfit)}</strong>. 
+                        Posisi likuiditas berada di level <strong>${crStatus}</strong>, yang berarti perusahaan ${currentRatio >= 1.0 ? 'mampu' : 'mungkin kesulitan'} memenuhi kewajiban jangka pendeknya saat ini.
+                    </p>
+                </div>`;
                 }
             }
-            let laba = inc - exp;
-            html += `<div class="bg-blue-600 text-white p-4 rounded text-center font-bold text-xl mb-4">Laba Bersih: ${fmt(laba)}</div>`;
-            html += `<div class="bg-white p-3 rounded border mb-2"><div class="font-bold border-b pb-1 mb-2">PENDAPATAN</div>${incHtml||'-'}</div>`;
-            html += `<div class="bg-white p-3 rounded border"><div class="font-bold border-b pb-1 mb-2">BEBAN</div>${expHtml||'-'}</div>`;
 
-        // E. NERACA
-        } else if(currentType === 'NERACA') {
-            let ast=0, kwj=0;
-            let astHtml='', pasHtml='';
-            for(let [ak, v] of Object.entries(saldos)) {
-                let net = v.debit - v.kredit;
-                if(ak.match(/kas|bank|piutang|persediaan|tanah|bangunan|kendaraan/i) && net!==0) {
-                    ast+=net; astHtml += cardLine(ak, net, 'text-blue-600');
-                } else if(ak.match(/hutang|kewajiban/i) && net!==0) {
-                    let h = Math.abs(net); kwj+=h; pasHtml += cardLine(ak, h, 'text-red-600');
-                }
-            }
-            let modal = ast - kwj;
-            html += `<div class="bg-white p-3 rounded border mb-2"><div class="font-bold border-b pb-1 mb-2 text-blue-700">ASET (Total: ${fmt(ast)})</div>${astHtml}</div>`;
-            html += `<div class="bg-white p-3 rounded border"><div class="font-bold border-b pb-1 mb-2 text-red-700">PASIVA (Total: ${fmt(ast)})</div>${pasHtml}`;
-            html += `<div class="flex justify-between text-xs mt-2 pt-2 border-t border-dashed"><span>Modal / Ekuitas</span><span class="font-bold">${fmt(modal)}</span></div></div>`;
+            html += `</div>`;
+            document.getElementById("kontenScreen").innerHTML = html;
+            document.getElementById('quickSearch').value = '';
         }
-        
-        html += `</div>`;
-        document.getElementById("kontenScreen").innerHTML = html;
-    }
 
-    // Helper Screen
-    function cardLine(label, val, color) {
-        return `<div class="flex justify-between text-xs mb-2"><span>${label}</span><span class="font-bold ${color}">${fmt(val)}</span></div>`;
-    }
-
-    // ==========================================
-    // 2. GENERATE PDF (PROFESIONAL) - LENGKAP
-    // ==========================================
-    async function downloadPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
-        const tglCetak = new Date().toLocaleDateString('id-ID');
-        const periode = document.getElementById("subJudul").innerText;
-
-        // KOP SURAT
-        doc.setFontSize(16); doc.setFont("helvetica", "bold");
-        doc.text("PT. NUSANTARA LAND DEVELOPMENT", 14, 15);
-        doc.setFontSize(10); doc.setFont("helvetica", "normal");
-        
-        // --- GANTI ALAMAT DI BAWAH INI ---
-        doc.text("Jl. Sunset Boulevard Blok 5B/16 CitraLand City, Centre Point of Indonesia (CPI) Kel. Maccini Sombala Kec. Tamalate, Makassar, 90224, Indonesia Phone: +624116004251", 14, 20);
-        // ---------------------------------
-
-        doc.text("Laporan Keuangan & Operasional Terintegrasi", 14, 25);
-        doc.setLineWidth(0.5); doc.line(14, 28, 283, 28);
-
-        // JUDUL
-        doc.setFontSize(12); doc.setFont("helvetica", "bold");
-        doc.text(document.getElementById("judulLap").innerText, 14, 35);
-        doc.setFontSize(10); doc.setFont("helvetica", "italic");
-        doc.text("Periode: " + periode, 14, 40);
-
-        let body = [];
-        let head = [];
-        let colStyles = {};
-        let finalY = 45;
-
-        // LOGIKA PDF PER TIPE
-        if (currentType === 'JURNAL') {
-            head = [['Tanggal', 'No. Akun', 'Uraian', 'Ref', 'Debit', 'Kredit']];
-            let tD=0, tK=0;
-            rawData.forEach(r => {
-                tD += r.debit; tK += r.kredit;
-                const namaAkun = r.kredit > 0 ? `      ${r.nama_akun}` : r.nama_akun;
-                body.push([new Date(r.tanggal).toLocaleDateString('id-ID'), akunMap[r.nama_akun]||'', `${namaAkun}\n${r.keterangan||''}`, r.nomor_referensi||'', r.debit>0?fmtNum(r.debit):'-', r.kredit>0?fmtNum(r.kredit):'-']);
-            });
-            body.push([{content: 'TOTAL', colSpan: 4, styles: {halign: 'right', fontStyle: 'bold'}}, fmtNum(tD), fmtNum(tK)]);
-            colStyles = { 4: {halign: 'right'}, 5: {halign: 'right'} };
-            printTable(doc, head, body, colStyles, finalY);
-
-        } else if (currentType === 'BUKU_BESAR') {
-            const groups = {};
-            rawData.forEach(r => { if(!groups[r.nama_akun]) groups[r.nama_akun] = []; groups[r.nama_akun].push(r); });
+        // --- HELPER RENDERING ---
+        function renderBarRow(label, val, suffix, pct, barColor, textColor) {
+            const searchStr = `${label} ${val}`.toLowerCase();
+            return `
+        <div class="relative py-3 border-b border-slate-50 hover:bg-slate-50 group report-item" data-search="${searchStr}">
+            <!-- Background Bar -->
+            <div class="absolute inset-y-0 left-0 ${barColor} opacity-30 transition-all duration-500 rounded-r-lg" style="width: ${pct}%"></div>
             
-            Object.keys(groups).sort().forEach(akun => {
-                // Cetak Judul Akun dulu
-                if (finalY > 180) { doc.addPage(); finalY=20; }
-                doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-                doc.text(`Akun: ${akun} [${akunMap[akun]||''}]`, 14, finalY);
-                finalY += 2;
-
-                let subBody = [];
-                let sal = 0;
-                groups[akun].forEach(r => {
-                    sal += (r.debit - r.kredit);
-                    subBody.push([new Date(r.tanggal).toLocaleDateString('id-ID'), r.keterangan, r.debit>0?fmtNum(r.debit):'-', r.kredit>0?fmtNum(r.kredit):'-', fmtNum(sal)]);
-                });
-                
-                doc.autoTable({
-                    startY: finalY + 1,
-                    head: [['Tgl', 'Ket', 'Debit', 'Kredit', 'Saldo']],
-                    body: subBody,
-                    theme: 'grid',
-                    columnStyles: { 2:{halign:'right'}, 3:{halign:'right'}, 4:{halign:'right', fontStyle:'bold'} },
-                    margin: { left: 14, right: 14 }
-                });
-                finalY = doc.lastAutoTable.finalY + 10;
-            });
-
-        } else if (currentType === 'NERACA_SALDO') {
-            head = [['No. Akun', 'Nama Akun', 'Debit', 'Kredit']];
-            const saldos = hitungSaldo();
-            let tD=0, tK=0;
-            Object.keys(saldos).sort().forEach(akun => {
-                const net = saldos[akun].debit - saldos[akun].kredit;
-                if(net === 0) return;
-                const isD = net > 0; const nom = Math.abs(net);
-                if(isD) tD+=nom; else tK+=nom;
-                body.push([akunMap[akun]||'', akun, isD?fmtNum(nom):'-', !isD?fmtNum(nom):'-']);
-            });
-            body.push([{content: 'TOTAL', colSpan: 2, styles: {halign: 'right', fontStyle: 'bold'}}, fmtNum(tD), fmtNum(tK)]);
-            colStyles = { 2: {halign: 'right'}, 3: {halign: 'right'} };
-            printTable(doc, head, body, colStyles, finalY);
-
-        } else {
-            // Laba Rugi / Neraca (Versi Simple Table)
-            // Anda bisa kembangkan lagi jika mau detail, tapi ini sudah cukup untuk PDF
-            doc.setFontSize(10);
-            doc.text("Silakan lihat detail di layar aplikasi atau hubungi admin untuk format lengkap Laporan ini.", 14, 50);
+            <div class="relative flex justify-between items-center px-3">
+                <span class="font-bold text-slate-700 text-sm z-10">${label}</span>
+                <span class="font-mono font-bold ${textColor} text-sm z-10">${fmt(val)} ${suffix}</span>
+            </div>
+        </div>`;
         }
 
-        // TTD
-        finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 60;
-        if (finalY > 170) { doc.addPage(); finalY = 20; }
-        const xPos = 220;
-        doc.setFont("helvetica", "normal");
-        doc.text(`Makassar, ${tglCetak}`, xPos, finalY);
-        doc.text("Disiapkan Oleh,", xPos, finalY + 5);
-        doc.setFont("helvetica", "bold");
-        doc.text("Finance Manager", xPos, finalY + 25);
-        doc.setLineWidth(0.2); doc.line(xPos, finalY + 26, xPos + 40, finalY + 26);
+        function filterSaldosByType(saldos, type) {
+            // Helper sederhana untuk memisahkan akun Neraca vs Laba Rugi
+            if (type === 'LABA_RUGI') {
+                let inc = {}, exp = {}, incTotal = 0, expTotal = 0;
+                for (let [ak, v] of Object.entries(saldos)) {
+                    let net = v.kredit - v.debit; // Pendapatan normal Kredit
+                    if (ak.match(/pendapatan|penjualan|sales|revenue/i) && net !== 0) {
+                        // Jika Revenue, saldo normal Kredit (Show positive)
+                        inc[ak] = net; incTotal += net;
+                    } else {
+                        net = v.debit - v.kredit; // Beban normal debit
+                        if (ak.match(/beban|biaya|gaji|listrik|cost|expense/i) && net !== 0) {
+                            exp[ak] = net; expTotal += net;
+                        }
+                    }
+                }
+                return { inc, exp, incTotal, expTotal };
+            }
+            if (type === 'NERACA') {
+                let ast = {}, pas = {}, astTotal = 0, pasTotal = 0;
+                for (let [ak, v] of Object.entries(saldos)) {
+                    let net = v.debit - v.kredit;
+                    if (ak.match(/kas|bank|piutang|persediaan|tanah|bangunan|kendaraan|aset|inventaris/i) && net !== 0) {
+                        ast[ak] = net; astTotal += net;
+                    } else {
+                        net = v.kredit - v.debit;
+                        if (ak.match(/hutang|kewajiban|modal|ekuitas/i) && net !== 0) {
+                            pas[ak] = net; pasTotal += net;
+                        }
+                    }
+                }
+                return { ast, pas, astTotal, pasTotal };
+            }
+        }
 
-        doc.save(`Laporan_${currentType}_NLD.pdf`);
-    }
+        function filterLaporan() {
+            const q = document.getElementById('quickSearch').value.toLowerCase();
 
-    function printTable(doc, head, body, colStyles, startY) {
-        doc.autoTable({
-            startY: startY,
-            head: head, body: body, theme: 'grid',
-            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
-            columnStyles: colStyles,
-            styles: { fontSize: 9, cellPadding: 2 }
-        });
-    }
+            // Filter Items
+            document.querySelectorAll('.report-item').forEach(el => {
+                const txt = el.getAttribute('data-search') || '';
+                if (txt.includes(q)) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            });
 
-    function hitungSaldo() {
-        const s = {};
-        rawData.forEach(r => {
-            if(!s[r.nama_akun]) s[r.nama_akun] = { debit:0, kredit:0 };
-            s[r.nama_akun].debit += r.debit; s[r.nama_akun].kredit += r.kredit;
-        });
-        return s;
-    }
-  </script>
+            // Filter Groups (Accordion) - Jika ada child visible, parent visible
+            document.querySelectorAll('.report-group').forEach(grp => {
+                // Cek keyword di group header juga
+                const grpTxt = grp.getAttribute('data-search') || '';
+                const headerMatch = grpTxt.includes(q);
+
+                // Cek children visible
+                const hasVisibleChild = grp.querySelectorAll('.report-item:not(.hidden)').length > 0;
+
+                if (headerMatch || hasVisibleChild) {
+                    grp.classList.remove('hidden');
+                    if (q.length > 0) grp.open = true; // Auto open if searching
+                } else {
+                    grp.classList.add('hidden');
+                }
+            });
+        }
+
+        function hitungSaldo() {
+            const s = {};
+            rawData.forEach(r => {
+                if (!s[r.nama_akun]) s[r.nama_akun] = { debit: 0, kredit: 0 };
+                s[r.nama_akun].debit += r.debit; s[r.nama_akun].kredit += r.kredit;
+            });
+            return s;
+        }
+
+        // ==========================================
+        // 2. GENERATE PDF (PROFESIONAL) - LENGKAP
+        // ==========================================
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+            const tglCetak = new Date().toLocaleDateString('id-ID');
+            const periode = document.getElementById("subJudul").innerText;
+
+            // KOP SURAT
+            doc.setFontSize(16); doc.setFont("helvetica", "bold");
+            doc.text("PT. NUSANTARA LAND DEVELOPMENT", 14, 15);
+            doc.setFontSize(10); doc.setFont("helvetica", "normal");
+
+            // --- GANTI ALAMAT DI BAWAH INI ---
+            doc.text("Jl. Sunset Boulevard Blok 5B/16 CitraLand City, Centre Point of Indonesia (CPI) Kel. Maccini Sombala Kec. Tamalate, Makassar, 90224, Indonesia Phone: +624116004251", 14, 20);
+            // ---------------------------------
+
+            doc.text("Laporan Keuangan & Operasional Terintegrasi", 14, 25);
+            doc.setLineWidth(0.5); doc.line(14, 28, 283, 28);
+
+            // JUDUL
+            doc.setFontSize(12); doc.setFont("helvetica", "bold");
+            doc.text(document.getElementById("judulLap").innerText, 14, 35);
+            doc.setFontSize(10); doc.setFont("helvetica", "italic");
+            doc.text("Periode: " + periode, 14, 40);
+
+            let body = [];
+            let head = [];
+            let colStyles = {};
+            let finalY = 45;
+
+            // LOGIKA PDF PER TIPE
+            if (currentType === 'JURNAL') {
+                head = [['Tanggal', 'No. Akun', 'Uraian', 'Ref', 'Debit', 'Kredit']];
+                let tD = 0, tK = 0;
+                rawData.forEach(r => {
+                    tD += r.debit; tK += r.kredit;
+                    const namaAkun = r.kredit > 0 ? `      ${r.nama_akun}` : r.nama_akun;
+                    body.push([new Date(r.tanggal).toLocaleDateString('id-ID'), akunMap[r.nama_akun] || '', `${namaAkun}\n${r.keterangan || ''}`, r.nomor_referensi || '', r.debit > 0 ? fmtNum(r.debit) : '-', r.kredit > 0 ? fmtNum(r.kredit) : '-']);
+                });
+                body.push([{ content: 'TOTAL', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } }, fmtNum(tD), fmtNum(tK)]);
+                colStyles = { 4: { halign: 'right' }, 5: { halign: 'right' } };
+                printTable(doc, head, body, colStyles, finalY);
+
+            } else if (currentType === 'BUKU_BESAR') {
+                const groups = {};
+                rawData.forEach(r => { if (!groups[r.nama_akun]) groups[r.nama_akun] = []; groups[r.nama_akun].push(r); });
+
+                Object.keys(groups).sort().forEach(akun => {
+                    // Cetak Judul Akun dulu
+                    if (finalY > 180) { doc.addPage(); finalY = 20; }
+                    doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+                    doc.text(`Akun: ${akun} [${akunMap[akun] || ''}]`, 14, finalY);
+                    finalY += 2;
+
+                    let subBody = [];
+                    let sal = 0;
+                    groups[akun].forEach(r => {
+                        sal += (r.debit - r.kredit);
+                        subBody.push([new Date(r.tanggal).toLocaleDateString('id-ID'), r.keterangan, r.debit > 0 ? fmtNum(r.debit) : '-', r.kredit > 0 ? fmtNum(r.kredit) : '-', fmtNum(sal)]);
+                    });
+
+                    doc.autoTable({
+                        startY: finalY + 1,
+                        head: [['Tgl', 'Ket', 'Debit', 'Kredit', 'Saldo']],
+                        body: subBody,
+                        theme: 'grid',
+                        columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } },
+                        margin: { left: 14, right: 14 }
+                    });
+                    finalY = doc.lastAutoTable.finalY + 10;
+                });
+
+            } else if (currentType === 'NERACA_SALDO') {
+                head = [['No. Akun', 'Nama Akun', 'Debit', 'Kredit']];
+                const saldos = hitungSaldo();
+                let tD = 0, tK = 0;
+                Object.keys(saldos).sort().forEach(akun => {
+                    const net = saldos[akun].debit - saldos[akun].kredit;
+                    if (net === 0) return;
+                    const isD = net > 0; const nom = Math.abs(net);
+                    if (isD) tD += nom; else tK += nom;
+                    body.push([akunMap[akun] || '', akun, isD ? fmtNum(nom) : '-', !isD ? fmtNum(nom) : '-']);
+                });
+                body.push([{ content: 'TOTAL', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } }, fmtNum(tD), fmtNum(tK)]);
+                colStyles = { 2: { halign: 'right' }, 3: { halign: 'right' } };
+                printTable(doc, head, body, colStyles, finalY);
+
+            } else {
+                // Laba Rugi / Neraca (Versi Simple Table)
+                // Anda bisa kembangkan lagi jika mau detail, tapi ini sudah cukup untuk PDF
+                doc.setFontSize(10);
+                doc.text("Silakan lihat detail di layar aplikasi atau hubungi admin untuk format lengkap Laporan ini.", 14, 50);
+            }
+
+            // TTD
+            finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 60;
+            if (finalY > 170) { doc.addPage(); finalY = 20; }
+            const xPos = 220;
+            doc.setFont("helvetica", "normal");
+            doc.text(`Makassar, ${tglCetak}`, xPos, finalY);
+            doc.text("Disiapkan Oleh,", xPos, finalY + 5);
+            doc.setFont("helvetica", "bold");
+            doc.text("Finance Manager", xPos, finalY + 25);
+            doc.setLineWidth(0.2); doc.line(xPos, finalY + 26, xPos + 40, finalY + 26);
+
+            doc.save(`Laporan_${currentType}_NLD.pdf`);
+        }
+
+        function printTable(doc, head, body, colStyles, startY) {
+            doc.autoTable({
+                startY: startY,
+                head: head, body: body, theme: 'grid',
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+                columnStyles: colStyles,
+                styles: { fontSize: 9, cellPadding: 2 }
+            });
+        }
+
+        function hitungSaldo() {
+            const s = {};
+            rawData.forEach(r => {
+                if (!s[r.nama_akun]) s[r.nama_akun] = { debit: 0, kredit: 0 };
+                s[r.nama_akun].debit += r.debit; s[r.nama_akun].kredit += r.kredit;
+            });
+            return s;
+        }
+    </script>
 </body>
+
 </html>

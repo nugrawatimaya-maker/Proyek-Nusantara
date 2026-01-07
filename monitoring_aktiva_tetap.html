@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,11 +13,27 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border: 1px solid #e2e8f0; }
-    th { text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      border: 1px solid #e2e8f0;
+    }
+
+    th {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
   </style>
 </head>
+
 <body class="pb-20">
 
   <header class="bg-white border-b border-slate-200 sticky top-0 z-50 px-6 py-4">
@@ -30,43 +47,111 @@
           <p class="text-xs text-slate-500">Standar Akuntansi Penyusutan Garis Lurus</p>
         </div>
       </div>
-      <button onclick="window.location.href='dashboard_finance.html'" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-full text-sm font-semibold transition flex items-center gap-2">
+      <button onclick="window.location.href='dashboard_finance.html'"
+        class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-full text-sm font-semibold transition flex items-center gap-2">
         <i class="fas fa-arrow-left"></i> Dashboard
       </button>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-6 mt-8 space-y-8">
-    <div class="card p-6 mb-8">
-      <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-        <i class="fas fa-chart-bar text-purple-500"></i> Analisis Nilai Aset vs Penyusutan
-      </h2>
-      <div style="height: 300px;">
-        <canvas id="assetChart"></canvas>
-      </div>
-    </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="card p-5 border-l-4 border-blue-500">
-        <div class="text-xs font-bold text-slate-400 uppercase">Total Nilai Perolehan</div>
-        <div class="text-2xl font-black text-slate-800 mt-1" id="sumPerolehan">Rp 0</div>
-      </div>
-      <div class="card p-5 border-l-4 border-red-500">
-        <div class="text-xs font-bold text-slate-400 uppercase">Akumulasi Penyusutan</div>
-        <div class="text-2xl font-black text-red-600 mt-1" id="sumPenyusutan">Rp 0</div>
-      </div>
-      <div class="card p-5 border-l-4 border-green-500">
-        <div class="text-xs font-bold text-slate-400 uppercase">Total Nilai Buku (Net)</div>
-        <div class="text-2xl font-black text-green-600 mt-1" id="sumNilaiBuku">Rp 0</div>
-      </div>
-      <div class="card p-5 border-l-4 border-purple-500">
-        <div class="text-xs font-bold text-slate-400 uppercase">Depresiasi Bln Ini</div>
-        <div class="text-2xl font-black text-purple-600 mt-1" id="sumDepresiasiBulanan">Rp 0</div>
+  <main class="max-w-7xl mx-auto px-6 mt-8">
+
+    <!-- VIEW: MENU GRID -->
+    <div id="view-menu" class="animate-enter">
+      <h3 class="text-slate-500 font-bold text-sm uppercase tracking-wider mb-6">Menu Utama</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+
+        <!-- MENU 1: OVERVIEW -->
+        <div onclick="switchApp('overview')"
+          class="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md hover:scale-105 transition cursor-pointer flex flex-col items-center text-center group">
+          <div
+            class="w-16 h-16 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-2xl mb-4 group-hover:rotate-12 transition">
+            <i class="fas fa-chart-pie"></i>
+          </div>
+          <h3 class="font-bold text-slate-700">Overview & Analisis</h3>
+          <p class="text-[10px] text-slate-400 mt-1">Grafik & KPI Aset</p>
+        </div>
+
+        <!-- MENU 2: DAFTAR ASET -->
+        <div onclick="switchApp('list')"
+          class="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md hover:scale-105 transition cursor-pointer flex flex-col items-center text-center group">
+          <div
+            class="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-2xl mb-4 group-hover:-rotate-12 transition">
+            <i class="fas fa-list"></i>
+          </div>
+          <h3 class="font-bold text-slate-700">Daftar Inventaris</h3>
+          <p class="text-[10px] text-slate-400 mt-1">Tabel Detail Aset</p>
+        </div>
+
+        <!-- MENU 3: REGISTRASI -->
+        <div onclick="switchApp('form')"
+          class="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md hover:scale-105 transition cursor-pointer flex flex-col items-center text-center group">
+          <div
+            class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mb-4 group-hover:rotate-12 transition">
+            <i class="fas fa-plus-circle"></i>
+          </div>
+          <h3 class="font-bold text-slate-700">Registrasi Aset</h3>
+          <p class="text-[10px] text-slate-400 mt-1">Input Aktiva Baru</p>
+        </div>
+
+        <!-- MENU 4: LAPORAN -->
+        <div onclick="downloadLaporanAsetPDF()"
+          class="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md hover:scale-105 transition cursor-pointer flex flex-col items-center text-center group">
+          <div
+            class="w-16 h-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-2xl mb-4 group-hover:-rotate-12 transition">
+            <i class="fas fa-file-pdf"></i>
+          </div>
+          <h3 class="font-bold text-slate-700">Laporan PDF</h3>
+          <p class="text-[10px] text-slate-400 mt-1">Download Laporan</p>
+        </div>
+
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div class="lg:col-span-1 space-y-4">
+    <!-- VIEW: OVERVIEW -->
+    <div id="view-overview" class="hidden space-y-6">
+      <button onclick="switchApp('menu')"
+        class="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold transition">
+        <i class="fas fa-arrow-left"></i> Kembali ke Menu
+      </button>
+
+      <div class="card p-6 mb-8">
+        <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <i class="fas fa-chart-bar text-purple-500"></i> Analisis Nilai Aset vs Penyusutan
+        </h2>
+        <div style="height: 300px;">
+          <canvas id="assetChart"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="card p-5 border-l-4 border-blue-500">
+          <div class="text-xs font-bold text-slate-400 uppercase">Total Nilai Perolehan</div>
+          <div class="text-2xl font-black text-slate-800 mt-1" id="sumPerolehan">Rp 0</div>
+        </div>
+        <div class="card p-5 border-l-4 border-red-500">
+          <div class="text-xs font-bold text-slate-400 uppercase">Akumulasi Penyusutan</div>
+          <div class="text-2xl font-black text-red-600 mt-1" id="sumPenyusutan">Rp 0</div>
+        </div>
+        <div class="card p-5 border-l-4 border-green-500">
+          <div class="text-xs font-bold text-slate-400 uppercase">Total Nilai Buku (Net)</div>
+          <div class="text-2xl font-black text-green-600 mt-1" id="sumNilaiBuku">Rp 0</div>
+        </div>
+        <div class="card p-5 border-l-4 border-purple-500">
+          <div class="text-xs font-bold text-slate-400 uppercase">Depresiasi Bln Ini</div>
+          <div class="text-2xl font-black text-purple-600 mt-1" id="sumDepresiasiBulanan">Rp 0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: FORM REGISTRASI -->
+    <div id="view-form" class="hidden space-y-6">
+      <button onclick="switchApp('menu')"
+        class="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold transition">
+        <i class="fas fa-arrow-left"></i> Kembali ke Menu
+      </button>
+
+      <div class="max-w-2xl mx-auto">
         <div class="card p-6">
           <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
             <i class="fas fa-plus-circle text-blue-500"></i> Register Aset Baru
@@ -74,7 +159,9 @@
           <form id="assetForm" class="space-y-4">
             <div>
               <label class="block text-xs font-bold text-slate-500 mb-1">Nama Aktiva</label>
-              <input type="text" id="nama" class="w-full border rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Toyota Dyna Dump Truck" required>
+              <input type="text" id="nama"
+                class="w-full border rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Contoh: Toyota Dyna Dump Truck" required>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
@@ -89,69 +176,85 @@
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">Tgl Perolehan</label>
-                <input type="date" id="tgl_perolehan" class="w-full border rounded-lg p-2.5 text-sm outline-none" required>
+                <input type="date" id="tgl_perolehan" class="w-full border rounded-lg p-2.5 text-sm outline-none"
+                  required>
               </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">Nilai Perolehan</label>
-                <input type="number" id="nilai_perolehan" class="w-full border rounded-lg p-2.5 text-sm outline-none" placeholder="Rp" required>
+                <input type="number" id="nilai_perolehan" class="w-full border rounded-lg p-2.5 text-sm outline-none"
+                  placeholder="Rp" required>
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">Umur (Tahun)</label>
-                <input type="number" id="umur_ekonomis" class="w-full border rounded-lg p-2.5 text-sm outline-none" placeholder="Thn" required>
+                <input type="number" id="umur_ekonomis" class="w-full border rounded-lg p-2.5 text-sm outline-none"
+                  placeholder="Thn" required>
               </div>
             </div>
             <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
-              <div class="flex justify-between text-[10px] font-bold text-blue-600 uppercase">Estimasi Depresiasi / Bln:</div>
+              <div class="flex justify-between text-[10px] font-bold text-blue-600 uppercase">Estimasi Depresiasi / Bln:
+              </div>
               <div class="text-lg font-black text-blue-700" id="calcDepresiasi">Rp 0</div>
             </div>
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition active:scale-95">
+            <button type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition active:scale-95">
               Simpan Aset & Hitung Jurnal
             </button>
           </form>
         </div>
       </div>
+    </div>
 
-      <div class="lg:col-span-2">
-        <div class="card overflow-hidden">
-          <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-            <h2 class="font-bold text-slate-700">Daftar Aktiva & Nilai Buku</h2>
-            <div class="text-[10px] px-2 py-1 bg-green-100 text-green-700 rounded font-bold uppercase">Real-time Depreciation</div>
-          </div>
-          <div class="flex justify-end mb-2 px-4">
-            <button onclick="postBulananDepresiasi()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition">
-              <i class="fas fa-sync-alt mr-2"></i> Posting Depresiasi Bulan Ini
-            </button>
-          </div>
-          <div class="flex justify-end px-4 py-2">
-            <button onclick="downloadLaporanAsetPDF()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition flex items-center gap-2">
-              <i class="fas fa-file-pdf"></i> Cetak Laporan PDF
-            </button>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-              <thead class="bg-slate-100 text-slate-600">
-                <tr>
-                  <th class="px-4 py-3">Aktiva</th>
-                  <th class="px-4 py-3 text-right">Perolehan</th>
-                  <th class="px-4 py-3 text-center">Umur</th>
-                  <th class="px-4 py-3 text-right">Akm. Penyusutan</th>
-                  <th class="px-4 py-3 text-right text-blue-600">Nilai Buku</th>
-                  <th class="px-4 py-3 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="assetTableBody" class="divide-y">
-                </tbody>
-            </table>
-          </div>
+
+    <!-- VIEW: LIST TABLE -->
+    <div id="view-list" class="hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <button onclick="switchApp('menu')"
+          class="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold transition">
+          <i class="fas fa-arrow-left"></i> Kembali ke Menu
+        </button>
+        <div class="flex gap-2">
+          <button onclick="postBulananDepresiasi()"
+            class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition">
+            <i class="fas fa-sync-alt mr-2"></i> Posting Depresiasi Bulan Ini
+          </button>
+          <button onclick="downloadLaporanAsetPDF()"
+            class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition flex items-center gap-2">
+            <i class="fas fa-file-pdf"></i> PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="card overflow-hidden">
+        <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+          <h2 class="font-bold text-slate-700">Daftar Aktiva & Nilai Buku</h2>
+          <div class="text-[10px] px-2 py-1 bg-green-100 text-green-700 rounded font-bold uppercase">Real-time
+            Depreciation</div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-600">
+              <tr>
+                <th class="px-4 py-3">Aktiva</th>
+                <th class="px-4 py-3 text-right">Perolehan</th>
+                <th class="px-4 py-3 text-center">Umur</th>
+                <th class="px-4 py-3 text-right">Akm. Penyusutan</th>
+                <th class="px-4 py-3 text-right text-blue-600">Nilai Buku</th>
+                <th class="px-4 py-3 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="assetTableBody" class="divide-y">
+              <!-- Dinamis -->
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-    </main>
-    <button onclick="downloadLaporanAsetPDF()" class="bg-red-600 hover:bg-red-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition transform hover:scale-110 active:scale-90 fixed bottom-10 right-10 z-[100]" title="Cetak Laporan PDF">
-      <i class="fas fa-file-pdf fa-lg"></i>
-    </button>
+
+  </main>
+
 
   <script>
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -161,6 +264,14 @@
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
     const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
     const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // --- NAVIGATION ---
+    function switchApp(viewName) {
+      ['view-menu', 'view-overview', 'view-list', 'view-form'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      document.getElementById(`view-${viewName}`).classList.remove('hidden');
+    }
 
     // Database Simulasi (Nanti hubungkan ke Supabase)
     let assets = [];
@@ -179,14 +290,14 @@
       assets = data || [];
       const today = new Date();
       let totalPerolehan = 0, totalPenyusutan = 0, totalNilaiBuku = 0, totalDeprBulan = 0;
-      
+
       const tbody = document.getElementById('assetTableBody');
       tbody.innerHTML = '';
 
       assets.forEach(asset => {
         const tglPerolehan = new Date(asset.tgl_perolehan);
         const selisihBulan = (today.getFullYear() - tglPerolehan.getFullYear()) * 12 + (today.getMonth() - tglPerolehan.getMonth());
-        
+
         const deprPerBulan = asset.nilai_perolehan / (asset.umur_ekonomis * 12);
         let akmPenyusutan = Math.min(asset.nilai_perolehan, Math.max(0, selisihBulan * deprPerBulan));
         const nilaiBuku = asset.nilai_perolehan - akmPenyusutan;
@@ -274,9 +385,9 @@
     }
 
     // Simpan Data
-    document.getElementById('assetForm').addEventListener('submit', async function(e) {
+    document.getElementById('assetForm').addEventListener('submit', async function (e) {
       e.preventDefault();
-      
+
       const nama = document.getElementById('nama').value;
       const nilai = parseFloat(document.getElementById('nilai_perolehan').value);
       const tgl = document.getElementById('tgl_perolehan').value;
@@ -300,21 +411,21 @@
 
       const refJurnal = `AST-${Date.now()}`;
       const jurnalPayload = [
-        { 
-          tanggal: tgl, 
-          nomor_referensi: refJurnal, 
-          keterangan: `Perolehan Aset: ${nama}`, 
-          nama_akun: 'Aktiva Tetap', 
-          debit: nilai, 
-          kredit: 0 
+        {
+          tanggal: tgl,
+          nomor_referensi: refJurnal,
+          keterangan: `Perolehan Aset: ${nama}`,
+          nama_akun: 'Aktiva Tetap',
+          debit: nilai,
+          kredit: 0
         },
-        { 
-          tanggal: tgl, 
-          nomor_referensi: refJurnal, 
-          keterangan: `Perolehan Aset: ${nama}`, 
-          nama_akun: 'Kas/Bank', 
-          debit: 0, 
-          kredit: nilai 
+        {
+          tanggal: tgl,
+          nomor_referensi: refJurnal,
+          keterangan: `Perolehan Aset: ${nama}`,
+          nama_akun: 'Kas/Bank',
+          debit: 0,
+          kredit: nilai
         }
       ];
 
@@ -331,7 +442,7 @@
     });
 
     async function postBulananDepresiasi() {
-      if(!confirm("Posting beban penyusutan semua aset untuk bulan ini ke Jurnal Umum?")) return;
+      if (!confirm("Posting beban penyusutan semua aset untuk bulan ini ke Jurnal Umum?")) return;
 
       const today = new Date();
       const tglJurnal = today.toISOString().split('T')[0];
@@ -344,32 +455,32 @@
 
       const ref = `DEP-${today.getMonth() + 1}-${today.getFullYear()}`;
       const payload = [
-        { 
-          tanggal: tglJurnal, 
-          nomor_referensi: ref, 
-          keterangan: `Beban Penyusutan Aktiva Tetap Bulanan`, 
-          nama_akun: 'Beban Penyusutan', 
-          debit: totalBeban, 
-          kredit: 0 
+        {
+          tanggal: tglJurnal,
+          nomor_referensi: ref,
+          keterangan: `Beban Penyusutan Aktiva Tetap Bulanan`,
+          nama_akun: 'Beban Penyusutan',
+          debit: totalBeban,
+          kredit: 0
         },
-        { 
-          tanggal: tglJurnal, 
-          nomor_referensi: ref, 
-          keterangan: `Beban Penyusutan Aktiva Tetap Bulanan`, 
-          nama_akun: 'Akumulasi Penyusutan', 
-          debit: 0, 
-          kredit: totalBeban 
+        {
+          tanggal: tglJurnal,
+          nomor_referensi: ref,
+          keterangan: `Beban Penyusutan Aktiva Tetap Bulanan`,
+          nama_akun: 'Akumulasi Penyusutan',
+          debit: 0,
+          kredit: totalBeban
         }
       ];
 
       const { error } = await client.from('jurnal_umum').insert(payload);
-      
-      if(error) alert("Gagal posting: " + error.message);
+
+      if (error) alert("Gagal posting: " + error.message);
       else alert(`✅ Berhasil! Beban penyusutan sebesar ${fmt(totalBeban)} telah dijurnal.`);
     }
 
     async function deleteAsset(id) {
-      if(confirm('Hapus aset ini secara permanen dari database?')) {
+      if (confirm('Hapus aset ini secara permanen dari database?')) {
         const { error } = await client.from('master_aktiva').delete().eq('id', id);
         if (error) alert("Gagal hapus: " + error.message);
         else calculateAccounting();
@@ -436,7 +547,7 @@
 
       let finalY = doc.lastAutoTable.finalY + 20;
       if (finalY > 170) { doc.addPage(); finalY = 20; }
-      
+
       doc.setFont("helvetica", "normal");
       doc.text(`Makassar, ${tglCetak}`, 220, finalY);
       doc.text("Diperiksa Oleh,", 20, finalY + 5);
@@ -446,10 +557,10 @@
       doc.setFont("helvetica", "bold");
       doc.text("( _________________ )", 20, finalY + 25);
       doc.text("Internal Auditor", 20, finalY + 30);
-      
+
       doc.text("( _________________ )", 120, finalY + 25);
       doc.text("Direktur Utama", 120, finalY + 30);
-      
+
       doc.text("( Wahyuni )", 220, finalY + 25);
       doc.text("Finance Manager", 220, finalY + 30);
 
@@ -480,4 +591,5 @@
     calculateAccounting();
   </script>
 </body>
+
 </html>
