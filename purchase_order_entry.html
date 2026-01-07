@@ -73,26 +73,79 @@
     </div>
 
     <div class="max-w-7xl mx-auto bg-white rounded-lg shadow overflow-hidden mb-10 border-l-4 border-blue-600">
-        <div
-            class="p-4 bg-blue-50 border-b border-blue-100 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-2">
-                <h3 class="font-bold text-blue-800"><i class="fas fa-history mr-2"></i>Arsip PO</h3>
+        <div class="p-6 bg-blue-50 border-b border-blue-100">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 text-white p-2 rounded-lg"><i class="fas fa-history text-xl"></i></div>
+                    <div>
+                        <h3 class="font-bold text-blue-900 text-lg">Manajemen Arsip PO</h3>
+                        <p class="text-xs text-blue-600">Pantau status & riwayat penerbitan PO</p>
+                    </div>
+                </div>
+
+                <!-- DATE FILTER (Hidden logic mostly handled by buttons, but kept for Custom Search) -->
+                <div class="flex items-center gap-2 bg-white p-2 rounded-lg shadow-sm border border-blue-100">
+                    <span class="text-xs font-bold text-gray-500"><i
+                            class="far fa-calendar-alt mr-1"></i>Periode:</span>
+                    <input type="date" id="filterMulai"
+                        class="border rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                    <span class="text-xs text-gray-400">s/d</span>
+                    <input type="date" id="filterAkhir"
+                        class="border rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                    <button onclick="cariRiwayat('CUSTOM')"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold transition"
+                        title="Cari berdasarkan tanggal">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
             </div>
 
-            <div class="flex items-center gap-2 bg-white p-2 rounded shadow-sm border">
-                <span class="text-xs font-bold text-gray-500">Periode:</span>
-                <input type="date" id="filterMulai"
-                    class="border rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
-                <span class="text-xs text-gray-400">s/d</span>
-                <input type="date" id="filterAkhir"
-                    class="border rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+            <!-- SUMMARY CARDS / MENU -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Card 1: Menunggu Direksi -->
+                <button onclick="cariRiwayat('WAITING')"
+                    class="bg-white p-4 rounded-xl shadow-sm border border-orange-100 hover:shadow-md transition-all text-left relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition">
+                        <i class="fas fa-user-tie text-4xl text-orange-500"></i>
+                    </div>
+                    <div class="text-xs font-bold text-orange-500 uppercase tracking-wide mb-1">Menunggu Direksi</div>
+                    <div class="text-2xl font-bold text-gray-800" id="count-waiting">-</div>
+                    <div class="text-[10px] text-gray-400 mt-1">Perlu Persetujuan</div>
+                </button>
 
-                <button onclick="cariRiwayat()"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded text-xs font-bold transition flex items-center gap-2">
-                    <i class="fas fa-search"></i> Tampilkan
+                <!-- Card 2: Belum GRN (Approved) -->
+                <button onclick="cariRiwayat('APPROVED')"
+                    class="bg-white p-4 rounded-xl shadow-sm border border-blue-100 hover:shadow-md transition-all text-left relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition">
+                        <i class="fas fa-truck-loading text-4xl text-blue-500"></i>
+                    </div>
+                    <div class="text-xs font-bold text-blue-500 uppercase tracking-wide mb-1">Belum GRN / Terima</div>
+                    <div class="text-2xl font-bold text-gray-800" id="count-approved">-</div>
+                    <div class="text-[10px] text-gray-400 mt-1">PO Disetujui</div>
+                </button>
+
+                <!-- Card 3: Hari Ini -->
+                <button onclick="cariRiwayat('TODAY')"
+                    class="bg-white p-4 rounded-xl shadow-sm border border-green-100 hover:shadow-md transition-all text-left relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition">
+                        <i class="fas fa-calendar-day text-4xl text-green-500"></i>
+                    </div>
+                    <div class="text-xs font-bold text-green-600 uppercase tracking-wide mb-1">Terbit Hari Ini</div>
+                    <div class="text-2xl font-bold text-gray-800" id="count-today">-</div>
+                    <div class="text-[10px] text-gray-400 mt-1">Purchase Order Baru</div>
+                </button>
+
+                <!-- Card 4: Semua Arsip -->
+                <button onclick="cariRiwayat('ALL')"
+                    class="bg-blue-600 p-4 rounded-xl shadow-sm border border-blue-600 hover:bg-blue-700 transition-all text-left relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 p-3 opacity-20 transition">
+                        <i class="fas fa-archive text-4xl text-white"></i>
+                    </div>
+                    <div class="text-xs font-bold text-blue-100 uppercase tracking-wide mb-1">Semua Arsip</div>
+                    <div class="text-2xl font-bold text-white" id="count-total">-</div>
+                    <div class="text-[10px] text-blue-200 mt-1">Total Database</div>
                 </button>
             </div>
-
         </div>
 
         <table class="w-full text-left border-collapse">
@@ -191,8 +244,148 @@
 
             const today = new Date();
             const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            document.getElementById("filterAkhir").value = today.toISOString().split('T')[0];
-            document.getElementById("filterMulai").value = firstDay.toISOString().split('T')[0];
+
+            // Set default date range
+            const strToday = today.toISOString().split('T')[0];
+            const strFirst = firstDay.toISOString().split('T')[0];
+
+            const elAkhir = document.getElementById("filterAkhir");
+            if (elAkhir) elAkhir.value = strToday;
+
+            const elMulai = document.getElementById("filterMulai");
+            if (elMulai) elMulai.value = strFirst;
+
+            // Load Stats & Default View (Hari Ini atau All)
+            loadSummaryStats();
+            cariRiwayat('TODAY'); // Default tampilkan hari ini agar fokus
+        }
+
+        // --- NEW: SUMMARY STATS ---
+        async function loadSummaryStats() {
+            try {
+                // 1. Waiting Approval
+                const { count: countWaiting } = await client.from('purchase_order').select('id', { count: 'exact', head: true }).eq('status', 'WAITING APPROVAL');
+                document.getElementById('count-waiting').innerText = countWaiting || 0;
+
+                // 2. Approved (Belum GRN) - Asumsi Approved = Belum GRN
+                const { count: countApproved } = await client.from('purchase_order').select('id', { count: 'exact', head: true }).eq('status', 'APPROVED');
+                document.getElementById('count-approved').innerText = countApproved || 0;
+
+                // 3. Today
+                const todayStr = new Date().toISOString().split('T')[0];
+                // Note: Filter created_at >= today 00:00
+                const { count: countToday } = await client.from('purchase_order').select('id', { count: 'exact', head: true }).gte('created_at', todayStr + 'T00:00:00');
+                document.getElementById('count-today').innerText = countToday || 0;
+
+                // 4. Total All
+                const { count: countTotal } = await client.from('purchase_order').select('id', { count: 'exact', head: true });
+                document.getElementById('count-total').innerText = countTotal || 0;
+
+            } catch (error) {
+                console.error("Gagal load stats:", error);
+            }
+        }
+
+        // --- NEW: CARI RIWAYAT (Replaces missing function) ---
+        async function cariRiwayat(filterType = 'CUSTOM') {
+            const tbody = document.getElementById("tabelRiwayat");
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i><div class="mt-2 text-gray-500">Memuat data...</div></td></tr>`;
+
+            try {
+                let query = client.from('purchase_order').select('*').order('created_at', { ascending: false });
+
+                // Apply Filters
+                if (filterType === 'WAITING') {
+                    query = query.eq('status', 'WAITING APPROVAL');
+                } else if (filterType === 'APPROVED') {
+                    query = query.eq('status', 'APPROVED');
+                } else if (filterType === 'TODAY') {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    query = query.gte('created_at', todayStr + 'T00:00:00');
+                } else if (filterType === 'CUSTOM') {
+                    const m = document.getElementById("filterMulai").value;
+                    const a = document.getElementById("filterAkhir").value;
+                    if (m && a) {
+                        // Tambahkan waktu agar mencakup seluruh hari akhir
+                        query = query.gte('created_at', m + 'T00:00:00').lte('created_at', a + 'T23:59:59');
+                    }
+                }
+                // 'ALL' resets filter (just fetch latest limits maybe? or all)
+
+                // Limit to 50 for performance if ALL
+                if (filterType === 'ALL') {
+                    query = query.limit(50);
+                }
+
+                const { data, error } = await query;
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Tidak ada data PO ditemukan.</td></tr>`;
+                    return;
+                }
+
+                // Group items by PO Number if necessary? 
+                // Table design seems to show 1 row per PO based on "Jml Item" column in HTML
+                // But data structure is 1 row per item.
+                // WE NEED TO GROUP BY 'nomor_po'.
+
+                const groupedPO = {};
+                data.forEach(item => {
+                    if (!groupedPO[item.nomor_po]) {
+                        groupedPO[item.nomor_po] = {
+                            ...item,
+                            items: [],
+                            total_items: 0,
+                            grand_total: 0
+                        };
+                    }
+                    groupedPO[item.nomor_po].items.push(item);
+                    groupedPO[item.nomor_po].total_items += 1;
+                    // Assuming 'total_harga' is per item row
+                    groupedPO[item.nomor_po].grand_total += (Number(item.total_harga) || 0);
+                });
+
+                const listPO = Object.values(groupedPO);
+
+                // Render
+                tbody.innerHTML = listPO.map(po => {
+                    const statusColor = po.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
+                        po.status === 'WAITING APPROVAL' ? 'bg-orange-100 text-orange-700' :
+                            po.status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700';
+
+                    const statusLabel = po.status === 'WAITING APPROVAL' ? 'MENUNGGU DIREKSI' : po.status;
+
+                    return `
+                    <tr class="hover:bg-gray-50 border-b transition">
+                        <td class="p-4">
+                            <div class="font-bold text-gray-800">${po.nomor_po}</div>
+                            <div class="text-xs text-gray-500">${new Date(po.created_at).toLocaleDateString('id-ID')}</div>
+                        </td>
+                        <td class="p-4 text-gray-700 font-medium">${po.nama_vendor}</td>
+                        <td class="p-4 text-center">
+                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">${po.total_items} Item</span>
+                        </td>
+                        <td class="p-4 text-right font-mono font-bold text-gray-800">
+                            ${fmt(po.grand_total)}
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="${statusColor} px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">${statusLabel}</span>
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="fetchDetailAndPrint('${po.nomor_po}', event)" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded shadow text-xs font-bold transition flex items-center justify-center gap-1 mx-auto">
+                                <i class="fas fa-print"></i> Cetak PO
+                            </button>
+                            <button onclick="hapusPO('${po.nomor_po}')" class="text-red-400 hover:text-red-600 mt-2 text-[10px] underline">Hapus</button>
+                        </td>
+                    </tr>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500">Gagal memuat: ${err.message}</td></tr>`;
+            }
         }
 
         // 1. LOAD DATA
@@ -437,11 +630,31 @@
                 const { vendor, jatuhTempo, items, total } = formData;
                 const staffName = document.getElementById('bstaff-0')?.value || 'Finance Staff'; // Ambil dari item pertama
 
-                // 1. Generate Nomor PO Unik
+                // 1. Generate Nomor PO Unik (Sequential)
                 const now = new Date();
                 const year = now.getFullYear();
                 const month = (now.getMonth() + 1).toString().padStart(2, '0');
-                const noPO = `PO/NLD/${year}/${month}/${Math.floor(Math.random() * 9000) + 1000}`;
+                const prefix = `PO/NLD/${year}/${month}/`;
+
+                // Cek nomor PO terakhir bulan ini
+                const { data: lastPO } = await client
+                    .from('purchase_order')
+                    .select('nomor_po')
+                    .like('nomor_po', `${prefix}%`)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                let sequence = 1;
+                if (lastPO && lastPO.length > 0) {
+                    const lastNo = lastPO[0].nomor_po; // Ex: PO/NLD/2025/01/0002
+                    const parts = lastNo.split('/');
+                    const lastSeq = parseInt(parts[4]); // Ambil bagian angka
+                    if (!isNaN(lastSeq)) {
+                        sequence = lastSeq + 1;
+                    }
+                }
+
+                const noPO = `${prefix}${String(sequence).padStart(4, '0')}`;
 
                 // 2. Siapkan data untuk tabel purchase_order
                 const poStatus = isApprovalNeeded ? 'WAITING APPROVAL' : 'APPROVED';
@@ -657,176 +870,71 @@
             }
         }
 
-        function renderActionButtons(item) {
-            if (item.status === 'WAITING APPROVAL') {
-                return `<span class="text-orange-500 font-bold italic text-xs"><i class="fas fa-clock"></i> Menunggu Persetujuan...</span>`;
-            }
+        // --- FUNGSI HAPUS PO (BATCH) ---
+        window.hapusPO = async function (nomorPO) {
+            if (!confirm(`⚠️ PERINGATAN: Menghapus PO ${nomorPO} akan MENGEMBALIKAN status item ke 'Antrian' (PENDING) dan menghapus data PO permanen.\n\nNomor ini mungkin akan digunakan kembali oleh sistem jika urutan di-reset. Lanjutkan?`)) return;
 
-            if (item.status === 'APPROVED' || item.status === 'COMPLETE') {
-                return `
-                <div class="flex gap-2 justify-center">
-                    <button class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs shadow" 
-                        onclick="fetchDetailAndPrint('${item.nomor_po}', event)">
-                        <i class="fas fa-print"></i> Cetak PO
-                    </button>
-                    ${renderDeleteButton(item)}
-                </div>
-            `;
-            }
-
-            if (item.status === 'REJECTED') {
-                return `
-                <div class="flex gap-2 justify-center items-center">
-                    <span class="text-red-500 font-bold text-xs">Ditolak</span>
-                    ${renderDeleteButton(item)}
-                </div>
-            `;
-            }
-
-            // Limit check
-            const isOverLimit = item.grand_total_po > 1000000;
-
-            if (isOverLimit) {
-                return `
-                <div class="flex gap-2 justify-center">
-                    <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs shadow" 
-                         onclick="ajukanKeDirektur(${item.id}, ${item.grand_total_po}, '${item.nomor_po}', '${item.nama_vendor}')">
-                            <i class="fas fa-paper-plane"></i> Ajukan ke Direktur
-                    </button>
-                    ${renderDeleteButton(item)}
-                </div>`;
-            } else {
-                return `
-                <div class="flex gap-2 justify-center">
-                    <button class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs shadow" 
-                        onclick="fetchDetailAndPrint('${item.nomor_po}', event)">
-                        <i class="fas fa-print"></i> Cetak PO
-                    </button>
-                    ${renderDeleteButton(item)}
-                </div>
-            `;
-            }
-        }
-
-        function renderDeleteButton(item) {
-            return `
-            <button class="bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded text-xs" 
-                onclick="hapusPO('${item.nomor_po}')" title="Hapus PO">
-                <i class="fas fa-trash"></i>
-            </button>
-        `;
-        }
-        async function cariRiwayat() {
-            const tglMulai = document.getElementById("filterMulai").value;
-            const tglAkhir = document.getElementById("filterAkhir").value;
-            const tbody = document.getElementById("tabelRiwayat");
-
-            if (!tglMulai || !tglAkhir) { alert("Harap pilih periode tanggal!"); return; }
-
-            tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-blue-500"></i> Mengambil data dari server...</td></tr>`;
-
-            const { data, error } = await client
-                .from('purchase_order')
-                .select('id, nomor_po, created_at, nama_vendor, jatuh_tempo, status, total_harga, req_id')
-                .gte('created_at', `${tglMulai} 00:00:00`)
-                .lte('created_at', `${tglAkhir} 23:59:59`)
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-500">Error: ${error.message}</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = "";
-            if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400 bg-gray-50 italic">Tidak ditemukan PO pada periode ${tglMulai} s/d ${tglAkhir}.</td></tr>`;
-                return;
-            }
-
-            const groups = {};
-            data.forEach(row => {
-                if (!groups[row.nomor_po]) {
-                    groups[row.nomor_po] = {
-                        id: row.id, // Store ID of the first item as a representative ID
-                        tgl: row.created_at,
-                        vendor: row.nama_vendor,
-                        tempo: row.jatuh_tempo,
-                        status: row.status,
-                        grandTotal: 0,
-                        itemsCount: 0
-                    };
-                }
-                groups[row.nomor_po].grandTotal += row.total_harga;
-                groups[row.nomor_po].itemsCount += 1;
-            });
-
-            Object.keys(groups).forEach(noPO => {
-                const g = groups[noPO];
-
-                const itemForButton = {
-                    id: g.id,
-                    grand_total_po: g.grandTotal,
-                    nomor_po: noPO,
-                    nama_vendor: g.vendor,
-                    status: g.status
-                };
-
-                const statusColors = {
-                    'WAITING APPROVAL': 'bg-orange-100 text-orange-700 border-orange-200',
-                    'APPROVED': 'bg-blue-100 text-blue-700 border-blue-200',
-                    'COMPLETE': 'bg-green-100 text-green-700 border-green-200',
-                    'REJECTED': 'bg-red-100 text-red-700 border-red-200',
-                    'DRAFT': 'bg-gray-100 text-gray-700 border-gray-200',
-                };
-                const statusStyle = statusColors[g.status] || 'bg-gray-100 text-gray-700 border-gray-200';
-
-                tbody.innerHTML += `
-                <tr class="hover:bg-blue-50 border-b group transition">
-                    <td class="p-4 font-bold text-gray-800">${noPO} <br> <span class="text-xs text-gray-500 font-normal">${new Date(g.tgl).toLocaleDateString('id-ID')}</span></td>
-                    <td class="p-4 text-gray-700">${g.vendor}</td>
-                    <td class="p-4 text-center"><span class="bg-gray-100 px-2 py-1 rounded text-xs font-bold border">${g.itemsCount} Item</span></td>
-                    <td class="p-4 text-right font-bold font-mono text-green-700">${fmt(g.grandTotal)}</td>
-                    <td class="p-4 text-center"><span class="text-xs font-bold ${statusStyle} px-2 py-1 rounded border">${g.status || 'N/A'}</span></td>
-                    <td class="p-4 text-center">
-                        ${renderActionButtons(itemForButton)}
-                    </td>
-                </tr>`;
-            });
-        }
-
-        async function hapusPO(nomorPO) {
-            if (localStorage.getItem('APP_TEST_MODE') === 'true') {
-                alert("🔒 SIMULATION MODE ON\n\nAksi hapus dibatalkan. Tidak ada data yang akan dihapus dari database.");
-                return;
-            }
-
-            if (!confirm(`⚠️ PERINGATAN KERAS:\n\nAnda akan menghapus ${nomorPO}.\n\nData permintaan barang ini akan DIHAPUS PERMANEN dan TIDAK AKAN KEMBALI ke antrian.\n\nApakah Anda yakin?`)) return;
+            const btn = document.activeElement;
+            const originalText = btn ? btn.innerHTML : 'Hapus';
+            if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
             try {
-                const { data: poItems } = await client.from('purchase_order').select('req_id').eq('nomor_po', nomorPO);
+                // 1. Ambil data PO untuk tahu items apa saja yg terkait
+                const { data: poItems, error: fetchError } = await client
+                    .from('purchase_order')
+                    .select('id, req_id')
+                    .eq('nomor_po', nomorPO);
 
-                if (poItems && poItems.length > 0) {
-                    const reqIds = poItems.map(item => item.req_id).filter(Boolean);
-
-                    const { error: errDeletePO } = await client.from('purchase_order').delete().eq('nomor_po', nomorPO);
-                    if (errDeletePO) throw new Error("Gagal menghapus data PO: " + errDeletePO.message);
-
-                    const { error: errDeleteReq } = await client.from('inventory_req')
-                        .delete()
-                        .in('id', reqIds);
-
-                    if (errDeleteReq) throw new Error("Gagal menghapus data Request: " + errDeleteReq.message);
-                } else {
-                    await client.from('purchase_order').delete().eq('nomor_po', nomorPO);
+                if (fetchError) throw fetchError;
+                if (!poItems || poItems.length === 0) {
+                    alert("Data PO tidak ditemukan atau sudah terhapus.");
+                    if (btn) btn.innerHTML = originalText;
+                    cariRiwayat();
+                    return;
                 }
 
-                alert("✅ PO dan Permintaan Barang terkait telah DIHAPUS PERMANEN.");
-                cariRiwayat();
+                const reqIds = poItems.map(i => i.req_id).filter(id => id);
+                const poIds = poItems.map(i => i.id);
+
+                // 2. Kembalikan status Permintaan Barang jadi 'PENDING'
+                if (reqIds.length > 0) {
+                    const { error: revError } = await client
+                        .from('inventory_req')
+                        .update({ status: 'PENDING' })
+                        .in('id', reqIds);
+                    if (revError) console.warn("Gagal revert status inventory_req:", revError);
+                }
+
+                // 3. Hapus dari Approval Queue (jika ada)
+                const { error: appError } = await client
+                    .from('approval_queue')
+                    .delete()
+                    .eq('source_table', 'purchase_order')
+                    .in('source_id', poIds);
+
+                if (appError) console.warn("Gagal hapus approval queue:", appError);
+
+                // 4. Hapus Fisik Data PO
+                const { error: delError } = await client
+                    .from('purchase_order')
+                    .delete()
+                    .eq('nomor_po', nomorPO);
+
+                if (delError) throw delError;
+
+                alert(`✅ PO ${nomorPO} berhasil dihapus. Item telah dikembalikan ke Antrian Request.`);
+
+                loadSummaryStats();
+                cariRiwayat(document.getElementById('filterMulai').value ? 'CUSTOM' : 'TODAY');
                 loadPendingRequests();
+
             } catch (err) {
-                alert("Terjadi kesalahan: " + err.message);
+                console.error("Gagal hapus PO:", err);
+                alert("Terjadi kesalahan saat menghapus: " + err.message);
+            } finally {
+                if (btn) btn.innerHTML = originalText;
             }
-        }
+        };
 
         async function fetchDetailAndPrint(nomorPO, event) {
             const btn = event?.currentTarget || (event?.target && event.target.closest('button'));
