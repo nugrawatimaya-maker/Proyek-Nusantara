@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>DB Probe</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app_config.js"></script>
+</head>
+
+<body>
+    <h1>DB Probe</h1>
+    <div id="results"></div>
+    <script>
+        const log = (msg) => document.getElementById('results').innerHTML += `<div>${msg}</div>`;
+
+        async function probe() {
+            // Try common names
+            const tables = ['users', 'employees', 'karyawan', 'master_user', 'app_users', 'roles', 'hr_employees'];
+
+            for (const t of tables) {
+                try {
+                    const { data, error } = await client.from(t).select('*').limit(1);
+                    if (error) {
+                        log(`Table '${t}': Error - ${error.message}`);
+                    } else {
+                        log(`Table '${t}': FOUND! Data: ${JSON.stringify(data)}`);
+                    }
+                } catch (e) {
+                    log(`Table '${t}': Exception - ${e.message}`);
+                }
+            }
+
+            // Test Select 'hr_employees' to see columns
+            try {
+                const { data, error } = await client.from('hr_employees').select('*').limit(1);
+                if (error) log(`Select 'hr_employees': Error - ${error.message}`);
+                else if (data.length > 0) {
+                    log(`Select 'hr_employees': Columns found - ${Object.keys(data[0]).join(', ')}`);
+                } else {
+                    log(`Select 'hr_employees': Table empty, trying to insert dummy to see if it accepts 'transport'`);
+                    // Try insert with transport
+                    const dummy = { nama: 'Test Col', gaji_pokok: 0, transport: 1 };
+                    const { error: errIns } = await client.from('hr_employees').insert([dummy]);
+                    if (errIns && errIns.message.includes('column "transport" of relation "hr_employees" does not exist')) {
+                        log("Column 'transport' DOES NOT EXIST");
+                    } else {
+                        log("Column 'transport' MIGHT EXIST or Insert failed for other reason: " + (errIns ? errIns.message : 'Success'));
+                    }
+                }
+            } catch (e) {
+                log(`Select 'hr_employees': Exception - ${e.message}`);
+            }
+
+            // Test Insert into 'employees'
+            try {
+                const dummy = { full_name: 'Test Probe', role: 'hr', access_code: '999999' };
+                const { data, error } = await client.from('employees').insert([dummy]).select();
+                if (error) log(`Insert 'employees': Error - ${error.message}`);
+                else {
+                    log(`Insert 'employees': SUCCESS! id=${data[0]?.id}`);
+                    // Cleanup
+                    await client.from('employees').delete().eq('id', data[0].id);
+                }
+            } catch (e) {
+                log(`Insert 'employees': Exception - ${e.message}`);
+            }
+        }
+        probe();
+    </script>
+</body>
+
+</html>

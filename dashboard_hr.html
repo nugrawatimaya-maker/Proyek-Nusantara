@@ -218,6 +218,7 @@
         <div class="bg-white p-6 rounded-lg w-96 shadow-xl">
             <h2 class="text-lg font-bold mb-4 text-teal-800">Data Pegawai Baru</h2>
             <form id="formPegawai" class="space-y-3">
+                <input type="hidden" id="editId" value="">
                 <input type="text" id="namaEmp" placeholder="Nama Lengkap" class="w-full border p-2 rounded" required>
                 <input type="text" id="jabatanEmp" placeholder="Jabatan" class="w-full border p-2 rounded" required>
                 <select id="divisiEmp" class="w-full border p-2 rounded bg-white">
@@ -233,6 +234,7 @@
                     <input type="number" id="tunjanganEmp" placeholder="Tunjangan" class="w-full border p-2 rounded"
                         value="0">
                 </div>
+
                 <div class="flex justify-end gap-2 mt-4">
                     <button type="button" onclick="document.getElementById('modalAdd').classList.add('hidden')"
                         class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Batal</button>
@@ -244,9 +246,7 @@
     </div>
 
     <script>
-        const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-        const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
-        const client = supabase.createClient(supabaseUrl, supabaseKey);
+        // Gunakan window.client dari app_config.js
         const formatRupiah = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(n);
 
         // --- NAVIGATION ---
@@ -267,31 +267,76 @@
         }
 
         // --- 1. PEGAWAI LOGIC ---
-        function modalPegawai() { document.getElementById('modalAdd').classList.remove('hidden'); }
+        function modalPegawai(data = null) {
+            document.getElementById('modalAdd').classList.remove('hidden');
+            document.getElementById('formPegawai').reset();
+            document.getElementById('editId').value = "";
+
+            const title = document.querySelector('#modalAdd h2');
+            const submitBtn = document.querySelector('#formPegawai button[type="submit"]');
+
+            if (data) {
+                title.innerText = "Edit Data Pegawai";
+                submitBtn.innerText = "Update";
+
+                document.getElementById('editId').value = data.id;
+                document.getElementById('namaEmp').value = data.nama;
+                document.getElementById('jabatanEmp').value = data.jabatan;
+                document.getElementById('divisiEmp').value = data.divisi;
+                document.getElementById('gajiEmp').value = data.gaji_pokok;
+                document.getElementById('tunjanganEmp').value = data.tunjangan;
+            } else {
+                title.innerText = "Data Pegawai Baru";
+                submitBtn.innerText = "Simpan";
+            }
+        }
 
         document.getElementById('formPegawai').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const payload = {
-                nama: document.getElementById('namaEmp').value,
-                jabatan: document.getElementById('jabatanEmp').value,
-                divisi: document.getElementById('divisiEmp').value,
-                gaji_pokok: document.getElementById('gajiEmp').value,
-                tunjangan: document.getElementById('tunjanganEmp').value,
-                status_karyawan: 'AKTIF',
-                tanggal_masuk: new Date()
-            };
-            const { error } = await client.from('hr_employees').insert([payload]);
-            if (error) alert(error.message);
-            else {
-                alert('Pegawai tersimpan!');
+
+            const btn = e.submitter;
+            const originalText = btn.innerText;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                const editId = document.getElementById('editId').value;
+                const payload = {
+                    nama: document.getElementById('namaEmp').value,
+                    jabatan: document.getElementById('jabatanEmp').value,
+                    divisi: document.getElementById('divisiEmp').value,
+                    gaji_pokok: document.getElementById('gajiEmp').value || 0,
+                    tunjangan: document.getElementById('tunjanganEmp').value || 0,
+                    status_karyawan: 'AKTIF'
+                };
+
+                if (!editId) {
+                    payload.tanggal_masuk = new Date();
+                    // INSERT
+                    const { error } = await window.client.from('hr_employees').insert([payload]);
+                    if (error) throw error;
+                    alert('Data berhasil disimpan!');
+                } else {
+                    // UPDATE
+                    const { error } = await window.client.from('hr_employees').update(payload).eq('id', editId);
+                    if (error) throw error;
+                    alert('Data berhasil diperbarui!');
+                }
+
                 document.getElementById('modalAdd').classList.add('hidden');
                 document.getElementById('formPegawai').reset();
                 loadPegawai();
+
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         });
 
         async function loadPegawai() {
-            const { data, error } = await client.from('hr_employees').select('*').order('nama');
+            const { data, error } = await window.client.from('hr_employees').select('*').order('nama');
             const tbody = document.getElementById('listPegawai');
             tbody.innerHTML = '';
 
@@ -309,6 +354,7 @@
                             <span class="text-xs font-bold ${emp.status_karyawan === 'AKTIF' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'} px-2 py-1 rounded">${emp.status_karyawan}</span>
                         </td>
                         <td class="p-4 text-center">
+                            <button onclick='editPegawai(${JSON.stringify(emp)})' class="text-blue-500 hover:text-blue-700 mr-2"><i class="fas fa-edit"></i></button>
                             <button onclick="hapusPegawai(${emp.id})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>
@@ -319,6 +365,12 @@
                 selKPI.innerHTML = '<option value="">-- Pilih Pegawai --</option>';
                 data.forEach(e => selKPI.innerHTML += `<option value="${e.id}">${e.nama}</option>`);
             }
+        }
+
+
+        function editPegawai(dataLine) {
+            // Karena dataLine sudah object (dari JSON.stringify di onClick), bisa langsung dilempar
+            modalPegawai(dataLine);
         }
 
         async function hapusPegawai(id) {
@@ -449,9 +501,73 @@
 
         // --- 4. DASHBOARD STATS ---
         async function loadStats() {
-            const { count: countEmp } = await client.from('hr_employees').select('*', { count: 'exact', head: true });
+            // 1. Total Pegawai
+            const { count: countEmp, data: allEmp } = await client.from('hr_employees').select('divisi', { count: 'exact' });
             document.getElementById('statPegawai').innerText = countEmp || 0;
-            document.getElementById('statAktif').innerText = countEmp || 0;
+            document.getElementById('statAktif').innerText = countEmp || 0; // Sementara sama
+
+            // 2. Payroll Bulan Ini (Ambil periode YYYY-MM sekarang)
+            const date = new Date();
+            const periode = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const { data: payrolls } = await client.from('hr_payroll').select('gaji_bersih').eq('periode', periode);
+
+            let totalPayroll = 0;
+            if (payrolls) payrolls.forEach(p => totalPayroll += p.gaji_bersih);
+            document.getElementById('statPayroll').innerText = formatRupiah(totalPayroll);
+
+            // 3. Rata-rata KPI (Semua waktu atau filter periode tertentu)
+            const { data: kpis } = await client.from('hr_kpi').select('skor');
+            let avgKPI = 0;
+            if (kpis && kpis.length > 0) {
+                const totalSkor = kpis.reduce((acc, curr) => acc + curr.skor, 0);
+                avgKPI = (totalSkor / kpis.length).toFixed(1);
+            }
+            document.getElementById('statKPI').innerText = avgKPI;
+
+            // 4. Render Chart
+            renderChart(allEmp);
+        }
+
+        let chartInstance = null;
+        function renderChart(employees) {
+            const ctx = document.getElementById('chartDivisi').getContext('2d');
+
+            // Group by Divisi
+            const counts = {};
+            employees.forEach(e => {
+                counts[e.divisi] = (counts[e.divisi] || 0) + 1;
+            });
+
+            const labels = Object.keys(counts);
+            const data = Object.values(counts);
+
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#0d9488', // Teal
+                            '#3b82f6', // Blue
+                            '#f59e0b', // Yellow
+                            '#10b981', // Green
+                            '#6366f1', // Indigo
+                            '#ef4444'  // Red
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
         }
 
         // Load initial

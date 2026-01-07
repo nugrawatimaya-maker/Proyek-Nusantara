@@ -8,19 +8,19 @@ const urlParams = new URLSearchParams(window.location.search);
 const urlWantsDev = urlParams.get('mode') === 'dev';
 const storageWantsDev = localStorage.getItem('APP_DEV_MODE') === 'true';
 
-const CURRENT_ENV = (urlWantsDev || storageWantsDev) ? 'DEV' : 'PROD'; 
+const CURRENT_ENV = (urlWantsDev || storageWantsDev) ? 'DEV' : 'PROD';
 
 // 2. DAFTAR KREDENSIAL
 const CONFIG = {
     PROD: {
-        URL: "https://nbpxmramqufvxiikxbve.supabase.co", 
-        KEY: "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN", 
+        URL: "https://nbpxmramqufvxiikxbve.supabase.co",
+        KEY: "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN",
         THEME: "normal"
     },
     DEV: {
-        URL: "https://drpnegmcazqnxmbonhwq.supabase.co", 
+        URL: "https://drpnegmcazqnxmbonhwq.supabase.co",
         // ⚠️ PASTIKAN KEY INI ADALAH 'anon public' KEY YANG PANJANG (JWT) DARI SUPABASE
-        KEY: "sb_publishable_RDhFfphNpQCg4iYStiI8Ug_3PIWUSip", 
+        KEY: "sb_publishable_RDhFfphNpQCg4iYStiI8Ug_3PIWUSip",
         THEME: "warning"
     }
 };
@@ -38,12 +38,16 @@ const activeConfig = CONFIG[CURRENT_ENV];
 console.log(`🔌 Menghubungkan ke Database: ${CURRENT_ENV}`);
 
 // Inisialisasi Koneksi Asli
+// Inisialisasi Koneksi Asli
 const _realClient = supabase.createClient(activeConfig.URL, activeConfig.KEY);
+// Expose ke Global (PENTING AGAR AUTH TERJAGA)
+window.client = _realClient;
+
 
 const fmt = (n) => new Intl.NumberFormat('id-ID', {
-    style:'currency',
-    currency:'IDR',
-    minimumFractionDigits:0
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0
 }).format(n);
 
 // Banner Mode DEV
@@ -78,7 +82,7 @@ console.log("✅ app_config.js Siap. Variable 'client' sudah aktif.");
 // ==========================================
 // 3. GLOBAL UTILITIES
 // ==========================================
-window.catatLog = async function(tipe, pesan, icon = 'fa-info-circle') {
+window.catatLog = async function (tipe, pesan, icon = 'fa-info-circle') {
     let user = "SYSTEM";
     // Coba ambil user dari PNAuth (auth.js) jika sudah diload
     if (typeof PNAuth !== 'undefined' && PNAuth.getSession) {
@@ -96,7 +100,7 @@ window.catatLog = async function(tipe, pesan, icon = 'fa-info-circle') {
             aktivitas: pesan,
             icon: icon
         }]);
-        
+
         if (error) console.error("⚠️ Gagal mencatat log:", error.message);
     } catch (e) {
         console.error("⚠️ Sistem Log Error:", e);
