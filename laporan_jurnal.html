@@ -143,6 +143,17 @@
                     <p class="text-xs text-slate-400 mt-1">Rasio & Kesehatan</p>
                 </div>
 
+                <!-- CARD: SETUP SALDO AWAL -->
+                <div onclick="loadSetupSaldo()"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 bg-white rounded-xl shadow border border-slate-200 transition-all ring-2 ring-slate-100">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-slate-800 text-white flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition shadow-lg">
+                        <i class="fas fa-balance-scale-left"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-800 text-lg">Saldo Awal</h3>
+                    <p class="text-xs text-slate-500 mt-1">Setup Cut-Off Awal</p>
+                </div>
+
             </div>
         </div>
 
@@ -235,6 +246,71 @@
                 </div>
             </div>
         </div>
+
+        <!-- VIEW: SETUP SALDO AWAL -->
+        <div id="view-setup-saldo" class="hidden animate-enter">
+            <button onclick="switchView('menu')"
+                class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition mb-4">
+                <i class="fas fa-arrow-left"></i> Kembali ke Menu
+            </button>
+
+            <div class="bg-white rounded-xl shadow-lg border overflow-hidden">
+                <div class="p-6 border-b bg-slate-50 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-800">Setup Saldo Awal (Cut-Off)</h2>
+                        <p class="text-xs text-slate-500 mt-1">Masukkan saldo awal akun per tanggal cut-off.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-slate-600">Tanggal Cut-Off:</label>
+                        <input type="date" id="tglCutOff" class="border rounded px-2 py-1 text-sm font-bold bg-white">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto max-h-[600px]">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 text-slate-600 sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th class="p-4 w-32">Kode</th>
+                                <th class="p-4">Nama Akun</th>
+                                <th class="p-4 w-48 text-right text-blue-700">Debit</th>
+                                <th class="p-4 w-48 text-right text-red-700">Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodySaldoAwal" class="divide-y divide-gray-100">
+                            <!-- Rows injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer Balance Indicator -->
+                <div
+                    class="p-4 border-t bg-slate-50 font-bold flex justify-between items-center sticky bottom-0 z-20 shadow-inner">
+                    <div class="text-xs text-slate-500">
+                        Total Input: <span id="countInputSaldo">0</span> Akun
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div class="text-right">
+                            <div class="text-[10px] text-blue-600 uppercase">Total Debit</div>
+                            <div class="text-lg text-blue-800" id="totalDebitSaldo">Rp 0</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] text-red-600 uppercase">Total Kredit</div>
+                            <div class="text-lg text-red-800" id="totalKreditSaldo">Rp 0</div>
+                        </div>
+                        <div class="h-10 w-[1px] bg-slate-300"></div>
+                        <div class="flex flex-col items-end">
+                            <div id="balanceStatus" class="flex items-center gap-1 text-green-600">
+                                <i class="fas fa-check-circle"></i> <span>BALANCE</span>
+                            </div>
+                            <button onclick="simpanSaldoAwal()" id="btnSimpanSaldo"
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm shadow-lg transition active:scale-95 mt-1">
+                                <i class="fas fa-save mr-2"></i> Simpan Saldo Awal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <div class="fixed bottom-6 right-6">
@@ -260,7 +336,10 @@
         document.getElementById("tglSelesai").valueAsDate = today;
 
         function switchView(viewName) {
-            ['view-menu', 'view-report'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            ['view-menu', 'view-report', 'view-setup-saldo'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
             document.getElementById(`view-${viewName}`).classList.remove('hidden');
         }
 
@@ -844,6 +923,142 @@
                 s[r.nama_akun].debit += r.debit; s[r.nama_akun].kredit += r.kredit;
             });
             return s;
+        }
+
+        // ==========================================
+        // 3. SETUP SALDO AWAL (NEW)
+        // ==========================================
+        async function loadSetupSaldo() {
+            switchView('setup-saldo');
+            const tbody = document.getElementById("tbodySaldoAwal");
+            tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-blue-500"></i> Memuat Akun...</td></tr>`;
+
+            // Default info
+            const today = new Date();
+            document.getElementById("tglCutOff").valueAsDate = new Date(today.getFullYear(), 0, 1); // 1 Jan This Year default
+
+            const { data, error } = await client.from('master_akun').select('*').order('kode_akun');
+            if (error) {
+                alert("Gagal memuat akun: " + error.message);
+                return;
+            }
+
+            tbody.innerHTML = "";
+            if (data) {
+                data.forEach(akun => {
+                    tbody.innerHTML += `
+                <tr class="hover:bg-slate-50 border-b">
+                    <td class="p-3 font-mono font-bold text-xs text-slate-500">${akun.kode_akun || '-'}</td>
+                    <td class="p-3 font-bold text-slate-700 text-xs">${akun.nama_akun}</td>
+                    <td class="p-2">
+                        <input type="number" class="inp-debit w-full border border-blue-200 rounded px-2 py-1.5 text-right font-mono text-sm focus:ring-1 focus:ring-blue-500 outline-none" 
+                            placeholder="0" oninput="hitungBalanceLive()" data-akun="${akun.nama_akun}">
+                    </td>
+                    <td class="p-2">
+                        <input type="number" class="inp-kredit w-full border border-red-200 rounded px-2 py-1.5 text-right font-mono text-sm focus:ring-1 focus:ring-red-500 outline-none" 
+                            placeholder="0" oninput="hitungBalanceLive()" data-akun="${akun.nama_akun}">
+                    </td>
+                </tr>`;
+                });
+            }
+            hitungBalanceLive();
+        }
+
+        function hitungBalanceLive() {
+            let tD = 0, tK = 0;
+            let count = 0;
+            document.querySelectorAll('.inp-debit').forEach(inp => {
+                const val = parseFloat(inp.value) || 0;
+                tD += val;
+                if (val > 0) count++;
+            });
+            document.querySelectorAll('.inp-kredit').forEach(inp => {
+                const val = parseFloat(inp.value) || 0;
+                tK += val;
+                if (val > 0) count++;
+            });
+
+            document.getElementById("totalDebitSaldo").innerText = fmt(tD);
+            document.getElementById("totalKreditSaldo").innerText = fmt(tK);
+            document.getElementById("countInputSaldo").innerText = count / 2; // Rough estimate, or just count
+
+            const stat = document.getElementById("balanceStatus");
+            const btn = document.getElementById("btnSimpanSaldo");
+
+            if (tD === tK && tD > 0) {
+                stat.innerHTML = `<i class="fas fa-check-circle"></i> <span>BALANCE</span>`;
+                stat.className = "flex items-center gap-1 text-green-600 font-bold bg-green-100 px-3 py-1 rounded-full";
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else if (tD === 0 && tK === 0) {
+                stat.innerHTML = `<span>Siap Input</span>`;
+                stat.className = "text-slate-400 italic text-xs";
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                const diff = Math.abs(tD - tK);
+                stat.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <span>Tidak Balance (Selisih: ${fmt(diff)})</span>`;
+                stat.className = "flex items-center gap-1 text-red-600 font-bold bg-red-100 px-3 py-1 rounded-full text-xs";
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        async function simpanSaldoAwal() {
+            const btn = document.getElementById("btnSimpanSaldo");
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...`;
+
+            try {
+                const tgl = document.getElementById("tglCutOff").value;
+                if (!tgl) throw new Error("Pilih tanggal Cut-Off terlebih dahulu!");
+
+                // Kumpulkan Data
+                const rows = [];
+                const debits = document.querySelectorAll('.inp-debit');
+                const kredits = document.querySelectorAll('.inp-kredit');
+
+                for (let i = 0; i < debits.length; i++) {
+                    const d = parseFloat(debits[i].value) || 0;
+                    const k = parseFloat(kredits[i].value) || 0;
+                    const akun = debits[i].getAttribute('data-akun');
+
+                    if (d > 0 || k > 0) {
+                        rows.push({
+                            tanggal: tgl,
+                            nama_akun: akun,
+                            keterangan: `Saldo Awal (Cut-Off: ${tgl})`,
+                            debit: d,
+                            kredit: k,
+                            nomor_referensi: 'SALDO_AWAL'
+                        });
+                    }
+                }
+
+                if (rows.length === 0) throw new Error("Belum ada saldo yang diinput.");
+
+                // OPSIONAL: Hapus saldo awal lama di tanggal yang sama? 
+                // Untuk keamanan, kita append saja dulu, biarkan user hapus manual jika duplikat
+                // Atau hapus by nomor_referensi
+
+                const { error } = await client.from('jurnal_umum').insert(rows);
+
+                if (error) throw error;
+
+                alert("✅ Saldo Awal berhasil disimpan!");
+                // Clear inputs?
+                debits.forEach(i => i.value = '');
+                kredits.forEach(i => i.value = '');
+                hitungBalanceLive();
+                switchView('menu');
+
+            } catch (err) {
+                alert("❌ Gagal: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
         }
     </script>
 </body>

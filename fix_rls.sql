@@ -16,6 +16,6 @@ WITH CHECK (true);
 -- 4. Enable RLS (Pastikan RLS aktif, meskipun policy sudah dibuat)
 ALTER TABLE "public"."activity_logs" ENABLE ROW LEVEL SECURITY;
 
--- 5. (Opsional) Policy untuk SELECT/READ (Biar bisa dilihat di halaman Log)
--- Biasanya public tidak boleh baca sembarangan, tapi untuk admin panel internal bisa di-set:
--- CREATE POLICY "Izinkan Read Authenticated" ON "public"."activity_logs" FOR SELECT TO authenticated USING (true);
+-- 5. Policy untuk SELECT (PENTING: Agar bisa dibaca di dashboard Log)
+-- Menggunakan TO public karena auth.js menggunakan client anonim
+CREATE POLICY "Izinkan Select Semua User" ON "public"."activity_logs" FOR SELECT TO public USING (true);
