@@ -254,7 +254,7 @@
                     return;
                 }
 
-                tbody.innerHTML = data.map(item => {
+                tbody.innerHTML = combinedData.map(item => {
                     const requesterName = item.requester || 'Anonim';
                     const requesterInitial = requesterName.charAt(0).toUpperCase();
 
