@@ -6,6 +6,7 @@
     <title>Gudang - Penerimaan Barang (GRN)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app_config.js"></script>
+    <script src="auth.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -117,6 +118,15 @@
             `;
                 alertBox.classList.remove("hidden");
 
+                // --- NEW: FETCH MASTER STOK MAP UNTUK FALLBACK ID NULL ---
+                const { data: allStok } = await client.from('master_stok').select('id, nama_barang').eq('nama_proyek', activeProject);
+                const stokMap = {};
+                if (allStok) {
+                    allStok.forEach(s => {
+                        stokMap[s.nama_barang] = s.id;
+                    });
+                }
+
                 Object.keys(groupedPO).forEach(nomorPO => {
                     const items = groupedPO[nomorPO];
                     const sanitizedNomorPO = nomorPO.replace(/[^a-zA-Z0-9_-]/g, "_") || "po-group";
@@ -150,8 +160,13 @@
 
                     items.forEach(po => {
                         const req = po.inventory_req;
-                        const bId = po.barang_id;
+                        let bId = po.barang_id;
                         const safeName = (req?.nama_barang || 'Material').replace(/'/g, "\\'");
+
+                        // FALLBACK: JIKA ID NULL, CARI DI MAP
+                        if (!bId && req?.nama_barang && stokMap[req.nama_barang]) {
+                            bId = stokMap[req.nama_barang];
+                        }
 
                         groupHTML += `
                         <div id="row-${po.id}" data-po="${escapedNomorPO}" data-group-id="${sanitizedNomorPO}" data-barang-id="${bId}" class="p-4 transition duration-200 rounded-lg border border-transparent hover:bg-gray-50 item-row">
@@ -159,7 +174,7 @@
                                 <div class="md:w-1/3 w-full">
                                     <h3 class="font-bold text-gray-800">${req?.nama_barang || 'Material'}</h3>
                                     <div class="text-xs text-gray-500 mt-1 flex gap-2">
-                                        <span class="bg-gray-200 px-2 py-0.5 rounded">ID: ${bId}</span>
+                                        <span class="bg-gray-200 px-2 py-0.5 rounded">ID: ${bId || '<span class="text-red-500">NULL</span>'}</span>
                                         <span class="text-blue-600 font-bold">Order: ${req?.jumlah || 0} ${req?.satuan || ''}</span>
                                     </div>
                                     <input type="hidden" id="estimasi-${po.id}" value="${po.harga_satuan}">
@@ -402,11 +417,27 @@
                     const qty = Number(row.getAttribute("data-final-qty"));
                     const harga = Number(row.getAttribute("data-final-price"));
 
-                    const { data: poItem, error: errPO } = await client.from('purchase_order').select('barang_id').eq('id', poId).single();
+                    const { data: poItem, error: errPO } = await client.from('purchase_order').select('barang_id, inventory_req(nama_barang)').eq('id', poId).single();
                     if (errPO || !poItem) throw new Error(`Data PO (ID: ${poId}) tidak ditemukan di database.`);
-                    if (!poItem.barang_id) throw new Error(`CRITICAL: PO (ID: ${poId}) tidak memiliki 'barang_id'. Stok tidak bisa diupdate.`);
 
-                    const bId = poItem.barang_id;
+                    // --- REPAIR LOGIC: JIKA BARANG_ID NULL ---
+                    let bId = poItem.barang_id;
+                    if (!bId) {
+                        // Coba cari manual
+                        const namaBarang = poItem.inventory_req?.nama_barang;
+                        if (namaBarang) {
+                            const { data: stokCek } = await client.from('master_stok').select('id').eq('nama_proyek', activeProject).eq('nama_barang', namaBarang).single();
+                            if (stokCek) {
+                                bId = stokCek.id;
+                                // Auto-Fix PO
+                                await client.from('purchase_order').update({ barang_id: bId }).eq('id', poId);
+                                console.log(`Auto-fixed barang_id for PO ${poId} -> ${bId}`);
+                            }
+                        }
+                    }
+
+                    if (!bId) throw new Error(`CRITICAL: PO (ID: ${poId}) tidak memiliki 'barang_id' dan gagal dicari otomatis. Hubungi Admin.`);
+
                     const { data: stokItem, error: errStok } = await client.from('master_stok').select('total_stok').eq('id', bId).single();
                     if (errStok || !stokItem) throw new Error(`Data Master Stok (ID Barang: ${bId}) tidak ditemukan.`);
 
