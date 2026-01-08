@@ -194,13 +194,22 @@
                     .eq('jenis_transaksi', 'PENGAJUAN') // Filter pending expense
                     .order('tanggal', { ascending: false });
 
-                const [resQueue, resTrans] = await Promise.all([p1, p2]);
+                // --- 3. Fetch from 'transaksi_upah' (Upah Tukang - Pending Direksi) ---
+                const p3 = client
+                    .from('transaksi_upah')
+                    .select('id, kavling, nama_pekerjaan, nilai_bayar, tanggal_bayar, status')
+                    .eq('status', 'PENDING_DIREKSI')
+                    .order('tanggal_bayar', { ascending: false });
+
+                const [resQueue, resTrans, resUpah] = await Promise.all([p1, p2, p3]);
 
                 if (resQueue.error) throw resQueue.error;
                 if (resTrans.error) throw resTrans.error;
+                if (resUpah.error) throw resUpah.error;
 
                 const dataQueue = resQueue.data || [];
                 const dataTrans = resTrans.data || [];
+                const dataUpah = resUpah.data || [];
 
                 // --- 3. Normalize & Merge Data ---
                 // Map 'transaksi' items to look like 'approval_queue' items
@@ -229,7 +238,23 @@
                     };
                 });
 
-                const combinedData = [...dataQueue, ...mappedTrans];
+                // Map 'transaksi_upah' items
+                const mappedUpah = dataUpah.map(u => {
+                    return {
+                        id: u.id,
+                        source_table: 'transaksi_upah',
+                        source_id: u.id,
+                        title: `Upah Tukang - ${u.kavling}`,
+                        description: u.nama_pekerjaan,
+                        amount: u.nilai_bayar,
+                        requester: "Teknik / Lapangan",
+                        created_at: u.tanggal_bayar || new Date().toISOString(),
+                        status: 'PENDING_DIREKSI',
+                        is_transaksi: false
+                    };
+                });
+
+                const combinedData = [...dataQueue, ...mappedTrans, ...mappedUpah];
 
                 // Sort by date desc
                 combinedData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -508,8 +533,14 @@
 
             try {
                 // Fetch info untuk Logging
-                const { data: queueItem } = await client.from('approval_queue').select('title, requester').eq('id', queueId).single();
-                const titleCtx = queueItem?.title || 'Pengajuan';
+                let titleCtx = 'Pengajuan';
+                if (sourceTable === 'transaksi_upah') {
+                    const { data: upahItem } = await client.from('transaksi_upah').select('nama_pekerjaan').eq('id', queueId).single();
+                    titleCtx = upahItem?.nama_pekerjaan || 'Upah Tukang';
+                } else {
+                    const { data: queueItem } = await client.from('approval_queue').select('title').eq('id', queueId).single();
+                    titleCtx = queueItem?.title || 'Pengajuan';
+                }
 
                 // --- LOGIC: REJECTION ---
                 if (action === 'REJECTED') {
@@ -522,6 +553,13 @@
 
                         const { error } = await client
                             .from('approval_queue')
+                            .update({ status: 'REJECTED' })
+                            .eq('id', queueId);
+                        if (error) throw error;
+                    } else if (sourceTable === 'transaksi_upah') {
+                        // REJECT Upah Tukang -> Status REJECTED
+                        const { error } = await client
+                            .from('transaksi_upah')
                             .update({ status: 'REJECTED' })
                             .eq('id', queueId);
                         if (error) throw error;
@@ -556,6 +594,13 @@
                         // Update Queue
                         const { error: errQueue } = await client.from('approval_queue').update({ status: 'APPROVED' }).eq('id', queueId);
                         if (errQueue) throw errQueue;
+                    } else if (sourceTable === 'transaksi_upah') {
+                        // Approve Upah Tukang -> Status 'LUNAS'
+                        const { error } = await client
+                            .from('transaksi_upah')
+                            .update({ status: 'LUNAS' })
+                            .eq('id', queueId);
+                        if (error) throw error;
                     } else {
                         await approveGeneric(queueId, sourceTable, sourceId);
                     }

@@ -448,11 +448,14 @@
             if (listBayar.length === 0) return alert("⚠️ Belum ada item yang disetujui (VALID) oleh Team Teknik.");
 
             const totalUang = listBayar.reduce((sum, i) => sum + i.nilai_bayar, 0);
-            const pesan = `🏢 KONFIRMASI MANAJEMEN\n\nSiap mencairkan dana untuk ${listBayar.length} item?\nTotal: ${fmt(totalUang)}\n\nPastikan Berita Acara (BA) Fisik sudah ditandatangani Direktur.`;
+            const pesan = `🏢 KONFIRMASI MANAJEMEN\n\nSiap memproses ${listBayar.length} item?\nTotal: ${fmt(totalUang)}\n\nData akan masuk ke Antrian Approval Direksi.`;
 
             if (!confirm(pesan)) return;
 
             try {
+                // UPDATE: Ubah status menjadi PENDING_DIREKSI (bukan LUNAS)
+                listBayar.forEach(x => x.status = 'PENDING_DIREKSI');
+
                 const { error: errInsert } = await client.from('transaksi_upah').insert(listBayar);
                 if (errInsert) throw errInsert;
 
@@ -460,7 +463,7 @@
                 if (errDel) throw errDel;
 
                 generateBAFinal(listBayar, []);
-                alert("✅ PEMBAYARAN SUKSES! Data dipindahkan ke History Lunas.");
+                alert("✅ PROSES BERHASIL! Data dikirim untuk Approval Direksi.");
                 renderPembayaranGlobal();
             } catch (e) {
                 alert("Gagal Eksekusi: " + e.message);
@@ -544,7 +547,7 @@
             thead.innerHTML = `<tr><th class="th-excel w-12 text-center">No</th><th class="th-excel text-left">Uraian Pekerjaan</th><th class="th-excel w-16 text-center">Bobot</th><th class="th-excel w-32 text-right">Nilai</th><th class="th-excel w-32 text-center">Aksi</th></tr>`;
 
             const { data: peng } = await client.from('pengajuan_upah').select('*').eq('kavling', activeProyek);
-            const { data: trans } = await client.from('transaksi_upah').select('nama_pekerjaan').eq('kavling', activeProyek);
+            const { data: trans } = await client.from('transaksi_upah').select('nama_pekerjaan, status').eq('kavling', activeProyek);
 
             let sMap = {};
 
@@ -564,7 +567,8 @@
             if (trans) {
                 trans.forEach(t => {
                     const cleanName = t.nama_pekerjaan.split(' (')[0];
-                    sMap[cleanName] = 'LUNAS';
+                    // Check status dari transaksi (LUNAS / PENDING_DIREKSI / REJECTED)
+                    sMap[cleanName] = t.status || 'LUNAS';
                 });
             }
 
@@ -588,6 +592,9 @@
                     if (st === 'LUNAS') {
                         btn = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-check-circle"></i> LUNAS</span>`;
                         rowClass = "border-b bg-green-50/50";
+                    } else if (st === 'PENDING_DIREKSI') {
+                        btn = `<span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-user-tie"></i> TUNGGU DIREKSI</span>`;
+                        rowClass = "border-b bg-purple-50/50";
                     } else if (st === 'DIAJUKAN') {
                         btn = `<span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-hourglass-half"></i> MENUNGGU</span>`;
                         rowClass = "border-b bg-amber-50/50";
@@ -599,7 +606,7 @@
                         if (st === 'REJECTED') {
                             label = "AJUKAN ULANG";
                             btnColor = "bg-rose-600 hover:bg-rose-700";
-                            extraInfo = `<div class="text-[9px] text-red-500 font-bold mt-1"><i class="fas fa-exclamation-triangle"></i> Pernah ditolak/void</div>`;
+                            extraInfo = `<div class="text-[9px] text-red-500 font-bold mt-1"><i class="fas fa-exclamation-triangle"></i> Ditolak Direksi</div>`;
                         }
 
                         btn = `
