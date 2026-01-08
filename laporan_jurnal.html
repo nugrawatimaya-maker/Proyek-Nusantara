@@ -335,6 +335,15 @@
         document.getElementById("tglMulai").valueAsDate = new Date(today.getFullYear(), today.getMonth(), 1);
         document.getElementById("tglSelesai").valueAsDate = today;
 
+        // CHECK URL PARAMS for Actions
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            if (action === 'setup') {
+                loadSetupSaldo();
+            }
+        });
+
         function switchView(viewName) {
             ['view-menu', 'view-report', 'view-setup-saldo'].forEach(id => {
                 const el = document.getElementById(id);
@@ -1006,9 +1015,13 @@
 
         async function simpanSaldoAwal() {
             const btn = document.getElementById("btnSimpanSaldo");
+
+            // KONFIRMASI STANDAR AKUNTANSI
+            if (!confirm("⚠️ KONFIRMASI POSTING JURNAL\n\nAnda akan memposting Saldo Awal ke Buku Besar / Jurnal Umum.\n\nPastikan:\n1. Tanggal Cut-Off sudah benar.\n2. Total Debit & Kredit sudah BALANCE.\n\nLanjutkan Posting?")) return;
+
             const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Menyimpan...`;
+            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Memposting...`;
 
             try {
                 const tgl = document.getElementById("tglCutOff").value;
@@ -1031,7 +1044,7 @@
                             keterangan: `Saldo Awal (Cut-Off: ${tgl})`,
                             debit: d,
                             kredit: k,
-                            nomor_referensi: 'SALDO_AWAL'
+                            nomor_referensi: 'OPENING_BALANCE' // Ubah jadi istilah standar
                         });
                     }
                 }
@@ -1046,7 +1059,7 @@
 
                 if (error) throw error;
 
-                alert("✅ Saldo Awal berhasil disimpan!");
+                alert("✅ POSTING SUKSES!\n\nSaldo Awal telah tercatat di Jurnal Umum & Buku Besar.");
                 // Clear inputs?
                 debits.forEach(i => i.value = '');
                 kredits.forEach(i => i.value = '');

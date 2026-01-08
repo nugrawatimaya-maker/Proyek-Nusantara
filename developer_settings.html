@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Settings - NLD</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Restrict Access: Only Superadmin & Direksi
+        PNAuth.requireAuth(['superadmin', 'direksi']);
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .dev-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .dev-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .dev-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: #cbd5e1;
+        }
+
+        .dev-card.active {
+            border-color: #22c55e;
+            background: #f0fdf4;
+        }
+
+        .dev-card.active .dev-icon {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .dev-card.danger:hover {
+            border-color: #fecaca;
+            background: #fef2f2;
+        }
+
+        .dev-card.danger .dev-icon {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .dev-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: #f1f5f9;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+        }
+
+        .dev-card:hover .dev-icon {
+            transform: scale(1.1);
+        }
+
+        .dev-label {
+            font-weight: 700;
+            color: #334155;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .dev-desc {
+            font-size: 12px;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        .dev-status {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #cbd5e1;
+        }
+
+        .dev-card.active .dev-status {
+            background: #22c55e;
+            box-shadow: 0 0 0 4px #dcfce7;
+        }
+    </style>
+</head>
+
+<body class="p-8 max-w-5xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-10">
+        <div>
+            <h1 class="text-3xl font-black text-slate-800 flex items-center gap-3">
+                <i class="fas fa-toolbox text-indigo-600"></i> Developer Control
+            </h1>
+            <p class="text-slate-500 mt-2 font-medium">System Environment & Debug Tools</p>
+        </div>
+        <a href="index.html" class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition">
+            <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+        </a>
+    </div>
+
+    <!-- Grid Menu -->
+    <div class="dev-grid">
+
+        <!-- 1. DEV MODE -->
+        <div class="dev-card" id="card-dev" onclick="toggleCard('dev')">
+            <div class="dev-status"></div>
+            <div class="dev-icon">
+                <i class="fas fa-database"></i>
+            </div>
+            <div class="dev-label">Dev Mode</div>
+            <div class="dev-desc">Gunakan Database Development (DEV). Jika OFF, menggunakan Production (PROD).</div>
+            <input type="checkbox" id="toggleDevMode" class="hidden">
+        </div>
+
+        <!-- 2. GLOBAL SIMULATION -->
+        <div class="dev-card" id="card-test" onclick="toggleCard('test')">
+            <div class="dev-status"></div>
+            <div class="dev-icon">
+                <i class="fas fa-vial"></i>
+            </div>
+            <div class="dev-label">Simulation</div>
+            <div class="dev-desc">Blokir semua operasi SIMPAN ke database. Aman untuk demo/testing.</div>
+            <input type="checkbox" id="toggleGlobalTest" class="hidden">
+        </div>
+
+        <!-- 3. BYPASS AUTH -->
+        <div class="dev-card" id="card-auth" onclick="toggleCard('auth')">
+            <div class="dev-status"></div>
+            <div class="dev-icon">
+                <i class="fas fa-user-secret"></i>
+            </div>
+            <div class="dev-label">God Mode</div>
+            <div class="dev-desc">Bypass Login & Auth checks pada halaman dashboard.</div>
+            <input type="checkbox" id="toggleBypassAuth" class="hidden">
+        </div>
+
+        <!-- 4. DEBUG MODE -->
+        <div class="dev-card" id="card-debug" onclick="toggleCard('debug')">
+            <div class="dev-status"></div>
+            <div class="dev-icon">
+                <i class="fas fa-bug"></i>
+            </div>
+            <div class="dev-label">Debug Logs</div>
+            <div class="dev-desc">Tampilkan detail error teknis di Console Browser.</div>
+            <input type="checkbox" id="toggleDebug" class="hidden">
+        </div>
+
+        <!-- 5. WORKFLOW HEALTH -->
+        <div class="dev-card" onclick="window.location.href='workflow_diagnostics.html?v=1'">
+            <div class="dev-icon" style="background: #fff1f2; color: #be123c;">
+                <i class="fas fa-stethoscope"></i>
+            </div>
+            <div class="dev-label">Workflow Health</div>
+            <div class="dev-desc">Deteksi & perbaiki data sistem (PO Stuck, Stok, dll).</div>
+        </div>
+
+        <!-- 6. FIX PO STATUS (Shortcut) -->
+        <div class="dev-card" onclick="window.location.href='workflow_diagnostics.html?mod=po&v=1'">
+            <div class="dev-icon" style="background: #eff6ff; color: #3b82f6;">
+                <i class="fas fa-wrench"></i>
+            </div>
+            <div class="dev-label">Fix PO Status</div>
+            <div class="dev-desc">Shortcut: Langsung ke menu perbaikan PO.</div>
+        </div>
+
+        <!-- 6. ACTIVITY LOG -->
+        <div class="dev-card" onclick="window.open('activity_log.html', '_blank')">
+            <div class="dev-icon" style="background: #f5f3ff; color: #8b5cf6;">
+                <i class="fas fa-history"></i>
+            </div>
+            <div class="dev-label">Activity Log</div>
+            <div class="dev-desc">Lihat catatan aktivitas user di seluruh sistem.</div>
+        </div>
+
+        <!-- 7. RESET CACHE (DANGER) -->
+        <div class="dev-card danger" onclick="resetAppCache()">
+            <div class="dev-icon">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+            <div class="dev-label text-red-600">Reset System</div>
+            <div class="dev-desc">Hapus Cache, LocalStorage & Sesi Login. Reset total browser state.</div>
+        </div>
+
+    </div>
+
+    <!-- Validasi Simpan -->
+    <div class="mt-10 border-t pt-6 flex justify-end">
+        <button onclick="simpanPengaturan()"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition transform active:scale-95 flex items-center gap-2">
+            <i class="fas fa-save"></i> Simpan Konfigurasi & Restart
+        </button>
+    </div>
+
+    <script>
+        // --- LOGIC ---
+
+        function toggleCard(type) {
+            const card = document.getElementById(`card-${type}`);
+            const map = {
+                'dev': 'toggleDevMode',
+                'test': 'toggleGlobalTest',
+                'auth': 'toggleBypassAuth',
+                'debug': 'toggleDebug'
+            };
+            const chk = document.getElementById(map[type]);
+            if (chk) {
+                chk.checked = !chk.checked;
+                updateCardVisual(card, chk.checked);
+            }
+        }
+
+        function updateCardVisual(card, isChecked) {
+            if (isChecked) card.classList.add('active');
+            else card.classList.remove('active');
+        }
+
+        function loadSettings() {
+            const settings = [
+                { key: 'APP_DEV_MODE', id: 'toggleDevMode', cardId: 'card-dev' },
+                { key: 'APP_TEST_MODE', id: 'toggleGlobalTest', cardId: 'card-test' },
+                { key: 'APP_BYPASS_AUTH', id: 'toggleBypassAuth', cardId: 'card-auth' },
+                { key: 'APP_DEBUG_MODE', id: 'toggleDebug', cardId: 'card-debug' }
+            ];
+
+            settings.forEach(s => {
+                const isTrue = localStorage.getItem(s.key) === 'true';
+                document.getElementById(s.id).checked = isTrue;
+                updateCardVisual(document.getElementById(s.cardId), isTrue);
+            });
+        }
+
+        function simpanPengaturan() {
+            const isDev = document.getElementById('toggleDevMode').checked;
+            const isTest = document.getElementById('toggleGlobalTest').checked;
+            const isBypass = document.getElementById('toggleBypassAuth').checked;
+            const isDebug = document.getElementById('toggleDebug').checked;
+
+            localStorage.setItem('APP_DEV_MODE', isDev);
+            localStorage.setItem('APP_TEST_MODE', isTest);
+            localStorage.setItem('APP_BYPASS_AUTH', isBypass);
+            localStorage.setItem('APP_DEBUG_MODE', isDebug);
+
+            alert(`✅ Konfigurasi Tersimpan!\n\nPerubahan akan aktif setelah restart.`);
+            window.location.href = 'index.html'; // Balik ke index setelah save
+        }
+
+        function resetAppCache() {
+            if (confirm("⚠️ BAHAYA: Ini akan menghapus semua data tersimpan di browser.\n\nLanjutkan?")) {
+                localStorage.clear();
+                sessionStorage.clear();
+                alert("✅ Cache Bersih. Anda akan diarahkan ke login page.");
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', loadSettings);
+    </script>
+</body>
+
+</html>

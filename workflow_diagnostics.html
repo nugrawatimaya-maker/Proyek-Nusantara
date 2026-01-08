@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Diagnostics - NLD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+
+    <script>
+        // Check Auth using existing auth.js logic
+        // Only Superadmin/Direksi allowed
+        PNAuth.requireAuth(['superadmin', 'direksi']);
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+        }
+
+        .module-card {
+            transition: all 0.2s;
+        }
+
+        .module-card:hover {
+            transform: translateY(-2px);
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+
+<body class="p-6 max-w-6xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-2xl font-black text-slate-800 flex items-center gap-3">
+                <i class="fas fa-stethoscope text-pink-600"></i> Workflow Diagnostics
+            </h1>
+            <p class="text-slate-500 text-sm mt-1">System Health Check & Data Integrity Tools</p>
+        </div>
+        <a href="developer_settings.html"
+            class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition text-sm">
+            <i class="fas fa-arrow-left"></i> Kembali
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+
+        <!-- SIDEBAR MODULE LIST -->
+        <div class="space-y-4">
+            <div class="bg-white rounded-xl shadow-sm p-4 border border-slate-200">
+                <h3 class="font-bold text-slate-700 mb-3 text-xs uppercase tracking-wider text-gray-400">Modules</h3>
+
+                <button onclick="switchModule('overview')" id="btn-mod-overview"
+                    class="w-full text-left p-3 rounded-lg hover:bg-slate-50 text-slate-600 font-medium flex items-center gap-3 transition">
+                    <div class="w-8 h-8 rounded bg-teal-100 flex items-center justify-center text-teal-600"><i
+                            class="fas fa-map-signs py-1"></i></div>
+                    System Overview
+                </button>
+
+                <button onclick="switchModule('po')" id="btn-mod-po"
+                    class="w-full text-left p-3 rounded-lg bg-blue-50 text-blue-700 font-bold flex items-center gap-3 border border-blue-100 mb-2">
+                    <div class="w-8 h-8 rounded bg-blue-200 flex items-center justify-center"><i
+                            class="fas fa-file-invoice py-1"></i></div>
+                    Purchase Order
+                </button>
+
+                <button onclick="switchModule('stock')" id="btn-mod-stock"
+                    class="w-full text-left p-3 rounded-lg hover:bg-slate-50 text-slate-600 font-medium flex items-center gap-3 transition">
+                    <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center"><i
+                            class="fas fa-boxes py-1"></i></div>
+                    Inventory Stock
+                    <span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-400 ml-auto">Soon</span>
+                </button>
+
+                <button onclick="switchModule('journal')" id="btn-mod-journal"
+                    class="w-full text-left p-3 rounded-lg hover:bg-slate-50 text-slate-600 font-medium flex items-center gap-3 transition">
+                    <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center"><i
+                            class="fas fa-book py-1"></i></div>
+                    Accounting Journal
+                    <span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-400 ml-auto">Soon</span>
+                </button>
+            </div>
+
+            <div class="bg-blue-900 rounded-xl p-5 text-white">
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-info-circle mt-1 text-blue-300"></i>
+                    <p class="text-xs leading-relaxed text-blue-100">
+                        Gunakan tool ini jika user melaporkan data yang "nyangkut" atau tidak sinkron antar dashboard.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="md:col-span-3">
+
+            <!-- MODULE: OVERVIEW -->
+            <div id="mod-overview"
+                class="hidden bg-white rounded-xl shadow-sm border border-slate-200 min-h-[500px] p-6">
+                <h2 class="font-bold text-lg text-slate-800 mb-4 border-b pb-2">System Workflow Map</h2>
+                <div
+                    class="mermaid flex justify-center bg-slate-50 p-6 rounded-lg border border-slate-100 overflow-x-auto">
+                    graph TD
+                    A[User / Lapangan] -->|Request Stok| B(Verifikasi Logistik)
+                    B --> C{Stok Cukup?}
+                    C -->|Ya| D[Ambil Barang / Out]
+                    D --> E[Update Stok -]
+                    C -->|Tidak| F[Buat Purchase Order]
+                    F --> G{Approval Direksi}
+                    G -->|Reject| H[PO Ditolak / Revisi]
+                    G -->|Approve| I[PO Approved]
+                    I --> J[Pembelian Vendor]
+                    J --> K[Barang Datang / In]
+                    K --> L[Update Stok +]
+
+                    style A fill:#f9f,stroke:#333,stroke-width:2px
+                    style G fill:#ffd700,stroke:#333,stroke-width:2px
+                    style I fill:#90ee90,stroke:#333,stroke-width:2px
+                    style L fill:#90ee90,stroke:#333,stroke-width:2px
+                </div>
+                <div class="mt-6 text-sm text-slate-500">
+                    <p><strong>Keterangan:</strong></p>
+                    <ul class="list-disc pl-5 space-y-1 mt-2">
+                        <li><strong>Request Stok:</strong> Dilakukan via Dashboard Operasional / Request Material.</li>
+                        <li><strong>PO Approval:</strong> Dilakukan oleh Direksi/Superadmin via Dashboard Direksi.</li>
+                        <li><strong>PO Approved:</strong> Setelah approve, user Finance/Logistik memproses ke Vendor.
+                        </li>
+                        <li><strong>Update Stok:</strong> Otomatis terjadi saat pencatatan "Barang Masuk" atau approved
+                            request "Barang Keluar".</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- MODULE: PURCHASE ORDER -->
+            <div id="mod-po" class="bg-white rounded-xl shadow-sm border border-slate-200 min-h-[500px]">
+                <div class="p-6 border-b flex justify-between items-center bg-slate-50 rounded-t-xl">
+                    <div>
+                        <h2 class="font-bold text-lg text-slate-800">Purchase Order Synchronization</h2>
+                        <p class="text-sm text-slate-500">Detect POs approved by Direksi but stuck in 'WAITING' status.
+                        </p>
+                    </div>
+                    <button onclick="runPOCheck()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-bold shadow-lg shadow-blue-200 transition active:scale-95 flex items-center gap-2">
+                        <i class="fas fa-search-plus"></i> Scan Issues
+                    </button>
+                </div>
+
+                <div class="p-6" id="po-results-area">
+                    <div class="text-center py-20 text-slate-400">
+                        <i class="fas fa-robot text-6xl mb-4 text-slate-200"></i>
+                        <p>Siap untuk memindai data sistem.</p>
+                        <p class="text-sm mt-2">Klik tombol "Scan Issues" di pojok kanan atas.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULE: STOCK (Placeholder) -->
+            <div id="mod-stock"
+                class="hidden bg-white rounded-xl shadow-sm border border-slate-200 min-h-[500px] flex items-center justify-center">
+                <div class="text-center">
+                    <i class="fas fa-hard-hat text-4xl text-slate-300 mb-4"></i>
+                    <h3 class="font-bold text-slate-600">Module Under Construction</h3>
+                </div>
+            </div>
+
+            <!-- MODULE: JOURNAL (Placeholder) -->
+            <div id="mod-journal"
+                class="hidden bg-white rounded-xl shadow-sm border border-slate-200 min-h-[500px] flex items-center justify-center">
+                <div class="text-center">
+                    <i class="fas fa-hard-hat text-4xl text-slate-300 mb-4"></i>
+                    <h3 class="font-bold text-slate-600">Module Under Construction</h3>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- UI LOGIC ---
+        function switchModule(modId) {
+            // Hide all
+            document.getElementById('mod-overview').classList.add('hidden');
+            document.getElementById('mod-po').classList.add('hidden');
+            document.getElementById('mod-stock').classList.add('hidden');
+            document.getElementById('mod-journal').classList.add('hidden');
+
+            // Reset Sidebar Buttons
+            const btns = document.querySelectorAll('[id^="btn-mod-"]');
+            btns.forEach(b => {
+                b.className = "w-full text-left p-3 rounded-lg hover:bg-slate-50 text-slate-600 font-medium flex items-center gap-3 transition";
+                const iconDiv = b.querySelector('div');
+                // Reset icon generic style
+                if (b.id !== 'btn-mod-overview') iconDiv.className = "w-8 h-8 rounded bg-slate-100 flex items-center justify-center";
+                if (b.id === 'btn-mod-overview') {
+                    iconDiv.className = "w-8 h-8 rounded bg-teal-100 flex items-center justify-center text-teal-600";
+                    b.classList.remove('bg-teal-50', 'text-teal-700', 'border-teal-100');
+                }
+            });
+
+            // Show Selected
+            document.getElementById(`mod-${modId}`).classList.remove('hidden');
+
+            // Highlight Button
+            const activeBtn = document.getElementById(`btn-mod-${modId}`);
+            if (modId === 'overview') {
+                activeBtn.className = "w-full text-left p-3 rounded-lg bg-teal-50 text-teal-700 font-bold flex items-center gap-3 border border-teal-100 mb-2 shadow-sm";
+            } else {
+                activeBtn.className = "w-full text-left p-3 rounded-lg bg-blue-50 text-blue-700 font-bold flex items-center gap-3 border border-blue-100 mb-2 shadow-sm";
+                activeBtn.querySelector('div').className = "w-8 h-8 rounded bg-blue-200 flex items-center justify-center";
+            }
+        }
+
+        // Init Mermaid & URL Params
+        document.addEventListener('DOMContentLoaded', () => {
+            mermaid.initialize({ startOnLoad: true });
+
+            // Auto-open module from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const mod = urlParams.get('mod');
+            if (mod && ['overview', 'po', 'stock', 'journal'].includes(mod)) {
+                switchModule(mod);
+            } else {
+                switchModule('overview'); // Default
+            }
+        });
+
+        // --- PO LOGIC (Ported from fix_po_status.html) ---
+        async function runPOCheck() {
+            const container = document.getElementById('po-results-area');
+            container.innerHTML = `
+                <div class="text-center py-10">
+                    <i class="fas fa-spinner fa-spin text-3xl text-blue-600 mb-3"></i>
+                    <p class="text-slate-600 font-medium">Memindai database...</p>
+                    <p class="text-xs text-slate-400">Mengecek tabel purchase_order vs approval_queue</p>
+                </div>
+            `;
+
+            try {
+                // 1. Get all APPROVED approval requests for purchase_order
+                const { data: approvedQueue, error: errQueue } = await client
+                    .from('approval_queue')
+                    .select('id, source_id, title, status, created_at')
+                    .eq('source_table', 'purchase_order')
+                    .eq('status', 'APPROVED');
+
+                if (errQueue) throw errQueue;
+
+                if (!approvedQueue || approvedQueue.length === 0) {
+                    container.innerHTML = renderEmptyState("Tidak ada riwayat approval PO yang ditemukan.");
+                    return;
+                }
+
+                // 2. Check actual PO status for these items
+                let stuckList = [];
+
+                for (const q of approvedQueue) {
+                    // source_id -> PO Item ID. We need nomor_po to check the whole Group.
+                    const { data: poItem } = await client
+                        .from('purchase_order')
+                        .select('nomor_po, status, project_name')
+                        .eq('id', q.source_id)
+                        .single();
+
+                    if (poItem) {
+                        // Check if ANY item with this nomor_po is still WAITING APPROVAL
+                        const { data: checkStuck } = await client
+                            .from('purchase_order')
+                            .select('id')
+                            .eq('nomor_po', poItem.nomor_po)
+                            .neq('status', 'APPROVED')
+                            .limit(1);
+
+                        if (checkStuck && checkStuck.length > 0) {
+                            // Prevent duplicates in list logic if multiple items approved same PO
+                            const exists = stuckList.find(x => x.nomor_po === poItem.nomor_po);
+                            if (!exists) {
+                                stuckList.push({
+                                    nomor_po: poItem.nomor_po,
+                                    date: new Date(q.created_at).toLocaleDateString((navigator.language || 'id-ID')),
+                                    project: poItem.project_name
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // RENDER RESULTS
+                if (stuckList.length === 0) {
+                    container.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-16 text-center">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-600 text-2xl">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-800">Sistem Sehat!</h3>
+                            <p class="text-slate-500 max-w-md mt-2">Semua PO yang disetujui Direksi statusnya sudah sinkron menjadi APPROVED.</p>
+                        </div>
+                    `;
+                } else {
+                    let html = `
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6 flex items-start gap-3 animate-pulse">
+                            <i class="fas fa-exclamation-triangle text-orange-500 mt-1"></i>
+                            <div>
+                                <strong class="text-orange-800">Ditemukan ${stuckList.length} PO Bermasalah</strong>
+                                <p class="text-sm text-orange-700">User tidak bisa melihat PO ini di menu "Approved" karena statusnya macet.</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                    `;
+
+                    stuckList.forEach(item => {
+                        html += `
+                            <div class="bg-white border rounded-lg p-4 flex justify-between items-center shadow-sm hover:shadow-md transition">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 bg-slate-100 rounded flex items-center justify-center text-slate-500">
+                                        <i class="fas fa-file-invoice"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-slate-800">${item.nomor_po}</div>
+                                        <div class="text-xs text-slate-500">Queue Date: ${item.date} • Project: ${item.project || '-'}</div>
+                                    </div>
+                                </div>
+                                <button onclick="fixPO('${item.nomor_po}', this)" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2">
+                                    <i class="fas fa-sync-alt"></i> Sync Status
+                                </button>
+                            </div>
+                        `;
+                    });
+
+                    html += `</div>`;
+                    container.innerHTML = html;
+                }
+
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `<div class="p-4 bg-red-50 text-red-700 border border-red-200 rounded flex items-center gap-2"><i class="fas fa-times-circle"></i> Error: ${err.message}</div>`;
+            }
+        }
+
+        async function fixPO(nomorPO, btn) {
+            if (!confirm(`Konfirmasi Perbaikan:\n\nUpdate status ${nomorPO} menjadi APPROVED?`)) return;
+
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                const { error } = await client
+                    .from('purchase_order')
+                    .update({ status: 'APPROVED' })
+                    .eq('nomor_po', nomorPO);
+
+                if (error) throw error;
+
+                // Success State
+                btn.className = "bg-slate-100 text-green-600 px-4 py-2 rounded-lg text-xs font-bold border border-green-200 cursor-default flex items-center gap-2";
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Fixed';
+                btn.removeAttribute('onclick');
+
+            } catch (err) {
+                alert("Gagal: " + err.message);
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function renderEmptyState(msg) {
+            return `<div class="text-center py-20 text-slate-400"><p>${msg}</p></div>`;
+        }
+    </script>
+</body>
+
+</html>

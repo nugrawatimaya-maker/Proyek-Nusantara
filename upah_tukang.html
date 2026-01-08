@@ -1,229 +1,326 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Keuangan Upah Tukang - PT NLD</title>
-  
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app_config.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.default.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-  
-  <style>
-    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-    .th-excel { background-color: #f8fafc; color: #1e293b; font-weight: 800; border-bottom: 2px solid #cbd5e1; text-align: center; padding: 12px; font-size: 0.7rem; text-transform: uppercase; }
-    .td-excel { border-bottom: 1px solid #e2e8f0; padding: 10px 12px; color: #334155; font-size: 0.85rem; }
-    .row-blok-header { background-color: #0f172a; color: white; font-weight: bold; }
-    .tab-btn { flex: 1; padding: 14px; text-align: center; font-weight: 700; border-bottom: 4px solid transparent; color: #94a3b8; cursor: pointer; background: #fff; transition: all 0.2s; }
-    .tab-btn.active-blue { background: #2563eb; color: white; border-bottom-color: #1e40af; }
-    .tab-btn.active-green { background: #16a34a; color: white; border-bottom-color: #15803d; }
-    .tab-btn.active-purple { background: #9333ea; color: white; border-bottom-color: #7e22ce; }
-    #actionBar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-top: 1px solid #cbd5e1; padding: 15px; box-shadow: 0 -10px 15px -3px rgba(0,0,0,0.1); z-index: 50; display: none; justify-content: center; }
-    .row-approved { background-color: #f0fdf4 !important; }
-    .row-rejected { background-color: #fef2f2 !important; }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Keuangan Upah Tukang - PT NLD</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app_config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.default.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        .th-excel {
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-weight: 800;
+            border-bottom: 2px solid #cbd5e1;
+            text-align: center;
+            padding: 12px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .td-excel {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 10px 12px;
+            color: #334155;
+            font-size: 0.85rem;
+        }
+
+        .row-blok-header {
+            background-color: #0f172a;
+            color: white;
+            font-weight: bold;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            font-weight: 700;
+            border-bottom: 4px solid transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            background: #fff;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active-blue {
+            background: #2563eb;
+            color: white;
+            border-bottom-color: #1e40af;
+        }
+
+        .tab-btn.active-green {
+            background: #16a34a;
+            color: white;
+            border-bottom-color: #15803d;
+        }
+
+        .tab-btn.active-purple {
+            background: #9333ea;
+            color: white;
+            border-bottom-color: #7e22ce;
+        }
+
+        #actionBar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: white;
+            border-top: 1px solid #cbd5e1;
+            padding: 15px;
+            box-shadow: 0 -10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 50;
+            display: none;
+            justify-content: center;
+        }
+
+        .row-approved {
+            background-color: #f0fdf4 !important;
+        }
+
+        .row-rejected {
+            background-color: #fef2f2 !important;
+        }
+    </style>
 </head>
+
 <body class="min-h-screen pb-40">
 
-  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 shadow-sm">
-    <div class="max-w-6xl mx-auto flex justify-between items-center">
-        <div class="flex items-center gap-4">
-            <a href="siteplan.html" class="bg-slate-600 text-white p-2 rounded shadow hover:bg-slate-700 transition"><i class="fas fa-map mr-1"></i> Siteplan</a>
-            <h1 class="font-bold text-slate-800 tracking-tight text-lg italic uppercase">Management Upah Tukang</h1>
-        </div>
-        <div id="dropdownContainer" class="w-64">
-            <select id="pilihProyek" class="w-full font-bold"></select>
-        </div>
-    </div>
-  </nav>
-
-  <main class="max-w-6xl mx-auto mt-6 px-4">
-    <div class="flex bg-white rounded-t-xl border border-slate-200 overflow-hidden shadow-sm sticky top-[68px] z-30">
-        <button onclick="setTab('pengajuan')" class="tab-btn active-blue" id="tabPengajuan"><i class="fas fa-hard-hat mr-2"></i>1. Pengajuan</button>
-        <button onclick="setTab('pembayaran')" class="tab-btn" id="tabPembayaran"><i class="fas fa-gavel mr-2"></i>2. Asistensi Rapat</button>
-        <button onclick="setTab('lunas')" class="tab-btn" id="tabLunas"><i class="fas fa-history mr-2"></i>3. History Lunas</button>
-    </div>
-
-    <div id="budgetPanel" class="hidden bg-white border-b border-slate-200 p-4 shadow-sm mb-1">
-        <div id="budgetPanelContent"></div>
-    </div>
-    <div class="bg-white border border-slate-200 rounded-b-xl shadow-lg p-0 min-h-[550px]">
-        <div id="panelFilter" class="hidden p-4 bg-purple-50 border-b border-purple-100 shadow-inner">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                
-                <div class="md:col-span-4">
-                    <label class="text-[10px] font-bold text-purple-800 uppercase mb-1 block">Filter Unit / Kavling</label>
-                    <select id="filterProyekSelect" multiple class="w-full"></select>
-                </div>
-
-                <div class="md:col-span-4">
-                    <label class="text-[10px] font-bold text-purple-800 uppercase mb-1 block">Periode Tanggal Bayar</label>
-                    <div class="flex items-center gap-2">
-                        <input type="date" id="historyStart" class="w-full border border-purple-200 p-2 rounded text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none shadow-sm">
-                        <span class="text-purple-400 font-bold">-</span>
-                        <input type="date" id="historyEnd" class="w-full border border-purple-200 p-2 rounded text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none shadow-sm">
-                    </div>
-                </div>
-
-                <div class="md:col-span-4 flex gap-2">
-                    <button onclick="loadHistoryData()" class="bg-purple-600 hover:bg-purple-700 text-white flex-1 py-2 rounded font-bold shadow transition text-xs flex items-center justify-center gap-2">
-                        <i class="fas fa-filter"></i> TAMPILKAN
-                    </button>
-                    <button onclick="downloadPDFHistory()" class="bg-red-600 hover:bg-red-700 text-white flex-1 py-2 rounded font-bold shadow transition text-xs flex items-center justify-center gap-2">
-                        <i class="fas fa-file-pdf"></i> CETAK LAPORAN
-                    </button>
-                </div>
-
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 px-4 py-3 shadow-sm">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <a href="siteplan.html"
+                    class="bg-slate-600 text-white p-2 rounded shadow hover:bg-slate-700 transition"><i
+                        class="fas fa-map mr-1"></i> Siteplan</a>
+                <h1 class="font-bold text-slate-800 tracking-tight text-lg italic uppercase">Management Upah Tukang</h1>
+            </div>
+            <div id="dropdownContainer" class="w-64">
+                <select id="pilihProyek" class="w-full font-bold"></select>
             </div>
         </div>
+    </nav>
 
-        <div class="overflow-x-auto">
-            <table class="w-full border-collapse">
-                <thead id="tableHead" class="bg-slate-50"></thead>
-                <tbody id="tabelBody"></tbody>
-            </table>
+    <main class="max-w-6xl mx-auto mt-6 px-4">
+        <div
+            class="flex bg-white rounded-t-xl border border-slate-200 overflow-hidden shadow-sm sticky top-[68px] z-30">
+            <button onclick="setTab('pengajuan')" class="tab-btn active-blue" id="tabPengajuan"><i
+                    class="fas fa-hard-hat mr-2"></i>1. Pengajuan</button>
+            <button onclick="setTab('pembayaran')" class="tab-btn" id="tabPembayaran"><i
+                    class="fas fa-gavel mr-2"></i>2. Asistensi Rapat</button>
+            <button onclick="setTab('lunas')" class="tab-btn" id="tabLunas"><i class="fas fa-history mr-2"></i>3.
+                History Lunas</button>
+        </div>
+
+        <div id="budgetPanel" class="hidden bg-white border-b border-slate-200 p-4 shadow-sm mb-1">
+            <div id="budgetPanelContent"></div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-b-xl shadow-lg p-0 min-h-[550px]">
+            <div id="panelFilter" class="hidden p-4 bg-purple-50 border-b border-purple-100 shadow-inner">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+
+                    <div class="md:col-span-4">
+                        <label class="text-[10px] font-bold text-purple-800 uppercase mb-1 block">Filter Unit /
+                            Kavling</label>
+                        <select id="filterProyekSelect" multiple class="w-full"></select>
+                    </div>
+
+                    <div class="md:col-span-4">
+                        <label class="text-[10px] font-bold text-purple-800 uppercase mb-1 block">Periode Tanggal
+                            Bayar</label>
+                        <div class="flex items-center gap-2">
+                            <input type="date" id="historyStart"
+                                class="w-full border border-purple-200 p-2 rounded text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none shadow-sm">
+                            <span class="text-purple-400 font-bold">-</span>
+                            <input type="date" id="historyEnd"
+                                class="w-full border border-purple-200 p-2 rounded text-xs font-bold focus:ring-2 focus:ring-purple-500 outline-none shadow-sm">
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-4 flex gap-2">
+                        <button onclick="loadHistoryData()"
+                            class="bg-purple-600 hover:bg-purple-700 text-white flex-1 py-2 rounded font-bold shadow transition text-xs flex items-center justify-center gap-2">
+                            <i class="fas fa-filter"></i> TAMPILKAN
+                        </button>
+                        <button onclick="downloadPDFHistory()"
+                            class="bg-red-600 hover:bg-red-700 text-white flex-1 py-2 rounded font-bold shadow transition text-xs flex items-center justify-center gap-2">
+                            <i class="fas fa-file-pdf"></i> CETAK LAPORAN
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                    <thead id="tableHead" class="bg-slate-50"></thead>
+                    <tbody id="tabelBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="actionBar">
+        <div class="max-w-6xl w-full flex flex-col md:flex-row justify-between items-center px-4 gap-4">
+            <div class="text-center md:text-left">
+                <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Keputusan Rapat
+                    Asistensi</span>
+                <span class="text-2xl font-black text-emerald-600" id="totalBayarLabel">Rp 0</span>
+                <span class="text-xs text-slate-500 font-bold ml-2" id="countBayarLabel">(0 Item Disetujui)</span>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="downloadPDFDaftarAsistensi()"
+                    class="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl hover:bg-blue-700 transition flex items-center gap-3 border-b-4 border-blue-900 uppercase text-xs">
+                    <i class="fas fa-file-invoice"></i> Cetak Daftar Pengajuan
+                </button>
+                <button onclick="prosesBayarMassal()" id="btnBayarMassal"
+                    class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-2xl hover:bg-indigo-700 transition flex items-center gap-3 border-b-4 border-indigo-900 uppercase text-xs">
+                    <i class="fas fa-print"></i> Eksekusi & Cetak BA
+                </button>
+            </div>
         </div>
     </div>
-  </main>
 
-  <div id="actionBar">
-      <div class="max-w-6xl w-full flex flex-col md:flex-row justify-between items-center px-4 gap-4">
-          <div class="text-center md:text-left">
-              <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Keputusan Rapat Asistensi</span>
-              <span class="text-2xl font-black text-emerald-600" id="totalBayarLabel">Rp 0</span>
-              <span class="text-xs text-slate-500 font-bold ml-2" id="countBayarLabel">(0 Item Disetujui)</span>
-          </div>
-          <div class="flex gap-3">
-              <button onclick="downloadPDFDaftarAsistensi()" class="bg-blue-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl hover:bg-blue-700 transition flex items-center gap-3 border-b-4 border-blue-900 uppercase text-xs">
-                  <i class="fas fa-file-invoice"></i> Cetak Daftar Pengajuan
-              </button>
-              <button onclick="prosesBayarMassal()" id="btnBayarMassal" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-2xl hover:bg-indigo-700 transition flex items-center gap-3 border-b-4 border-indigo-900 uppercase text-xs">
-                  <i class="fas fa-print"></i> Eksekusi & Cetak BA
-              </button>
-          </div>
-      </div>
-  </div>
+    <script>
+        let GLOBAL_MASTER_DATA = [];
+        let itemMeta = {};
 
-<script>
-    let GLOBAL_MASTER_DATA = [];
-    let itemMeta = {};
+        async function loadMasterData() {
+            const { data, error } = await client
+                .from('master_pekerjaan')
+                .select('*')
+                .eq('is_active', true)
+                .order('tahap')
+                .order('nama_pekerjaan');
 
-    async function loadMasterData() {
-        const { data, error } = await client
-            .from('master_pekerjaan')
-            .select('*')
-            .eq('is_active', true)
-            .order('tahap')
-            .order('nama_pekerjaan');
-
-        if (error) {
-            console.error("Gagal memuat master pekerjaan:", error);
-            return;
-        }
-
-        const stageMap = new Map();
-        (data || []).forEach(row => {
-            const tahap = Number(row.tahap) || 0;
-            if (!stageMap.has(tahap)) {
-                stageMap.set(tahap, { id: tahap, items: [] });
+            if (error) {
+                console.error("Gagal memuat master pekerjaan:", error);
+                return;
             }
-            stageMap.get(tahap).items.push({
-                n: row.nama_pekerjaan,
-                b: Number(row.bobot) || 0,
-                p: Number(row.harga_borongan) || 0
+
+            const stageMap = new Map();
+            (data || []).forEach(row => {
+                const tahap = Number(row.tahap) || 0;
+                if (!stageMap.has(tahap)) {
+                    stageMap.set(tahap, { id: tahap, items: [] });
+                }
+                stageMap.get(tahap).items.push({
+                    n: row.nama_pekerjaan,
+                    b: Number(row.bobot) || 0,
+                    p: Number(row.harga_borongan) || 0
+                });
             });
+
+            GLOBAL_MASTER_DATA = Array.from(stageMap.values()).sort((a, b) => a.id - b.id);
+            return GLOBAL_MASTER_DATA;
+        }
+
+        let activeProyek = ""; let inboxData = []; let decisionMap = {}; let tomSelectFilter = null;
+        let projectCategoryMap = {};
+        let activeKategori = "Bangunan Rumah";
+        let historyDataCache = [];
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            GLOBAL_MASTER_DATA = await loadMasterData();
+            itemMeta = {};
+            GLOBAL_MASTER_DATA.forEach(g => {
+                g.items.forEach(i => {
+                    itemMeta[i.n] = { grup: g.id, bobot: i.b };
+                });
+            });
+
+            const { data: proyek } = await client.from('master_proyek').select('nama_proyek, kategori').eq('status', 'BERJALAN').order('nama_proyek');
+            if (proyek) {
+                projectCategoryMap = {};
+                proyek.forEach(p => projectCategoryMap[p.nama_proyek] = p.kategori);
+
+                const opt = proyek.map(p => ({ value: p.nama_proyek, text: p.nama_proyek }));
+                new TomSelect("#pilihProyek", {
+                    options: opt,
+                    placeholder: "-- Pilih Kavling --",
+                    onChange: (v) => {
+                        activeProyek = v;
+                        const kat = projectCategoryMap[v] || "Bangunan Rumah";
+                        activeKategori = kat;
+                        renderPengajuanView(kat);
+                    }
+                });
+                const optFilter = [{ value: 'ALL', text: '-- Pilih Semua Kavling --' }, ...opt];
+                tomSelectFilter = new TomSelect("#filterProyekSelect", {
+                    options: optFilter,
+                    plugins: ['remove_button'],
+                    placeholder: "-- Pilih Multiple --",
+                    onChange: (values) => {
+                        if (values.includes('ALL')) {
+                            const allValues = opt.map(o => o.value);
+                            tomSelectFilter.setValue(allValues);
+                        }
+                    }
+                });
+            }
+
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const historyStartEl = document.getElementById("historyStart");
+            const historyEndEl = document.getElementById("historyEnd");
+            if (historyStartEl) historyStartEl.value = firstDay.toISOString().split('T')[0];
+            if (historyEndEl) historyEndEl.value = today.toISOString().split('T')[0];
+
+            setTab('pengajuan');
         });
 
-        GLOBAL_MASTER_DATA = Array.from(stageMap.values()).sort((a, b) => a.id - b.id);
-        return GLOBAL_MASTER_DATA;
-    }
+        function setTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.className = 'tab-btn');
+            const thead = document.getElementById('tableHead');
+            const tbody = document.getElementById('tabelBody');
+            const actionBar = document.getElementById('actionBar');
+            const panelFilter = document.getElementById('panelFilter');
 
-    let activeProyek = ""; let inboxData = []; let decisionMap = {}; let tomSelectFilter = null;
-    let projectCategoryMap = {};
-    let activeKategori = "Bangunan Rumah";
-    let historyDataCache = [];
-
-    document.addEventListener("DOMContentLoaded", async () => {
-        GLOBAL_MASTER_DATA = await loadMasterData();
-        itemMeta = {};
-        GLOBAL_MASTER_DATA.forEach(g => {
-            g.items.forEach(i => {
-                itemMeta[i.n] = { grup: g.id, bobot: i.b };
-            });
-        });
-
-        const { data: proyek } = await client.from('master_proyek').select('nama_proyek, kategori').eq('status','BERJALAN').order('nama_proyek');
-        if (proyek) {
-            projectCategoryMap = {};
-            proyek.forEach(p => projectCategoryMap[p.nama_proyek] = p.kategori);
-
-            const opt = proyek.map(p => ({ value: p.nama_proyek, text: p.nama_proyek }));
-            new TomSelect("#pilihProyek", { 
-                options: opt, 
-                placeholder: "-- Pilih Kavling --", 
-                onChange: (v) => { 
-                    activeProyek = v; 
-                    const kat = projectCategoryMap[v] || "Bangunan Rumah";
-                    activeKategori = kat;
-                    renderPengajuanView(kat); 
-                } 
-            });
-            tomSelectFilter = new TomSelect("#filterProyekSelect", { options: opt, plugins: ['remove_button'], placeholder: "-- Pilih Multiple --" });
+            if (tab === 'pengajuan') {
+                document.getElementById('tabPengajuan').className = 'tab-btn active-blue';
+                panelFilter.classList.add('hidden'); actionBar.style.display = 'none';
+                thead.innerHTML = `<tr><th class="th-excel w-12 text-center">No</th><th class="th-excel text-left">Uraian Pekerjaan</th><th class="th-excel w-16 text-center">Bobot</th><th class="th-excel w-32 text-right">Nilai</th><th class="th-excel w-32 text-center">Aksi</th></tr>`;
+                renderPengajuanView(activeKategori);
+            } else if (tab === 'pembayaran') {
+                document.getElementById('tabPembayaran').className = 'tab-btn active-green';
+                panelFilter.classList.add('hidden'); actionBar.style.display = 'flex';
+                thead.innerHTML = `<tr><th class="th-excel w-12 text-center">Unit</th><th class="th-excel text-left">Pekerjaan</th><th class="th-excel w-20 text-center">Bobot</th><th class="th-excel w-32 text-right">Nilai</th><th class="th-excel w-32 text-center">Tgl Bayar</th><th class="th-excel w-44 text-center">KEPUTUSAN RAPAT</th></tr>`;
+                renderPembayaranGlobal();
+            } else {
+                document.getElementById('tabLunas').className = 'tab-btn active-purple';
+                panelFilter.classList.remove('hidden'); actionBar.style.display = 'none';
+                thead.innerHTML = `<tr><th class="th-excel">Proyek</th><th class="th-excel">Tgl Cair</th><th class="th-excel">Tahap</th><th class="th-excel">Pekerjaan</th><th class="th-excel">Bobot</th><th class="th-excel text-right">Total Cair</th><th class="th-excel text-center">Void</th></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center italic">Gunakan filter untuk history.</td></tr>`;
+            }
         }
 
-        const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        const historyStartEl = document.getElementById("historyStart");
-        const historyEndEl = document.getElementById("historyEnd");
-        if (historyStartEl) historyStartEl.value = firstDay.toISOString().split('T')[0];
-        if (historyEndEl) historyEndEl.value = today.toISOString().split('T')[0];
-
-        setTab('pengajuan');
-    });
-
-    function setTab(tab) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.className = 'tab-btn');
-        const thead = document.getElementById('tableHead');
-        const tbody = document.getElementById('tabelBody');
-        const actionBar = document.getElementById('actionBar');
-        const panelFilter = document.getElementById('panelFilter');
-
-        if(tab === 'pengajuan') {
-            document.getElementById('tabPengajuan').className = 'tab-btn active-blue';
-            panelFilter.classList.add('hidden'); actionBar.style.display = 'none';
-            thead.innerHTML = `<tr><th class="th-excel w-12 text-center">No</th><th class="th-excel text-left">Uraian Pekerjaan</th><th class="th-excel w-16 text-center">Bobot</th><th class="th-excel w-32 text-right">Nilai</th><th class="th-excel w-32 text-center">Aksi</th></tr>`;
-            renderPengajuanView(activeKategori);
-        } else if(tab === 'pembayaran') {
-            document.getElementById('tabPembayaran').className = 'tab-btn active-green';
-            panelFilter.classList.add('hidden'); actionBar.style.display = 'flex';
-            thead.innerHTML = `<tr><th class="th-excel w-12 text-center">Unit</th><th class="th-excel text-left">Pekerjaan</th><th class="th-excel w-20 text-center">Bobot</th><th class="th-excel w-32 text-right">Nilai</th><th class="th-excel w-32 text-center">Tgl Bayar</th><th class="th-excel w-44 text-center">KEPUTUSAN RAPAT</th></tr>`;
-            renderPembayaranGlobal();
-        } else {
-            document.getElementById('tabLunas').className = 'tab-btn active-purple';
-            panelFilter.classList.remove('hidden'); actionBar.style.display = 'none';
-            thead.innerHTML = `<tr><th class="th-excel">Proyek</th><th class="th-excel">Tgl Cair</th><th class="th-excel">Tahap</th><th class="th-excel">Pekerjaan</th><th class="th-excel">Bobot</th><th class="th-excel text-right">Total Cair</th><th class="th-excel text-center">Void</th></tr>`;
-            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center italic">Gunakan filter untuk history.</td></tr>`;
-        }
-    }
-
-    async function renderPembayaranGlobal() {
-        const { data: list } = await client.from('pengajuan_upah').select('*').eq('status','DIAJUKAN').order('kavling');
-        inboxData = list || []; decisionMap = {};
-        const tbody = document.getElementById("tabelBody"); tbody.innerHTML = "";
-        if(inboxData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center font-bold italic animate-bounce">TIDAK ADA TAGIHAN MASUK...</td></tr>`;
-            return;
-        }
-        let curK = ""; inboxData.forEach((item, idx) => {
-            decisionMap[idx] = 'PENDING';
-            if(item.kavling !== curK) { curK = item.kavling; tbody.innerHTML += `<tr class="bg-slate-800 text-white font-black uppercase text-[10px]"><td colspan="6" class="p-2 px-4 italic">KAVLING: ${curK}</td></tr>`; }
-            tbody.innerHTML += `
+        async function renderPembayaranGlobal() {
+            const { data: list } = await client.from('pengajuan_upah').select('*').eq('status', 'DIAJUKAN').order('kavling');
+            inboxData = list || []; decisionMap = {};
+            const tbody = document.getElementById("tabelBody"); tbody.innerHTML = "";
+            if (inboxData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center font-bold italic animate-bounce">TIDAK ADA TAGIHAN MASUK...</td></tr>`;
+                return;
+            }
+            let curK = ""; inboxData.forEach((item, idx) => {
+                decisionMap[idx] = 'PENDING';
+                if (item.kavling !== curK) { curK = item.kavling; tbody.innerHTML += `<tr class="bg-slate-800 text-white font-black uppercase text-[10px]"><td colspan="6" class="p-2 px-4 italic">KAVLING: ${curK}</td></tr>`; }
+                tbody.innerHTML += `
                 <tr class="border-b" id="row-${idx}">
                     <td class="td-excel text-center font-bold text-slate-400 text-xs">${item.kavling}</td>
                     <td class="td-excel font-bold text-slate-700">${item.nama_pekerjaan}</td>
@@ -244,180 +341,180 @@
                         </div>
                     </td>
                 </tr>`;
-        });
-        updateSummary();
-    }
-
-    function setApprove(idx) {
-        decisionMap[idx] = 'APPROVE';
-        const row = document.getElementById(`row-${idx}`);
-        if (row) row.className = "border-b row-approved";
-        document.getElementById(`btn-app-${idx}`).className = "bg-green-600 text-white px-2 py-1 rounded text-[10px] font-black shadow";
-        const rejectBtn = document.getElementById(`btn-rej-${idx}`);
-        if (rejectBtn) rejectBtn.className = "hidden";
-        updateSummary();
-    }
-
-    async function rejectItemImmediate(id, idx) {
-        const item = inboxData[idx];
-        const alasan = prompt(`⛔ TOLAK PEKERJAAN INI?\n\nItem: ${item?.nama_pekerjaan || ''}\n\nMasukkan alasan penolakan untuk Mandor:`);
-        if (!alasan) return;
-
-        try {
-            const namaAsli = item.nama_pekerjaan.replace(/\s*\(REJECTED.*?\)/g, "").replace(/\s*\(VOID.*?\)/g, "");
-            const { error } = await client.from('pengajuan_upah')
-                .update({ 
-                    status: 'REJECTED',
-                    nama_pekerjaan: `${namaAsli} (REJECTED: ${alasan})`,
-                    tanggal_ajukan: null
-                })
-                .eq('id', id);
-            if (error) throw error;
-
-            const row = document.getElementById(`row-${idx}`);
-            if (row) row.remove();
-            delete decisionMap[idx];
-            alert("✅ Item berhasil ditolak & dikembalikan ke Mandor.");
-            updateSummary();
-        } catch (err) {
-            alert("Gagal menolak: " + err.message);
-        }
-    }
-
-    function updateSummary() {
-        let t = 0; let c = 0;
-        Object.keys(decisionMap).forEach(idx => { if(decisionMap[idx] === 'APPROVE') { t += inboxData[idx].nilai; c++; } });
-        document.getElementById('totalBayarLabel').innerText = fmt(t);
-        document.getElementById('countBayarLabel').innerText = `(${c} Item Disetujui)`;
-    }
-
-    // --- JURUS PDF CANGGIH: SATU KOTAK PER BLOK ---
-    function downloadPDFDaftarAsistensi() {
-        if(inboxData.length === 0) return alert("Antrean kosong!");
-        const { jsPDF } = window.jspdf; const doc = new jsPDF();
-        
-        doc.setFontSize(14); doc.setFont("helvetica", "bold");
-        doc.text("PT. NUSANTARA LAND DEVELOPMENT", 105, 15, { align: "center" });
-        doc.setFontSize(10); doc.text("DAFTAR PENGAJUAN UPAH TUKANG (PRE-MEETING ASISTENSI)", 105, 20, { align: "center" });
-        doc.line(14, 25, 196, 25);
-
-        // KELOMPOKKAN PER BLOK UNTUK PDF
-        const grouped = {}; inboxData.forEach(item => { if(!grouped[item.kavling]) grouped[item.kavling] = []; grouped[item.kavling].push(item); });
-
-        let currentY = 32; let grandTotal = 0;
-        Object.keys(grouped).forEach(kav => {
-            if (currentY > 240) { doc.addPage(); currentY = 20; }
-            doc.setFontSize(9); doc.setFont("helvetica", "bold");
-            doc.text(`KAVLING: ${kav}`, 14, currentY); currentY += 3;
-
-            let subTotal = 0;
-            const body = grouped[kav].map((r, i) => { subTotal += r.nilai; grandTotal += r.nilai; return [i+1, r.nama_pekerjaan, `${r.bobot}%`, fmt(r.nilai), "........"]; });
-            
-            doc.autoTable({
-                startY: currentY, head: [['No', 'Uraian Pekerjaan', 'Bobot', 'Nilai', 'Paraf']], body: body,
-                theme: 'grid', headStyles: { fillColor: [51, 65, 85] }, styles: { fontSize: 8 },
-                foot: [[{ content: `TOTAL UNIT ${kav}`, colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } }, { content: fmt(subTotal), styles: { fontStyle: 'bold' } }, '']]
             });
-            currentY = doc.lastAutoTable.finalY + 10;
-        });
+            updateSummary();
+        }
 
-        doc.setFontSize(11); doc.text(`GRAND TOTAL PENGAJUAN: ${fmt(grandTotal)}`, 14, currentY + 5);
-        renderSignatures(doc, currentY + 20);
-        doc.save(`Draft_Asistensi_Rapat.pdf`);
-    }
+        function setApprove(idx) {
+            decisionMap[idx] = 'APPROVE';
+            const row = document.getElementById(`row-${idx}`);
+            if (row) row.className = "border-b row-approved";
+            document.getElementById(`btn-app-${idx}`).className = "bg-green-600 text-white px-2 py-1 rounded text-[10px] font-black shadow";
+            const rejectBtn = document.getElementById(`btn-rej-${idx}`);
+            if (rejectBtn) rejectBtn.className = "hidden";
+            updateSummary();
+        }
 
-    async function prosesBayarMassal() {
-        const listBayar = [];
-        const idsHapus = [];
+        async function rejectItemImmediate(id, idx) {
+            const item = inboxData[idx];
+            const alasan = prompt(`⛔ TOLAK PEKERJAAN INI?\n\nItem: ${item?.nama_pekerjaan || ''}\n\nMasukkan alasan penolakan untuk Mandor:`);
+            if (!alasan) return;
 
-        Object.keys(decisionMap).forEach(idx => {
-            if (decisionMap[idx] === 'APPROVE') {
-                const itm = inboxData[idx];
-                const tglBayar = document.getElementById(`date-${idx}`).value;
-                
-                listBayar.push({
-                    kavling: itm.kavling,
-                    nama_pekerjaan: itm.nama_pekerjaan,
-                    nilai_bayar: itm.nilai,
-                    status: 'LUNAS',
-                    tipe_input: itm.tipe_input,
-                    volume_pekerjaan: itm.volume_pekerjaan,
-                    tanggal_bayar: tglBayar
-                });
-                idsHapus.push(itm.id);
+            try {
+                const namaAsli = item.nama_pekerjaan.replace(/\s*\(REJECTED.*?\)/g, "").replace(/\s*\(VOID.*?\)/g, "");
+                const { error } = await client.from('pengajuan_upah')
+                    .update({
+                        status: 'REJECTED',
+                        nama_pekerjaan: `${namaAsli} (REJECTED: ${alasan})`,
+                        tanggal_ajukan: null
+                    })
+                    .eq('id', id);
+                if (error) throw error;
+
+                const row = document.getElementById(`row-${idx}`);
+                if (row) row.remove();
+                delete decisionMap[idx];
+                alert("✅ Item berhasil ditolak & dikembalikan ke Mandor.");
+                updateSummary();
+            } catch (err) {
+                alert("Gagal menolak: " + err.message);
             }
-        });
-
-        if (listBayar.length === 0) return alert("⚠️ Belum ada item yang disetujui (VALID) oleh Team Teknik.");
-
-        const totalUang = listBayar.reduce((sum, i) => sum + i.nilai_bayar, 0);
-        const pesan = `🏢 KONFIRMASI MANAJEMEN\n\nSiap mencairkan dana untuk ${listBayar.length} item?\nTotal: ${fmt(totalUang)}\n\nPastikan Berita Acara (BA) Fisik sudah ditandatangani Direktur.`;
-
-        if (!confirm(pesan)) return;
-
-        try {
-            const { error: errInsert } = await client.from('transaksi_upah').insert(listBayar);
-            if (errInsert) throw errInsert;
-
-            const { error: errDel } = await client.from('pengajuan_upah').delete().in('id', idsHapus);
-            if (errDel) throw errDel;
-
-            generateBAFinal(listBayar);
-            alert("✅ PEMBAYARAN SUKSES! Data dipindahkan ke History Lunas.");
-            renderPembayaranGlobal();
-        } catch (e) {
-            alert("Gagal Eksekusi: " + e.message);
         }
-    }
 
-    function generateBAFinal(dataSetuju, dataTolakIds) {
-        const { jsPDF } = window.jspdf; const doc = new jsPDF();
-        doc.setFont("helvetica", "bold"); doc.text("PT. NUSANTARA LAND DEVELOPMENT", 105, 15, { align: "center" });
-        doc.setFontSize(10); doc.text("BERITA ACARA HASIL KEPUTUSAN ASISTENSI", 105, 20, { align: "center" });
-        doc.line(14, 25, 196, 25);
-
-        // Tabel Setuju Per Kotak Blok
-        doc.text("A. DAFTAR DISETUJUI (CAIR)", 14, 35);
-        let grandS = 0;
-        const bodyS = dataSetuju.map((r,i) => { grandS += r.nilai_bayar; return [i+1, r.kavling, r.nama_pekerjaan, fmt(r.nilai_bayar)]; });
-        doc.autoTable({ startY: 38, head: [['No','Unit','Pekerjaan','Nilai']], body: bodyS, theme:'grid', headStyles:{fillColor:[22,163,74]}, foot:[[{content:'GRAND TOTAL CAIR', colSpan:3, styles:{halign:'right'}}, fmt(grandS)]] });
-
-        // Tabel Tolak
-        let fy = doc.lastAutoTable.finalY + 10; doc.text("B. DAFTAR DITOLAK (REJECTED)", 14, fy);
-        const dataT = inboxData.filter(x => dataTolakIds.includes(x.id));
-        doc.autoTable({ startY: fy+3, head: [['Unit','Pekerjaan','Nilai']], body: dataT.map(r=>[r.kavling, r.nama_pekerjaan, fmt(r.nilai)]), theme:'grid', headStyles:{fillColor:[220,38,38]} });
-
-        renderSignatures(doc, doc.lastAutoTable.finalY + 20);
-        doc.save(`BA_Hasil_Asistensi.pdf`);
-    }
-
-    function renderSignatures(doc, startY) {
-        if(startY > 240) doc.addPage(), startY = 25;
-        const j = ["Mengajukan,", "Verifikator 1,", "Verifikator 2,", "Moderator,", "Menyetujui,"];
-        const n = ["( Didin )", "( Supardi/Wawan )", "( Eka )", "( Wahyuni )", "( Direktur Utama )"];
-        const x = [32, 68, 104, 140, 176];
-        doc.setFontSize(8); doc.setFont("helvetica", "normal");
-        j.forEach((t, i) => doc.text(t, x[i], startY, { align: "center" }));
-        doc.setFont("helvetica", "bold");
-        n.forEach((t, i) => doc.text(t, x[i], startY + 25, { align: "center" }));
-    }
-
-    // Fungsi Pengajuan Dasar
-    async function renderPengajuanView(kategori = 'Bangunan Rumah') {
-        const tbody = document.getElementById("tabelBody");
-        if(!activeProyek) {
-            tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-bold text-slate-400">Pilih Unit Kavling di pojok kanan atas ↗️</td></tr>`;
-            return;
+        function updateSummary() {
+            let t = 0; let c = 0;
+            Object.keys(decisionMap).forEach(idx => { if (decisionMap[idx] === 'APPROVE') { t += inboxData[idx].nilai; c++; } });
+            document.getElementById('totalBayarLabel').innerText = fmt(t);
+            document.getElementById('countBayarLabel').innerText = `(${c} Item Disetujui)`;
         }
-        await updateBudgetInfo();
 
-        const currentCategory = kategori || activeKategori || "Bangunan Rumah";
-        activeKategori = currentCategory;
+        // --- JURUS PDF CANGGIH: SATU KOTAK PER BLOK ---
+        function downloadPDFDaftarAsistensi() {
+            if (inboxData.length === 0) return alert("Antrean kosong!");
+            const { jsPDF } = window.jspdf; const doc = new jsPDF();
 
-        const thead = document.getElementById("tableHead");
+            doc.setFontSize(14); doc.setFont("helvetica", "bold");
+            doc.text("PT. NUSANTARA LAND DEVELOPMENT", 105, 15, { align: "center" });
+            doc.setFontSize(10); doc.text("DAFTAR PENGAJUAN UPAH TUKANG (PRE-MEETING ASISTENSI)", 105, 20, { align: "center" });
+            doc.line(14, 25, 196, 25);
 
-        if (currentCategory === "Infrastruktur") {
-            thead.innerHTML = `
+            // KELOMPOKKAN PER BLOK UNTUK PDF
+            const grouped = {}; inboxData.forEach(item => { if (!grouped[item.kavling]) grouped[item.kavling] = []; grouped[item.kavling].push(item); });
+
+            let currentY = 32; let grandTotal = 0;
+            Object.keys(grouped).forEach(kav => {
+                if (currentY > 240) { doc.addPage(); currentY = 20; }
+                doc.setFontSize(9); doc.setFont("helvetica", "bold");
+                doc.text(`KAVLING: ${kav}`, 14, currentY); currentY += 3;
+
+                let subTotal = 0;
+                const body = grouped[kav].map((r, i) => { subTotal += r.nilai; grandTotal += r.nilai; return [i + 1, r.nama_pekerjaan, `${r.bobot}%`, fmt(r.nilai), "........"]; });
+
+                doc.autoTable({
+                    startY: currentY, head: [['No', 'Uraian Pekerjaan', 'Bobot', 'Nilai', 'Paraf']], body: body,
+                    theme: 'grid', headStyles: { fillColor: [51, 65, 85] }, styles: { fontSize: 8 },
+                    foot: [[{ content: `TOTAL UNIT ${kav}`, colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } }, { content: fmt(subTotal), styles: { fontStyle: 'bold' } }, '']]
+                });
+                currentY = doc.lastAutoTable.finalY + 10;
+            });
+
+            doc.setFontSize(11); doc.text(`GRAND TOTAL PENGAJUAN: ${fmt(grandTotal)}`, 14, currentY + 5);
+            renderSignatures(doc, currentY + 20);
+            doc.save(`Draft_Asistensi_Rapat.pdf`);
+        }
+
+        async function prosesBayarMassal() {
+            const listBayar = [];
+            const idsHapus = [];
+
+            Object.keys(decisionMap).forEach(idx => {
+                if (decisionMap[idx] === 'APPROVE') {
+                    const itm = inboxData[idx];
+                    const tglBayar = document.getElementById(`date-${idx}`).value;
+
+                    listBayar.push({
+                        kavling: itm.kavling,
+                        nama_pekerjaan: itm.nama_pekerjaan,
+                        nilai_bayar: itm.nilai,
+                        status: 'LUNAS',
+                        tipe_input: itm.tipe_input,
+                        volume_pekerjaan: itm.volume_pekerjaan,
+                        tanggal_bayar: tglBayar
+                    });
+                    idsHapus.push(itm.id);
+                }
+            });
+
+            if (listBayar.length === 0) return alert("⚠️ Belum ada item yang disetujui (VALID) oleh Team Teknik.");
+
+            const totalUang = listBayar.reduce((sum, i) => sum + i.nilai_bayar, 0);
+            const pesan = `🏢 KONFIRMASI MANAJEMEN\n\nSiap mencairkan dana untuk ${listBayar.length} item?\nTotal: ${fmt(totalUang)}\n\nPastikan Berita Acara (BA) Fisik sudah ditandatangani Direktur.`;
+
+            if (!confirm(pesan)) return;
+
+            try {
+                const { error: errInsert } = await client.from('transaksi_upah').insert(listBayar);
+                if (errInsert) throw errInsert;
+
+                const { error: errDel } = await client.from('pengajuan_upah').delete().in('id', idsHapus);
+                if (errDel) throw errDel;
+
+                generateBAFinal(listBayar, []);
+                alert("✅ PEMBAYARAN SUKSES! Data dipindahkan ke History Lunas.");
+                renderPembayaranGlobal();
+            } catch (e) {
+                alert("Gagal Eksekusi: " + e.message);
+            }
+        }
+
+        function generateBAFinal(dataSetuju, dataTolakIds = []) {
+            const { jsPDF } = window.jspdf; const doc = new jsPDF();
+            doc.setFont("helvetica", "bold"); doc.text("PT. NUSANTARA LAND DEVELOPMENT", 105, 15, { align: "center" });
+            doc.setFontSize(10); doc.text("BERITA ACARA HASIL KEPUTUSAN ASISTENSI", 105, 20, { align: "center" });
+            doc.line(14, 25, 196, 25);
+
+            // Tabel Setuju Per Kotak Blok
+            doc.text("A. DAFTAR DISETUJUI (CAIR)", 14, 35);
+            let grandS = 0;
+            const bodyS = dataSetuju.map((r, i) => { grandS += r.nilai_bayar; return [i + 1, r.kavling, r.nama_pekerjaan, fmt(r.nilai_bayar)]; });
+            doc.autoTable({ startY: 38, head: [['No', 'Unit', 'Pekerjaan', 'Nilai']], body: bodyS, theme: 'grid', headStyles: { fillColor: [22, 163, 74] }, foot: [[{ content: 'GRAND TOTAL CAIR', colSpan: 3, styles: { halign: 'right' } }, fmt(grandS)]] });
+
+            // Tabel Tolak
+            let fy = doc.lastAutoTable.finalY + 10; doc.text("B. DAFTAR DITOLAK (REJECTED)", 14, fy);
+            const dataT = inboxData.filter(x => dataTolakIds.includes(x.id));
+            doc.autoTable({ startY: fy + 3, head: [['Unit', 'Pekerjaan', 'Nilai']], body: dataT.map(r => [r.kavling, r.nama_pekerjaan, fmt(r.nilai)]), theme: 'grid', headStyles: { fillColor: [220, 38, 38] } });
+
+            renderSignatures(doc, doc.lastAutoTable.finalY + 20);
+            doc.save(`BA_Hasil_Asistensi.pdf`);
+        }
+
+        function renderSignatures(doc, startY) {
+            if (startY > 240) doc.addPage(), startY = 25;
+            const j = ["Mengajukan,", "Verifikator 1,", "Verifikator 2,", "Moderator,", "Menyetujui,"];
+            const n = ["( Didin )", "( Supardi/Wawan )", "( Eka )", "( Wahyuni )", "( Direktur Utama )"];
+            const x = [32, 68, 104, 140, 176];
+            doc.setFontSize(8); doc.setFont("helvetica", "normal");
+            j.forEach((t, i) => doc.text(t, x[i], startY, { align: "center" }));
+            doc.setFont("helvetica", "bold");
+            n.forEach((t, i) => doc.text(t, x[i], startY + 25, { align: "center" }));
+        }
+
+        // Fungsi Pengajuan Dasar
+        async function renderPengajuanView(kategori = 'Bangunan Rumah') {
+            const tbody = document.getElementById("tabelBody");
+            if (!activeProyek) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-bold text-slate-400">Pilih Unit Kavling di pojok kanan atas ↗️</td></tr>`;
+                return;
+            }
+            await updateBudgetInfo();
+
+            const currentCategory = kategori || activeKategori || "Bangunan Rumah";
+            activeKategori = currentCategory;
+
+            const thead = document.getElementById("tableHead");
+
+            if (currentCategory === "Infrastruktur") {
+                thead.innerHTML = `
                 <tr>
                     <th class="th-excel text-left pl-4">Deskripsi Pekerjaan (Opname)</th>
                     <th class="th-excel w-32 text-center">Volume / Ket</th>
@@ -425,7 +522,7 @@
                     <th class="th-excel w-24 text-center">Status</th>
                 </tr>`;
 
-            tbody.innerHTML = `
+                tbody.innerHTML = `
                 <tr class="bg-blue-50">
                     <td class="p-3"><input type="text" id="infraItem" placeholder="Contoh: Pasang U-Ditch STA 0-50" class="w-full border p-2 rounded font-bold text-slate-700"></td>
                     <td class="p-3"><input type="text" id="infraVol" placeholder="Misal: 50 m'" class="w-full border p-2 rounded text-center"></td>
@@ -439,113 +536,113 @@
                 <tr><td colspan="4" class="p-4 text-center text-xs text-slate-400 italic">Untuk Infrastruktur, gunakan sistem Opname (Input Manual) sesuai realisasi lapangan.</td></tr>
             `;
 
-            await loadDraftInfra();
-            await loadRetensiList();
-            return;
-        }
+                await loadDraftInfra();
+                await loadRetensiList();
+                return;
+            }
 
-        thead.innerHTML = `<tr><th class="th-excel w-12 text-center">No</th><th class="th-excel text-left">Uraian Pekerjaan</th><th class="th-excel w-16 text-center">Bobot</th><th class="th-excel w-32 text-right">Nilai</th><th class="th-excel w-32 text-center">Aksi</th></tr>`;
+            thead.innerHTML = `<tr><th class="th-excel w-12 text-center">No</th><th class="th-excel text-left">Uraian Pekerjaan</th><th class="th-excel w-16 text-center">Bobot</th><th class="th-excel w-32 text-right">Nilai</th><th class="th-excel w-32 text-center">Aksi</th></tr>`;
 
-        const { data: peng } = await client.from('pengajuan_upah').select('*').eq('kavling', activeProyek);
-        const { data: trans } = await client.from('transaksi_upah').select('nama_pekerjaan').eq('kavling', activeProyek);
+            const { data: peng } = await client.from('pengajuan_upah').select('*').eq('kavling', activeProyek);
+            const { data: trans } = await client.from('transaksi_upah').select('nama_pekerjaan').eq('kavling', activeProyek);
 
-        let sMap = {};
+            let sMap = {};
 
-        if(peng) {
-            peng.forEach(p => {
-                const cleanName = p.nama_pekerjaan.split(' (')[0];
-                if (p.status === 'DIAJUKAN') {
-                    sMap[cleanName] = 'DIAJUKAN';
-                } else if (p.status === 'TERSEDIA' && p.nama_pekerjaan.toUpperCase().includes('TOLAK')) {
-                    if (!sMap[cleanName]) {
-                        sMap[cleanName] = 'REJECTED';
+            if (peng) {
+                peng.forEach(p => {
+                    const cleanName = p.nama_pekerjaan.split(' (')[0];
+                    if (p.status === 'DIAJUKAN') {
+                        sMap[cleanName] = 'DIAJUKAN';
+                    } else if (p.status === 'TERSEDIA' && p.nama_pekerjaan.toUpperCase().includes('TOLAK')) {
+                        if (!sMap[cleanName]) {
+                            sMap[cleanName] = 'REJECTED';
+                        }
                     }
-                }
-            });
-        }
+                });
+            }
 
-        if(trans) {
-            trans.forEach(t => {
-                const cleanName = t.nama_pekerjaan.split(' (')[0];
-                sMap[cleanName] = 'LUNAS';
-            });
-        }
+            if (trans) {
+                trans.forEach(t => {
+                    const cleanName = t.nama_pekerjaan.split(' (')[0];
+                    sMap[cleanName] = 'LUNAS';
+                });
+            }
 
-        if (!GLOBAL_MASTER_DATA.length) {
-            tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-bold">Memuat daftar pekerjaan…</td></tr>`;
-            return;
-        }
+            if (!GLOBAL_MASTER_DATA.length) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-bold">Memuat daftar pekerjaan…</td></tr>`;
+                return;
+            }
 
-        tbody.innerHTML = "";
-        let isFirstStage = true;
-        GLOBAL_MASTER_DATA.forEach(g => {
-            const headerSuffix = isFirstStage ? ` • ${currentCategory}` : "";
-            const headerTitle = `TAHAP ${g.id}${headerSuffix}`;
-            isFirstStage = false;
-            tbody.innerHTML += `<tr class="row-blok-header text-[10px]"><td colspan="5" class="p-2 px-4 uppercase tracking-widest">${headerTitle}</td></tr>`;
-            g.items.forEach(i => {
-                const st = sMap[i.n];
-                let btn = "";
-                let rowClass = "border-b hover:bg-slate-50";
+            tbody.innerHTML = "";
+            let isFirstStage = true;
+            GLOBAL_MASTER_DATA.forEach(g => {
+                const headerSuffix = isFirstStage ? ` • ${currentCategory}` : "";
+                const headerTitle = `TAHAP ${g.id}${headerSuffix}`;
+                isFirstStage = false;
+                tbody.innerHTML += `<tr class="row-blok-header text-[10px]"><td colspan="5" class="p-2 px-4 uppercase tracking-widest">${headerTitle}</td></tr>`;
+                g.items.forEach(i => {
+                    const st = sMap[i.n];
+                    let btn = "";
+                    let rowClass = "border-b hover:bg-slate-50";
 
-                if (st === 'LUNAS') {
-                    btn = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-check-circle"></i> LUNAS</span>`;
-                    rowClass = "border-b bg-green-50/50";
-                } else if (st === 'DIAJUKAN') {
-                    btn = `<span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-hourglass-half"></i> MENUNGGU</span>`;
-                    rowClass = "border-b bg-amber-50/50";
-                } else {
-                    let label = "AJUKAN";
-                    let btnColor = "bg-blue-600 hover:bg-blue-700";
-                    let extraInfo = "";
+                    if (st === 'LUNAS') {
+                        btn = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-check-circle"></i> LUNAS</span>`;
+                        rowClass = "border-b bg-green-50/50";
+                    } else if (st === 'DIAJUKAN') {
+                        btn = `<span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-hourglass-half"></i> MENUNGGU</span>`;
+                        rowClass = "border-b bg-amber-50/50";
+                    } else {
+                        let label = "AJUKAN";
+                        let btnColor = "bg-blue-600 hover:bg-blue-700";
+                        let extraInfo = "";
 
-                    if (st === 'REJECTED') {
-                        label = "AJUKAN ULANG";
-                        btnColor = "bg-rose-600 hover:bg-rose-700";
-                        extraInfo = `<div class="text-[9px] text-red-500 font-bold mt-1"><i class="fas fa-exclamation-triangle"></i> Pernah ditolak/void</div>`;
-                    }
+                        if (st === 'REJECTED') {
+                            label = "AJUKAN ULANG";
+                            btnColor = "bg-rose-600 hover:bg-rose-700";
+                            extraInfo = `<div class="text-[9px] text-red-500 font-bold mt-1"><i class="fas fa-exclamation-triangle"></i> Pernah ditolak/void</div>`;
+                        }
 
-                    btn = `
+                        btn = `
                         <button onclick="ajukanItem('${i.n}',${i.p},${i.b},'${g.id}')" class="${btnColor} text-white px-4 py-1.5 rounded shadow-sm text-[10px] font-black transition-all active:scale-95 uppercase tracking-wider w-28">
                             ${label}
                         </button>
                         ${extraInfo}
                     `;
-                }
-                tbody.innerHTML += `<tr class="${rowClass}"><td class="td-excel text-center font-mono text-slate-400">${g.id}</td><td class="td-excel font-semibold text-slate-700">${i.n}</td><td class="td-excel text-center text-slate-500">${i.b}%</td><td class="td-excel text-right font-mono font-bold text-slate-700">${fmt(i.p)}</td><td class="td-excel text-center py-3">${btn}</td></tr>`;
+                    }
+                    tbody.innerHTML += `<tr class="${rowClass}"><td class="td-excel text-center font-mono text-slate-400">${g.id}</td><td class="td-excel font-semibold text-slate-700">${i.n}</td><td class="td-excel text-center text-slate-500">${i.b}%</td><td class="td-excel text-right font-mono font-bold text-slate-700">${fmt(i.p)}</td><td class="td-excel text-center py-3">${btn}</td></tr>`;
+                });
             });
-        });
-        await loadRetensiList();
-    }
+            await loadRetensiList();
+        }
 
-    async function updateBudgetInfo() {
-        if (!activeProyek) return;
+        async function updateBudgetInfo() {
+            if (!activeProyek) return;
 
-        const { data: proj } = await client
-            .from('master_proyek')
-            .select('rab_upah_tukang, kategori')
-            .eq('nama_proyek', activeProyek)
-            .single();
+            const { data: proj } = await client
+                .from('master_proyek')
+                .select('rab_upah_tukang, kategori')
+                .eq('nama_proyek', activeProyek)
+                .single();
 
-        const { data: trans } = await client
-            .from('transaksi_upah')
-            .select('nilai_bayar')
-            .eq('kavling', activeProyek);
+            const { data: trans } = await client
+                .from('transaksi_upah')
+                .select('nilai_bayar')
+                .eq('kavling', activeProyek);
 
-        const totalBayar = trans?.reduce((sum, item) => sum + (item.nilai_bayar || 0), 0) || 0;
-        const rab = proj?.rab_upah_tukang || 0;
-        const sisa = rab - totalBayar;
-        const persenPakai = rab > 0 ? Math.round((totalBayar / rab) * 100) : 0;
+            const totalBayar = trans?.reduce((sum, item) => sum + (item.nilai_bayar || 0), 0) || 0;
+            const rab = proj?.rab_upah_tukang || 0;
+            const sisa = rab - totalBayar;
+            const persenPakai = rab > 0 ? Math.round((totalBayar / rab) * 100) : 0;
 
-        const panel = document.getElementById("budgetPanel");
-        const panelContent = document.getElementById("budgetPanelContent");
-        const statusColor = sisa < 0 ? "text-red-600" : "text-emerald-600";
-        const progressBarColor = sisa < 0 ? "bg-red-500" : "bg-blue-500";
-        let warning = "";
-        if (sisa < 0) warning = `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">⚠️ OVER BUDGET</span>`;
-        else if (persenPakai > 90) warning = `<span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[10px] font-bold">⚠️ KRITIS (>90%)</span>`;
+            const panel = document.getElementById("budgetPanel");
+            const panelContent = document.getElementById("budgetPanelContent");
+            const statusColor = sisa < 0 ? "text-red-600" : "text-emerald-600";
+            const progressBarColor = sisa < 0 ? "bg-red-500" : "bg-blue-500";
+            let warning = "";
+            if (sisa < 0) warning = `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">⚠️ OVER BUDGET</span>`;
+            else if (persenPakai > 90) warning = `<span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[10px] font-bold">⚠️ KRITIS (>90%)</span>`;
 
-        panelContent.innerHTML = `
+            panelContent.innerHTML = `
             <div class="flex justify-between items-end mb-1">
                 <div>
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Kontrol Budget Upah</span>
@@ -566,52 +663,52 @@
                 ${warning}
             </div>
         `;
-        panel.classList.remove("hidden");
-    }
+            panel.classList.remove("hidden");
+        }
 
-    async function ajukanInfra() {
-        const item = document.getElementById("infraItem").value;
-        const vol = document.getElementById("infraVol").value;
-        const nilai = parseInt(document.getElementById("infraNilai").value) || 0;
+        async function ajukanInfra() {
+            const item = document.getElementById("infraItem").value;
+            const vol = document.getElementById("infraVol").value;
+            const nilai = parseInt(document.getElementById("infraNilai").value) || 0;
 
-        if(!item || nilai <= 0) return alert("Deskripsi pekerjaan dan Nilai (Rp) wajib diisi!");
+            if (!item || nilai <= 0) return alert("Deskripsi pekerjaan dan Nilai (Rp) wajib diisi!");
 
-        if(confirm(`Ajukan Opname Infra?\n\nPekerjaan: ${item}\nVolume: ${vol}\nNilai: ${fmt(nilai)}`)) {
-            const { error } = await client.from('pengajuan_upah').insert([{
-                kavling: activeProyek,
-                tahap: 99,
-                nama_pekerjaan: item,
-                volume_pekerjaan: vol || null,
-                bobot: 0,
-                tipe_input: 'MANUAL',
-                nilai: nilai,
-                status: 'DIAJUKAN',
-                tanggal_ajukan: new Date()
-            }]);
+            if (confirm(`Ajukan Opname Infra?\n\nPekerjaan: ${item}\nVolume: ${vol}\nNilai: ${fmt(nilai)}`)) {
+                const { error } = await client.from('pengajuan_upah').insert([{
+                    kavling: activeProyek,
+                    tahap: 99,
+                    nama_pekerjaan: item,
+                    volume_pekerjaan: vol || null,
+                    bobot: 0,
+                    tipe_input: 'MANUAL',
+                    nilai: nilai,
+                    status: 'DIAJUKAN',
+                    tanggal_ajukan: new Date()
+                }]);
 
-            if(error) alert("Gagal: " + error.message);
-            else {
-                alert("Berhasil diajukan!");
-                document.getElementById("infraItem").value = "";
-                document.getElementById("infraVol").value = "";
-                document.getElementById("infraNilai").value = "";
-                renderPengajuanView('Infrastruktur');
+                if (error) alert("Gagal: " + error.message);
+                else {
+                    alert("Berhasil diajukan!");
+                    document.getElementById("infraItem").value = "";
+                    document.getElementById("infraVol").value = "";
+                    document.getElementById("infraNilai").value = "";
+                    renderPengajuanView('Infrastruktur');
+                }
             }
         }
-    }
 
-    async function loadDraftInfra() {
-        const tbody = document.getElementById("tabelBody");
-        const { data } = await client.from('pengajuan_upah')
-            .select('*')
-            .eq('kavling', activeProyek)
-            .eq('status', 'DIAJUKAN')
-            .order('id', { ascending: false });
+        async function loadDraftInfra() {
+            const tbody = document.getElementById("tabelBody");
+            const { data } = await client.from('pengajuan_upah')
+                .select('*')
+                .eq('kavling', activeProyek)
+                .eq('status', 'DIAJUKAN')
+                .order('id', { ascending: false });
 
-        if(data && data.length > 0) {
-            tbody.innerHTML += `<tr class="bg-slate-200"><td colspan="4" class="p-2 font-bold text-xs text-center uppercase tracking-widest">Antrean Pengajuan (Belum diapprove)</td></tr>`;
-            data.forEach(d => {
-                tbody.innerHTML += `
+            if (data && data.length > 0) {
+                tbody.innerHTML += `<tr class="bg-slate-200"><td colspan="4" class="p-2 font-bold text-xs text-center uppercase tracking-widest">Antrean Pengajuan (Belum diapprove)</td></tr>`;
+                data.forEach(d => {
+                    tbody.innerHTML += `
                     <tr class="border-b bg-white text-slate-500 italic">
                         <td class="p-3 text-sm">${d.nama_pekerjaan}</td>
                         <td class="p-3 text-center text-xs">-</td>
@@ -619,21 +716,21 @@
                         <td class="p-3 text-center"><span class="text-amber-500 text-[10px] font-bold">MENUNGGU</span></td>
                     </tr>
                 `;
-            });
+                });
+            }
         }
-    }
 
-    async function loadRetensiList() {
-        const tbody = document.getElementById("tabelBody");
-        
-        const { data } = await client.from('pengajuan_upah')
-            .select('*')
-            .eq('kavling', activeProyek)
-            .eq('status', 'RETENSI')
-            .order('id');
+        async function loadRetensiList() {
+            const tbody = document.getElementById("tabelBody");
 
-        if(data && data.length > 0) {
-            tbody.innerHTML += `
+            const { data } = await client.from('pengajuan_upah')
+                .select('*')
+                .eq('kavling', activeProyek)
+                .eq('status', 'RETENSI')
+                .order('id');
+
+            if (data && data.length > 0) {
+                tbody.innerHTML += `
                 <tr class="bg-yellow-50 border-t-4 border-yellow-200">
                     <td colspan="5" class="p-3 text-center">
                         <span class="text-xs font-black text-yellow-700 uppercase tracking-widest">
@@ -643,9 +740,9 @@
                 </tr>
             `;
 
-            data.forEach(d => {
-                const safeName = (d.nama_pekerjaan || "").replace(/'/g, "\\'");
-                tbody.innerHTML += `
+                data.forEach(d => {
+                    const safeName = (d.nama_pekerjaan || "").replace(/'/g, "\\'");
+                    tbody.innerHTML += `
                     <tr class="border-b bg-yellow-50/30 hover:bg-yellow-100 transition">
                         <td class="td-excel text-center text-yellow-600"><i class="fas fa-lock"></i></td>
                         <td class="td-excel font-bold text-slate-600">${d.nama_pekerjaan}</td>
@@ -659,161 +756,161 @@
                         </td>
                     </tr>
                 `;
-            });
+                });
+            }
         }
-    }
 
-    async function cairkanRetensi(id, nama, nilai) {
-        if(confirm(`⚠️ CAIRKAN DANA RETENSI?\n\nItem: ${nama}\nNilai: ${fmt(nilai)}\n\nPastikan masa pemeliharaan sudah selesai/ACC owner.`)) {
-            const { error } = await client.from('pengajuan_upah')
-                .update({ 
+        async function cairkanRetensi(id, nama, nilai) {
+            if (confirm(`⚠️ CAIRKAN DANA RETENSI?\n\nItem: ${nama}\nNilai: ${fmt(nilai)}\n\nPastikan masa pemeliharaan sudah selesai/ACC owner.`)) {
+                const { error } = await client.from('pengajuan_upah')
+                    .update({
+                        status: 'DIAJUKAN',
+                        tanggal_ajukan: new Date()
+                    })
+                    .eq('id', id);
+
+                if (error) alert("Gagal: " + error.message);
+                else {
+                    alert("✅ Retensi berhasil diajukan! Cek Tab Asistensi.");
+                    renderPengajuanView(activeKategori);
+                }
+            }
+        }
+
+        async function ajukanItem(n, v, b, t) {
+            const cleanName = n.split(' (')[0];
+            const isFinishing = cleanName.toLowerCase().includes("finishing") || cleanName.toLowerCase().includes("cat");
+            const nilaiRetensi = 1000000;
+
+            // 1. CEK DOBEL
+            const { data: exist } = await client
+                .from('pengajuan_upah')
+                .select('id, status')
+                .eq('kavling', activeProyek)
+                .eq('nama_pekerjaan', cleanName)
+                .neq('status', 'REJECTED')
+                .single();
+
+            if (exist) return alert(`⛔ Pekerjaan "${cleanName}" sudah ada status: ${exist.status}.`);
+
+            let finalNilai = v;
+            let keepRetensi = false;
+
+            if (isFinishing && v > nilaiRetensi) {
+                const choice = prompt(`💰 OPSI RETENSI DETECTED!\n\nPekerjaan: ${cleanName}\nNilai Total: ${fmt(v)}\n\nKetik '1' = Ajukan FULL (${fmt(v)})\nKetik '2' = Potong Retensi 1 Juta (Ajukan ${fmt(v - nilaiRetensi)})\n\nPilihan Anda (1/2):`, "2");
+
+                if (choice === '2') {
+                    finalNilai = v - nilaiRetensi;
+                    keepRetensi = true;
+                } else if (choice !== '1') {
+                    return;
+                }
+            } else {
+                if (!confirm(`Ajukan pekerjaan: ${n}?\nNilai: ${fmt(v)}`)) return;
+            }
+
+            try {
+                const { error } = await client.from('pengajuan_upah').insert([{
+                    kavling: activeProyek,
+                    tahap: t,
+                    nama_pekerjaan: cleanName,
+                    bobot: b,
+                    nilai: finalNilai,
                     status: 'DIAJUKAN',
                     tanggal_ajukan: new Date()
-                })
-                .eq('id', id);
-
-            if(error) alert("Gagal: " + error.message);
-            else {
-                alert("✅ Retensi berhasil diajukan! Cek Tab Asistensi.");
-                renderPengajuanView(activeKategori);
-            }
-        }
-    }
-
-    async function ajukanItem(n, v, b, t) {
-        const cleanName = n.split(' (')[0];
-        const isFinishing = cleanName.toLowerCase().includes("finishing") || cleanName.toLowerCase().includes("cat");
-        const nilaiRetensi = 1000000;
-
-        // 1. CEK DOBEL
-        const { data: exist } = await client
-            .from('pengajuan_upah')
-            .select('id, status')
-            .eq('kavling', activeProyek)
-            .eq('nama_pekerjaan', cleanName)
-            .neq('status', 'REJECTED')
-            .single();
-
-        if (exist) return alert(`⛔ Pekerjaan "${cleanName}" sudah ada status: ${exist.status}.`);
-
-        let finalNilai = v;
-        let keepRetensi = false;
-
-        if (isFinishing && v > nilaiRetensi) {
-            const choice = prompt(`💰 OPSI RETENSI DETECTED!\n\nPekerjaan: ${cleanName}\nNilai Total: ${fmt(v)}\n\nKetik '1' = Ajukan FULL (${fmt(v)})\nKetik '2' = Potong Retensi 1 Juta (Ajukan ${fmt(v - nilaiRetensi)})\n\nPilihan Anda (1/2):`, "2");
-
-            if (choice === '2') {
-                finalNilai = v - nilaiRetensi;
-                keepRetensi = true;
-            } else if (choice !== '1') {
-                return;
-            }
-        } else {
-            if(!confirm(`Ajukan pekerjaan: ${n}?\nNilai: ${fmt(v)}`)) return;
-        }
-
-        try {
-            const { error } = await client.from('pengajuan_upah').insert([{
-                kavling: activeProyek,
-                tahap: t,
-                nama_pekerjaan: cleanName,
-                bobot: b,
-                nilai: finalNilai,
-                status: 'DIAJUKAN',
-                tanggal_ajukan: new Date()
-            }]);
-
-            if (error) throw error;
-
-            if (keepRetensi) {
-                const { error: retensiError } = await client.from('pengajuan_upah').insert([{
-                    kavling: activeProyek,
-                    tahap: 99,
-                    nama_pekerjaan: `RETENSI: ${cleanName}`,
-                    bobot: 0,
-                    nilai: nilaiRetensi,
-                    status: 'RETENSI',
-                    tanggal_ajukan: null
                 }]);
 
-                if (retensiError) throw retensiError;
+                if (error) throw error;
 
-                alert(`✅ BERHASIL!\n\n1. Pengajuan: ${fmt(finalNilai)} (Masuk Antrean)\n2. Retensi: ${fmt(nilaiRetensi)} (Disimpan di Daftar Retensi)`);
-            } else if (isFinishing) {
-                alert("✅ Berhasil diajukan FULL (Tanpa Retensi).");
-            }
+                if (keepRetensi) {
+                    const { error: retensiError } = await client.from('pengajuan_upah').insert([{
+                        kavling: activeProyek,
+                        tahap: 99,
+                        nama_pekerjaan: `RETENSI: ${cleanName}`,
+                        bobot: 0,
+                        nilai: nilaiRetensi,
+                        status: 'RETENSI',
+                        tanggal_ajukan: null
+                    }]);
 
-            renderPengajuanView(activeKategori);
-        } catch (err) {
-            alert("Gagal: " + err.message);
-        }
-    }
-    function deriveHistoryMeta(item) {
-        const meta = { grup: '-', bobot: '-' };
-        let displayVol = "";
+                    if (retensiError) throw retensiError;
 
-        if (item.tipe_input === 'MANUAL') {
-            meta.grup = 'OPNAME';
-            meta.bobot = 'Vol';
-            displayVol = item.volume_pekerjaan ? `<span class="bg-gray-100 px-1 rounded text-[9px] ml-1">Vol: ${item.volume_pekerjaan}</span>` : '';
-        } else {
-            const cleanName = (item.nama_pekerjaan || "").trim();
-            let found = itemMeta[cleanName];
-            if (!found) {
-                const key = Object.keys(itemMeta).find(k => k.trim().toLowerCase() === cleanName.toLowerCase());
-                if (key) found = itemMeta[key];
-            }
-            if (found) {
-                meta.grup = `T-${found.grup}`;
-                meta.bobot = `${found.bobot}%`;
+                    alert(`✅ BERHASIL!\n\n1. Pengajuan: ${fmt(finalNilai)} (Masuk Antrean)\n2. Retensi: ${fmt(nilaiRetensi)} (Disimpan di Daftar Retensi)`);
+                } else if (isFinishing) {
+                    alert("✅ Berhasil diajukan FULL (Tanpa Retensi).");
+                }
+
+                renderPengajuanView(activeKategori);
+            } catch (err) {
+                alert("Gagal: " + err.message);
             }
         }
+        function deriveHistoryMeta(item) {
+            const meta = { grup: '-', bobot: '-' };
+            let displayVol = "";
 
-        return { meta, displayVol };
-    }
+            if (item.tipe_input === 'MANUAL') {
+                meta.grup = 'OPNAME';
+                meta.bobot = 'Vol';
+                displayVol = item.volume_pekerjaan ? `<span class="bg-gray-100 px-1 rounded text-[9px] ml-1">Vol: ${item.volume_pekerjaan}</span>` : '';
+            } else {
+                const cleanName = (item.nama_pekerjaan || "").trim();
+                let found = itemMeta[cleanName];
+                if (!found) {
+                    const key = Object.keys(itemMeta).find(k => k.trim().toLowerCase() === cleanName.toLowerCase());
+                    if (key) found = itemMeta[key];
+                }
+                if (found) {
+                    meta.grup = `T-${found.grup}`;
+                    meta.bobot = `${found.bobot}%`;
+                }
+            }
 
-    async function loadHistoryData() {
-        const p = tomSelectFilter.getValue();
-        if (p.length === 0) return alert("⚠️ Harap pilih minimal satu Unit/Kavling!");
-
-        const tglMulai = document.getElementById("historyStart").value;
-        const tglAkhir = document.getElementById("historyEnd").value;
-
-        let query = client.from('transaksi_upah')
-            .select('*')
-            .in('kavling', p)
-            .order('tanggal_bayar', { ascending: true });
-
-        if (tglMulai) query = query.gte('tanggal_bayar', tglMulai);
-        if (tglAkhir) query = query.lte('tanggal_bayar', tglAkhir);
-
-        const tbody = document.getElementById('tabelBody');
-        tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-purple-500 font-bold animate-pulse">🔄 Mengambil Data...</td></tr>`;
-
-        const { data, error } = await query;
-        if (error) {
-            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500">Error: ${error.message}</td></tr>`;
-            historyDataCache = [];
-            return;
+            return { meta, displayVol };
         }
 
-        historyDataCache = data || [];
-        tbody.innerHTML = "";
+        async function loadHistoryData() {
+            const p = tomSelectFilter.getValue();
+            if (p.length === 0) return alert("⚠️ Harap pilih minimal satu Unit/Kavling!");
 
-        if (historyDataCache.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-gray-400 italic">Tidak ditemukan data pada periode tersebut.</td></tr>`;
-            return;
-        }
+            const tglMulai = document.getElementById("historyStart").value;
+            const tglAkhir = document.getElementById("historyEnd").value;
 
-        historyDataCache.forEach(item => {
-            const { meta, displayVol } = deriveHistoryMeta(item);
-            const displayName = item.nama_pekerjaan;
-            const safeName = (displayName || "").replace(/'/g, "\\'");
-            const safeGrup = (meta.grup || "").replace(/'/g, "\\'");
-            const btnGrup = safeGrup.replace('T-', '');
-            const btnBobot = (meta.bobot || "").replace('%', '');
+            let query = client.from('transaksi_upah')
+                .select('*')
+                .in('kavling', p)
+                .order('tanggal_bayar', { ascending: true });
 
-            tbody.innerHTML += `
+            if (tglMulai) query = query.gte('tanggal_bayar', tglMulai);
+            if (tglAkhir) query = query.lte('tanggal_bayar', tglAkhir);
+
+            const tbody = document.getElementById('tabelBody');
+            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-purple-500 font-bold animate-pulse">🔄 Mengambil Data...</td></tr>`;
+
+            const { data, error } = await query;
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500">Error: ${error.message}</td></tr>`;
+                historyDataCache = [];
+                return;
+            }
+
+            historyDataCache = data || [];
+            tbody.innerHTML = "";
+
+            if (historyDataCache.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-gray-400 italic">Tidak ditemukan data pada periode tersebut.</td></tr>`;
+                return;
+            }
+
+            historyDataCache.forEach(item => {
+                const { meta, displayVol } = deriveHistoryMeta(item);
+                const displayName = item.nama_pekerjaan;
+                const safeName = (displayName || "").replace(/'/g, "\\'");
+                const safeGrup = (meta.grup || "").replace(/'/g, "\\'");
+                const btnGrup = safeGrup.replace('T-', '');
+                const btnBobot = (meta.bobot || "").replace('%', '');
+
+                tbody.innerHTML += `
             <tr class="border-b hover:bg-purple-50 transition">
                 <td class="td-excel font-bold text-xs text-center">${item.kavling}</td>
                 <td class="td-excel text-center text-xs font-bold text-slate-600">
@@ -832,99 +929,100 @@
                     </button>
                 </td>
             </tr>`;
-        });
+            });
 
-        const total = historyDataCache.reduce((sum, i) => sum + i.nilai_bayar, 0);
-        tbody.innerHTML += `
+            const total = historyDataCache.reduce((sum, i) => sum + i.nilai_bayar, 0);
+            tbody.innerHTML += `
             <tr class="bg-purple-100 border-t-2 border-purple-300">
                 <td colspan="5" class="p-3 text-right font-bold text-purple-900 text-xs uppercase">TOTAL PEMBAYARAN PERIODE INI:</td>
                 <td class="p-3 text-right font-black text-purple-900 text-sm">${fmt(total)}</td>
                 <td></td>
             </tr>`;
-    }
-
-    function downloadPDFHistory() {
-        if (!historyDataCache || historyDataCache.length === 0) {
-            return alert("⚠️ Tidak ada data untuk dicetak. Silakan klik tombol 'TAMPILKAN' terlebih dahulu.");
         }
 
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        const tglMulai = document.getElementById("historyStart").value;
-        const tglAkhir = document.getElementById("historyEnd").value;
-        let periodeStr = "SEMUA PERIODE";
-        if(tglMulai && tglAkhir) periodeStr = `${new Date(tglMulai).toLocaleDateString('id-ID')} s/d ${new Date(tglAkhir).toLocaleDateString('id-ID')}`;
-        else if(tglMulai) periodeStr = `Mulai ${new Date(tglMulai).toLocaleDateString('id-ID')}`;
+        function downloadPDFHistory() {
+            if (!historyDataCache || historyDataCache.length === 0) {
+                return alert("⚠️ Tidak ada data untuk dicetak. Silakan klik tombol 'TAMPILKAN' terlebih dahulu.");
+            }
 
-        doc.setFontSize(14); 
-        doc.setFont("helvetica", "bold");
-        doc.text("PT. NUSANTARA LAND DEVELOPMENT", 105, 15, { align: "center" });
-        
-        doc.setFontSize(10); 
-        doc.text("LAPORAN REALISASI PEMBAYARAN UPAH (HISTORY)", 105, 22, { align: "center" });
-        doc.setFont("helvetica", "normal");
-        doc.text(`Periode: ${periodeStr}`, 105, 27, { align: "center" });
-        
-        doc.line(14, 30, 196, 30);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
 
-        let grandTotal = 0;
-        const body = historyDataCache.map((item, index) => {
-            grandTotal += item.nilai_bayar;
-            const tgl = new Date(item.tanggal_bayar).toLocaleDateString('id-ID');
-            return [
-                index + 1,
-                tgl,
-                item.kavling,
-                item.nama_pekerjaan,
-                fmt(item.nilai_bayar)
-            ];
-        });
+            const tglMulai = document.getElementById("historyStart").value;
+            const tglAkhir = document.getElementById("historyEnd").value;
+            let periodeStr = "SEMUA PERIODE";
+            if (tglMulai && tglAkhir) periodeStr = `${new Date(tglMulai).toLocaleDateString('id-ID')} s/d ${new Date(tglAkhir).toLocaleDateString('id-ID')}`;
+            else if (tglMulai) periodeStr = `Mulai ${new Date(tglMulai).toLocaleDateString('id-ID')}`;
 
-        body.push([
-            { content: 'GRAND TOTAL REALISASI', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
-            { content: fmt(grandTotal), styles: { fontStyle: 'bold', fillColor: [240, 240, 240], halign: 'right' } }
-        ]);
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("PT. NUSANTARA LAND DEVELOPMENT", 105, 15, { align: "center" });
 
-        doc.autoTable({
-            startY: 35,
-            head: [['No', 'Tgl Bayar', 'Unit', 'Uraian Pekerjaan', 'Nominal (Rp)']],
-            body: body,
-            theme: 'grid',
-            headStyles: { fillColor: [147, 51, 234], textColor: 255, fontStyle: 'bold' },
-            columnStyles: {
-                0: { halign: 'center', cellWidth: 10 },
-                1: { halign: 'center', cellWidth: 25 },
-                2: { halign: 'center', cellWidth: 20 },
-                4: { halign: 'right', cellWidth: 35 }
-            },
-            styles: { fontSize: 8, cellPadding: 2 },
-        });
+            doc.setFontSize(10);
+            doc.text("LAPORAN REALISASI PEMBAYARAN UPAH (HISTORY)", 105, 22, { align: "center" });
+            doc.setFont("helvetica", "normal");
+            doc.text(`Periode: ${periodeStr}`, 105, 27, { align: "center" });
 
-        let finalY = doc.lastAutoTable.finalY + 15;
-        if (finalY > 250) { doc.addPage(); finalY = 20; }
+            doc.line(14, 30, 196, 30);
 
-        doc.setFontSize(9);
-        doc.text("Maros, " + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), 140, finalY);
-        doc.text("Dibuat Oleh,", 140, finalY + 5);
-        doc.text("( Admin Keuangan )", 140, finalY + 25);
+            let grandTotal = 0;
+            const body = historyDataCache.map((item, index) => {
+                grandTotal += item.nilai_bayar;
+                const tgl = new Date(item.tanggal_bayar).toLocaleDateString('id-ID');
+                return [
+                    index + 1,
+                    tgl,
+                    item.kavling,
+                    item.nama_pekerjaan,
+                    fmt(item.nilai_bayar)
+                ];
+            });
 
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "italic");
-        doc.text(`* Dicetak otomatis dari Sistem NLD pada ${new Date().toLocaleString('id-ID')}`, 14, 285);
+            body.push([
+                { content: 'GRAND TOTAL REALISASI', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240, 240, 240] } },
+                { content: fmt(grandTotal), styles: { fontStyle: 'bold', fillColor: [240, 240, 240], halign: 'right' } }
+            ]);
 
-        const namaFile = `Laporan_Upah_${new Date().toISOString().slice(0,10)}.pdf`;
-        doc.save(namaFile);
-    }
+            doc.autoTable({
+                startY: 35,
+                head: [['No', 'Tgl Bayar', 'Unit', 'Uraian Pekerjaan', 'Nominal (Rp)']],
+                body: body,
+                theme: 'grid',
+                headStyles: { fillColor: [147, 51, 234], textColor: 255, fontStyle: 'bold' },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 10 },
+                    1: { halign: 'center', cellWidth: 25 },
+                    2: { halign: 'center', cellWidth: 20 },
+                    4: { halign: 'right', cellWidth: 35 }
+                },
+                styles: { fontSize: 8, cellPadding: 2 },
+            });
 
-    async function voidData(id, kav, n, v, t, b) {
-        const al = prompt("ALASAN VOID:"); if(!al) return;
-        if(confirm(`Batalkan pembayaran?`)) {
-            await client.from('pengajuan_upah').insert([{ kavling: kav, tahap: t, nama_pekerjaan: `${n} (VOID: ${al})`, bobot: b, nilai: v, status: 'DIAJUKAN', tanggal_ajukan: new Date() }]);
-            await client.from('transaksi_upah').delete().eq('id', id);
-            alert("Selesai!"); loadHistoryData();
+            let finalY = doc.lastAutoTable.finalY + 15;
+            if (finalY > 250) { doc.addPage(); finalY = 20; }
+
+            doc.setFontSize(9);
+            doc.text("Maros, " + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), 140, finalY);
+            doc.text("Dibuat Oleh,", 140, finalY + 5);
+            doc.text("( Admin Keuangan )", 140, finalY + 25);
+
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "italic");
+            doc.text(`* Dicetak otomatis dari Sistem NLD pada ${new Date().toLocaleString('id-ID')}`, 14, 285);
+
+            const namaFile = `Laporan_Upah_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(namaFile);
         }
-    }
-</script>
+
+        async function voidData(id, kav, n, v, t, b) {
+            const al = prompt("ALASAN VOID:"); if (!al) return;
+            if (confirm(`Batalkan pembayaran?`)) {
+                await client.from('pengajuan_upah').insert([{ kavling: kav, tahap: t, nama_pekerjaan: `${n} (VOID: ${al})`, bobot: b, nilai: v, status: 'DIAJUKAN', tanggal_ajukan: new Date() }]);
+                await client.from('transaksi_upah').delete().eq('id', id);
+                alert("Selesai!"); loadHistoryData();
+            }
+        }
+    </script>
 </body>
+
 </html>
