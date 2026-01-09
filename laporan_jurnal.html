@@ -12,6 +12,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <script src="auth.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
@@ -67,7 +68,7 @@
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
 
                 <!-- CARD: JURNAL UMUM -->
-                <div onclick="pilihLaporan('JURNAL', null)"
+                <div id="card-jurnal-umum" onclick="pilihLaporan('JURNAL', null)"
                     class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 bg-white rounded-xl shadow border border-slate-100 transition-all">
                     <div
                         class="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-3xl mb-4 group-hover:-rotate-12 transition">
@@ -313,6 +314,85 @@
         </div>
     </main>
 
+    <!-- SECURE EDIT JOURNAL MODAL -->
+    <div id="editJurnalModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 border border-slate-200">
+            <div class="bg-indigo-600 p-4 flex justify-between items-center text-white">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-shield-alt text-lg"></i>
+                    <h3 class="font-bold">Secure Journal Editor</h3>
+                </div>
+                <button onclick="closeEditJurnal()" class="hover:text-red-200 transition"><i
+                        class="fas fa-times text-xl"></i></button>
+            </div>
+
+            <form id="formEditJurnal" class="p-6 space-y-4">
+                <input type="hidden" id="edit_jurnal_id">
+
+                <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 flex items-start gap-3">
+                    <i class="fas fa-info-circle text-indigo-500 mt-1"></i>
+                    <div class="text-xs text-indigo-800 leading-relaxed">
+                        Fitur ini mencatat <strong>Audit Log</strong>. Setiap perubahan akan disimpan lengkap dengan
+                        nama user, waktu, dan alasan perubahan. Data lama akan diarsipkan.
+                    </div>
+                </div>
+
+                <!-- Account Dropdown (Master) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Akun (Dari Master)</label>
+                    <select id="edit_jurnal_akun"
+                        class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                        required>
+                        <option value="">-- Pilih Akun Valid --</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Keterangan / Uraian</label>
+                    <textarea id="edit_jurnal_desc" rows="2"
+                        class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                        required></textarea>
+                </div>
+
+                <!-- Debit / Credit -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Debit</label>
+                        <input type="number" id="edit_jurnal_debit"
+                            class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right"
+                            placeholder="0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Kredit</label>
+                        <input type="number" id="edit_jurnal_kredit"
+                            class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right"
+                            placeholder="0">
+                    </div>
+                </div>
+
+                <!-- Reason (Required) -->
+                <div>
+                    <label class="block text-xs font-bold text-red-500 mb-1">Alasan Perubahan (Wajib)</label>
+                    <input type="text" id="edit_jurnal_reason"
+                        class="w-full border border-red-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 bg-red-50"
+                        placeholder="Contoh: Salah input akun, Typo nominal..." required>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeEditJurnal()"
+                        class="px-5 py-2.5 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-bold transition">Batal</button>
+                    <button type="submit"
+                        class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-indigo-200 transition active:scale-95 flex items-center gap-2">
+                        <i class="fas fa-save"></i> Simpan & Audit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="fixed bottom-6 right-6">
         <button onclick="downloadPDF()"
             class="bg-red-600 hover:bg-red-700 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition active:scale-90 z-50">
@@ -337,6 +417,37 @@
 
         // CHECK URL PARAMS for Actions
         document.addEventListener('DOMContentLoaded', () => {
+            // --- SECURITY CHECK FOR USER TAUFIQ (782757) ---
+            // Ensure Auth is ready
+            if (window.PNAuth) {
+                window.PNAuth.requireAuth(['admin', 'finance', 'direksi', 'accounting', 'superadmin']);
+            }
+
+            const session = window.PNAuth?.getSession();
+            if (session && session.user) {
+                const u = session.user;
+                // Identifikasi user Taufiq (bisa by name atau role if unique combination)
+                // Disini kita cek jika nama mengandung "Taufiq" dan Role Direksi (as requested)
+                // Atau cukup cek nama jika unique.
+                const isRestrictedUser = u.full_name && u.full_name.toLowerCase().includes('taufiq');
+
+                if (isRestrictedUser) {
+                    // 1. Hide Card in Menu
+                    const card = document.getElementById('card-jurnal-umum');
+                    if (card) card.style.display = 'none';
+
+                    // 2. Hide Tab in Report View (if exists)
+                    const tab = document.getElementById('tab-JURNAL');
+                    if (tab) tab.style.display = 'none';
+
+                    // 3. Override currentType if default was JURNAL
+                    if (currentType === 'JURNAL') currentType = 'BUKU_BESAR';
+                }
+
+                // Expose globally for pilihLaporan check
+                window.isRestrictedUser = isRestrictedUser;
+            }
+
             const urlParams = new URLSearchParams(window.location.search);
             const action = urlParams.get('action');
             if (action === 'setup') {
@@ -353,6 +464,12 @@
         }
 
         function pilihLaporan(type, el) {
+            // SECURITY BLOCK
+            if (type === 'JURNAL' && window.isRestrictedUser) {
+                alert("⛔ AKSES DITOLAK\n\nMaaf Pak Taufiq, Anda tidak memiliki izin untuk mengakses detail Jurnal Umum.");
+                return;
+            }
+
             currentType = type;
             switchView('report');
 
@@ -400,6 +517,9 @@
         // 1. RENDER SCREEN (TAMPILAN HP) - INTERAKTIF
         // ==========================================
         function renderScreen() {
+            // DEBUG: Temporary check for user status
+            // console.log("User:", window.PNAuth?.getSession()?.user?.full_name, "Restricted:", window.isRestrictedUser);
+
             let html = `<div class="space-y-3" id="reportValues">`;
             const saldos = hitungSaldo();
 
@@ -417,6 +537,7 @@
                                 <th class="p-3 font-bold w-20 text-center whitespace-nowrap bg-slate-100">Ref Post</th>
                                 <th class="p-3 font-bold w-32 text-right border-l border-slate-200 bg-slate-100 whitespace-nowrap">Debit</th>
                                 <th class="p-3 font-bold w-32 text-right border-l border-slate-200 bg-slate-100 whitespace-nowrap">Kredit</th>
+                                <th class="p-3 font-bold w-24 text-center border-l border-slate-200 bg-slate-100 whitespace-nowrap">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm divide-y divide-slate-100 table-auto">`;
@@ -433,8 +554,13 @@
                     // Search Keyword Check
                     const searchStr = `${r.nama_akun} ${r.keterangan} ${kode} ${r.debit} ${r.kredit}`.toLowerCase();
 
-                    // Format Tanggal hanya muncul di baris pertama transaksi (jika mau grouping), tapi untuk Jurnal Umum flat list, kita tampilkan terus atau bisa dilogikakan.
-                    // Disini kita tampilkan per baris agar jelas.
+                    // Edit Button Logic (Restricted to SUPERADMIN only)
+                    const session = window.PNAuth?.getSession();
+                    const isSuperAdmin = session?.user?.role === 'superadmin';
+                    const showEdit = isSuperAdmin;
+
+                    const btnEdit = showEdit ?
+                        `<button onclick="openEditJurnal(${r.id})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 mx-auto shadow-sm border border-indigo-200 w-full"><i class="fas fa-edit"></i> Edit</button>` : '<span class="text-xs text-slate-300">-</span>';
 
                     html += `
                     <tr class="${rowBg} hover:bg-yellow-50 transition report-item" data-search="${searchStr}">
@@ -456,6 +582,9 @@
                         </td>
                         <td class="p-2.5 text-right font-mono text-slate-700 align-top border-l border-slate-200 bg-slate-50/50">
                             ${isCredit ? fmt(r.kredit) : ''}
+                        </td>
+                        <td class="p-2.5 text-center border-l border-slate-200">
+                            ${btnEdit}
                         </td>
                     </tr>`;
                 });
@@ -1201,7 +1330,112 @@
         }
 
         // ==========================================
-        // 3. SETUP SALDO AWAL (NEW)
+        // ==========================================
+        // 4. SECURE JOURNAL EDITOR (NEW)
+        // ==========================================
+        let masterAkunCache = [];
+
+        async function loadMasterAkun() {
+            if (masterAkunCache.length > 0) return; // Use cache
+
+            const { data, error } = await client.from('master_akun').select('nama_akun, kode_akun').order('kode_akun');
+            if (error) {
+                console.error("Gagal load master akun:", error.message);
+                return;
+            }
+            masterAkunCache = data || [];
+
+            // Populate Dropdown
+            const sel = document.getElementById('edit_jurnal_akun');
+            sel.innerHTML = '<option value="">-- Pilih Akun Valid --</option>';
+            masterAkunCache.forEach(akun => {
+                sel.innerHTML += `<option value="${akun.nama_akun}">${akun.kode_akun} - ${akun.nama_akun}</option>`;
+            });
+        }
+
+        function openEditJurnal(id) {
+            // Find Data
+            const row = rawData.find(r => r.id === id);
+            if (!row) return;
+
+            // Load Master if empty
+            loadMasterAkun();
+
+            // Populate Form
+            document.getElementById('edit_jurnal_id').value = row.id;
+            document.getElementById('edit_jurnal_akun').value = row.nama_akun; // Must match exactly with option value
+            document.getElementById('edit_jurnal_desc').value = row.keterangan;
+            document.getElementById('edit_jurnal_debit').value = row.debit;
+            document.getElementById('edit_jurnal_kredit').value = row.kredit;
+            document.getElementById('edit_jurnal_reason').value = ''; // Reset reason
+
+            document.getElementById('editJurnalModal').classList.remove('hidden');
+        }
+
+        function closeEditJurnal() {
+            document.getElementById('editJurnalModal').classList.add('hidden');
+        }
+
+        document.getElementById('formEditJurnal').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            // Collect Data
+            const id = document.getElementById('edit_jurnal_id').value;
+            const akun = document.getElementById('edit_jurnal_akun').value;
+            const desc = document.getElementById('edit_jurnal_desc').value;
+            const debit = parseFloat(document.getElementById('edit_jurnal_debit').value) || 0;
+            const kredit = parseFloat(document.getElementById('edit_jurnal_kredit').value) || 0;
+            const reason = document.getElementById('edit_jurnal_reason').value;
+
+            // Basic Validation
+            if (!akun) { alert("Wajib memilih akun yang valid!"); return; }
+            if (debit < 0 || kredit < 0) { alert("Nominal tidak boleh negatif!"); return; }
+            if (debit === 0 && kredit === 0) { alert("Nominal Debit atau Kredit harus diisi!"); return; }
+            if (!reason || reason.length < 5) { alert("Alasan perubahan wajib diisi dengan jelas!"); return; }
+
+            // Get Current User
+            const session = window.PNAuth?.getSession();
+            const userName = session?.user?.full_name || 'Unknown User';
+
+            if (!confirm("⚠️ Konfirmasi Perubahan Aman\n\nPerubahan ini akan dicatat dalam Audit Log.\nApakah Anda yakin ingin menyimpan?")) return;
+
+            // Show Loading
+            const btn = this.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Proses...`;
+            btn.disabled = true;
+
+            try {
+                // CALL RPC
+                const { data, error } = await client.rpc('update_jurnal_line', {
+                    p_id: id,
+                    p_akun: akun,
+                    p_desc: desc,
+                    p_debit: debit,
+                    p_kredit: kredit,
+                    p_reason: reason,
+                    p_user_name: userName
+                });
+
+                if (error) throw error;
+
+                if (data && data.success) {
+                    alert("✅ SUKSES!\n" + data.message);
+                    closeEditJurnal();
+                    loadData(); // Refresh Table
+                } else {
+                    alert("❌ GAGAL: " + (data?.message || "Unknown error"));
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert("Terjadi kesalahan sistem: " + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+
         // ==========================================
         async function loadSetupSaldo() {
             switchView('setup-saldo');

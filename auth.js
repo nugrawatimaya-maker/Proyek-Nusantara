@@ -112,6 +112,31 @@
       display.innerText = session.user.full_name;
     }
 
+    // --- SPESIFIK RESTRICTION: HALIMI (330428) ---
+    // User ini HANYA boleh akses pengajuan_biaya.html
+    const restrictedIds = ['330428']; // Bisa tambah ID lain jika perlu
+    // NOTE: Cek apakah ID user dari session match (user.id atau user.employee_id tergantung struktur)
+    // Asumsi user.id menyimpan employee ID atau string unik.
+    // Kita juga cek username/full_name just in case ID structure varied.
+
+    // Check by ID or Name specific for Halimi
+    const isRestrictedUser =
+      (session.user.id == '330428') ||
+      (session.user.full_name && session.user.full_name.toLowerCase().includes('halimi'));
+
+    if (isRestrictedUser) {
+      const path = window.location.pathname;
+      const allowedPage = 'pengajuan_biaya.html';
+
+      // Allow login.html too obviously
+      if (!path.includes(allowedPage) && !path.includes('login') && path !== '/' && path !== '') {
+        // Prevent redirect loop if already there
+        console.warn("Restricted User: Redirecting to Access Page");
+        window.location.href = allowedPage;
+        return false;
+      }
+    }
+
     return true;
   }
 

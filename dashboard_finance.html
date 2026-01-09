@@ -21,6 +21,14 @@
             if (session) {
                 document.getElementById('nav-user-name').innerText = session.user.full_name;
                 document.getElementById('nav-user-role').innerText = session.user.role.toUpperCase();
+
+                // RESTRICTION FOR TAUFIQ (782757)
+                // Cek nama atau ID. Anggap full_name mengandung 'Taufiq'
+                if (session.user.full_name && session.user.full_name.toLowerCase().includes('taufiq')) {
+                    const style = document.createElement('style');
+                    style.innerHTML = '#menu-laporan { display: none !important; }';
+                    document.head.appendChild(style);
+                }
             }
         });
     </script>
@@ -229,7 +237,7 @@
                     <p class="text-[10px] text-slate-400 mt-1">Input Manual</p>
                 </a>
 
-                <a href="laporan_jurnal.html"
+                <a href="laporan_jurnal.html" id="menu-laporan"
                     class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center group">
                     <div
                         class="h-14 w-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
