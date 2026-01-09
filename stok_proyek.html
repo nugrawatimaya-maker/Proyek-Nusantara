@@ -753,27 +753,7 @@
 
                         console.log("ID Transaksi Baru:", noPOBaru);
 
-                        // 1. Insert ke Verifikasi Material (Jembatan ke Accounting)
-                        // Hitung total biaya (Estimasi)
-                        const item = masterDataMemori.find(i => i.id == barangId);
-                        const hargaSatuan = item?.harga_estimasi || 0;
-                        const totalBiaya = hargaSatuan * jumlah;
-
-                        const { error: errVerif } = await client.from('verifikasi_material').insert([{
-                            tanggal: new Date(),
-                            nama_proyek: proyek,
-                            barang_id: barangId,
-                            jumlah: jumlah,
-                            total_biaya: totalBiaya,
-                            keterangan: `${ket} [Ref: ${noPOBaru}]`, // Pindahkan nomor PO ke sini
-                            status: 'WAITING'
-                        }]);
-
-                        if (errVerif) {
-                            return alert("❌ Gagal membuat tiket verifikasi: " + errVerif.message);
-                        }
-
-                        // 2. Update Stok Master (RPC Atomic)
+                        // 1. Update Stok Master (RPC Atomic)
                         const { error: errUpdate } = await client.rpc('kurangi_stok_aman', {
                             p_barang_id: barangId,
                             p_jumlah: jumlah
@@ -783,20 +763,36 @@
                             return alert("❌ Gagal mengurangi stok master: " + errUpdate.message);
                         }
 
-                        // --- LOG SYSTEM ---
-                        await catatLog(
-                            'PROYEK',
-                            `Pemakaian Material: ${jumlah} Unit (Ref: ${proyek})`,
-                            'fa-dolly-flatbed'
-                        );
-
-                        // 3. Catat History (PENTING: Cek Error Disini)
+                        // 2. Catat History Stok
                         const { error: errHist } = await client.from('stok_history').insert([{
                             barang_id: barangId,
                             jenis_transaksi: 'PEMAKAIAN PROYEK',
                             jumlah: -jumlah, // Negatif = Keluar
                             keterangan: `${proyek}: ${ket}`
                         }]);
+
+                        // 3. AUTO-POST KE JURNAL UMUM (Bypass Accounting Verification)
+                        // Hitung total nilai
+                        const item = masterDataMemori.find(i => i.id == barangId);
+                        const hargaSatuan = item?.harga_estimasi || 0;
+                        const totalBiaya = hargaSatuan * jumlah;
+
+                        if (totalBiaya > 0) {
+                            // Insert Jurnal
+                            const { error: errJurnal } = await client.from('jurnal_umum').insert([
+                                { tanggal: new Date(), nomor_referensi: 'AUTO-' + noPOBaru, keterangan: `Material: ${proyek} (${jumlah} ${item.nama_barang})`, nama_akun: 'Beban Proyek', debit: totalBiaya, kredit: 0 },
+                                { tanggal: new Date(), nomor_referensi: 'AUTO-' + noPOBaru, keterangan: `Material: ${proyek} (${jumlah} ${item.nama_barang})`, nama_akun: 'Persediaan Material', debit: 0, kredit: totalBiaya }
+                            ]);
+
+                            if (errJurnal) console.error("Gagal Auto Post Jurnal:", errJurnal);
+                        }
+
+                        // 4. Log System
+                        await catatLog(
+                            'PROYEK',
+                            `Pemakaian Material: ${jumlah} Unit (Auto-Journal)`,
+                            'fa-robot'
+                        );
 
                         if (errHist) {
                             alert("⚠️ PERINGATAN: Stok Master berkurang tapi Riwayat gagal dicatat! Hubungi IT. \nError: " + errHist.message);

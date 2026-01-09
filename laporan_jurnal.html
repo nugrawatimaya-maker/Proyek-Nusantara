@@ -404,93 +404,146 @@
             const saldos = hitungSaldo();
 
             // A. JURNAL UMUM
+            // A. JURNAL UMUM (Double Entry Style)
             if (currentType === 'JURNAL') {
-                // Add Header for Jurnal
-                html += `<div class="hidden md:grid grid-cols-12 gap-4 border-b-2 border-slate-200 pb-2 mb-2 font-bold text-xs uppercase text-slate-500 tracking-wider sticky top-0 bg-white z-10">
-                        <div class="col-span-2">Tanggal</div>
-                        <div class="col-span-2">Kode Akun</div>
-                        <div class="col-span-4">Keterangan</div>
-                        <div class="col-span-4 text-right">Debit / Kredit</div>
-                    </div>`;
+                html += `
+                <div class="overflow-auto max-h-[calc(100vh-280px)] border rounded-lg shadow-inner relative custom-scrollbar">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 text-[10px] uppercase tracking-wider border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+                                <th class="p-3 font-bold w-24 text-center whitespace-nowrap bg-slate-100">Tanggal</th>
+                                <th class="p-3 font-bold w-24 text-center whitespace-nowrap bg-slate-100">Ref</th>
+                                <th class="p-3 font-bold bg-slate-100">Keterangan / Akun</th>
+                                <th class="p-3 font-bold w-20 text-center whitespace-nowrap bg-slate-100">Ref Post</th>
+                                <th class="p-3 font-bold w-32 text-right border-l border-slate-200 bg-slate-100 whitespace-nowrap">Debit</th>
+                                <th class="p-3 font-bold w-32 text-right border-l border-slate-200 bg-slate-100 whitespace-nowrap">Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-slate-100 table-auto">`;
 
-                rawData.forEach(r => {
+                rawData.forEach((r, idx) => {
                     const kode = akunMap[r.nama_akun] || '-';
-                    const isD = r.debit > 0;
+                    const isDebit = r.debit > 0;
+                    const isCredit = r.kredit > 0;
+
+                    // Indentasi & Styling untuk Kredit
+                    const indentClass = isCredit ? 'pl-8 text-slate-600' : 'font-bold text-slate-800';
+                    const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-[#f8fafc]'; // Zebra Striping subtle
 
                     // Search Keyword Check
                     const searchStr = `${r.nama_akun} ${r.keterangan} ${kode} ${r.debit} ${r.kredit}`.toLowerCase();
 
+                    // Format Tanggal hanya muncul di baris pertama transaksi (jika mau grouping), tapi untuk Jurnal Umum flat list, kita tampilkan terus atau bisa dilogikakan.
+                    // Disini kita tampilkan per baris agar jelas.
+
                     html += `
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 py-3 border-b hover:bg-slate-50 transition items-center report-item" data-search="${searchStr}">
-                    <div class="col-span-1 md:col-span-2 text-xs font-mono text-slate-500 flex items-center gap-2">
-                        <span class="md:hidden font-bold w-20">Tanggal:</span>
-                        ${new Date(r.tanggal).toLocaleDateString('id-ID')}
-                    </div>
-                    <div class="col-span-1 md:col-span-2 text-xs font-bold text-slate-700 flex items-center gap-2">
-                         <span class="md:hidden font-bold w-20">Kode:</span>
-                        ${kode}
-                    </div>
-                    <div class="col-span-1 md:col-span-4">
-                        <div class="font-bold text-slate-800">${r.nama_akun}</div>
-                        <div class="text-xs text-slate-500 italic truncate">${r.keterangan || '-'}</div>
-                    </div>
-                    <div class="col-span-1 md:col-span-4 text-right flex justify-between md:block items-center">
-                         <span class="md:hidden font-bold text-xs">Nominal:</span>
-                         <div>
-                            <div class="font-mono font-bold ${isD ? 'text-slate-800' : 'text-slate-400'}">${isD ? fmt(r.debit) : '-'}</div>
-                            <div class="font-mono font-bold ${!isD ? 'text-slate-800' : 'text-slate-400'}">${!isD ? fmt(r.kredit) : '-'}</div>
-                         </div>
-                    </div>
-                </div>`;
+                    <tr class="${rowBg} hover:bg-yellow-50 transition report-item" data-search="${searchStr}">
+                        <td class="p-2.5 text-center text-xs text-slate-500 align-top border-r border-slate-100">
+                           ${new Date(r.tanggal).toLocaleDateString('id-ID')}
+                        </td>
+                        <td class="p-2.5 text-center text-[10px] text-slate-400 font-mono align-top border-r border-slate-100 truncate max-w-[80px]">
+                           ${r.nomor_referensi || '-'}
+                        </td>
+                        <td class="p-2.5 align-top">
+                            <div class="${indentClass}">${r.nama_akun}</div>
+                            ${isDebit ? `<div class="text-[10px] text-slate-400 italic mt-0.5 truncate">${r.keterangan || ''}</div>` : ''} 
+                        </td>
+                         <td class="p-2.5 text-center text-xs font-mono text-slate-500 align-top border-l border-slate-100">
+                           ${kode}
+                        </td>
+                        <td class="p-2.5 text-right font-mono text-slate-700 align-top border-l border-slate-200 bg-slate-50/50">
+                            ${isDebit ? fmt(r.debit) : ''}
+                        </td>
+                        <td class="p-2.5 text-right font-mono text-slate-700 align-top border-l border-slate-200 bg-slate-50/50">
+                            ${isCredit ? fmt(r.kredit) : ''}
+                        </td>
+                    </tr>`;
                 });
 
-                // B. BUKU BESAR (ACCORDION STYLE)
+                html += `</tbody></table></div>
+                <div class="mt-4 text-xs text-slate-400 text-center italic border-t pt-2">
+                    *Tampilan Jurnal Umum Standar Akuntansi (Double Entry)
+                </div>`;
+
+                // B. BUKU BESAR (ACCORDION STYLE WITH TABLE)
             } else if (currentType === 'BUKU_BESAR') {
                 const groups = {};
                 rawData.forEach(r => { if (!groups[r.nama_akun]) groups[r.nama_akun] = []; groups[r.nama_akun].push(r); });
 
+                // Wrapper untuk scroll jika konten panjang
+                html += `<div class="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto custom-scrollbar pr-2">`;
+
                 Object.keys(groups).sort().forEach(akun => {
                     let s = 0;
                     let rows = '';
-                    // Hitung saldo detail dulu
+
+                    // TABLE HEADER
+                    const tableHeader = `
+                    <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 uppercase tracking-widest border-b border-slate-200">
+                                <th class="p-3 w-24 text-center">Tanggal</th>
+                                <th class="p-3">Keterangan</th>
+                                <th class="p-3 w-32 text-right border-l border-slate-100">Debit</th>
+                                <th class="p-3 w-32 text-right border-l border-slate-100">Kredit</th>
+                                <th class="p-3 w-32 text-right border-l border-slate-100 bg-slate-50">Saldo</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">`;
+
+                    // Calculate & Generate Rows
                     groups[akun].forEach(r => {
-                        s += (r.debit - r.kredit);
+                        s += (r.debit - r.kredit); // Normal Balance Asset/Exp logic usually Debit +, Liab/Eq/Rev -. But simpler general ledger view usually treats it as Net Debit.
+                        // Adjust logic if needed: For simplicity in display, we show Net Running Balance.
+                        // Or we can color code it.
+
                         const searchStr = `${r.keterangan} ${r.debit} ${r.kredit}`.toLowerCase();
+                        const isDebit = r.debit > 0;
+                        const isCredit = r.kredit > 0;
+
                         rows += `
-                     <div class="grid grid-cols-12 gap-2 p-3 border-b border-slate-100 hover:bg-slate-50 text-xs report-item" data-search="${searchStr}">
-                        <div class="col-span-2 text-slate-500">${new Date(r.tanggal).toLocaleDateString('id-ID')}</div>
-                        <div class="col-span-6 italic text-slate-600">${r.keterangan || '-'}</div>
-                        <div class="col-span-2 text-right ${r.debit > 0 ? 'text-slate-800' : '-'}">${r.debit > 0 ? fmt(r.debit) : '-'}</div>
-                        <div class="col-span-2 text-right ${r.kredit > 0 ? 'text-slate-800' : '-'}">${r.kredit > 0 ? fmt(r.kredit) : '-'}</div>
-                     </div>`;
+                     <tr class="hover:bg-slate-50 transition report-item" data-search="${searchStr}">
+                        <td class="p-2.5 text-center text-slate-500 align-top">${new Date(r.tanggal).toLocaleDateString('id-ID')}</td>
+                        <td class="p-2.5 text-slate-700 italic align-top">${r.keterangan || '-'}</td>
+                        <td class="p-2.5 text-right font-mono text-slate-700 border-l border-slate-100 align-top">${isDebit ? fmt(r.debit) : ''}</td>
+                        <td class="p-2.5 text-right font-mono text-slate-700 border-l border-slate-100 align-top">${isCredit ? fmt(r.kredit) : ''}</td>
+                        <td class="p-2.5 text-right font-mono font-bold ${s < 0 ? 'text-red-600' : 'text-blue-700'} border-l border-slate-100 bg-slate-50/30 align-top">${fmt(s)}</td>
+                     </tr>`;
                     });
 
+                    const tableFooter = `</tbody></table></div>`;
                     const searchGroup = `${akun} ${s}`.toLowerCase();
 
+                    // Accordion Item
                     html += `
-                 <details class="group border border-slate-200 rounded-lg mb-3 overflow-hidden transition-all duration-300 open:shadow-md report-group" data-search="${searchGroup}">
-                    <summary class="flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none list-none">
+                 <details class="group bg-white border border-slate-200 rounded-lg overflow-hidden transition-all duration-300 open:shadow-md report-group mb-4" open data-search="${searchGroup}">
+                    <summary class="flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none list-none sticky top-0 z-10 border-b border-transparent group-open:border-slate-200">
                         <div class="flex items-center gap-3">
-                            <i class="fas fa-chevron-right text-slate-400 text-xs group-open:rotate-90 transition-transform duration-200"></i>
-                            <span class="font-bold text-slate-700 text-sm">${akun}</span>
-                            <span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">${groups[akun].length} Trx</span>
+                            <div class="bg-white border rounded p-1 shadow-sm group-open:rotate-90 transition-transform">
+                                 <i class="fas fa-chevron-right text-slate-400 text-xs"></i>
+                            </div>
+                            <div>
+                                <span class="font-bold text-slate-700 text-sm block">${akun}</span>
+                                <span class="text-[10px] text-slate-400 font-normal">${groups[akun].length} Transaksi</span>
+                            </div>
                         </div>
-                        <div class="font-mono font-bold ${s >= 0 ? 'text-blue-700' : 'text-red-600'}">
-                            Saldo: ${fmt(s)}
+                        <div class="text-right">
+                            <div class="text-[10px] uppercase text-slate-400 font-bold tracking-wider">Saldo Akhir</div>
+                            <div class="font-mono font-bold ${s >= 0 ? 'text-blue-700' : 'text-red-600'}">
+                                ${fmt(s)}
+                            </div>
                         </div>
                     </summary>
-                    <div class="bg-white">
-                        <div class="grid grid-cols-12 gap-2 p-2 bg-slate-50 font-bold text-[10px] uppercase text-slate-400 tracking-wider">
-                            <div class="col-span-2">Tanggal</div><div class="col-span-6">Keterangan</div><div class="col-span-2 text-right">Debit</div><div class="col-span-2 text-right">Kredit</div>
-                        </div>
+                    <div class="bg-white p-2">
+                        ${tableHeader}
                         ${rows}
-                        <div class="p-3 bg-indigo-50 text-right text-xs font-bold border-t border-indigo-100 text-indigo-800">
-                             Saldo Akhir: ${fmt(s)}
-                        </div>
+                        ${tableFooter}
                     </div>
                  </details>`;
                 });
 
+                html += `</div>`; // Close Wrapper
                 // C. NERACA SALDO & LAINNYA (WITH VISUAL BARS)
             } else {
                 // Logic generic (Neraca Saldo, Laba Rugi, Neraca, Analisis)
@@ -506,113 +559,314 @@
                 }
 
                 // GROUPING: Jika Neraca/Laba Rugi, pisahkan based on category
+                // C. NERACA SALDO (TABLE STYLE)
                 if (currentType === 'NERACA_SALDO') {
-                    // Simple List for Neraca Saldo
+
+                    html += `
+                    <div class="overflow-auto max-h-[calc(100vh-280px)] border rounded-lg shadow-inner relative custom-scrollbar bg-white">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+                                    <th class="p-3 bg-slate-100">Nama Akun</th>
+                                    <th class="p-3 w-40 text-right bg-slate-100 border-l border-slate-200">Debit</th>
+                                    <th class="p-3 w-40 text-right bg-slate-100 border-l border-slate-200">Kredit</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm divide-y divide-slate-50">`;
+
                     let tD = 0, tK = 0;
                     Object.keys(saldoMap).sort().forEach(akun => {
                         const net = saldoMap[akun].debit - saldoMap[akun].kredit;
-                        if (net === 0) return;
-                        const isD = net > 0; const nom = Math.abs(net);
+                        if (net === 0) return; // Skip zero balance
+
+                        const isD = net > 0;
+                        const nom = Math.abs(net);
+
                         if (isD) tD += nom; else tK += nom;
-                        const pct = maxVal > 0 ? (nom / maxVal) * 100 : 0;
 
-                        html += renderBarRow(akun, nom, isD ? 'D' : 'K', pct, isD ? 'bg-blue-100' : 'bg-red-100', isD ? 'text-blue-700' : 'text-red-700');
+                        html += `
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-50">
+                            <td class="p-3 pl-4 font-medium text-slate-700">${akun}</td>
+                            <td class="p-3 text-right font-mono text-slate-700 border-l border-slate-100">
+                                ${isD ? fmt(nom) : ''}
+                            </td>
+                             <td class="p-3 text-right font-mono text-slate-700 border-l border-slate-100">
+                                ${!isD ? fmt(nom) : ''}
+                            </td>
+                        </tr>`;
                     });
-                    html += `<div class="p-4 bg-slate-800 text-white flex justify-between font-bold text-sm rounded-lg mt-4 shadow-lg"><span>TOTAL</span><span>Debit: ${fmt(tD)} | Kredit: ${fmt(tK)}</span></div>`;
 
-                    // F. ARUS KAS
+                    // Footer Total
+                    const isBalanced = Math.abs(tD - tK) < 1;
+
+                    html += `
+                            </tbody>
+                            <tfoot class="sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+                                <tr class="${isBalanced ? 'bg-slate-800 text-white' : 'bg-red-600 text-white'} text-sm font-bold">
+                                    <td class="p-3 text-right uppercase tracking-[0.1em] text-xs opacity-90">Total Neraca Saldo</td>
+                                    <td class="p-3 text-right font-mono border-l border-white/20">${fmt(tD)}</td>
+                                    <td class="p-3 text-right font-mono border-l border-white/20">${fmt(tK)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    ${!isBalanced ? `<div class="bg-red-50 text-red-600 text-xs font-bold p-2 text-center mt-2 rounded border border-red-200">⚠️ Neraca Saldo Tidak Seimbang (Selisih: ${fmt(Math.abs(tD - tK))})</div>` : ''}
+                    `;
+
+                    // F. ARUS KAS (TABLE STYLE)
                 } else if (currentType === 'ARUS_KAS') {
-                    let inflow = {}, outflow = {};
-                    let totalIn = 0, totalOut = 0;
-                    let maxVal = 0;
+                    // Keywords untuk deteksi akun Kas/Bank
+                    const validCashRegex = /kas|bank|cash|tunai|bca|mandiri|bri|bni|cimb|danamon|permata|wallet|dompet/i;
+
+                    let tableRows = '';
+                    let totalMasuk = 0;
+                    let totalKeluar = 0;
                     let hasData = false;
 
-                    // Keywords untuk deteksi akun Kas/Bank
-                    // Tambahkan nama bank umum di Indonesia jika nama akun tidak mengandung kata "Bank"
-                    const validCashRegex = /kas|bank|cash|tunai|bca|mandiri|bri|bni|cimb|danamon|permata|wallet|dompet/i;
+                    // Header Table
+                    html += `
+                    <div class="overflow-auto max-h-[calc(100vh-280px)] border rounded-lg shadow-inner relative custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+                                    <th class="p-3 bg-slate-100">Akun Kas / Bank</th>
+                                    <th class="p-3 text-right bg-slate-100 border-l border-slate-200 text-emerald-600">Arus Masuk (Debit)</th>
+                                    <th class="p-3 text-right bg-slate-100 border-l border-slate-200 text-rose-600">Arus Keluar (Kredit)</th>
+                                    <th class="p-3 text-right bg-slate-100 border-l border-slate-200">Perubahan Bersih</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm divide-y divide-slate-50 font-mono">`;
 
                     for (let [ak, v] of Object.entries(saldos)) {
                         if (ak.match(validCashRegex)) {
-                            // Inflow (Debit pada Kas)
-                            if (v.debit > 0) {
-                                inflow[ak] = v.debit;
-                                totalIn += v.debit;
-                                if (v.debit > maxVal) maxVal = v.debit;
-                                hasData = true;
-                            }
-                            // Outflow (Kredit pada Kas)
-                            if (v.kredit > 0) {
-                                outflow[ak] = v.kredit;
-                                totalOut += v.kredit;
-                                if (v.kredit > maxVal) maxVal = v.kredit;
-                                hasData = true;
-                            }
+                            // Filter hanya yang ada mutasi
+                            if (v.debit === 0 && v.kredit === 0) continue;
+
+                            hasData = true;
+                            totalMasuk += v.debit;
+                            totalKeluar += v.kredit;
+                            const net = v.debit - v.kredit;
+
+                            const rowClass = net >= 0 ? 'text-blue-700' : 'text-orange-600';
+
+                            tableRows += `
+                            <tr class="hover:bg-slate-50 transition border-b border-slate-50">
+                                <td class="p-3 font-sans font-bold text-slate-700">${ak}</td>
+                                <td class="p-3 text-right text-emerald-600 border-l border-slate-100 bg-emerald-50/20">
+                                    ${v.debit > 0 ? fmt(v.debit) : '-'}
+                                </td>
+                                <td class="p-3 text-right text-rose-600 border-l border-slate-100 bg-rose-50/20">
+                                    ${v.kredit > 0 ? fmt(v.kredit) : '-'}
+                                </td>
+                                <td class="p-3 text-right font-bold ${rowClass} border-l border-slate-100 bg-slate-50">
+                                    ${fmt(net)}
+                                </td>
+                            </tr>`;
                         }
                     }
 
                     if (!hasData) {
-                        html += `<div class="flex flex-col items-center justify-center py-12 text-slate-400">
-                            <i class="fas fa-search-dollar text-4xl mb-3 opacity-50"></i>
-                            <p class="font-bold">Tidak ada transaksi Kas/Bank ditemukan</p>
-                            <p class="text-xs">Coba periksa kembali filter tanggal atau nama akun Anda.</p>
-                          </div>`;
-                    } else {
-                        // Section Inflow
-                        html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight pt-2">Arus Masuk (Penerimaan)</div>`;
-                        if (Object.keys(inflow).length === 0) html += `<div class="text-xs text-slate-400 italic mb-4">Tidak ada data penerimaan kas</div>`;
-                        Object.keys(inflow).forEach(ak => html += renderBarRow(ak, inflow[ak], '', maxVal > 0 ? (inflow[ak] / maxVal) * 100 : 0, 'bg-emerald-100', 'text-emerald-700'));
-                        html += `<div class="text-right font-bold text-emerald-600 border-t border-dashed border-emerald-300 pt-2 mb-6">Total Masuk: ${fmt(totalIn)}</div>`;
-
-                        // Section Outflow
-                        html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight">Arus Keluar (Pengeluaran)</div>`;
-                        if (Object.keys(outflow).length === 0) html += `<div class="text-xs text-slate-400 italic mb-4">Tidak ada data pengeluaran kas</div>`;
-                        Object.keys(outflow).forEach(ak => html += renderBarRow(ak, outflow[ak], '', maxVal > 0 ? (outflow[ak] / maxVal) * 100 : 0, 'bg-rose-100', 'text-rose-700'));
-                        html += `<div class="text-right font-bold text-rose-600 border-t border-dashed border-rose-300 pt-2 mb-6">Total Keluar: ${fmt(totalOut)}</div>`;
-
-                        // Net Cash Flow
-                        const netFlow = totalIn - totalOut;
-                        html += `<div class="${netFlow >= 0 ? 'bg-blue-600' : 'bg-orange-500'} text-white p-6 rounded-xl shadow-xl flex justify-between items-center mt-4">
-                            <div>
-                                <div class="text-sm opacity-80 uppercase font-bold tracking-widest">Surplus / Defisit Kas (Net)</div>
-                                <div class="text-3xl font-black mt-1">${fmt(netFlow)}</div>
-                                <div class="text-[10px] mt-1 opacity-75">*Perubahan saldo kas periode ini</div>
-                            </div>
-                            <i class="fas fa-exchange-alt text-4xl opacity-50"></i>
-                         </div>`;
+                        tableRows = `<tr><td colspan="4" class="p-8 text-center text-slate-400 italic">Tidak ada mutasi arus kas pada periode ini.</td></tr>`;
                     }
+
+                    html += tableRows;
+
+                    // Footer Total
+                    const netTotal = totalMasuk - totalKeluar;
+                    html += `
+                            </tbody>
+                            <tfoot class="bg-slate-50 border-t-2 border-slate-200 font-bold text-sm shadow-[0_-2px_10px_rgba(0,0,0,0.05)] sticky bottom-0 z-20">
+                                <tr>
+                                    <td class="p-3 text-slate-600 uppercase tracking-widest text-right">Total Mutasi</td>
+                                    <td class="p-3 text-right text-emerald-700 bg-emerald-100/50">${fmt(totalMasuk)}</td>
+                                    <td class="p-3 text-right text-rose-700 bg-rose-100/50">${fmt(totalKeluar)}</td>
+                                    <td class="p-3 text-right ${netTotal >= 0 ? 'text-blue-700' : 'text-orange-600'} bg-slate-100">${fmt(netTotal)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <!-- Summary Card -->
+                    <div class="${netTotal >= 0 ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : 'bg-gradient-to-r from-orange-500 to-red-600'} text-white p-6 rounded-xl shadow-lg flex justify-between items-center mt-6">
+                        <div>
+                            <div class="text-xs opacity-90 uppercase font-bold tracking-[0.2em] mb-1">Surplus / Defisit Kas Net</div>
+                            <div class="text-3xl font-black tracking-tight">${fmt(netTotal)}</div>
+                            <div class="text-[10px] mt-2 opacity-80 font-medium">*Total kenaikan/penurunan kas periode ini</div>
+                        </div>
+                        <div class="bg-white/20 p-3 rounded-lg backdrop-blur-sm">
+                            <i class="fas fa-money-bill-transfer text-3xl"></i>
+                        </div>
+                    </div>
+                    `;
+
+                    // G. LABA RUGI (TABLE STYLE)
                 } else if (currentType === 'LABA_RUGI') {
                     const { inc, exp, incTotal, expTotal } = saldoMap;
-                    html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight">Pendapatan</div>`;
-                    Object.keys(inc).forEach(ak => html += renderBarRow(ak, inc[ak], '', (inc[ak] / maxVal) * 100, 'bg-emerald-100', 'text-emerald-700'));
-                    html += `<div class="text-right font-bold text-emerald-600 border-t border-dashed border-emerald-300 pt-2 mb-6">Total Pendapatan: ${fmt(incTotal)}</div>`;
+                    const labaBersih = incTotal - expTotal;
+                    const isProfit = labaBersih >= 0;
 
-                    html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight">Beban & Biaya</div>`;
-                    Object.keys(exp).forEach(ak => html += renderBarRow(ak, exp[ak], '', (exp[ak] / maxVal) * 100, 'bg-rose-100', 'text-rose-700'));
-                    html += `<div class="text-right font-bold text-rose-600 border-t border-dashed border-rose-300 pt-2 mb-6">Total Beban: ${fmt(expTotal)}</div>`;
+                    html += `
+                    <div class="overflow-auto max-h-[calc(100vh-280px)] border rounded-lg shadow-inner relative custom-scrollbar bg-white">
+                        <table class="w-full text-left border-collapse">
+                             <!-- HEADER PENDAPATAN -->
+                            <thead>
+                                <tr class="bg-emerald-50 text-emerald-800 text-xs font-bold uppercase tracking-widest border-b border-emerald-100 sticky top-0 z-20 shadow-sm">
+                                    <th class="p-3">Pendapatan (Revenue)</th>
+                                    <th class="p-3 w-40 text-right">Nominal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm border-b border-slate-100">`;
 
-                    const laba = incTotal - expTotal;
-                    html += `<div class="${laba >= 0 ? 'bg-indigo-600' : 'bg-orange-600'} text-white p-6 rounded-xl shadow-xl flex justify-between items-center mt-4">
-                            <div><div class="text-sm opacity-80 uppercase font-bold tracking-widest">Laba / Rugi Bersih</div><div class="text-3xl font-black mt-1">${fmt(laba)}</div></div>
-                            <i class="fas ${laba >= 0 ? 'fa-chart-line' : 'fa-chart-area'} text-4xl opacity-50"></i>
-                         </div>`;
+                    // List Pendapatan
+                    if (Object.keys(inc).length === 0) {
+                        html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data pendapatan</td></tr>`;
+                    } else {
+                        Object.entries(inc).forEach(([ak, val]) => {
+                            html += `
+                                <tr class="hover:bg-emerald-50/30 transition border-b border-slate-50">
+                                    <td class="p-3 pl-6 text-slate-700 font-medium">${ak}</td>
+                                    <td class="p-3 text-right font-mono text-slate-700">${fmt(val)}</td>
+                                </tr>`;
+                        });
+                    }
 
+                    // Total Pendapatan
+                    html += `
+                            <tr class="bg-emerald-100/50 font-bold text-emerald-800 text-sm">
+                                <td class="p-3 text-right uppercase tracking-wider text-xs">Total Pendapatan</td>
+                                <td class="p-3 text-right font-mono">${fmt(incTotal)}</td>
+                            </tr>
+                            </tbody>
+
+                            <!-- HEADER BEBAN -->
+                            <thead>
+                                <tr class="bg-rose-50 text-rose-800 text-xs font-bold uppercase tracking-widest border-y border-rose-100 sticky top-10 z-10 shadow-sm">
+                                    <th class="p-3">Beban Operasional (Expenses)</th>
+                                    <th class="p-3 w-40 text-right">Nominal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm">`;
+
+                    // List Beban
+                    if (Object.keys(exp).length === 0) {
+                        html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data beban</td></tr>`;
+                    } else {
+                        Object.entries(exp).forEach(([ak, val]) => {
+                            html += `
+                                <tr class="hover:bg-rose-50/30 transition border-b border-slate-50">
+                                    <td class="p-3 pl-6 text-slate-700 font-medium">${ak}</td>
+                                    <td class="p-3 text-right font-mono text-slate-700">${fmt(val)}</td>
+                                </tr>`;
+                        });
+                    }
+
+                    // Total Beban
+                    html += `
+                            <tr class="bg-rose-100/50 font-bold text-rose-800 text-sm border-b border-slate-200">
+                                <td class="p-3 text-right uppercase tracking-wider text-xs">Total Beban</td>
+                                <td class="p-3 text-right font-mono">(${fmt(expTotal)})</td>
+                            </tr>
+                            </tbody>
+                            
+                            <!-- NET PROFIT TOTAL -->
+                            <tfoot class="sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+                                <tr class="${isProfit ? 'bg-indigo-600 text-white' : 'bg-orange-500 text-white'} text-base font-black">
+                                    <td class="p-4 text-right uppercase tracking-[0.1em] text-xs opacity-90">Laba / Rugi Bersih</td>
+                                    <td class="p-4 text-right font-mono text-xl">${fmt(labaBersih)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
+
+                    // H. NERACA (TABLE STYLE)
                 } else if (currentType === 'NERACA') {
                     const { ast, pas, astTotal, pasTotal } = saldoMap;
-                    html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight pt-2">Aset (Harta)</div>`;
-                    Object.keys(ast).forEach(ak => html += renderBarRow(ak, ast[ak], '', (ast[ak] / maxVal) * 100, 'bg-cyan-100', 'text-cyan-700'));
-                    html += `<div class="text-right font-bold text-cyan-600 border-t border-dashed border-cyan-300 pt-2 mb-6">Total Aset: ${fmt(astTotal)}</div>`;
+                    const isBalanced = Math.abs(astTotal - pasTotal) < 1; // Tolerance for float
 
-                    html += `<div class="font-black text-lg text-slate-400 mb-2 uppercase tracking-tight">Pasiva (Hutang)</div>`;
-                    Object.keys(pas).forEach(ak => html += renderBarRow(ak, pas[ak], '', (pas[ak] / maxVal) * 100, 'bg-orange-100', 'text-orange-700'));
-                    html += `<div class="text-right font-bold text-orange-600 border-t border-dashed border-orange-300 pt-2 mb-6">Total Kewajiban: ${fmt(pasTotal)}</div>`;
+                    html += `
+                    <div class="overflow-auto max-h-[calc(100vh-280px)] border rounded-lg shadow-inner relative custom-scrollbar bg-white">
+                        <table class="w-full text-left border-collapse">
+                            
+                            <!-- HEADER ASSET (AKTIVA) -->
+                            <thead>
+                                <tr class="bg-blue-50 text-blue-800 text-xs font-bold uppercase tracking-widest border-b border-blue-100 sticky top-0 z-20 shadow-sm">
+                                    <th class="p-3">Aset (Aktiva)</th>
+                                    <th class="p-3 w-40 text-right">Nominal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm border-b border-slate-100">`;
 
-                    const modal = astTotal - pasTotal;
-                    html += `<div class="mt-4 p-4 border-2 border-dashed border-indigo-200 rounded-lg bg-indigo-50/50 flex justify-between items-center text-indigo-900">
-                    <span class="font-bold">Estimasi Modal / Ekuitas</span><span class="font-black text-xl">${fmt(modal)}</span>
-                </div>`;
-                }
-                // G. ANALISIS KEUANGAN
-                else if (currentType === 'ANALISIS') {
+                    if (Object.keys(ast).length === 0) {
+                        html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data aset</td></tr>`;
+                    } else {
+                        Object.entries(ast).forEach(([ak, val]) => {
+                            if (Math.abs(val) < 1) return; // SKIP ZERO BALANCE
+                            html += `
+                                <tr class="hover:bg-blue-50/30 transition border-b border-slate-50">
+                                    <td class="p-3 pl-6 text-slate-700 font-medium">${ak}</td>
+                                    <td class="p-3 text-right font-mono text-slate-700">${fmt(val)}</td>
+                                </tr>`;
+                        });
+                    }
+
+                    // Total Assets
+                    html += `
+                            <tr class="bg-blue-100/50 font-bold text-blue-800 text-sm">
+                                <td class="p-3 text-right uppercase tracking-wider text-xs">Total Aset</td>
+                                <td class="p-3 text-right font-mono">${fmt(astTotal)}</td>
+                            </tr>
+                            </tbody>
+
+                            <!-- HEADER PASIVA (KEWAJIBAN + MODAL) -->
+                            <thead>
+                                <tr class="bg-indigo-50 text-indigo-800 text-xs font-bold uppercase tracking-widest border-y border-indigo-100 sticky top-10 z-10 shadow-sm">
+                                    <th class="p-3">Liabilitas & Ekuitas (Pasiva)</th>
+                                    <th class="p-3 w-40 text-right">Nominal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm">`;
+
+                    if (Object.keys(pas).length === 0) {
+                        html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data pasiva</td></tr>`;
+                    } else {
+                        Object.entries(pas).forEach(([ak, val]) => {
+                            if (Math.abs(val) < 1) return; // SKIP ZERO BALANCE
+                            html += `
+                                <tr class="hover:bg-indigo-50/30 transition border-b border-slate-50">
+                                    <td class="p-3 pl-6 text-slate-700 font-medium">${ak}</td>
+                                    <td class="p-3 text-right font-mono text-slate-700">${fmt(val)}</td>
+                                </tr>`;
+                        });
+                    }
+
+                    // Total Pasiva
+                    html += `
+                            <tr class="bg-indigo-100/50 font-bold text-indigo-800 text-sm border-b border-slate-200">
+                                <td class="p-3 text-right uppercase tracking-wider text-xs">Total Pasiva</td>
+                                <td class="p-3 text-right font-mono">${fmt(pasTotal)}</td>
+                            </tr>
+                            </tbody>
+                            
+                            <!-- CHECK BALANCE -->
+                            <tfoot class="sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+                                <tr class="${isBalanced ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'} text-base font-black">
+                                    <td class="p-4 flex items-center gap-2">
+                                        <i class="fas ${isBalanced ? 'fa-check-circle' : 'fa-exclamation-triangle'} text-lg opacity-80"></i>
+                                        <span class="uppercase tracking-[0.1em] text-xs opacity-90">
+                                            ${isBalanced ? 'Neraca Seimbang (Balance)' : 'Neraca Tidak Seimbang!'}
+                                        </span>
+                                    </td>
+                                    <td class="p-4 text-right font-mono text-xl opacity-90">
+                                         ${isBalanced ? 'OK' : 'Selisih: ' + fmt(astTotal - pasTotal)}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>`;
+
+                    // I. ANALISIS & LAINNYA
+                } else if (currentType === 'ANALISIS') {
                     // CALCULATE VARIABLES
                     let currentAssets = 0, currentLiabilities = 0;
                     let totalRevenue = 0, totalExpense = 0;
@@ -735,33 +989,45 @@
 
         function filterSaldosByType(saldos, type) {
             // Helper sederhana untuk memisahkan akun Neraca vs Laba Rugi
+            // 1. Definisikan Regex
+            const regInc = /pendapatan|penjualan|sales|revenue|income|omzet/i;
+            const regExp = /beban|biaya|gaji|listrik|air|internet|cost|expense|admin|pajak|bunga|kerugian/i;
+            const regAst = /kas|bank|piutang|persediaan|tanah|bangunan|kendaraan|aset|inventaris|peralatan|perlengkapan|sewa dibayar dimuka/i;
+            const regPas = /hutang|kewajiban|modal|ekuitas|prive|laba ditahan|akumulasi/i;
+
             if (type === 'LABA_RUGI') {
                 let inc = {}, exp = {}, incTotal = 0, expTotal = 0;
                 for (let [ak, v] of Object.entries(saldos)) {
-                    let net = v.kredit - v.debit; // Pendapatan normal Kredit
-                    if (ak.match(/pendapatan|penjualan|sales|revenue/i) && net !== 0) {
-                        // Jika Revenue, saldo normal Kredit (Show positive)
+                    let net = v.kredit - v.debit; // Default Income Credit
+
+                    // Logic: Jika nama match Income OR (Tidak match expense AND saldo kredit > 0 dan tidak match Asset/Pasiva)
+                    if (ak.match(regInc) || (!ak.match(regExp) && !ak.match(regAst) && !ak.match(regPas) && net > 0)) {
                         inc[ak] = net; incTotal += net;
-                    } else {
-                        net = v.debit - v.kredit; // Beban normal debit
-                        if (ak.match(/beban|biaya|gaji|listrik|cost|expense/i) && net !== 0) {
+                    }
+                    else {
+                        net = v.debit - v.kredit; // Default Expense Debit
+                        if (ak.match(regExp)) {
                             exp[ak] = net; expTotal += net;
                         }
                     }
                 }
                 return { inc, exp, incTotal, expTotal };
             }
+
             if (type === 'NERACA') {
                 let ast = {}, pas = {}, astTotal = 0, pasTotal = 0;
                 for (let [ak, v] of Object.entries(saldos)) {
+                    // Skip jika itu akun Laba Rugi
+                    if (ak.match(regInc) || ak.match(regExp)) continue;
+
                     let net = v.debit - v.kredit;
-                    if (ak.match(/kas|bank|piutang|persediaan|tanah|bangunan|kendaraan|aset|inventaris/i) && net !== 0) {
+
+                    // Logic: Match Asset OR (Debit Balance & not Pasiva)
+                    if (ak.match(regAst) || (net > 0 && !ak.match(regPas))) {
                         ast[ak] = net; astTotal += net;
                     } else {
                         net = v.kredit - v.debit;
-                        if (ak.match(/hutang|kewajiban|modal|ekuitas/i) && net !== 0) {
-                            pas[ak] = net; pasTotal += net;
-                        }
+                        pas[ak] = net; pasTotal += net;
                     }
                 }
                 return { ast, pas, astTotal, pasTotal };

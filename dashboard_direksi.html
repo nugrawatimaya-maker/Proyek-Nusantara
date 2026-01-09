@@ -585,8 +585,8 @@
                 // --- LOGIC: APPROVAL ---
                 else if (action === 'APPROVED') {
                     if (sourceTable === 'transaksi') {
-                        // Approve Transaksi -> Status 'ADVANCE_CAIR' (Funds Released)
-                        const { error } = await client.from('transaksi').update({ jenis_transaksi: 'ADVANCE_CAIR' }).eq('id', queueId);
+                        // Approve Transaksi -> Status 'APPROVED_BY_DIREKSI' (Finance Execution Pending)
+                        const { error } = await client.from('transaksi').update({ jenis_transaksi: 'APPROVED_BY_DIREKSI' }).eq('id', queueId);
                         if (error) throw error;
                     } else if (sourceTable === 'purchase_order') {
                         await updateStatusPO(sourceId, 'APPROVED');
@@ -595,32 +595,34 @@
                         const { error: errQueue } = await client.from('approval_queue').update({ status: 'APPROVED' }).eq('id', queueId);
                         if (errQueue) throw errQueue;
                     } else if (sourceTable === 'transaksi_upah') {
-                        // Approve Upah Tukang -> Status 'LUNAS'
+                        // Approve Upah Tukang -> Status 'APPROVED_BY_DIREKSI'
                         const { error } = await client
                             .from('transaksi_upah')
-                            .update({ status: 'LUNAS' })
+                            .update({ status: 'APPROVED_BY_DIREKSI' })
                             .eq('id', queueId);
                         if (error) throw error;
-                    } else {
-                        await approveGeneric(queueId, sourceTable, sourceId);
                     }
 
-                    // Log
-                    await PNAuth.logActivity(`Direksi MENYETUJUI: ${titleCtx}`, 'APPROVAL', 'fa-check-circle');
-
-                    showToast('Pengajuan berhasil disetujui!', 'success');
+                } else {
+                    await approveGeneric(queueId, sourceTable, sourceId);
                 }
+
+                // Log
+                await PNAuth.logActivity(`Direksi MENYETUJUI: ${titleCtx}`, 'APPROVAL', 'fa-check-circle');
+
+                showToast('Pengajuan berhasil disetujui!', 'success');
+            }
 
                 // 3. Refresh Data
                 await loadApprovalQueue();
 
-            } catch (err) {
-                console.error("Process Error:", err);
-                alert("Gagal memproses: " + err.message);
-                // Restore button content if error, because we might not reload
-                btnElement.innerHTML = originalContent;
-                allBtns.forEach(btn => btn.disabled = false);
-            }
+        } catch (err) {
+            console.error("Process Error:", err);
+            alert("Gagal memproses: " + err.message);
+            // Restore button content if error, because we might not reload
+            btnElement.innerHTML = originalContent;
+            allBtns.forEach(btn => btn.disabled = false);
+        }
         }
 
         // Helper khusus untuk update status PO massal berdasarkan ID salah satu item

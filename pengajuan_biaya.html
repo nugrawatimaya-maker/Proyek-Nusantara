@@ -633,12 +633,12 @@
             async function loadPengajuan() {
                 if (!window.client) return;
 
-                // FIX: Don't filter by request_by_id column as it doesn't exist
+                // FIX: Server-Side Filter for Privacy (Only fetch own data)
                 const { data, error } = await window.client
                     .from('transaksi')
                     .select('*')
-                    // .eq('request_by_id', currentUser.id) <--- REMOVED
                     .or('jenis_transaksi.eq.PENGAJUAN,jenis_transaksi.eq.ADVANCE_CAIR,jenis_transaksi.eq.REALIZED,jenis_transaksi.eq.REJECTED')
+                    .ilike('keterangan', `%[REQ:${currentUser.id}]%`)
                     .order('tanggal', { ascending: false });
 
                 const tbody = document.getElementById("listPengajuan");
@@ -647,24 +647,12 @@
 
                 if (error) { console.error(error); return; }
                 if (!data || data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 italic">Belum ada pengajuan biaya.</td></tr>`;
-                    return;
-                }
-
-                // Client Side Filter for Current User
-                // We look for [REQ:USER_ID] in the keterangan
-                const myData = data.filter(item => {
-                    if (!item.keterangan) return false;
-                    // Old data might not have the tag, so we might lose old data that wasn't tagged.
-                    // But for now this enables the new system.
-                    // Optionally, if user is admin/finance, they might see all? No, this is "Pengajuan SAYA"
-                    return item.keterangan.includes(`[REQ:${currentUser.id}]`);
-                });
-
-                if (myData.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 italic">Belum ada riwayat pengajuan Anda.</td></tr>`;
                     return;
                 }
+
+                // Data already filtered by server
+                const myData = data;
 
                 myData.forEach(item => {
                     let statusBadge = "";

@@ -3,75 +3,219 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Accounting - Verifikasi Material</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounting - Verifikasi & Pembayaran</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Use Shared Config -->
   <script src="app_config.js"></script>
   <script src="auth.js"></script>
-  <script>PNAuth.requireAuth(['finance', 'superadmin']);</script>
+  <script>PNAuth.requireAuth(['finance', 'superadmin', 'direksi']);</script>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #64748b;
+      /* slate-500 */
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid transparent;
+    }
+
+    .menu-item:hover {
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+
+    .menu-item.active {
+      background-color: #eff6ff;
+      /* blue-50 */
+      color: #2563eb;
+      /* blue-600 */
+      border-color: #dbeafe;
+      /* blue-100 */
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .menu-item .icon-box {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      background-color: #f1f5f9;
+      color: #94a3b8;
+    }
+
+    .menu-item.active .icon-box {
+      background-color: #dbeafe;
+      color: #2563eb;
+    }
+
+    /* Animation */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-fade-in-up {
+      animation: fadeInUp 0.4s ease-out forwards;
+    }
+  </style>
 </head>
 
-<body class="bg-gray-100 font-sans p-6">
-  <div class="max-w-6xl mx-auto">
-    <div class="flex justify-between items-center mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-800">Verifikasi Pengeluaran Material</h1>
-        <p class="text-sm text-gray-500">Validasi pemakaian harian sebelum masuk ke Jurnal Umum</p>
+<body class="bg-slate-50 font-sans h-screen flex flex-col overflow-hidden">
+
+  <!-- HEADER -->
+  <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center z-10">
+    <div class="flex items-center gap-3">
+      <div
+        class="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+        <i class="fas fa-wallet text-lg"></i>
       </div>
-      <a href="dashboard_finance.html" class="bg-gray-600 text-white px-4 py-2 rounded text-sm font-bold"><i
-          class="fas fa-arrow-left mr-2"></i>Dashboard</a>
+      <div>
+        <h1 class="text-xl font-bold text-slate-800 tracking-tight leading-none">Accounting</h1>
+        <p class="text-xs text-slate-400 font-medium mt-1">Verifikasi & Eksekusi Pembayaran</p>
+      </div>
     </div>
+    <div class="flex items-center gap-3">
+      <a href="dashboard_finance.html"
+        class="text-slate-500 hover:text-slate-800 font-bold text-xs uppercase tracking-wide bg-slate-100 hover:bg-slate-200 px-4 py-2.5 rounded-lg transition flex items-center gap-2">
+        <i class="fas fa-th-large"></i> Dashboard
+      </a>
+    </div>
+  </header>
 
-    <div class="mb-4 flex space-x-2">
-      <button onclick="switchTab('material')" id="btnTabMaterial"
-        class="px-4 py-2 bg-blue-600 text-white rounded font-bold shadow transition">Verifikasi Material</button>
-      <button onclick="switchTab('expense')" id="btnTabExpense"
-        class="px-4 py-2 bg-white text-gray-600 rounded font-bold hover:bg-gray-100 transition">Approval Biaya</button>
-    </div>
+  <!-- MAIN LAYOUT -->
+  <div class="flex flex-1 overflow-hidden">
 
-    <!-- TAB MATERIAL -->
-    <div id="tabMaterial" class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-      <table class="w-full text-left border-collapse">
-        <thead class="bg-gray-50 text-gray-600 uppercase text-xs font-bold">
-          <tr>
-            <th class="p-4 border-b">Tanggal</th>
-            <th class="p-4 border-b">Proyek</th>
-            <th class="p-4 border-b">Material & Qty</th>
-            <th class="p-4 border-b text-right">Total Biaya</th>
-            <th class="p-4 border-b text-center">Bukti</th>
-            <th class="p-4 border-b text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="bodyVerifikasi">
-          <tr>
-            <td colspan="6" class="p-10 text-center text-gray-400">Memuat antrean verifikasi...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- SIDEBAR MENU -->
+    <aside class="w-72 bg-white border-r border-slate-200 p-6 flex flex-col gap-2 z-0">
+      <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2 pl-2">Menu Utama</div>
 
-    <!-- TAB EXPENSE -->
-    <div id="tabExpense" class="hidden bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-      <table class="w-full text-left border-collapse">
-        <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-bold">
-          <tr>
-            <th class="p-4 border-b">Tanggal</th>
-            <th class="p-4 border-b">Detail Pengajuan</th>
-            <th class="p-4 border-b text-right">Nominal</th>
-            <th class="p-4 border-b text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="bodyExpense">
-          <tr>
-            <td colspan="4" class="p-10 text-center text-gray-400">Memuat data pengajuan...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <!-- MENU: APPROVAL BIAYA -->
+      <div onclick="switchTab('expense')" id="menuExpense" class="menu-item active">
+        <div class="icon-box">
+          <i class="fas fa-file-invoice"></i>
+        </div>
+        <div class="flex-1">
+          <div>Approval Biaya</div>
+          <div class="text-[10px] text-slate-400 font-normal mt-0.5">Pengajuan baru masuk</div>
+        </div>
+      </div>
+
+      <!-- MENU: EKSEKUSI PEMBAYARAN -->
+      <div onclick="switchTab('payment')" id="menuPayment" class="menu-item">
+        <div class="icon-box">
+          <i class="fas fa-hand-holding-dollar"></i>
+        </div>
+        <div class="flex-1">
+          <div>Eksekusi Pembayaran</div>
+          <div class="text-[10px] text-slate-400 font-normal mt-0.5">Siap bayar (Approved)</div>
+        </div>
+        <div id="badgePayment"
+          class="hidden bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
+          !</div>
+      </div>
+
+    </aside>
+
+    <!-- CONTENT AREA -->
+    <main class="flex-1 bg-slate-50/50 p-8 overflow-y-auto relative">
+
+      <!-- CONTENT: EXPENSE -->
+      <div id="tabExpense" class="max-w-6xl mx-auto animate-fade-in-up">
+        <div class="mb-6 flex justify-between items-end">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-800">Approval Biaya</h2>
+            <p class="text-slate-500 mt-1">Daftar pengajuan biaya dari divisi lain yang menunggu verifikasi Finance.</p>
+          </div>
+          <button onclick="loadExpense()" class="text-slate-400 hover:text-blue-600 transition"><i
+              class="fas fa-sync-alt"></i></button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-bold border-b border-slate-200">
+              <tr>
+                <th class="p-4 pl-6 w-40">Tanggal</th>
+                <th class="p-4">Keterangan Pengajuan</th>
+                <th class="p-4 text-right w-40">Nominal</th>
+                <th class="p-4 text-center w-32 pr-6">Status</th>
+              </tr>
+            </thead>
+            <tbody id="bodyExpense">
+              <tr>
+                <td colspan="4" class="p-10 text-center text-slate-400">Memuat data...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CONTENT: PAYMENT -->
+      <div id="tabPayment" class="hidden max-w-6xl mx-auto animate-fade-in-up">
+        <div class="mb-6 flex justify-between items-end">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-800">Eksekusi Pembayaran</h2>
+            <p class="text-slate-500 mt-1">Finalisasi transaksi yang telah disetujui Direksi. Lakukan transfer lalu
+              konfirmasi di sini.</p>
+          </div>
+          <button onclick="loadPaymentQueue()" class="text-slate-400 hover:text-green-600 transition"><i
+              class="fas fa-sync-alt"></i></button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <!-- Alert Info -->
+          <div class="bg-emerald-50 border-b border-emerald-100 p-4 flex gap-3 items-center text-emerald-800 text-sm">
+            <i class="fas fa-info-circle text-lg"></i>
+            <span>Data di bawah ini sudah <b>Approved Direksi</b>. Klik "Bayar Sekarang" untuk update status menjadi
+              LUNAS.</span>
+          </div>
+
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-bold border-b border-slate-200">
+              <tr>
+                <th class="p-4 pl-6 w-32">Tanggal</th>
+                <th class="p-4">Keterangan / Pekerjaan</th>
+                <th class="p-4 text-right w-40">Nominal</th>
+                <th class="p-4 text-center w-32">Status</th>
+                <th class="p-4 text-center w-40 pr-6">Aksi (Finance)</th>
+              </tr>
+            </thead>
+            <tbody id="bodyPayment">
+              <tr>
+                <td colspan="5" class="p-10 text-center text-slate-400">Memuat antrean pembayaran...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
   </div>
 
   <script>
@@ -79,108 +223,40 @@
     const client = window.client || supabase.createClient("https://nbpxmramqufvxiikxbve.supabase.co", "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN");
     const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
-    let currentTab = 'material';
+    // --- TAB SWITCHER ---
+    let currentTab = 'expense';
 
     function switchTab(tab) {
       currentTab = tab;
-      const btnMat = document.getElementById('btnTabMaterial');
-      const btnExp = document.getElementById('btnTabExpense');
-      const viewMat = document.getElementById('tabMaterial');
-      const viewExp = document.getElementById('tabExpense');
 
-      if (tab === 'material') {
-        btnMat.className = "px-4 py-2 bg-blue-600 text-white rounded font-bold shadow transition";
-        btnExp.className = "px-4 py-2 bg-white text-gray-600 rounded font-bold hover:bg-gray-100 transition";
-        viewMat.classList.remove('hidden');
-        viewExp.classList.add('hidden');
-        loadMaterial();
-      } else {
-        btnMat.className = "px-4 py-2 bg-white text-gray-600 rounded font-bold hover:bg-gray-100 transition";
-        btnExp.className = "px-4 py-2 bg-blue-600 text-white rounded font-bold shadow transition";
-        viewMat.classList.add('hidden');
+      // UI Elements
+      const menuExp = document.getElementById('menuExpense');
+      const menuPay = document.getElementById('menuPayment');
+      const viewExp = document.getElementById('tabExpense');
+      const viewPay = document.getElementById('tabPayment');
+
+      // Reset Active Classes
+      menuExp.classList.remove('active');
+      menuPay.classList.remove('active');
+      viewExp.classList.add('hidden');
+      viewPay.classList.add('hidden');
+
+      // Set Active
+      if (tab === 'expense') {
+        menuExp.classList.add('active');
         viewExp.classList.remove('hidden');
         loadExpense();
-      }
-    }
-
-    // --- MATERIAL Functions ---
-    async function loadMaterial() {
-      const { data, error } = await client
-        .from('verifikasi_material')
-        .select(`*, master_stok(nama_barang, satuan, harga_estimasi)`)
-        .ilike('status', 'waiting')
-        .order('tanggal', { ascending: false });
-
-      const tbody = document.getElementById("bodyVerifikasi");
-      tbody.innerHTML = "";
-
-      if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-gray-400 italic">Semua data material telah diverifikasi.</td></tr>`;
-        return;
-      }
-
-      data.forEach(item => {
-        const hargaSatuan = Number(item.master_stok?.harga_estimasi || 0);
-        const qty = Number(item.jumlah || 0);
-        const totalFix = hargaSatuan * qty;
-        tbody.innerHTML += `
-          <tr class="hover:bg-gray-50 border-b transition">
-            <td class="p-4 text-sm">${new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
-            <td class="p-4 font-bold text-blue-800">${item.nama_proyek}</td>
-            <td class="p-4 text-sm">
-                <span class="font-bold">${item.master_stok?.nama_barang || 'Item'}</span><br>
-                <span class="text-xs text-gray-500">${item.jumlah} ${item.master_stok?.satuan}</span>
-            </td>
-            <td class="p-4 text-right font-mono font-bold text-green-700">${fmt(totalFix)}</td>
-            <td class="p-4 text-center">
-                ${item.bukti_nota ? `<a href="${item.bukti_nota}" target="_blank" class="text-blue-500 hover:underline text-xs font-bold"><i class="fas fa-image"></i> Lihat</a>` : '-'}
-            </td>
-            <td class="p-4 text-center flex gap-2 justify-center">
-                <button onclick="postingKeJurnal(${item.id}, ${item.total_biaya}, '${item.nama_proyek}', '${item.keterangan}')" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-green-700">Approve & Post</button>
-                <button onclick="rejectItem(${item.id})" class="bg-red-100 text-red-600 px-3 py-1.5 rounded text-xs font-bold hover:bg-red-200">Reject</button>
-            </td>
-          </tr>`;
-      });
-    }
-
-    async function postingKeJurnal(id, total, proyek, ket) {
-      if (!confirm("Posting pengeluaran ini ke Jurnal Umum?")) return;
-
-      const { error: errJurnal } = await client.from('jurnal_umum').insert([
-        { tanggal: new Date(), nomor_referensi: 'MAT-' + id, keterangan: `Material: ${proyek} - ${ket}`, nama_akun: 'Beban Proyek', debit: total, kredit: 0 },
-        { tanggal: new Date(), nomor_referensi: 'MAT-' + id, keterangan: `Material: ${proyek} - ${ket}`, nama_akun: 'Persediaan Material', debit: 0, kredit: total }
-      ]);
-
-      if (!errJurnal) {
-        await client.from('verifikasi_material').update({ status: 'POSTED' }).eq('id', id);
-        if (window.catatLog) await window.catatLog('KEUANGAN', `Posting Jurnal Material Project ${proyek}`, 'fa-book');
-        alert("✅ Berhasil diposting!");
-        loadMaterial();
       } else {
-        alert("Gagal posting: " + errJurnal.message);
+        menuPay.classList.add('active');
+        viewPay.classList.remove('hidden');
+        loadPaymentQueue();
       }
     }
 
-    async function rejectItem(id) {
-      if (!confirm("⚠️ TOLAK TRANSAKSI?\nBarang akan dimasukkan kembali ke saldo gudang.")) return;
-      const { data: item } = await client.from('verifikasi_material').select('barang_id, jumlah, nama_proyek, keterangan').eq('id', id).single();
-      if (item) {
-        const { data: stokSkrg } = await client.from('master_stok').select('total_stok').eq('id', item.barang_id).single();
-        await client.from('master_stok').update({ total_stok: stokSkrg.total_stok + item.jumlah }).eq('id', item.barang_id);
-        await client.from('stok_history').insert([{
-          barang_id: item.barang_id, jenis_transaksi: 'REJECT ACCOUNTING', jumlah: item.jumlah, keterangan: `Reject Proyek ${item.nama_proyek}: ${item.keterangan}`
-        }]);
-        if (window.catatLog) await window.catatLog('KEUANGAN', `Reject & Refund Material: ${item.nama_proyek}`, 'fa-undo');
-      }
-      await client.from('verifikasi_material').update({ status: 'REJECTED' }).eq('id', id);
-      alert("✅ Berhasil! Stok telah dikembalikan ke kolom MASUK.");
-      loadMaterial();
-    }
-
-    // --- EXPENSE Functions ---
+    // --- 1. APPROVAL BIAYA (Read Only / Monitoring) ---
     async function loadExpense() {
       const tbody = document.getElementById("bodyExpense");
-      tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400">Memuat data pengajuan...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-slate-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> Memuat data...</td></tr>`;
 
       const { data, error } = await client
         .from('transaksi')
@@ -194,96 +270,143 @@
       }
 
       if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-400 italic">Tidak ada pengajuan biaya yang pending.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-slate-400 italic">
+                <div class="mb-2 text-2xl"><i class="fas fa-check-circle"></i></div>
+                Tidak ada pengajuan biaya baru.
+            </td></tr>`;
         return;
       }
 
       tbody.innerHTML = "";
       data.forEach(item => {
-        // Parse Description for better display (Type & Divisi)
-        let typeDisplay = "UMUM";
-        let divDisplay = "-";
-        let descClean = item.keterangan;
-
-        // Example format: "[REIMBURSE] [MARKETING] Beli bensin..."
-        if (item.keterangan.startsWith('[')) {
-          // simple parser
-          const parts = item.keterangan.match(/^\[(.*?)\] \[(.*?)\] (.*)$/);
-          if (parts && parts.length >= 4) {
-            typeDisplay = parts[1];
-            divDisplay = parts[2];
-            descClean = parts[3];
-          } else {
-            // Fallback check just Type
-            const parts2 = item.keterangan.match(/^\[(.*?)\] (.*)$/);
-            if (parts2 && parts2.length >= 3) {
-              typeDisplay = parts2[1];
-              descClean = parts2[2];
-            }
-          }
-        }
-
-        // Extra logic for Multi-Item parsing if needed, but display text is fine
+        // Clean Description
+        let desc = item.keterangan;
+        // Try to make it readable if it's JSON-like string tag
+        desc = desc.replace(/\[REQ:.*?\]/g, '');
 
         tbody.innerHTML += `
-            <tr class="hover:bg-blue-50 border-b transition">
-                <td class="p-4 text-sm">
-                    <div class="font-bold text-gray-700">${new Date(item.tanggal).toLocaleDateString('id-ID')}</div>
-                    <div class="text-xs text-gray-400">ID: #${item.id}</div>
+            <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition">
+                <td class="p-4 pl-6 text-sm text-slate-500">${new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
+                <td class="p-4 text-sm font-semibold text-slate-700">
+                    ${desc}
+                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">ID: #${item.id}</div>
                 </td>
-                <td class="p-4">
-                    <div class="flex gap-2 mb-1">
-                        <span class="text-[10px] uppercase font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">${typeDisplay}</span>
-                        <span class="text-[10px] uppercase font-bold bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">${divDisplay}</span>
-                    </div>
-                    <div class="text-sm text-gray-800">${descClean}</div>
-                </td>
-                <td class="p-4 text-right font-mono font-bold text-orange-600">${fmt(item.jumlah)}</td>
-                <td class="p-4 text-center">
-                    <div class="flex flex-col gap-2 items-center">
-                        <button onclick="approveExpense(${item.id})" class="bg-green-600 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-green-700 w-full shadow-sm">Setujui & Cairkan</button>
-                        <button onclick="rejectExpense(${item.id})" class="bg-red-50 text-red-600 px-3 py-1.5 rounded text-xs font-bold hover:bg-red-100 w-full border border-red-200">Tolak</button>
-                    </div>
+                <td class="p-4 text-right font-mono font-bold text-slate-700">${fmt(item.jumlah)}</td>
+                <td class="p-4 text-center pr-6">
+                    <span class="bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">Pending</span>
                 </td>
             </tr>`;
       });
     }
 
-    async function approveExpense(id) {
-      if (!confirm("Setujui pengajuan ini?\nStatus akan berubah menjadi 'UANG CAIR'.")) return;
+    // --- 2. PAYMENT EXECUTION ---
+    async function loadPaymentQueue() {
+      const tbody = document.getElementById("bodyPayment");
+      tbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> Mengambil data approved direksi...</td></tr>`;
 
-      // Update status to ADVANCE_CAIR
-      const { error } = await client
-        .from('transaksi')
-        .update({ jenis_transaksi: 'ADVANCE_CAIR' })
-        .eq('id', id);
+      // 1. Fetch Transaksi (Pengajuan Biaya) Approved by Direksi
+      const p1 = client.from('transaksi').select('*').eq('jenis_transaksi', 'APPROVED_BY_DIREKSI').order('tanggal', { ascending: false });
+      // 2. Fetch Transaksi Upah (Upah Tukang) Approved by Direksi
+      const p2 = client.from('transaksi_upah').select('*').eq('status', 'APPROVED_BY_DIREKSI').order('tanggal_bayar', { ascending: false });
 
-      if (error) alert("Gagal: " + error.message);
-      else {
-        if (window.catatLog) await window.catatLog('KEUANGAN', `Approve Expense ID: ${id}`, 'fa-check-double');
-        alert("✅ Pengajuan Disetujui!");
-        loadExpense();
+      const [resTrans, resUpah] = await Promise.all([p1, p2]);
+
+      const dataTrans = resTrans.data || [];
+      const dataUpah = resUpah.data || [];
+
+      const combined = [];
+
+      // Map Transaksi
+      dataTrans.forEach(t => {
+        let desc = t.keterangan.replace(/\[REQ:.*?\]/g, '').trim();
+        if (desc.startsWith('[')) {
+          const match = desc.match(/^\[(.*?)\] (.*)$/);
+          if (match) desc = match[2];
+        }
+        combined.push({
+          type: 'EXPENSE', id: t.id, date: t.tanggal,
+          desc: `[Biaya] ${desc}`, amount: t.jumlah,
+          rawStatus: t.jenis_transaksi
+        });
+      });
+
+      // Map Upah
+      dataUpah.forEach(u => {
+        combined.push({
+          type: 'UPAH', id: u.id, date: u.tanggal_bayar,
+          desc: `[Upah] ${u.nama_pekerjaan} (${u.kavling})`, amount: u.nilai_bayar,
+          rawStatus: u.status
+        });
+      });
+
+      // Sort Desc Date
+      combined.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      // Update Badge
+      const badge = document.getElementById('badgePayment');
+      if (combined.length > 0) {
+        badge.innerText = combined.length;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
       }
+
+      if (combined.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400 italic">
+                  <div class="mb-2 text-2xl text-emerald-200"><i class="fas fa-check-double"></i></div>
+                  Tidak ada pembayaran yang menunggu eksekusi.
+              </td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = "";
+      combined.forEach(item => {
+        tbody.innerHTML += `
+             <tr class="hover:bg-green-50/20 border-b border-slate-100 last:border-0 transition group">
+                 <td class="p-4 pl-6 text-sm text-slate-500">${new Date(item.date).toLocaleDateString()}</td>
+                 <td class="p-4 text-sm font-bold text-slate-700">
+                     ${item.desc}
+                     <div class="text-[10px] text-green-600 font-normal mt-0.5 opacity-0 group-hover:opacity-100 transition">Siap Bayar</div>
+                 </td>
+                 <td class="p-4 text-right font-mono font-bold text-slate-800">${fmt(item.amount)}</td>
+                 <td class="p-4 text-center">
+                    <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-[10px] font-bold border border-indigo-200">APPROVED DIREKSI</span>
+                 </td>
+                 <td class="p-4 text-center pr-6">
+                    <button onclick="executePayment('${item.type}', ${item.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md text-xs font-bold transition flex items-center gap-2 mx-auto">
+                        <i class="fas fa-hand-holding-dollar"></i> BAYAR SEKARANG
+                    </button>
+                 </td>
+             </tr>
+             `;
+      });
     }
 
-    async function rejectExpense(id) {
-      if (!confirm("Tolak pengajuan ini?")) return;
+    async function executePayment(type, id) {
+      if (!confirm("⚠️ KONFIRMASI PEMBAYARAN\n\nPastikan Anda sudah melakukan transfer/pembayaran real.\nSistem akan mencatat aset Kas berkurang dan status menjadi LUNAS.\n\nLanjut?")) return;
 
-      const { error } = await client
-        .from('transaksi')
-        .update({ jenis_transaksi: 'REJECTED' })
-        .eq('id', id);
+      try {
+        if (type === 'EXPENSE') {
+          const { error } = await client.from('transaksi').update({ jenis_transaksi: 'ADVANCE_CAIR' }).eq('id', id);
+          if (error) throw error;
+        } else if (type === 'UPAH') {
+          const { error } = await client.from('transaksi_upah').update({ status: 'LUNAS' }).eq('id', id);
+          if (error) throw error;
+        }
 
-      if (error) alert("Gagal: " + error.message);
-      else {
-        if (window.catatLog) await window.catatLog('KEUANGAN', `Reject Expense ID: ${id}`, 'fa-times');
-        alert("❌ Pengajuan Ditolak!");
-        loadExpense();
+        if (window.catatLog) {
+          // Try catch for log
+          try { await window.catatLog('KEUANGAN', `Payment Executed (${type} ID:${id})`, 'fa-check'); } catch (e) { }
+        }
+        alert("✅ Pembayaran Berhasil Dicatat!");
+        loadPaymentQueue();
+      } catch (e) {
+        alert("Gagal update status: " + e.message);
       }
     }
 
     // Init
-    loadMaterial();
+    loadExpense();
   </script>
 </body>
 

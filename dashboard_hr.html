@@ -12,125 +12,199 @@
         // Check Auth: HR + Global Roles
         PNAuth.requireAuth(['hr', 'finance', 'direksi', 'superadmin']);
 
+        // --- POPULATE HEADER ---
         document.addEventListener('DOMContentLoaded', () => {
             const session = PNAuth.getSession();
             if (session) {
                 document.getElementById('nav-user-name').innerText = session.user.full_name;
-                document.getElementById('nav-user-role').innerText = session.user.role;
+                document.getElementById('nav-user-role').innerText = session.user.role.toUpperCase();
             }
         });
     </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
     <style>
         body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #f0fdfa;
+            font-family: 'Inter', sans-serif;
+            background-color: #f0fdfa;
+            /* Teal-50 */
         }
 
-        /* Teal Theme */
-        .active-tab {
-            border-bottom: 3px solid #0d9488;
-            color: #0d9488;
-            font-weight: bold;
+        /* Soft Gradient Background untuk Header */
+        .header-bg {
+            background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
         }
 
-        .inactive-tab {
-            color: #64748b;
+        /* Card Menu Style ala Odoo */
+        .menu-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
         }
 
-        .inactive-tab:hover {
-            color: #0d9488;
+        .menu-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: #e2e8f0;
+            background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+            border-radius: 5px;
+            background-size: 200% 100%;
+            animation: 1.5s shine linear infinite;
+        }
+
+        @keyframes shine {
+            to {
+                background-position-x: -200%;
+            }
         }
     </style>
 </head>
 
-<body class="text-slate-800">
+<body class="min-h-screen flex flex-col text-slate-800">
 
-    <nav class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center sticky top-0 z-20">
+    <nav class="bg-white border-b border-teal-100 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-3">
-            <div class="bg-teal-600 text-white p-2 rounded-lg"><i class="fas fa-users-cog fa-lg"></i></div>
+            <div class="bg-teal-600 text-white p-2 rounded-lg">
+                <i class="fas fa-users text-lg"></i>
+            </div>
             <div>
-                <h1 class="text-xl font-bold text-teal-900">HR Integrated System</h1>
-                <p class="text-xs text-gray-500">Human Resources & Payroll Management</p>
+                <h1 class="font-bold text-teal-900 text-lg leading-tight">HR Integrated System</h1>
+                <p class="text-[10px] text-teal-500 font-medium tracking-wider uppercase">Human Resources Module</p>
             </div>
         </div>
         <div class="flex items-center gap-4">
-            <a href="index.html" class="text-gray-400 hover:text-teal-600 transition" title="Home">
+            <a href="index.html" class="text-slate-400 hover:text-teal-600 transition" title="Home / Portal">
                 <i class="fas fa-home text-lg"></i>
             </a>
             <div class="text-right hidden sm:block">
-                <p class="text-sm font-bold text-gray-700" id="nav-user-name">User</p>
-                <p class="text-xs text-teal-500 uppercase" id="nav-user-role">HR STAFF</p>
+                <p class="text-sm font-bold text-slate-700" id="nav-user-name">Guest</p>
+                <p class="text-xs text-teal-500" id="nav-user-role">Online</p>
             </div>
-            <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center">
+            <div class="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600">
                 <i class="fas fa-user-tie"></i>
             </div>
-            <button onclick="PNAuth.logout()" class="text-gray-400 hover:text-red-500 transition" title="Logout">
+            <button onclick="PNAuth.logout()"
+                class="bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 p-2 rounded-full transition"
+                title="Logout">
                 <i class="fas fa-power-off"></i>
             </button>
         </div>
     </nav>
 
-    <div class="bg-white shadow px-6 pt-2 mb-6">
-        <div class="flex space-x-8">
-            <div onclick="switchTab('dashboard')" id="tab-dashboard" class="pb-3 active-tab cursor-pointer">
-                <i class="fas fa-chart-pie mr-2"></i>Overview
-            </div>
-            <div onclick="switchTab('pegawai')" id="tab-pegawai" class="pb-3 inactive-tab">
-                <i class="fas fa-id-badge mr-2"></i>Data Pegawai
-            </div>
-            <div onclick="switchTab('payroll')" id="tab-payroll" class="pb-3 inactive-tab">
-                <i class="fas fa-money-check-alt mr-2"></i>Payroll (Gaji)
-            </div>
-            <div onclick="switchTab('kpi')" id="tab-kpi" class="pb-3 inactive-tab">
-                <i class="fas fa-star mr-2"></i>KPI & Performa
+    <main class="flex-grow p-6 max-w-7xl mx-auto w-full space-y-8">
+
+        <!-- VIEW: MENU (Default) -->
+        <div id="view-menu">
+            <h3 class="text-slate-500 font-bold text-sm uppercase tracking-wider mb-4 ml-1">HR Apps</h3>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+
+                <!-- OVERVIEW / DASHBOARD -->
+                <div onclick="switchView('overview')"
+                    class="menu-card bg-white p-6 rounded-2xl border border-teal-50 shadow-sm flex flex-col items-center justify-center text-center group">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-chart-pie text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-teal-700">Overview</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Statistik Utama</p>
+                </div>
+
+                <!-- DATA PEGAWAI -->
+                <div onclick="switchView('pegawai')"
+                    class="menu-card bg-white p-6 rounded-2xl border border-teal-50 shadow-sm flex flex-col items-center justify-center text-center group">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-id-badge text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-blue-700">Data Pegawai</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Database Karyawan</p>
+                </div>
+
+                <!-- PAYROLL -->
+                <div onclick="switchView('payroll')"
+                    class="menu-card bg-white p-6 rounded-2xl border border-teal-50 shadow-sm flex flex-col items-center justify-center text-center group">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-money-check-alt text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-emerald-700">Payroll</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Penggajian</p>
+                </div>
+
+                <!-- KPI -->
+                <div onclick="switchView('kpi')"
+                    class="menu-card bg-white p-6 rounded-2xl border border-teal-50 shadow-sm flex flex-col items-center justify-center text-center group">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                        <i class="fas fa-star text-2xl"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-700 group-hover:text-amber-700">KPI & Bonus</h4>
+                    <p class="text-[10px] text-slate-400 mt-1">Penilaian Kinerja</p>
+                </div>
+
             </div>
         </div>
-    </div>
 
-    <div class="max-w-7xl mx-auto p-6">
+        <!-- VIEW: OVERVIEW (Was dashboard) -->
+        <div id="view-overview" class="hidden space-y-6">
+            <button onclick="switchView('menu')"
+                class="flex items-center gap-2 text-slate-500 hover:text-teal-600 font-bold transition">
+                <i class="fas fa-arrow-left"></i> Kembali ke Menu
+            </button>
 
-        <div id="view-dashboard" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-teal-500">
-                    <div class="text-xs text-gray-500 font-bold uppercase">Total Pegawai</div>
-                    <div class="text-3xl font-bold text-gray-800 mt-1" id="statPegawai">0</div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-teal-50">
+                    <div class="text-xs text-gray-400 font-bold uppercase mb-2">Total Pegawai</div>
+                    <div class="text-4xl font-black text-slate-800" id="statPegawai">0</div>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
-                    <div class="text-xs text-gray-500 font-bold uppercase">Payroll Bulan Ini</div>
-                    <div class="text-xl font-bold text-gray-800 mt-1" id="statPayroll">Rp 0</div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-teal-50">
+                    <div class="text-xs text-gray-400 font-bold uppercase mb-2">Payroll Bulan Ini</div>
+                    <div class="text-2xl font-black text-teal-600" id="statPayroll">Rp 0</div>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500">
-                    <div class="text-xs text-gray-500 font-bold uppercase">Rata-rata KPI</div>
-                    <div class="text-3xl font-bold text-gray-800 mt-1" id="statKPI">0.0</div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-teal-50">
+                    <div class="text-xs text-gray-400 font-bold uppercase mb-2">Rata-rata KPI</div>
+                    <div class="text-4xl font-black text-amber-500" id="statKPI">0.0</div>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
-                    <div class="text-xs text-gray-500 font-bold uppercase">Status Aktif</div>
-                    <div class="text-3xl font-bold text-green-600 mt-1" id="statAktif">0</div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-teal-50">
+                    <div class="text-xs text-gray-400 font-bold uppercase mb-2">Status Aktif</div>
+                    <div class="text-4xl font-black text-emerald-600" id="statAktif">0</div>
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-lg shadow h-80">
-                <h3 class="font-bold text-gray-700 mb-4">Sebaran Pegawai per Divisi</h3>
-                <canvas id="chartDivisi"></canvas>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-teal-50 h-96">
+                <h3 class="font-bold text-slate-700 mb-4">Sebaran Pegawai per Divisi</h3>
+                <div class="relative h-full w-full">
+                    <canvas id="chartDivisi"></canvas>
+                </div>
             </div>
         </div>
 
+        <!-- VIEW: PEGAWAI -->
         <div id="view-pegawai" class="hidden space-y-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold text-gray-700">Database Karyawan</h2>
+            <button onclick="switchView('menu')"
+                class="flex items-center gap-2 text-slate-500 hover:text-teal-600 font-bold transition">
+                <i class="fas fa-arrow-left"></i> Kembali ke Menu
+            </button>
+
+            <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-teal-50">
+                <h2 class="text-lg font-bold text-slate-700">Database Karyawan</h2>
                 <button onclick="modalPegawai()"
-                    class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded shadow font-bold text-sm">
+                    class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg shadow font-bold text-sm transition transform hover:-translate-y-1">
                     <i class="fas fa-plus-circle mr-1"></i> Tambah Pegawai
                 </button>
             </div>
 
-            <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-teal-50 overflow-hidden">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-gray-100 font-bold text-gray-600 uppercase border-b">
+                    <thead class="bg-teal-50/50 font-bold text-slate-600 uppercase border-b border-teal-100">
                         <tr>
                             <th class="p-4">Nama & Jabatan</th>
                             <th class="p-4">Divisi</th>
@@ -139,7 +213,7 @@
                             <th class="p-4 text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="listPegawai" class="divide-y">
+                    <tbody id="listPegawai" class="divide-y divide-teal-50">
                         <tr>
                             <td colspan="5" class="p-6 text-center text-gray-400">Memuat data...</td>
                         </tr>
@@ -148,28 +222,36 @@
             </div>
         </div>
 
+        <!-- VIEW: PAYROLL -->
         <div id="view-payroll" class="hidden space-y-6">
-            <div class="bg-white p-4 rounded-lg shadow flex flex-wrap gap-4 items-end justify-between">
+            <button onclick="switchView('menu')"
+                class="flex items-center gap-2 text-slate-500 hover:text-teal-600 font-bold transition">
+                <i class="fas fa-arrow-left"></i> Kembali ke Menu
+            </button>
+
+            <div
+                class="bg-white p-6 rounded-xl shadow-sm border border-teal-50 flex flex-wrap gap-4 items-end justify-between">
                 <div class="flex gap-4 items-end">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">Periode Gaji</label>
-                        <input type="month" id="filterPeriode" class="border p-2 rounded text-sm"
+                        <label class="block text-xs font-bold text-slate-400 mb-1">Periode Gaji</label>
+                        <input type="month" id="filterPeriode"
+                            class="border border-slate-200 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                             onchange="loadPayroll()">
                     </div>
                     <button onclick="generatePayroll()"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-bold shadow">
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition">
                         <i class="fas fa-sync-alt mr-1"></i> Generate Slip Gaji
                     </button>
                 </div>
                 <div class="text-right">
-                    <div class="text-xs text-gray-500">Total Pengeluaran Gaji</div>
-                    <div class="text-2xl font-bold text-teal-700" id="totalGajiPeriode">Rp 0</div>
+                    <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Total Pengeluaran</div>
+                    <div class="text-2xl font-black text-teal-600" id="totalGajiPeriode">Rp 0</div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-teal-50 overflow-hidden">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-gray-100 font-bold text-gray-600 uppercase border-b">
+                    <thead class="bg-teal-50/50 font-bold text-slate-600 uppercase border-b border-teal-100">
                         <tr>
                             <th class="p-4">Karyawan</th>
                             <th class="p-4 text-right">Total Gaji (THP)</th>
@@ -177,29 +259,39 @@
                             <th class="p-4 text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="listPayroll" class="divide-y"></tbody>
+                    <tbody id="listPayroll" class="divide-y divide-teal-50"></tbody>
                 </table>
             </div>
         </div>
 
+        <!-- VIEW: KPI -->
         <div id="view-kpi" class="hidden space-y-6">
-            <div class="bg-white p-4 rounded-lg shadow mb-4">
-                <h3 class="font-bold text-gray-700 mb-2">Input Penilaian KPI</h3>
+            <button onclick="switchView('menu')"
+                class="flex items-center gap-2 text-slate-500 hover:text-teal-600 font-bold transition">
+                <i class="fas fa-arrow-left"></i> Kembali ke Menu
+            </button>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-teal-50 mb-4">
+                <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                    <i class="fas fa-edit text-teal-500"></i> Input Penilaian KPI
+                </h3>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <select id="kpiPegawai" class="border p-2 rounded text-sm md:col-span-1"></select>
+                    <select id="kpiPegawai"
+                        class="border border-slate-200 p-2 rounded-lg text-sm md:col-span-1 focus:outline-none focus:ring-2 focus:ring-teal-500"></select>
                     <input type="text" id="kpiPeriode" placeholder="Cth: Q1 2024"
-                        class="border p-2 rounded text-sm md:col-span-1">
+                        class="border border-slate-200 p-2 rounded-lg text-sm md:col-span-1 focus:outline-none focus:ring-2 focus:ring-teal-500">
                     <input type="number" id="kpiSkor" placeholder="Skor (0-100)"
-                        class="border p-2 rounded text-sm md:col-span-1" min="0" max="100">
+                        class="border border-slate-200 p-2 rounded-lg text-sm md:col-span-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        min="0" max="100">
                     <button onclick="simpanKPI()"
-                        class="bg-teal-600 text-white font-bold rounded text-sm shadow hover:bg-teal-700">Simpan
+                        class="bg-teal-600 text-white font-bold rounded-lg text-sm shadow hover:bg-teal-700 transition">Simpan
                         Nilai</button>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-teal-50 overflow-hidden">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-gray-100 font-bold text-gray-600 uppercase border-b">
+                    <thead class="bg-teal-50/50 font-bold text-slate-600 uppercase border-b border-teal-100">
                         <tr>
                             <th class="p-4">Pegawai</th>
                             <th class="p-4">Periode</th>
@@ -207,39 +299,64 @@
                             <th class="p-4 text-center">Predikat</th>
                         </tr>
                     </thead>
-                    <tbody id="listKPI" class="divide-y"></tbody>
+                    <tbody id="listKPI" class="divide-y divide-teal-50"></tbody>
                 </table>
             </div>
         </div>
 
-    </div>
+    </main>
 
-    <div id="modalAdd" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-        <div class="bg-white p-6 rounded-lg w-96 shadow-xl">
-            <h2 class="text-lg font-bold mb-4 text-teal-800">Data Pegawai Baru</h2>
-            <form id="formPegawai" class="space-y-3">
+    <!-- MODAL ADD EMPLOYEE -->
+    <div id="modalAdd"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl w-96 shadow-2xl border border-teal-100">
+            <h2 class="text-xl font-bold mb-6 text-teal-800">Data Pegawai</h2>
+            <form id="formPegawai" class="space-y-4">
                 <input type="hidden" id="editId" value="">
-                <input type="text" id="namaEmp" placeholder="Nama Lengkap" class="w-full border p-2 rounded" required>
-                <input type="text" id="jabatanEmp" placeholder="Jabatan" class="w-full border p-2 rounded" required>
-                <select id="divisiEmp" class="w-full border p-2 rounded bg-white">
-                    <option value="Operasional">Operasional</option>
-                    <option value="Finance">Finance</option>
-                    <option value="Marketing">Marketing</option>
-                    <option value="Gudang">Gudang</option>
-                    <option value="HRGA">HRGA</option>
-                </select>
-                <div class="grid grid-cols-2 gap-2">
-                    <input type="number" id="gajiEmp" placeholder="Gaji Pokok" class="w-full border p-2 rounded"
-                        required>
-                    <input type="number" id="tunjanganEmp" placeholder="Tunjangan" class="w-full border p-2 rounded"
-                        value="0">
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Nama Lengkap</label>
+                    <input type="text" id="namaEmp"
+                        class="w-full border p-2 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" required>
                 </div>
 
-                <div class="flex justify-end gap-2 mt-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Jabatan</label>
+                    <input type="text" id="jabatanEmp"
+                        class="w-full border p-2 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" required>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 mb-1">Divisi</label>
+                    <select id="divisiEmp"
+                        class="w-full border p-2 rounded-lg bg-white focus:ring-2 focus:ring-teal-500 outline-none">
+                        <option value="Operasional">Operasional</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Gudang">Gudang</option>
+                        <option value="HRGA">HRGA</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1">Gaji Pokok</label>
+                        <input type="number" id="gajiEmp"
+                            class="w-full border p-2 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 mb-1">Tunjangan</label>
+                        <input type="number" id="tunjanganEmp"
+                            class="w-full border p-2 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
+                            value="0">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 mt-6">
                     <button type="button" onclick="document.getElementById('modalAdd').classList.add('hidden')"
-                        class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Batal</button>
+                        class="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg font-medium transition">Batal</button>
                     <button type="submit"
-                        class="px-4 py-2 bg-teal-600 text-white rounded font-bold hover:bg-teal-700">Simpan</button>
+                        class="px-4 py-2 bg-teal-600 text-white rounded-lg font-bold hover:bg-teal-700 shadow transition">Simpan</button>
                 </div>
             </form>
         </div>
@@ -249,21 +366,23 @@
         // Gunakan window.client dari app_config.js
         const formatRupiah = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(n);
 
-        // --- NAVIGATION ---
-        function switchTab(tabName) {
-            ['dashboard', 'pegawai', 'payroll', 'kpi'].forEach(t => {
-                document.getElementById(`view-${t}`).classList.add('hidden');
-                document.getElementById(`tab-${t}`).classList.remove('active-tab');
-                document.getElementById(`tab-${t}`).classList.add('inactive-tab');
+        // --- NAVIGATION LOGIC ---
+        function switchView(viewName) {
+            // Hide all views first
+            const views = ['menu', 'overview', 'pegawai', 'payroll', 'kpi'];
+            views.forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
             });
-            document.getElementById(`view-${tabName}`).classList.remove('hidden');
-            document.getElementById(`tab-${tabName}`).classList.add('active-tab');
-            document.getElementById(`tab-${tabName}`).classList.remove('inactive-tab');
 
-            if (tabName === 'dashboard') loadStats();
-            if (tabName === 'pegawai') loadPegawai();
-            if (tabName === 'payroll') { document.getElementById('filterPeriode').valueAsDate = new Date(); loadPayroll(); }
-            if (tabName === 'kpi') loadKPI();
+            // Show requested view
+            const el = document.getElementById(`view-${viewName}`);
+            if (el) el.classList.remove('hidden');
+
+            // Load data accordingly
+            if (viewName === 'overview') loadStats();
+            if (viewName === 'pegawai') loadPegawai();
+            if (viewName === 'payroll') { document.getElementById('filterPeriode').valueAsDate = new Date(); loadPayroll(); }
+            if (viewName === 'kpi') loadKPI();
         }
 
         // --- 1. PEGAWAI LOGIC ---
@@ -343,33 +462,35 @@
             if (data) {
                 data.forEach(emp => {
                     tbody.innerHTML += `
-                    <tr class="hover:bg-teal-50 border-b">
+                    <tr class="hover:bg-teal-50 border-b border-teal-50">
                         <td class="p-4">
-                            <div class="font-bold text-gray-800">${emp.nama}</div>
-                            <div class="text-xs text-gray-500">${emp.jabatan}</div>
+                            <div class="font-bold text-slate-700">${emp.nama}</div>
+                            <div class="text-xs text-slate-500">${emp.jabatan}</div>
                         </td>
-                        <td class="p-4"><span class="bg-gray-100 px-2 py-1 rounded text-xs font-bold text-gray-600">${emp.divisi}</span></td>
-                        <td class="p-4 text-right font-mono">${formatRupiah(emp.gaji_pokok + emp.tunjangan)}</td>
+                        <td class="p-4"><span class="bg-slate-100 px-2 py-1 rounded text-xs font-bold text-slate-600">${emp.divisi}</span></td>
+                        <td class="p-4 text-right font-mono text-slate-600">${formatRupiah(emp.gaji_pokok + emp.tunjangan)}</td>
                         <td class="p-4 text-center">
-                            <span class="text-xs font-bold ${emp.status_karyawan === 'AKTIF' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'} px-2 py-1 rounded">${emp.status_karyawan}</span>
+                            <span class="text-xs font-bold ${emp.status_karyawan === 'AKTIF' ? 'text-emerald-600 bg-emerald-100' : 'text-rose-600 bg-rose-100'} px-2 py-1 rounded">${emp.status_karyawan}</span>
                         </td>
                         <td class="p-4 text-center">
-                            <button onclick='editPegawai(${JSON.stringify(emp)})' class="text-blue-500 hover:text-blue-700 mr-2"><i class="fas fa-edit"></i></button>
-                            <button onclick="hapusPegawai(${emp.id})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
+                            <button onclick='editPegawai(${JSON.stringify(emp)})' class="text-blue-500 hover:text-blue-700 mr-2 transition"><i class="fas fa-edit"></i></button>
+                            <button onclick="hapusPegawai(${emp.id})" class="text-rose-400 hover:text-rose-600 transition"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
                 });
-                // Isi dropdown KPI juga
+
+                // Isi dropdown KPI juga (Global used in KPI view)
                 const selKPI = document.getElementById('kpiPegawai');
-                selKPI.innerHTML = '<option value="">-- Pilih Pegawai --</option>';
-                data.forEach(e => selKPI.innerHTML += `<option value="${e.id}">${e.nama}</option>`);
+                if (selKPI) {
+                    selKPI.innerHTML = '<option value="">-- Pilih Pegawai --</option>';
+                    data.forEach(e => selKPI.innerHTML += `<option value="${e.id}">${e.nama}</option>`);
+                }
             }
         }
 
 
         function editPegawai(dataLine) {
-            // Karena dataLine sudah object (dari JSON.stringify di onClick), bisa langsung dilempar
             modalPegawai(dataLine);
         }
 
@@ -429,17 +550,17 @@
                     total += p.gaji_bersih;
                     let btnAction = '';
                     if (p.status_bayar === 'PENDING') {
-                        btnAction = `<button onclick="bayarGaji(${p.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs">Bayar</button>`;
+                        btnAction = `<button onclick="bayarGaji(${p.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs transition">Bayar</button>`;
                     } else {
-                        btnAction = `<button onclick="alert('Cetak slip...')" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs"><i class="fas fa-print"></i> Slip</button>`;
+                        btnAction = `<button onclick="alert('Cetak slip...')" class="bg-slate-500 hover:bg-slate-600 text-white px-3 py-1 rounded text-xs transition"><i class="fas fa-print"></i> Slip</button>`;
                     }
 
                     tbody.innerHTML += `
-                    <tr class="border-b">
-                        <td class="p-4 font-bold text-gray-700">${p.hr_employees?.nama} <div class="text-xs font-normal text-gray-500">${p.hr_employees?.jabatan}</div></td>
-                        <td class="p-4 text-right font-mono">${formatRupiah(p.gaji_bersih)}</td>
+                    <tr class="border-b border-teal-50">
+                        <td class="p-4 font-bold text-slate-700">${p.hr_employees?.nama} <div class="text-xs font-normal text-slate-400">${p.hr_employees?.jabatan}</div></td>
+                        <td class="p-4 text-right font-mono text-slate-600">${formatRupiah(p.gaji_bersih)}</td>
                         <td class="p-4 text-center">
-                            <span class="text-xs font-bold ${p.status_bayar === 'LUNAS' ? 'text-green-600 bg-green-100' : 'text-orange-600 bg-orange-100'} px-2 py-1 rounded">${p.status_bayar}</span>
+                            <span class="text-xs font-bold ${p.status_bayar === 'LUNAS' ? 'text-emerald-600 bg-emerald-100' : 'text-amber-600 bg-amber-100'} px-2 py-1 rounded">${p.status_bayar}</span>
                         </td>
                         <td class="p-4 text-center">${btnAction}</td>
                     </tr>
@@ -482,17 +603,17 @@
 
             if (data) {
                 data.forEach(k => {
-                    let color = 'text-red-600';
+                    let color = 'text-rose-600';
                     let predikat = 'Kurang';
-                    if (k.skor >= 70) { color = 'text-yellow-600'; predikat = 'Cukup'; }
-                    if (k.skor >= 85) { color = 'text-green-600'; predikat = 'Sangat Baik'; }
+                    if (k.skor >= 70) { color = 'text-amber-600'; predikat = 'Cukup'; }
+                    if (k.skor >= 85) { color = 'text-emerald-600'; predikat = 'Sangat Baik'; }
 
                     tbody.innerHTML += `
-                    <tr class="border-b">
-                        <td class="p-4 font-bold">${k.hr_employees?.nama}</td>
-                        <td class="p-4">${k.periode_kpi}</td>
+                    <tr class="border-b border-teal-50">
+                        <td class="p-4 font-bold text-slate-700">${k.hr_employees?.nama}</td>
+                        <td class="p-4 text-slate-600">${k.periode_kpi}</td>
                         <td class="p-4 text-center font-bold text-lg ${color}">${k.skor}</td>
-                        <td class="p-4 text-center"><span class="text-xs border px-2 py-1 rounded ${color} border-current">${predikat}</span></td>
+                        <td class="p-4 text-center"><span class="text-xs border px-2 py-1 rounded ${color} border-current font-bold">${predikat}</span></td>
                     </tr>
                 `;
                 });
@@ -534,9 +655,12 @@
 
             // Group by Divisi
             const counts = {};
-            employees.forEach(e => {
-                counts[e.divisi] = (counts[e.divisi] || 0) + 1;
-            });
+            if (employees) {
+                employees.forEach(e => {
+                    counts[e.divisi] = (counts[e.divisi] || 0) + 1;
+                });
+            }
+
 
             const labels = Object.keys(counts);
             const data = Object.values(counts);
@@ -569,9 +693,6 @@
                 }
             });
         }
-
-        // Load initial
-        loadStats();
     </script>
 </body>
 
