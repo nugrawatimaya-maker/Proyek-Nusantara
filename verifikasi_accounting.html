@@ -107,6 +107,9 @@
         <i class="fas fa-th-large"></i> Dashboard
       </a>
     </div>
+    <div id="versionBanner"
+      class="fixed top-0 right-0 bg-red-600 text-white text-[10px] font-bold px-2 py-1 z-50 shadow-lg">VERSION 2.1 -
+      DEBUG MODE</div>
   </header>
 
   <!-- MAIN LAYOUT -->
@@ -219,9 +222,22 @@
   </div>
 
   <script>
+    window.onerror = function (msg, url, line, col, error) {
+      alert("Global Error: " + msg + "\nLine: " + line);
+      document.getElementById('debugContent').innerHTML += `<div class="text-red-500 font-bold">FATAL: ${msg} at line ${line}</div>`;
+      document.getElementById('debugPanel').classList.remove('hidden');
+      return false;
+    };
+  </script>
+  <script>
     // Use Shared Client
-    const client = window.client || supabase.createClient("https://nbpxmramqufvxiikxbve.supabase.co", "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN");
-    const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+    // Use Shared Client & Format from app_config.js
+    // Variables 'client' and 'fmt' are already globally available.
+    // We only create local references if needed, but better to use global directly or alias safely.
+
+    // Safety check
+    if (typeof client === 'undefined') console.error("FATAL: Client not loaded from app_config.js");
+    if (typeof fmt === 'undefined') console.error("FATAL: fmt function not loaded from app_config.js");
 
     // --- TAB SWITCHER ---
     let currentTab = 'expense';
@@ -258,45 +274,54 @@
       const tbody = document.getElementById("bodyExpense");
       tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-slate-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> Memuat data...</td></tr>`;
 
-      const { data, error } = await client
-        .from('transaksi')
-        .select('*')
-        .eq('jenis_transaksi', 'PENGAJUAN')
-        .order('tanggal', { ascending: false });
+      // Add Timeout Race Promise
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout: Koneksi lambat")), 10000));
 
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-red-500">Error: ${error.message}</td></tr>`;
-        return;
+      try {
+        const fetchPromise = client
+          .from('transaksi')
+          .select('*')
+          .eq('jenis_transaksi', 'PENGAJUAN')
+          .order('tanggal', { ascending: false });
+
+        const { data, error } = await Promise.race([fetchPromise, timeout]);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-slate-400 italic">
+                    <div class="mb-2 text-2xl"><i class="fas fa-check-circle"></i></div>
+                    Tidak ada pengajuan biaya baru.
+                </td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = "";
+        data.forEach(item => {
+          let desc = item.keterangan || "";
+          desc = desc.replace(/\[REQ:.*?\]/g, '');
+
+          tbody.innerHTML += `
+                <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition">
+                    <td class="p-4 pl-6 text-sm text-slate-500">${new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
+                    <td class="p-4 text-sm font-semibold text-slate-700">
+                        ${desc}
+                        <div class="text-[10px] text-slate-400 font-mono mt-0.5">ID: #${item.id}</div>
+                    </td>
+                    <td class="p-4 text-right font-mono font-bold text-slate-700">${fmt(item.jumlah)}</td>
+                    <td class="p-4 text-center pr-6">
+                        <span class="bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">Pending</span>
+                    </td>
+                </tr>`;
+        });
+      } catch (err) {
+        console.error("Load Expense Error:", err);
+        tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-red-500">
+            <div class="font-bold">Gagal memuat data.</div>
+            <div class="text-xs mt-1">${err.message}</div>
+            <button onclick="loadExpense()" class="mt-2 text-xs bg-red-100 px-3 py-1 rounded hover:bg-red-200">Coba Lagi</button>
+          </td></tr>`;
       }
-
-      if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-12 text-center text-slate-400 italic">
-                <div class="mb-2 text-2xl"><i class="fas fa-check-circle"></i></div>
-                Tidak ada pengajuan biaya baru.
-            </td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = "";
-      data.forEach(item => {
-        // Clean Description
-        let desc = item.keterangan;
-        // Try to make it readable if it's JSON-like string tag
-        desc = desc.replace(/\[REQ:.*?\]/g, '');
-
-        tbody.innerHTML += `
-            <tr class="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition">
-                <td class="p-4 pl-6 text-sm text-slate-500">${new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
-                <td class="p-4 text-sm font-semibold text-slate-700">
-                    ${desc}
-                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">ID: #${item.id}</div>
-                </td>
-                <td class="p-4 text-right font-mono font-bold text-slate-700">${fmt(item.jumlah)}</td>
-                <td class="p-4 text-center pr-6">
-                    <span class="bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">Pending</span>
-                </td>
-            </tr>`;
-      });
     }
 
     // --- 2. PAYMENT EXECUTION ---
@@ -304,82 +329,89 @@
       const tbody = document.getElementById("bodyPayment");
       tbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> Mengambil data approved direksi...</td></tr>`;
 
-      // 1. Fetch Transaksi (Pengajuan Biaya) Approved by Direksi
-      const p1 = client.from('transaksi').select('*').eq('jenis_transaksi', 'APPROVED_BY_DIREKSI').order('tanggal', { ascending: false });
-      // 2. Fetch Transaksi Upah (Upah Tukang) Approved by Direksi
-      const p2 = client.from('transaksi_upah').select('*').eq('status', 'APPROVED_BY_DIREKSI').order('tanggal_bayar', { ascending: false });
+      try {
+        // 1. Fetch Transaksi (Pengajuan Biaya) Approved by Direksi
+        const p1 = client.from('transaksi').select('*').eq('jenis_transaksi', 'APPROVED_BY_DIREKSI').order('tanggal', { ascending: false });
+        // 2. Fetch Transaksi Upah (Upah Tukang) Approved by Direksi
+        const p2 = client.from('transaksi_upah').select('*').eq('status', 'APPROVED_BY_DIREKSI').order('tanggal_bayar', { ascending: false });
 
-      const [resTrans, resUpah] = await Promise.all([p1, p2]);
+        const [resTrans, resUpah] = await Promise.all([p1, p2]);
 
-      const dataTrans = resTrans.data || [];
-      const dataUpah = resUpah.data || [];
+        const dataTrans = resTrans.data || [];
+        const dataUpah = resUpah.data || [];
 
-      const combined = [];
+        const combined = [];
 
-      // Map Transaksi
-      dataTrans.forEach(t => {
-        let desc = t.keterangan.replace(/\[REQ:.*?\]/g, '').trim();
-        if (desc.startsWith('[')) {
-          const match = desc.match(/^\[(.*?)\] (.*)$/);
-          if (match) desc = match[2];
+        // Map Transaksi
+        dataTrans.forEach(t => {
+          let desc = (t.keterangan || "").replace(/\[REQ:.*?\]/g, '').trim();
+          if (desc.startsWith('[')) {
+            const match = desc.match(/^\[(.*?)\] (.*)$/);
+            if (match) desc = match[2];
+          }
+          combined.push({
+            type: 'EXPENSE', id: t.id, date: t.tanggal,
+            desc: `[Biaya] ${desc}`, amount: t.jumlah,
+            rawStatus: t.jenis_transaksi
+          });
+        });
+
+        // Map Upah
+        dataUpah.forEach(u => {
+          combined.push({
+            type: 'UPAH', id: u.id, date: u.tanggal_bayar,
+            desc: `[Upah] ${u.nama_pekerjaan} (${u.kavling})`, amount: u.nilai_bayar,
+            rawStatus: u.status
+          });
+        });
+
+        // Sort Desc Date
+        combined.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // Update Badge
+        const badge = document.getElementById('badgePayment');
+        if (badge) {
+          if (combined.length > 0) {
+            badge.innerText = combined.length;
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
         }
-        combined.push({
-          type: 'EXPENSE', id: t.id, date: t.tanggal,
-          desc: `[Biaya] ${desc}`, amount: t.jumlah,
-          rawStatus: t.jenis_transaksi
+
+        if (combined.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400 italic">
+                      <div class="mb-2 text-2xl text-emerald-200"><i class="fas fa-check-double"></i></div>
+                      Tidak ada pembayaran yang menunggu eksekusi.
+                  </td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = "";
+        combined.forEach(item => {
+          tbody.innerHTML += `
+                 <tr class="hover:bg-green-50/20 border-b border-slate-100 last:border-0 transition group">
+                     <td class="p-4 pl-6 text-sm text-slate-500">${new Date(item.date).toLocaleDateString()}</td>
+                     <td class="p-4 text-sm font-bold text-slate-700">
+                         ${item.desc}
+                         <div class="text-[10px] text-green-600 font-normal mt-0.5 opacity-0 group-hover:opacity-100 transition">Siap Bayar</div>
+                     </td>
+                     <td class="p-4 text-right font-mono font-bold text-slate-800">${fmt(item.amount)}</td>
+                     <td class="p-4 text-center">
+                        <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-[10px] font-bold border border-indigo-200">APPROVED DIREKSI</span>
+                     </td>
+                     <td class="p-4 text-center pr-6">
+                        <button onclick="executePayment('${item.type}', ${item.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md text-xs font-bold transition flex items-center gap-2 mx-auto">
+                            <i class="fas fa-hand-holding-dollar"></i> BAYAR SEKARANG
+                        </button>
+                     </td>
+                 </tr>
+                 `;
         });
-      });
-
-      // Map Upah
-      dataUpah.forEach(u => {
-        combined.push({
-          type: 'UPAH', id: u.id, date: u.tanggal_bayar,
-          desc: `[Upah] ${u.nama_pekerjaan} (${u.kavling})`, amount: u.nilai_bayar,
-          rawStatus: u.status
-        });
-      });
-
-      // Sort Desc Date
-      combined.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      // Update Badge
-      const badge = document.getElementById('badgePayment');
-      if (combined.length > 0) {
-        badge.innerText = combined.length;
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
+      } catch (err) {
+        console.error("Load Payment Error", err);
+        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500">Error: ${err.message}</td></tr>`;
       }
-
-      if (combined.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-12 text-center text-slate-400 italic">
-                  <div class="mb-2 text-2xl text-emerald-200"><i class="fas fa-check-double"></i></div>
-                  Tidak ada pembayaran yang menunggu eksekusi.
-              </td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = "";
-      combined.forEach(item => {
-        tbody.innerHTML += `
-             <tr class="hover:bg-green-50/20 border-b border-slate-100 last:border-0 transition group">
-                 <td class="p-4 pl-6 text-sm text-slate-500">${new Date(item.date).toLocaleDateString()}</td>
-                 <td class="p-4 text-sm font-bold text-slate-700">
-                     ${item.desc}
-                     <div class="text-[10px] text-green-600 font-normal mt-0.5 opacity-0 group-hover:opacity-100 transition">Siap Bayar</div>
-                 </td>
-                 <td class="p-4 text-right font-mono font-bold text-slate-800">${fmt(item.amount)}</td>
-                 <td class="p-4 text-center">
-                    <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-[10px] font-bold border border-indigo-200">APPROVED DIREKSI</span>
-                 </td>
-                 <td class="p-4 text-center pr-6">
-                    <button onclick="executePayment('${item.type}', ${item.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md text-xs font-bold transition flex items-center gap-2 mx-auto">
-                        <i class="fas fa-hand-holding-dollar"></i> BAYAR SEKARANG
-                    </button>
-                 </td>
-             </tr>
-             `;
-      });
     }
 
     async function executePayment(type, id) {
@@ -387,26 +419,209 @@
 
       try {
         if (type === 'EXPENSE') {
-          const { error } = await client.from('transaksi').update({ jenis_transaksi: 'ADVANCE_CAIR' }).eq('id', id);
-          if (error) throw error;
+          // 1. Fetch Transaksi Detail
+          const { data: tr, error: errFetch } = await client.from('transaksi').select('*').eq('id', id).single();
+          if (errFetch || !tr) throw new Error("Data transaksi tidak ditemukan");
+
+          // 2. CHECK: Is this a Fully Coded Transaction (Kas Keluar) OR Just a Request (Reimburse)?
+          // Kas Keluar has 'akun' filled. Request usually not (or has generic info).
+          // We assume if 'akun' is present, we post to Journal directly.
+
+          if (tr.akun && tr.bank_sumber) {
+            // --- MODE: AUTO JOURNAL (KAS KELUAR) ---
+            const refNo = "OUT-" + tr.id;
+            let jurnalPayload = [];
+
+            // Split Logic
+            if (tr.nama_proyek && tr.nama_proyek.includes(',')) {
+              const listProyek = tr.nama_proyek.split(',').map(p => p.trim()).filter(Boolean);
+              const nominalPerProyek = tr.jumlah / listProyek.length;
+
+              listProyek.forEach(p => {
+                jurnalPayload.push({
+                  tanggal: tr.tanggal,
+                  nomor_referensi: refNo,
+                  keterangan: `${tr.keterangan} [Alokasi: ${p}]`,
+                  nama_akun: tr.akun,
+                  debit: nominalPerProyek,
+                  kredit: 0,
+                  project_code: p
+                });
+              });
+            } else {
+              jurnalPayload.push({
+                tanggal: tr.tanggal,
+                nomor_referensi: refNo,
+                keterangan: tr.nama_proyek ? `${tr.keterangan} [${tr.nama_proyek}]` : tr.keterangan,
+                nama_akun: tr.akun,
+                debit: tr.jumlah,
+                kredit: 0,
+                project_code: tr.nama_proyek || null
+              });
+            }
+
+            // Credit Side (Bank/Cash)
+            jurnalPayload.push({
+              tanggal: tr.tanggal,
+              nomor_referensi: refNo,
+              keterangan: tr.keterangan,
+              nama_akun: tr.bank_sumber,
+              debit: 0,
+              kredit: tr.jumlah
+            });
+
+            // POST JOURNAL
+            const { error: errJ } = await client.from('jurnal_umum').insert(jurnalPayload);
+            if (errJ) throw new Error("Gagal Posting Jurnal: " + errJ.message);
+
+            // UPDATE STATUS -> KELUAR (Final)
+            await client.from('transaksi').update({ jenis_transaksi: 'KELUAR' }).eq('id', id);
+            alert("✅ Jurnal Terposting & Status Update (KELUAR)");
+
+          } else {
+            // --- MODE: STANDARD UPDATE (Reimbursement/Advance) ---
+            // Just mark as Advance Cair, wait for realization
+            const { error } = await client.from('transaksi').update({ jenis_transaksi: 'ADVANCE_CAIR' }).eq('id', id);
+            if (error) throw error;
+            alert("✅ Status Updated (ADVANCE_CAIR) - Menunggu Realisasi");
+          }
+
         } else if (type === 'UPAH') {
+          // Upah Tukang Logic (Simpel: LUNAS)
           const { error } = await client.from('transaksi_upah').update({ status: 'LUNAS' }).eq('id', id);
           if (error) throw error;
+          alert("✅ Upah: LUNAS");
         }
 
         if (window.catatLog) {
-          // Try catch for log
           try { await window.catatLog('KEUANGAN', `Payment Executed (${type} ID:${id})`, 'fa-check'); } catch (e) { }
         }
-        alert("✅ Pembayaran Berhasil Dicatat!");
+
         loadPaymentQueue();
       } catch (e) {
         alert("Gagal update status: " + e.message);
+        console.error(e);
+      }
+    }
+
+    // --- 5. SELF-HEALING: SYNC MISSING APPROVALS ---
+    // Fix case where Direksi Approved in Queue but Transaction status didn't update
+    async function healMissedApprovals() {
+      console.log("Starting Healing Routine...");
+      try {
+        // 1. Get Approved Queue Items from today
+        const today = new Date().toISOString().split('T')[0];
+        const { data: approvedQueue } = await client
+          .from('approval_queue')
+          .select('*')
+          .eq('status', 'APPROVED')
+          .gte('created_at', today);
+
+        if (!approvedQueue || approvedQueue.length === 0) {
+          console.log("No approved queue items found today.");
+          return;
+        }
+
+        console.log(`Found ${approvedQueue.length} approved items. Checking trans status...`);
+
+        let fixCount = 0;
+        for (const q of approvedQueue) {
+          // Determine Source Table
+          if (q.source_table !== 'transaksi') continue;
+
+          // If source_id is valid, check transaction status
+          if (q.source_id && q.source_id != 0) {
+            const { data: tr } = await client.from('transaksi').select('jenis_transaksi').eq('id', q.source_id).single();
+            if (tr && tr.jenis_transaksi === 'PENGAJUAN') {
+              console.log(`Fixing Sync ID ${q.source_id}`);
+              await client.from('transaksi').update({ jenis_transaksi: 'APPROVED_BY_DIREKSI' }).eq('id', q.source_id);
+              fixCount++;
+            }
+          }
+          // If source_id is 0, we try to find the transaction by content
+          else {
+            // Find pending transaction with same amount & desc (approx)
+            const { data: candidates } = await client
+              .from('transaksi')
+              .select('*')
+              .eq('jenis_transaksi', 'PENGAJUAN')
+              .eq('jumlah', q.amount)
+              .gte('tanggal', today);
+
+            if (candidates && candidates.length > 0) {
+              // Pick matches
+              const match = candidates.find(c => c.keterangan === q.description) || candidates[0];
+              console.log(`Found orphaned transaction for Queue ${q.id} -> Trans ID ${match.id}`);
+
+              // Fix Transaction
+              await client.from('transaksi').update({ jenis_transaksi: 'APPROVED_BY_DIREKSI' }).eq('id', match.id);
+              // Fix Queue Source ID
+              await client.from('approval_queue').update({ source_id: match.id }).eq('id', q.id);
+              fixCount++;
+            }
+          }
+        }
+
+        if (fixCount > 0) {
+          console.log(`Healed ${fixCount} items. Reloading view.`);
+          alert(`System: ${fixCount} data approval berhasil disinkronisasi.`);
+          loadPaymentQueue();
+        }
+
+      } catch (err) {
+        console.warn("Healing error:", err);
       }
     }
 
     // Init
     loadExpense();
+
+    // Run Healing 2 seconds after load
+    setTimeout(healMissedApprovals, 2000);
+
+    // Auto refresh payment queue once
+    setTimeout(loadPaymentQueue, 2500);
+
+  </script>
+  <div id="debugPanel"
+    class="hidden fixed bottom-4 left-4 right-4 bg-black/80 text-green-400 p-4 rounded font-mono text-xs z-50 overflow-y-auto max-h-48">
+    <div class="flex justify-between mb-2 border-b border-green-800 pb-1">
+      <b>DEBUG LOG</b>
+      <button onclick="document.getElementById('debugPanel').classList.add('hidden')"
+        class="text-red-400 hover:text-white">x</button>
+    </div>
+    <div id="debugContent"></div>
+  </div>
+  <script>
+    // Overwrite console.log to show in debug panel
+    const dbg = document.getElementById('debugContent');
+    const oldLog = console.log;
+    console.log = function (...args) {
+      oldLog.apply(console, args);
+      if (dbg) dbg.innerHTML += `<div>> ${args.join(' ')}</div>`;
+    };
+    const oldErr = console.error;
+    console.error = function (...args) {
+      oldErr.apply(console, args);
+      if (dbg) dbg.innerHTML += `<div class="text-red-400">> ERROR: ${args.join(' ')}</div>`;
+    };
+    const oldWarn = console.warn;
+    console.warn = function (...args) {
+      oldWarn.apply(console, args);
+      if (dbg) dbg.innerHTML += `<div class="text-yellow-400">> WARN: ${args.join(' ')}</div>`;
+    };
+
+    // Show Debug Panel with hotkey (Shift + D)
+    document.addEventListener('keydown', (e) => {
+      if (e.shiftKey && e.key === 'D') {
+        document.getElementById('debugPanel').classList.toggle('hidden');
+      }
+    });
+
+    // Make debug visible if URL param debug=true
+    if (window.location.search.includes('debug=true')) {
+      document.getElementById('debugPanel').classList.remove('hidden');
+    }
   </script>
 </body>
 

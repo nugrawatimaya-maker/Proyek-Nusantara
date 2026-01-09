@@ -55,7 +55,7 @@
                     <!-- User Info & Logout -->
                     <div class="text-right hidden md:block mr-2">
                         <div id="user-display" class="text-sm font-bold text-gray-800">User</div>
-                        <div class="text-[10px] text-gray-500 uppercase tracking-wider">Direksi</div>
+                        <div id="role-display" class="text-[10px] text-gray-500 uppercase tracking-wider">Direksi</div>
                     </div>
 
                     <span id="env-badge"
@@ -585,9 +585,24 @@
                 // --- LOGIC: APPROVAL ---
                 else if (action === 'APPROVED') {
                     if (sourceTable === 'transaksi') {
+                        // FIX: Use sourceId (Real Transaction ID), not queueId
+                        // Also handle case where sourceId might be 0 (Orphan) -> We hope Heal function fixed it, or we try to use queueId as fallback if mapped directly.
+
+                        const targetId = sourceId && sourceId != 0 ? sourceId : queueId;
+
+                        console.log(`Approving Transaksi. Target ID: ${targetId}, Source: ${sourceTable}`);
+
                         // Approve Transaksi -> Status 'APPROVED_BY_DIREKSI' (Finance Execution Pending)
-                        const { error } = await client.from('transaksi').update({ jenis_transaksi: 'APPROVED_BY_DIREKSI' }).eq('id', queueId);
-                        if (error) throw error;
+                        const { error } = await client.from('transaksi').update({ jenis_transaksi: 'APPROVED_BY_DIREKSI' }).eq('id', targetId);
+
+                        if (error) {
+                            console.error("Trans Update Error:", error);
+                            throw new Error("Gagal update status transaksi: " + error.message);
+                        }
+
+                        // Also update Queue status to remove it from list
+                        await client.from('approval_queue').update({ status: 'APPROVED' }).eq('id', queueId);
+
                     } else if (sourceTable === 'purchase_order') {
                         await updateStatusPO(sourceId, 'APPROVED');
 
@@ -610,19 +625,16 @@
                 // Log
                 await PNAuth.logActivity(`Direksi MENYETUJUI: ${titleCtx}`, 'APPROVAL', 'fa-check-circle');
 
-                showToast('Pengajuan berhasil disetujui!', 'success');
-            }
-
                 // 3. Refresh Data
                 await loadApprovalQueue();
 
-        } catch (err) {
-            console.error("Process Error:", err);
-            alert("Gagal memproses: " + err.message);
-            // Restore button content if error, because we might not reload
-            btnElement.innerHTML = originalContent;
-            allBtns.forEach(btn => btn.disabled = false);
-        }
+            } catch (err) {
+                console.error("Process Error:", err);
+                alert("Gagal memproses: " + err.message);
+                // Restore button content if error, because we might not reload
+                btnElement.innerHTML = originalContent;
+                allBtns.forEach(btn => btn.disabled = false);
+            }
         }
 
         // Helper khusus untuk update status PO massal berdasarkan ID salah satu item
@@ -696,7 +708,82 @@
             loadApprovalQueue();
         });
     </script>
+    <script>
+        // SELF-HEALING: Fix Orphan Items (Source ID = 0)
+        // Runs automatically when Dashboard loads
+        async function healOrphanItems() {
+            try {
+                // 1. Find Orphans in Queue
+                const { data: orphans } = await client
+                    .from('approval_queue')
+                    .select('*')
+                    .eq('source_table', 'transaksi')
+                    .eq('source_id', 0)
+                    .eq('status', 'PENDING');
 
+                if (!orphans || orphans.length === 0) return;
+
+                console.log(`Found ${orphans.length} orphan items. Attempting to heal...`);
+
+                // 2. Fetch Potential Candidates from Transaksi (Recent Pending Requests)
+                // We assume Date matches
+                const { data: candidates } = await client
+                    .from('transaksi')
+                    .select('*')
+                    .eq('jenis_transaksi', 'PENGAJUAN')
+                    .order('id', { ascending: false })
+                    .limit(50);
+
+                if (!candidates) return;
+
+                // 3. Match & Link
+                let healedCount = 0;
+                for (const q of orphans) {
+                    const qDate = q.created_at.split('T')[0];
+
+                    // Match rules: Amount match AND Description Match (approx) AND Date Match
+                    const match = candidates.find(t =>
+                        t.jumlah == q.amount &&
+                        t.keterangan === q.description &&
+                        t.tanggal === qDate
+                    );
+
+                    if (match) {
+                        console.log(`Healed Queue ${q.id} -> Transaksi ${match.id}`);
+                        await client.from('approval_queue').update({ source_id: match.id }).eq('id', q.id);
+                        healedCount++;
+                    }
+                }
+
+                if (healedCount > 0) {
+                    console.log(`Successfully healed ${healedCount} items. Reloading...`);
+                    // Refresh view
+                    // We don't auto-reload page to avoid infinite loops, but we reload data
+                    loadApprovalQueue();
+                }
+
+            } catch (err) {
+                console.warn("Healing logic error:", err);
+            }
+        }
+
+        // Run Healing on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            healOrphanItems();
+        });
+
+        // DEBUG: Logic to show ID & Role on Dashboard header
+        document.addEventListener('DOMContentLoaded', () => {
+            const s = PNAuth.getSession();
+            if (s) {
+                // Update User info if element exists
+                if (document.getElementById('user-display')) document.getElementById('user-display').innerText = s.user.full_name;
+
+                // Update Role info specially
+                if (document.getElementById('role-display')) document.getElementById('role-display').innerText = s.user.role;
+            }
+        });
+    </script>
     <!-- MODAL DETAIL -->
     <div id="detailModal" class="hidden fixed inset-0 z-[100] overflow-y-auto" aria-labelledby="modal-title"
         role="dialog" aria-modal="true">
