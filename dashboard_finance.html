@@ -23,10 +23,46 @@
                 document.getElementById('nav-user-role').innerText = session.user.role.toUpperCase();
 
                 // RESTRICTION FOR TAUFIQ (782757)
-                // Cek nama atau ID. Anggap full_name mengandung 'Taufiq'
                 if (session.user.full_name && session.user.full_name.toLowerCase().includes('taufiq')) {
                     const style = document.createElement('style');
                     style.innerHTML = '#menu-laporan { display: none !important; }';
+                    document.head.appendChild(style);
+                }
+
+                // RESTRICTION FOR UNI (564185)
+                // Hanya boleh: Kas Masuk, Kas Keluar, PO, Hutang, Aktiva, Vendor, Cek & Giro
+                // Sisanya HIDE (Overview, Verifikasi, Jurnal Umum, Laporan, Master COA, Saldo Awal, Rekonsiliasi)
+                if (session.user.id == '564185' || (session.user.full_name && session.user.full_name.toLowerCase().includes('uni'))) {
+                    const style = document.createElement('style');
+                    style.innerHTML = `
+                        div[onclick*="overview"],
+                        a[href="verifikasi_accounting.html"],
+                        a[href="input_jurnal_umum.html"],
+                        a[href="laporan_jurnal.html"],
+                        a[href="master_coa.html"],
+                        a[href="laporan_jurnal.html?action=setup"],
+                        a[href="rekonsiliasi_bank.html"] {
+                            display: none !important;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+
+                // RESTRICTION FOR HUSAIN (198939)
+                // Boleh: Verifikasi, Hutang, Jurnal Umum, Laporan, Aktiva Tetap, Master COA, Rekonsiliasi, Cek & Giro
+                // Hide: Overview, Kas Masuk, Kas Keluar, PO, Vendor, Saldo Awal
+                if (session.user.id == '198939' || (session.user.full_name && session.user.full_name.toLowerCase().includes('husain'))) {
+                    const style = document.createElement('style');
+                    style.innerHTML = `
+                        div[onclick*="overview"],
+                        a[href="kas_masuk.html"],
+                        a[href="kas_keluar.html"],
+                        a[href="purchase_order_entry.html"],
+                        a[href="master_vendor.html"],
+                        a[href="laporan_jurnal.html?action=setup"] {
+                            display: none !important;
+                        }
+                    `;
                     document.head.appendChild(style);
                 }
             }

@@ -619,60 +619,132 @@
                     return alert("Pilih minimal 1 blok proyek atau pilih Operasional Kantor!");
                 }
                 proyekString = selectedProjects.join(",");
+            } else {
+                proyekString = "UMUM"; // Explicitly mark General
             }
+
             const jml = Number(document.getElementById("jumlah").value);
             let ket = document.getElementById("keterangan").value;
             const rek = document.getElementById("rekeningTujuan").value;
             const nama = document.getElementById("namaPenerima").value;
             const ref = document.getElementById("idTransaksi").value;
 
-            // 1. DUPLICATE CHECK (Only if Ref provided)
-            if (ref) {
-                const { data: duplicates } = await client.from('transaksi')
-                    .select('id')
-                    .ilike('keterangan', `%[REF: ${ref}]%`)
-                    .limit(1);
-
-                if (duplicates && duplicates.length > 0) {
-                    return alert("STOP! Transaksi dengan REF ID ini sudah pernah diinput sebelumnya.");
-                }
-            }
-
-            // 2. Format Keterangan
-            let extraInfo = "";
-            if (rek) extraInfo += `[REK: ${rek}] `;
-            if (nama) extraInfo += `[NAMA: ${nama}] `;
-            if (ref) extraInfo += `[REF: ${ref}] `;
-
-            if (extraInfo) ket = extraInfo + ket;
-
+            // Basic Validation
             if (!tgl || !akunB || !akunK || jml <= 0) return alert("Mohon lengkapi semua data!");
 
-            if (!confirm("Kirim data ini ke Finance Accounting?")) return;
+            // 1. SMART CHECK (Prevent Double Input)
+            try {
+                // Define Date Range (+/- 7 days)
+                const d = new Date(tgl);
+                const minD = new Date(d); minD.setDate(d.getDate() - 7);
+                const maxD = new Date(d); maxD.setDate(d.getDate() + 7);
 
-            // DIRECT INSERT as APPROVED_BY_DIREKSI so it appears in Finance Execution Tab
-            const { error } = await client.from('transaksi').insert([{
-                tanggal: tgl,
-                jenis_transaksi: 'APPROVED_BY_DIREKSI', // Bypass Approval -> Ready for Payment
-                akun: akunB,
-                bank_sumber: akunK,
-                jumlah: jml,
-                keterangan: ket,
-                nama_proyek: proyekString
-            }]);
+                const { data: candidates } = await client.from('transaksi')
+                    .select('*')
+                    .eq('jumlah', jml)
+                    .neq('jenis_transaksi', 'DELETED')
+                    .gte('tanggal', minD.toISOString().split('T')[0])
+                    .lte('tanggal', maxD.toISOString().split('T')[0]);
 
-            if (error) alert("Gagal: " + error.message);
-            else {
-                alert("✅ Terkirim ke Accounting! Silakan cek menu Verifikasi Accounting.");
-                // Reset Form (Partial)
-                // Reset Form (Partial)
+                let itemsToLink = null;
+
+                if (candidates && candidates.length > 0) {
+                    // Filter Logic: Check Project Match
+                    // If candidate has same project tag? Or if Candidate is 'PENGAJUAN' (Pending)
+
+                    const matches = candidates.filter(c => {
+                        // A. If Pending (PENGAJUAN/APPROVED), high chance it's the request for this payment
+                        if (['PENGAJUAN', 'APPROVED'].includes(c.jenis_transaksi)) return true;
+                        // B. If LUNAS, warn potential duplicate
+                        if (c.jenis_transaksi === 'LUNAS' || c.jenis_transaksi === 'APPROVED_BY_DIREKSI') return true;
+                        return false;
+                    });
+
+                    if (matches.length > 0) {
+                        // Sort by exact date match then relevance
+                        matches.sort((a, b) => {
+                            const dateDiffA = Math.abs(new Date(a.tanggal) - d);
+                            const dateDiffB = Math.abs(new Date(b.tanggal) - d);
+                            return dateDiffA - dateDiffB;
+                        });
+
+                        // Show Prompt
+                        const match = matches[0]; // Show best match
+                        const msg = `⚠️ POTENSI DATA GANDA / MATCHING\n\n` +
+                            `Ditemukan data senilai ${fmt(match.jumlah)}:\n` +
+                            `- Tanggal: ${match.tanggal}\n` +
+                            `- Ket: ${match.keterangan}\n` +
+                            `- Status: ${match.jenis_transaksi}\n` +
+                            `- Proyek: ${match.nama_proyek || '-'}\n\n` +
+                            `Apakah ini pembayaran untuk data tersebut?\n\n` +
+                            `[OK] = YA, Update data ini (Status jadi Siap Verifikasi).\n` +
+                            `[Cancel] = TIDAK, Ini transaksi baru (Buat Baru).`;
+
+                        if (confirm(msg)) {
+                            itemsToLink = match;
+                        } else {
+                            // Link Warning for LUNAS
+                            if (matches.some(m => m.jenis_transaksi === 'LUNAS')) {
+                                if (!confirm("PERINGATAN: Ada data bernilai sama yang sudah LUNAS. Yakin ingin tetap membuat data baru (Double)?")) return;
+                            }
+                        }
+                    }
+                }
+
+                // 2. Format Keterangan
+                let extraInfo = "";
+                if (rek) extraInfo += `[REK: ${rek}] `;
+                if (nama) extraInfo += `[NAMA: ${nama}] `;
+                if (ref) extraInfo += `[REF: ${ref}] `;
+                if (extraInfo) ket = extraInfo + ket;
+
+                if (!confirm(itemsToLink ? "Update data lama dengan bukti pembayaran ini?" : "Posting data baru ke Finance Accounting?")) return;
+
+                // 3. EXECUTE (UPDATE or INSERT)
+                if (itemsToLink) {
+                    // LINK / UPDATE EXISTING
+                    const { error } = await client.from('transaksi')
+                        .update({
+                            jenis_transaksi: 'APPROVED_BY_DIREKSI', // Move to Verification Queue
+                            bank_sumber: akunK,     // Update Source Bank
+                            akun: akunB,            // Update Expense Account (Optional, usually kept from req, but Fin might override)
+                            keterangan: (itemsToLink.keterangan + " " + ket).substring(0, 255), // Append info
+                            // tanggal: tgl, // Keep original date or update? Usually keep input date if it's payment date? 
+                            // Better keep Original Request Date or Update to Payment Date? 
+                            // Let's NOT update date to keep history, or maybe Payment Date is more important?
+                            // Let's only update BANK and STATUS.
+                        })
+                        .eq('id', itemsToLink.id);
+
+                    if (error) throw error;
+                    alert("✅ Data Lama Berhasil Diupdate! (Masuk Verifikasi Accounting)");
+
+                } else {
+                    // INSERT NEW
+                    const { error } = await client.from('transaksi').insert([{
+                        tanggal: tgl,
+                        jenis_transaksi: 'APPROVED_BY_DIREKSI', // Bypass Approval -> Ready for Payment
+                        akun: akunB,
+                        bank_sumber: akunK,
+                        jumlah: jml,
+                        keterangan: ket,
+                        nama_proyek: proyekString
+                    }]);
+
+                    if (error) throw error;
+                    alert("✅ Data Baru Terkirim ke Accounting!");
+                }
+
+                // Reset Form
                 document.getElementById("jumlah").value = "";
                 document.getElementById("keterangan").value = "";
                 document.getElementById("rekeningTujuan").value = "";
                 document.getElementById("namaPenerima").value = "";
                 document.getElementById("idTransaksi").value = "";
-                document.getElementById("akunBiaya").value = "";
-                // Keep date and source fund for convenience
+                // Keep date/source
+
+            } catch (e) {
+                alert("Error: " + e.message);
             }
         }
 

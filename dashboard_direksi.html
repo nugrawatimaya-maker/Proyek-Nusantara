@@ -17,6 +17,19 @@
         // Check Auth: Direksi, Finance, Superadmin
         // User Request: Finance & Superadmin can see ALL dashboards.
         PNAuth.requireAuth(['direksi', 'finance', 'superadmin']);
+
+        // RESTRICTION: Block Uni (564185) & Husain (198939) from Director Dashboard
+        const sess = PNAuth.getSession();
+        if (sess && sess.user) {
+            const uid = sess.user.id;
+            const uName = sess.user.full_name ? sess.user.full_name.toLowerCase() : "";
+
+            // Block IDs explicitly
+            if (uid == '564185' || uid == '198939' || uName.includes('uni') || uName.includes('husain')) {
+                alert("⛔ AKSES DITOLAK\nAnda dibatasi hanya untuk Dashboard Finance.");
+                window.location.href = 'dashboard_finance.html';
+            }
+        }
     </script>
 
     <style>
@@ -208,8 +221,13 @@
                 if (resUpah.error) throw resUpah.error;
 
                 const dataQueue = resQueue.data || [];
-                const dataTrans = resTrans.data || [];
-                const dataUpah = resUpah.data || [];
+                // DEDUPLICATION (Fixes "Not Disappearing" Bug):
+                // Filter out direct items if they already exist in the Queue list
+                const rawTrans = resTrans.data || [];
+                const rawUpah = resUpah.data || [];
+
+                const dataTrans = rawTrans.filter(t => !dataQueue.some(q => q.source_table === 'transaksi' && q.source_id == t.id));
+                const dataUpah = rawUpah.filter(u => !dataQueue.some(q => q.source_table === 'transaksi_upah' && q.source_id == u.id));
 
                 // --- 3. Normalize & Merge Data ---
                 // Map 'transaksi' items to look like 'approval_queue' items
@@ -254,14 +272,55 @@
                     };
                 });
 
-                const combinedData = [...dataQueue, ...mappedTrans, ...mappedUpah];
+                let combinedData = [...dataQueue, ...mappedTrans, ...mappedUpah];
+
+                // --- 4. ACCESS CONTROL RULES (TAUFIQ & TRI WIJAYA) ---
+                // --- 4. ACCESS CONTROL RULES (TAUFIQ & TRI WIJAYA) ---
+                const sess = typeof PNAuth !== 'undefined' ? PNAuth.getSession() : null;
+                if (sess && sess.user) {
+                    const uid = String(sess.user.id || '');
+                    const uName = (sess.user.full_name || '').toLowerCase();
+
+                    console.log("DEBUG AUTH:", { uid, uName });
+
+                    // RULE 1: TAUFIQ (782757)
+                    if (uid === '782757' || uName.includes('taufiq')) {
+                        console.log("Applying Taufiq Rules...");
+                        combinedData = combinedData.filter(item => {
+                            const src = (item.source_table || '').toLowerCase();
+                            const amt = Number(item.amount) || 0;
+
+                            // Allow PO < 5M
+                            if (src.includes('purchase_order') || src.includes('inventory_req')) {
+                                return amt < 5000000;
+                            }
+                            // Block EVERYTHING else (Transaksi, Proyek, Upah, etc)
+                            return false;
+                        });
+                    }
+
+                    // RULE 2: TRI WIJAYA (325777)
+                    else if (uid === '325777' || uName.includes('tri wijaya') || uName.includes('triwijaya')) {
+                        console.log("Applying Tri Wijaya Rules...");
+                        combinedData = combinedData.filter(item => {
+                            const src = (item.source_table || '').toLowerCase();
+                            const amt = Number(item.amount) || 0;
+
+                            // Filter PO > 5M
+                            if (src.includes('purchase_order') || src.includes('inventory_req')) {
+                                return amt > 5000000;
+                            }
+                            // Allow Others (Biaya/Proyek/Upah)
+                            return true;
+                        });
+                    }
+                }
 
                 // Sort by date desc
                 combinedData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
                 // --- UPDATE SUMMARY CARDS ---
                 updateDashboardStats(combinedData || []);
-                // -------------------------------------
 
                 if (combinedData.length === 0) {
                     tbody.innerHTML = `
@@ -543,43 +602,35 @@
                 }
 
                 // --- LOGIC: REJECTION ---
+                // --- LOGIC: REJECTION ---
                 if (action === 'REJECTED') {
                     if (sourceTable === 'transaksi') {
-                        const { error } = await client.from('transaksi').update({ jenis_transaksi: 'REJECTED' }).eq('id', queueId);
+                        // FIX: Use sourceId (Real Transaction ID) same as Approval logic
+                        const targetId = sourceId && sourceId != 0 ? sourceId : queueId;
+                        const { error } = await client.from('transaksi').update({ jenis_transaksi: 'REJECTED' }).eq('id', targetId);
+
+                        // Also update queue if it exists (for sync)
+                        await client.from('approval_queue').update({ status: 'REJECTED' }).eq('id', queueId);
+
                         if (error) throw error;
                     } else if (sourceTable === 'purchase_order') {
-                        // REJECT PO -> Update ALL items with same nomor_po
                         await updateStatusPO(sourceId, 'REJECTED');
-
-                        const { error } = await client
-                            .from('approval_queue')
-                            .update({ status: 'REJECTED' })
-                            .eq('id', queueId);
+                        const { error } = await client.from('approval_queue').update({ status: 'REJECTED' }).eq('id', queueId);
                         if (error) throw error;
                     } else if (sourceTable === 'transaksi_upah') {
-                        // REJECT Upah Tukang -> Status REJECTED
-                        const { error } = await client
-                            .from('transaksi_upah')
-                            .update({ status: 'REJECTED' })
-                            .eq('id', queueId);
+                        const { error } = await client.from('transaksi_upah').update({ status: 'REJECTED' }).eq('id', queueId);
                         if (error) throw error;
                     } else {
-                        const { error } = await client
-                            .from('approval_queue')
-                            .update({ status: 'REJECTED' })
-                            .eq('id', queueId);
+                        const { error } = await client.from('approval_queue').update({ status: 'REJECTED' }).eq('id', queueId);
                         if (error) throw error;
-
-                        // Try update source status if column exists
-                        await client.from(sourceTable).update({ status: 'REJECTED' }).eq('id', sourceId).then(res => {
-                            if (res.error) console.warn("Generic reject update failed for", sourceTable);
-                        });
+                        if (sourceId) await client.from(sourceTable).update({ status: 'REJECTED' }).eq('id', sourceId).then(r => { });
                     }
 
-                    // Log
-                    await PNAuth.logActivity(`Direksi MENOLAK: ${titleCtx}`, 'APPROVAL', 'fa-times-circle');
+                    try { await PNAuth.logActivity(`Direksi MENOLAK: ${titleCtx}`, 'APPROVAL', 'fa-times-circle'); } catch (e) { }
 
-                    showToast('Pengajuan telah ditolak.', 'info');
+                    alert("✅ Pengajuan telah DITOLAK.");
+                    window.location.reload();
+                    return;
                 }
 
                 // --- LOGIC: APPROVAL ---
@@ -620,13 +671,8 @@
 
                 } else {
                     await approveGeneric(queueId, sourceTable, sourceId);
+                    window.location.reload();
                 }
-
-                // Log
-                await PNAuth.logActivity(`Direksi MENYETUJUI: ${titleCtx}`, 'APPROVAL', 'fa-check-circle');
-
-                // 3. Refresh Data
-                await loadApprovalQueue();
 
             } catch (err) {
                 console.error("Process Error:", err);

@@ -122,30 +122,10 @@
   </header>
 
   <!-- MAIN LAYOUT -->
-  <div class="flex flex-1 overflow-hidden">
-
-    <!-- SIDEBAR MENU -->
-    <aside class="w-72 bg-white border-r border-slate-200 p-6 flex flex-col gap-2 z-0">
-      <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2 pl-2">Menu Utama</div>
-
-      <!-- MENU: EKSEKUSI PEMBAYARAN -->
-      <div class="menu-item active">
-        <div class="icon-box">
-          <i class="fas fa-hand-holding-dollar"></i>
-        </div>
-        <div class="flex-1">
-          <div>Eksekusi Pembayaran</div>
-          <div class="text-[10px] text-slate-400 font-normal mt-0.5">Siap bayar (Approved)</div>
-        </div>
-        <div id="badgePayment"
-          class="hidden bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
-          !</div>
-      </div>
-
-    </aside>
+  <div class="flex-1 overflow-y-auto">
 
     <!-- CONTENT AREA -->
-    <main class="flex-1 bg-slate-50/50 p-8 overflow-y-auto relative">
+    <main class="w-full max-w-7xl mx-auto p-4 md:p-8 relative">
       <div id="debugPanel"
         class="hidden mb-4 p-4 bg-red-100 border border-red-300 text-red-700 text-xs rounded font-mono whitespace-pre-wrap overflow-auto max-h-40">
         <strong>DEBUG LOG:</strong>
@@ -194,6 +174,26 @@
               <div class="flex items-baseline gap-2">
                 <span id="count-verify" class="text-4xl font-black text-blue-600">0</span>
                 <span class="text-xs font-bold text-blue-400 uppercase">Pending</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 3: VERIFIKASI KAS MASUK (NEW) -->
+          <div onclick="switchView('income')"
+            class="menu-card bg-white rounded-2xl p-6 border border-green-100 relative group overflow-hidden">
+            <div
+              class="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110">
+            </div>
+            <div class="relative z-10">
+              <div
+                class="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center text-xl mb-4">
+                <i class="fas fa-wallet"></i>
+              </div>
+              <h3 class="text-lg font-bold text-slate-800 mb-1">Verifikasi Kas Masuk</h3>
+              <p class="text-xs text-slate-500 mb-4">Dana Masuk (Booking/Lainnya)</p>
+              <div class="flex items-baseline gap-2">
+                <span id="count-income" class="text-4xl font-black text-green-600">0</span>
+                <span class="text-xs font-bold text-green-400 uppercase">Pending</span>
               </div>
             </div>
           </div>
@@ -278,7 +278,109 @@
         </div>
       </div>
 
+      <!-- VIEW: VERIFIKASI KAS MASUK (NEW) -->
+      <div id="view-income" class="hidden max-w-6xl mx-auto animate-fade-in-up">
+        <div class="mb-6 flex justify-between items-end">
+          <div>
+            <button onclick="switchView('menu')"
+              class="text-xs font-bold text-slate-400 hover:text-slate-600 mb-2 flex items-center gap-1 transition">
+              <i class="fas fa-arrow-left"></i> KEMBALI KE MENU
+            </button>
+            <h2 class="text-2xl font-bold text-green-700">Verifikasi Kas Masuk</h2>
+            <p class="text-slate-500 mt-1">Validasi dana masuk dan posting jurnal.</p>
+          </div>
+          <button onclick="loadPaymentQueue()" class="text-slate-400 hover:text-green-600 transition"><i
+              class="fas fa-sync-alt"></i></button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-green-200 overflow-hidden">
+          <div class="bg-green-50 border-b border-green-100 p-4 flex gap-3 items-center text-green-800 text-sm">
+            <i class="fas fa-wallet text-lg"></i>
+            <span>Draft Penerimaan (Input dari Kas Masuk).</span>
+          </div>
+          <table class="w-full text-left border-collapse">
+            <thead class="bg-slate-50 text-slate-600 uppercase text-xs font-bold border-b border-slate-200">
+              <tr>
+                <th class="p-4 pl-6 w-32">Tanggal</th>
+                <th class="p-4">Keterangan</th>
+                <th class="p-4 text-center">Akun (Dr/Cr)</th>
+                <th class="p-4 text-right w-40">Nominal</th>
+                <th class="p-4 text-center w-40 pr-6">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="bodyIncomeQueue">
+              <tr>
+                <td colspan="5" class="p-10 text-center text-slate-400">Memuat antrian...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </main>
+
+    <!-- MODAL: VERIFIKASI & POSTING -->
+    <div id="modalVerify"
+      class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in-up">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-100 transition-all">
+        <div class="bg-slate-50 border-b border-slate-100 p-6 flex justify-between items-center">
+          <div>
+            <h3 class="text-xl font-bold text-slate-800">Validasi & Posting Jurnal</h3>
+            <p class="text-xs text-slate-500 mt-1">Pastikan alokasi akun debit sudah benar.</p>
+          </div>
+          <button onclick="closeModalVerify()" class="text-slate-400 hover:text-slate-600 transition"><i
+              class="fas fa-times text-xl"></i></button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <!-- Context Info -->
+          <div class="bg-blue-50/50 rounded-xl p-4 border border-blue-100 space-y-2">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-500">Tanggal Transaksi</span>
+              <span class="font-bold text-slate-700 font-mono" id="checkDate">...</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-500">Nominal</span>
+              <span class="font-bold text-slate-800 font-mono text-base" id="checkAmount">...</span>
+            </div>
+            <div class="pt-2 border-t border-blue-100">
+              <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Keterangan</span>
+              <p class="text-sm text-slate-700 font-medium mt-1 leading-relaxed" id="checkDesc">...</p>
+            </div>
+          </div>
+
+          <!-- Form Journal -->
+          <div class="space-y-3 pt-2">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Akun Kredit (Sumber
+                Dana)</label>
+              <input type="text" id="checkSourceAccount"
+                class="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-500 font-mono"
+                readonly>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-800 mb-1.5 uppercase tracking-wider">Akun Debit (Beban /
+                Aset) <span class="text-red-500">*</span></label>
+              <select id="selectDebitAccount"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-700 font-semibold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                <option value="">-- Pilih Akun --</option>
+              </select>
+              <p class="text-[10px] text-slate-400 mt-1">Pilih akun COA untuk menjurnal pengeluaran ini.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 p-4 flex justify-end gap-3 border-t border-slate-100">
+          <button onclick="closeModalVerify()"
+            class="px-5 py-2.5 rounded-xl text-slate-500 font-bold text-sm hover:bg-slate-200 transition">Batal</button>
+          <button onclick="confirmPosting()"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 transition flex items-center gap-2">
+            <i class="fas fa-paper-plane"></i> Posting Jurnal
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -303,35 +405,44 @@
     // Previously used to switch between 'expense' and 'payment'.
     // Now defaults to Payment view only.
 
-    window.onload = function () {
-      loadPaymentQueue();
-    };
+    // --- MODAL LOGIC VARS ---
+    let currentVerifyId = null;
+    let currentVerifyData = null;
 
-    // --- 2. PAYMENT EXECUTION ---
     // --- NAVIGATION LOGIC ---
     function switchView(viewName) {
-      const views = ['menu', 'queue', 'verify'];
+      const views = ['menu', 'queue', 'verify', 'income'];
       views.forEach(v => {
-        document.getElementById(`view-${v}`).classList.add('hidden');
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.add('hidden');
       });
-      document.getElementById(`view-${viewName}`).classList.remove('hidden');
+      const target = document.getElementById(`view-${viewName}`);
+      if (target) target.classList.remove('hidden');
       window.scrollTo(0, 0);
     }
+
+    // --- INIT ---
+    window.onload = function () {
+      loadPaymentQueue();
+      loadAccounts(); // Populate Dropdown on Load
+    };
 
     // --- 2. PAYMENT EXECUTION & VERIFICATION ---
     async function loadPaymentQueue() {
       const tbodyQueue = document.getElementById("bodyPaymentQueue");
       const tbodyVerif = document.getElementById("bodyVerifQueue");
+      const tbodyIncome = document.getElementById("bodyIncomeQueue");
 
       const loadingRow = `<tr><td colspan="5" class="p-12 text-center text-slate-400"><i class="fas fa-circle-notch fa-spin mr-2"></i> Memuat data...</td></tr>`;
       tbodyQueue.innerHTML = loadingRow;
       tbodyVerif.innerHTML = loadingRow;
+      if (tbodyIncome) tbodyIncome.innerHTML = loadingRow;
 
       try {
-        // 1. Fetch Transaksi (Pengajuan Biaya -> APPROVED, Kas Keluar -> APPROVED_BY_DIREKSI)
+        // 1. Fetch Transaksi (Pengajuan Biaya -> APPROVED, Kas Keluar -> APPROVED_BY_DIREKSI, Kas Masuk -> DRAFT_MASUK)
         const p1 = client.from('transaksi')
           .select('*')
-          .in('jenis_transaksi', ['APPROVED', 'APPROVED_BY_DIREKSI'])
+          .in('jenis_transaksi', ['APPROVED', 'APPROVED_BY_DIREKSI', 'DRAFT_MASUK'])
           .order('tanggal', { ascending: false });
 
         // 2. Fetch Transaksi Upah
@@ -347,6 +458,7 @@
 
         const queueData = []; // Antrian Pembayaran (APPROVED)
         const verifData = []; // Verifikasi Kas Keluar (APPROVED_BY_DIREKSI)
+        const incomeData = []; // Verifikasi Kas Masuk (DRAFT_MASUK)
 
         // Map Transaksi
         dataTrans.forEach(t => {
@@ -355,16 +467,22 @@
             const match = desc.match(/^\[(.*?)\] (.*)$/);
             if (match) desc = match[2];
           }
-          const item = {
-            type: 'EXPENSE', id: t.id, date: t.tanggal,
-            desc: `[Biaya] ${desc}`, amount: t.jumlah,
-            rawStatus: t.jenis_transaksi,
-            // Helper to identify source
-            isKasKeluar: (t.akun && t.bank_sumber)
-          };
 
-          if (t.jenis_transaksi === 'APPROVED') queueData.push(item);
-          else if (t.jenis_transaksi === 'APPROVED_BY_DIREKSI') verifData.push(item);
+          // income indicator: draft masuk usually has bank_sumber (debit) and akun (credit)
+
+          if (t.jenis_transaksi === 'DRAFT_MASUK') {
+            incomeData.push(t);
+          } else {
+            const item = {
+              type: 'EXPENSE', id: t.id, date: t.tanggal,
+              desc: `[Biaya] ${desc}`, amount: t.jumlah,
+              rawStatus: t.jenis_transaksi,
+              // Helper to identify source
+              isKasKeluar: (t.akun && t.bank_sumber)
+            };
+            if (t.jenis_transaksi === 'APPROVED') queueData.push(item);
+            else if (t.jenis_transaksi === 'APPROVED_BY_DIREKSI') verifData.push(item);
+          }
         });
 
         // Map Upah
@@ -378,15 +496,19 @@
           else if (u.status === 'APPROVED_BY_DIREKSI') verifData.push(item);
         });
 
-        // Sort Both
+        // Sort
         queueData.sort((a, b) => new Date(b.date) - new Date(a.date));
         verifData.sort((a, b) => new Date(b.date) - new Date(a.date));
+        incomeData.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
 
         // Update DASHBOARD COUNTS
         const elCountPay = document.getElementById('count-payment');
         const elCountVerif = document.getElementById('count-verify');
+        const elCountIncome = document.getElementById('count-income');
+
         if (elCountPay) elCountPay.innerText = queueData.length;
         if (elCountVerif) elCountVerif.innerText = verifData.length;
+        if (elCountIncome) elCountIncome.innerText = incomeData.length;
 
         // Update Sidebar Badge (Total)
         const totalPending = queueData.length + verifData.length;
@@ -423,25 +545,89 @@
         }
 
         // RENDER VERIF (Verifikasi Kas Keluar)
+        // Check Role for Delete Button (Session based)
+        let isSuperAdmin = false;
+        try {
+          const sessionRaw = localStorage.getItem('pn_session_v2');
+          if (sessionRaw) {
+            const session = JSON.parse(sessionRaw);
+            if (session.user && session.user.role === 'superadmin') {
+              isSuperAdmin = true;
+            }
+          }
+        } catch (e) { console.warn("Auth parse error", e); }
+
         if (verifData.length === 0) {
           tbodyVerif.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 italic">Tidak ada data verifikasi kas keluar.</td></tr>`;
         } else {
           tbodyVerif.innerHTML = "";
           verifData.forEach(item => {
+            let deleteBtn = "";
+            if (isSuperAdmin) {
+              deleteBtn = `
+                        <button onclick="deleteTransaction(${item.id})" class="text-red-400 hover:text-red-600 p-2 rounded transition ml-2" title="Hapus Permanen">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+            }
+
             tbodyVerif.innerHTML += `
                      <tr class="hover:bg-blue-50/20 border-b border-slate-100 last:border-0 transition">
                          <td class="p-4 pl-6 text-sm text-slate-500">${new Date(item.date).toLocaleDateString()}</td>
                          <td class="p-4 text-sm font-bold text-slate-700">${item.desc}</td>
                          <td class="p-4 text-right font-mono font-bold text-slate-800">${fmt(item.amount)}</td>
                          <td class="p-4 text-center"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold">SUDAH TRANSFER</span></td>
-                         <td class="p-4 text-center pr-6">
-                            <button onclick="executePayment('${item.type}', ${item.id}, 'VERIFY')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded shadow-sm text-xs font-bold transition flex items-center gap-2 mx-auto">
-                                <i class="fas fa-check-double"></i> VALIDASI & POSTING
+                         <td class="p-4 text-center pr-6 flex justify-center items-center">
+                            <button onclick="executePayment('${item.type}', ${item.id}, 'VERIFY')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded shadow-sm text-xs font-bold transition flex items-center gap-2">
+                                <i class="fas fa-check-double"></i> VALIDASI
                             </button>
+                            ${deleteBtn}
                          </td>
                      </tr>
                 `;
           });
+        }
+
+        // RENDER INCOME (Verifikasi Kas Masuk)
+        if (tbodyIncome) {
+          if (incomeData.length === 0) {
+            tbodyIncome.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 italic">Tidak ada draft penerimaan dana.</td></tr>`;
+          } else {
+            tbodyIncome.innerHTML = "";
+            incomeData.forEach(item => {
+              let deleteBtn = "";
+              if (isSuperAdmin) {
+                deleteBtn = `
+                            <button onclick="deleteIncome(${item.id})" class="text-red-400 hover:text-red-600 p-2 rounded transition ml-2" title="Hapus Permanen">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        `;
+              }
+
+              const badgeProyek = item.nama_proyek ? `<div class="mt-1"><span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded font-bold border border-blue-200 inline-block">${item.nama_proyek}</span></div>` : "";
+
+              tbodyIncome.innerHTML += `
+                         <tr class="hover:bg-green-50/20 border-b border-slate-100 last:border-0 transition">
+                             <td class="p-4 pl-6 text-sm text-slate-500">
+                                ${new Date(item.tanggal).toLocaleDateString()}
+                                ${badgeProyek}
+                             </td>
+                             <td class="p-4 text-sm font-bold text-slate-700">${item.keterangan}</td>
+                             <td class="p-4 text-xs font-mono text-slate-600 text-center">
+                                <div class="font-bold text-green-600">DB: ${item.bank_sumber || '-'}</div>
+                                <div class="text-slate-400">CR: ${item.akun || '-'}</div>
+                             </td>
+                             <td class="p-4 text-right font-mono font-bold text-green-700">+ ${fmt(item.jumlah)}</td>
+                             <td class="p-4 text-center pr-6 flex justify-center items-center">
+                                <button onclick="executeIncome(${item.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded shadow-sm text-xs font-bold transition flex items-center gap-2">
+                                    <i class="fas fa-check-double"></i> TERIMA
+                                </button>
+                                ${deleteBtn}
+                             </td>
+                         </tr>
+                    `;
+            });
+          }
         }
 
 
@@ -451,57 +637,207 @@
       }
     }
 
-    async function executePayment(type, id, mode = 'PAY') {
-      let confirmMsg = "⚠️ KONFIRMASI PEMBAYARAN\n\nPastikan Anda sudah melakukan transfer/pembayaran real.\nSistem akan mencatat aset Kas berkurang dan status menjadi LUNAS.\n\nLanjut?";
+    // --- DELETE TRANSACTION (SUPERADMIN ONLY) ---
+    async function deleteTransaction(id) {
+      if (!confirm("⚠️ PERINGATAN SUPERADMIN\n\nAnda yakin ingin MENGHAPUS transaksi ini?\nData akan hilang dari antrian verifikasi.\n\nLanjutkan?")) return;
 
-      if (mode === 'VERIFY') {
-        confirmMsg = "✅ VALIDASI KAS KELUAR\n\nData ini sudah ditransfer (Ada Bukti).\nSistem akan memposting jurnal transaksi ini.\n\nLanjut Validasi?";
+      try {
+        const { error } = await client.from('transaksi')
+          .update({ jenis_transaksi: 'DELETED' })
+          .eq('id', id);
+
+        if (error) throw error;
+
+        alert("✅ Data berhasil dihapus.");
+        loadPaymentQueue();
+      } catch (e) {
+        alert("Gagal menghapus: " + e.message);
+      }
+    }
+
+    // --- EXECUTE INCOME (POSTING DANA MASUK) ---
+    async function executeIncome(id) {
+      if (!confirm("Validasi Penerimaan Dana ini?\n\nSaldo Kas/Bank akan bertambah.\nPastikan Akun Pembayar (Kredit) sudah benar.")) return;
+
+      try {
+        // 1. Fetch
+        const { data: tr, error: errFetch } = await client.from('transaksi').select('*').eq('id', id).single();
+        if (errFetch || !tr) throw new Error("Data transaksi tidak ditemukan");
+
+        const refNo = "IN-" + tr.id;
+
+        // 2. Jurnal Entries
+        const jurnalPayload = [
+          {
+            tanggal: tr.tanggal,
+            nomor_referensi: refNo,
+            keterangan: tr.nama_proyek ? `${tr.keterangan} [${tr.nama_proyek}]` : tr.keterangan,
+            nama_akun: tr.bank_sumber, // DEBIT: Bank/Kas bertambah
+            debit: tr.jumlah,
+            kredit: 0,
+            project_code: tr.nama_proyek
+          },
+          {
+            tanggal: tr.tanggal,
+            nomor_referensi: refNo,
+            keterangan: tr.nama_proyek ? `${tr.keterangan} [${tr.nama_proyek}]` : tr.keterangan,
+            nama_akun: tr.akun, // KREDIT: Pendapatan bertambah
+            debit: 0,
+            kredit: tr.jumlah,
+            project_code: tr.nama_proyek
+          }
+        ];
+
+        // 3. Insert Jurnal
+        const { error: errJ } = await client.from('jurnal_umum').insert(jurnalPayload);
+        if (errJ) throw new Error("Gagal posting jurnal: " + errJ.message);
+
+        // 4. Update Status Transaksi -> MASUK
+        const { error: errUp } = await client.from('transaksi').update({ jenis_transaksi: 'MASUK' }).eq('id', id);
+        if (errUp) throw new Error("Gagal update status: " + errUp.message);
+
+        alert("✅ Dana berhasil divalidasi dan dijurnal!");
+        loadPaymentQueue();
+
+      } catch (e) {
+        alert("Gagal: " + e.message);
+      }
+    }
+
+    async function deleteIncome(id) {
+      if (!confirm("⚠️ Hapus Draft Penerimaan ini?")) return;
+      try {
+        const { error } = await client.from('transaksi').delete().eq('id', id);
+        if (error) throw error;
+        loadPaymentQueue();
+      } catch (e) {
+        alert("Gagal hapus: " + e.message);
+      }
+    }
+
+    // --- 3. HELPER: LOAD ACCOUNTS ---
+    async function loadAccounts() {
+      const select = document.getElementById('selectDebitAccount');
+      try {
+        // Fetch Expenses & Assets Accounts (Head 5 & 1) mostly
+        // Or just fetch all active accounts
+        const { data, error } = await client.from('master_akun')
+          .select('kode_akun, nama_akun')
+          .order('kode_akun', { ascending: true });
+
+        if (error) throw error;
+
+        // Filter Logic: usually Beban (5, 6) or Aset (1) for CAPEX
+        // showing all for flexibility
+
+        let opts = `<option value="">-- Pilih Akun --</option>`;
+        data.forEach(acc => {
+          opts += `<option value="${acc.nama_akun}">${acc.kode_akun} - ${acc.nama_akun}</option>`;
+        });
+        select.innerHTML = opts;
+      } catch (e) {
+        console.error("Load Accounts Error", e);
+      }
+    }
+
+    // --- 4. MODAL HANDLER ---
+    function openVerificationModal(id, date, amount, desc, sourceAccount, debitAccount) {
+      currentVerifyId = id;
+      currentVerifyData = { date, amount, desc, sourceAccount, debitAccount };
+
+      document.getElementById('checkDate').innerText = new Date(date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById('checkAmount').innerText = fmt(amount);
+      document.getElementById('checkDesc').innerText = desc;
+      document.getElementById('checkSourceAccount').value = sourceAccount || "Kas Besar (Default)";
+
+      // Auto Select Debit if available from Transaction
+      const select = document.getElementById('selectDebitAccount');
+      select.value = debitAccount || "";
+
+      document.getElementById('modalVerify').classList.remove('hidden');
+    }
+
+    function closeModalVerify() {
+      document.getElementById('modalVerify').classList.add('hidden');
+      currentVerifyId = null;
+    }
+
+    async function confirmPosting() {
+      if (!currentVerifyId) return;
+
+      const debitAcc = document.getElementById('selectDebitAccount').value;
+      if (!debitAcc) {
+        alert("⚠️ Harap pilih Akun Debit terlebih dahulu!");
+        return;
       }
 
-      if (!confirm(confirmMsg)) return;
+      if (!confirm("Anda yakin data ini sudah benar dan valid?")) return;
+
+      // Perform Verification (Use existing logic but with selected account)
+      executePayment('EXPENSE', currentVerifyId, 'VERIFY', debitAcc);
+      closeModalVerify();
+    }
+
+    // --- 5. EXECUTE PAYMENT ---
+    // Updated signature to accept overrideAccount
+    async function executePayment(type, id, mode = 'PAY', overrideDebitAccount = null) {
+      // If mode VERIFY and no overrideAccount provided (meaning called from button directly), 
+      // we should open MODAL instead of executing directly.
+      if (mode === 'VERIFY' && !overrideDebitAccount) {
+        // Fetch data first to populate modal
+        try {
+          const { data: tr } = await client.from('transaksi').select('*').eq('id', id).single();
+          if (tr) {
+            openVerificationModal(id, tr.tanggal, tr.jumlah, tr.keterangan, tr.bank_sumber, tr.akun);
+          }
+        } catch (e) { console.error(e); alert("Gagal mengambil data transaksi."); }
+        return;
+      }
+
+      let confirmMsg = "⚠️ KONFIRMASI PEMBAYARAN\n\nPastikan Anda sudah melakukan transfer/pembayaran real.\nSistem akan mencatat aset Kas berkurang dan status menjadi LUNAS.\n\nLanjut?";
+
+      // If VERIFY mode comes here, it means we have overrideDebitAccount or confirmed steps
+      if (mode === 'VERIFY') {
+        // We assume modal confirmed it, no need for double alert usually, 
+        // or just a simple toast. But let's keep it smooth.
+        // confirmMsg is bypassed if comes from Modal? 
+        // Let's rely on Modal's confirm.
+      } else {
+        if (!confirm(confirmMsg)) return;
+      }
 
       try {
         if (type === 'EXPENSE') {
-          // 1. Fetch Transaksi Detail
+          // 1. Fetch
           const { data: tr, error: errFetch } = await client.from('transaksi').select('*').eq('id', id).single();
           if (errFetch || !tr) throw new Error("Data transaksi tidak ditemukan");
 
-          // 2. AUTO JOURNAL LOGIC
-          // For 'VERIFY', data usually complete (Kas Keluar).
-          // For 'PAY', data from Request might lack Source Bank.
-
-          // HARDCODE DEFAULT SOURCE IF MISSING (For 'PAY' mode usually)
-          // Ideally UI should ask, but for speed we default to 'Kas Besar' or 'Bank BRI' if known, 
-          // OR we just fail if missing. 
-          // Current logic checks `tr.akun && tr.bank_sumber`.
-
           let sourceBank = tr.bank_sumber;
-          // If PAY mode and no source, default to a Main Bank or keep null to trigger error?
-          // Let's assume for now we strictly require it or maybe user will edit it. 
-          // But user wants "Direct".
-          // If 'PAY' mode, we might need to assume 'Bank BRI (Escrow)' if not set? 
-          // Let's stick to existing logic: if missing, maybe we can't journal automatically?
+          // Use Override Account if present (From Modal), else use transaction's
+          let operationalAccount = overrideDebitAccount || tr.akun;
 
-          if (tr.akun && tr.bank_sumber) {
-            // --- MODE: AUTO JOURNAL (KAS KELUAR / VERIFY) ---
-            const refNo = (mode === 'VERIFY' ? "V-OUT-" : "PAY-") + tr.id;
-            let jurnalPayload = [];
+          // Logic
+          // ... (Rest of logic is similar, just use operationalAccount)
+          // --- MODE: AUTO JOURNAL (KAS KELUAR / VERIFY) ---
+          const refNo = (mode === 'VERIFY' ? "V-OUT-" : "PAY-") + tr.id;
+          let jurnalPayload = [];
 
-            // Split Logic (Proyek)
-            if (tr.nama_proyek && tr.nama_proyek.includes(',')) {
-              const listProyek = tr.nama_proyek.split(',').map(p => p.trim()).filter(Boolean);
-              const nominalPerProyek = tr.jumlah / listProyek.length;
+          // Split Logic (Proyek)
+          if (tr.nama_proyek && tr.nama_proyek.includes(',')) {
+            const listProyek = tr.nama_proyek.split(',').map(p => p.trim()).filter(Boolean);
+            const nominalPerProyek = tr.jumlah / listProyek.length;
 
-              listProyek.forEach(p => {
-                jurnalPayload.push({
-                  tanggal: tr.tanggal,
-                  nomor_referensi: refNo,
-                  keterangan: `${tr.keterangan} [Alokasi: ${p}]`,
-                  nama_akun: tr.akun, // Debit (Beban)
-                  debit: nominalPerProyek,
-                  kredit: 0,
-                  project_code: p
-                });
+            listProyek.forEach(p => {
+              jurnalPayload.push({
+                tanggal: tr.tanggal,
+                nomor_referensi: refNo,
+                keterangan: `${tr.keterangan} [Alokasi: ${p}]`,
+                nama_akun: operationalAccount, // Debit (Beban/Aset) -> FROM MODAL
+                debit: nominalPerProyek,
+                kredit: 0,
+                project_code: p
+              });
+              if (mode === 'VERIFY') {
                 // Credit (Source)
                 jurnalPayload.push({
                   tanggal: tr.tanggal,
@@ -512,18 +848,20 @@
                   kredit: nominalPerProyek,
                   project_code: p
                 });
-              });
-            } else {
-              // Single Project
-              jurnalPayload.push({
-                tanggal: tr.tanggal,
-                nomor_referensi: refNo,
-                keterangan: tr.keterangan,
-                nama_akun: tr.akun, // Debit
-                debit: tr.jumlah,
-                kredit: 0,
-                project_code: tr.nama_proyek || 'UMUM'
-              });
+              }
+            });
+          } else {
+            // Single Project
+            jurnalPayload.push({
+              tanggal: tr.tanggal,
+              nomor_referensi: refNo,
+              keterangan: tr.keterangan,
+              nama_akun: operationalAccount, // Debit
+              debit: tr.jumlah,
+              kredit: 0,
+              project_code: tr.nama_proyek || 'UMUM'
+            });
+            if (mode === 'VERIFY') {
               jurnalPayload.push({
                 tanggal: tr.tanggal,
                 nomor_referensi: refNo,
@@ -534,22 +872,23 @@
                 project_code: tr.nama_proyek || 'UMUM'
               });
             }
+          }
 
-            // POST JURNAL
+          // POST JURNAL
+          if (mode === 'VERIFY') {
             const { error: errJ } = await client.from('jurnal_umum').insert(jurnalPayload);
             if (errJ) throw new Error("Gagal posting jurnal: " + errJ.message);
+
+            // UPDATE STATUS
+            const { error: errUp } = await client.from('transaksi')
+              .update({ jenis_transaksi: 'LUNAS', akun: operationalAccount }) // Update Account too if changed
+              .eq('id', id);
+            if (errUp) throw new Error("Gagal update status: " + errUp.message);
+          } else {
+            // PAY MODE (Just Status LUNAS)
+            const { error: errUp } = await client.from('transaksi').update({ jenis_transaksi: 'LUNAS' }).eq('id', id);
+            if (errUp) throw new Error("Gagal update status: " + errUp.message);
           }
-          // If 'PAY' mode and Accounts missing, we just update status to LUNAS (Manual Journal later?)
-          // But User wanted "Posting ke Jurnal". 
-          // If data comes from 'Pengajuan Biaya', commonly it lacks 'bank_sumber'.
-          // We will update status to 'LUNAS' anyway.
-
-          // 3. UPDATE STATUS
-          const { error: errUp } = await client.from('transaksi')
-            .update({ jenis_transaksi: 'LUNAS' }) // Final Status
-            .eq('id', id);
-
-          if (errUp) throw new Error("Gagal update status: " + errUp.message);
 
         } else if (type === 'UPAH') {
           // Upah Logic (Existing)
@@ -558,7 +897,7 @@
         }
 
         alert("✅ Transaksi Berhasil Diproses!");
-        loadPaymentQueue(); // Reload
+        loadPaymentQueue();
       } catch (err) {
         alert("Gagal: " + err.message);
       }
