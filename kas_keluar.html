@@ -146,6 +146,33 @@
                     </div>
 
                     <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Rekening Tujuan (OCR/Manual)</label>
+                        <div class="relative">
+                            <input type="text" id="rekeningTujuan"
+                                class="w-full border p-2 pl-10 rounded bg-slate-50 font-mono text-slate-700 outline-none focus:border-red-500"
+                                placeholder="Nomor Rekening akan muncul disini...">
+                            <div class="absolute left-3 top-2 text-slate-400">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Nama Penerima</label>
+                            <input type="text" id="namaPenerima"
+                                class="w-full border p-2 rounded bg-slate-50 text-sm outline-none focus:border-red-500"
+                                placeholder="Auto / Manual">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">ID Transaksi / Ref</label>
+                            <input type="text" id="idTransaksi"
+                                class="w-full border p-2 rounded bg-slate-50 text-sm font-mono outline-none focus:border-red-500"
+                                placeholder="Auto / Manual">
+                        </div>
+                    </div>
+
+                    <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">Keterangan</label>
                         <textarea id="keterangan"
                             class="w-full border p-2 rounded text-sm outline-none focus:border-red-500" rows="2"
@@ -156,7 +183,8 @@
                         class="w-full bg-red-600 text-white font-bold py-3 rounded-lg shadow hover:bg-red-700 transition flex justify-center gap-2">
                         <i class="fas fa-share-square"></i> SUBMIT KE ACCOUNTING
                     </button>
-                    <p class="text-[10px] text-center text-slate-400 italic mt-2">*Data akan langsung masuk tab Eksekusi
+                    <p class="text-[10px] text-center text-slate-400 italic mt-2">*Data akan langsung masuk tab
+                        Eksekusi
                         Pembayaran.</p>
                 </div>
             </div>
@@ -341,61 +369,189 @@
 
                 console.log("OCR Result Raw:", text);
 
-                // --- SMART PARSE LOGIC ---
+                // --- IMPROVED SMART PARSE LOGIC ---
                 const lines = text.split('\n');
-                let foundAmount = 0;
+                let candidateAmounts = [];
                 let foundDate = null;
                 let foundRekening = null;
+                let foundName = null;
+                let foundRef = null;
+                let foundSource = null;
 
                 for (let line of lines) {
                     const lower = line.toLowerCase();
-                    const rawNums = line.replace(/[^0-9,.]/g, ''); // Keep digits, dots, commas
+                    const cleanLine = lower.trim();
 
-                    // 1. Nominal (Heuristic: > 1000 and valid format)
-                    if (rawNums.length > 3) {
-                        // Indo Format: 1.500.000,00 -> 1500000.00
-                        // US Format: 1,500,000.00 -> 1500000.00
-                        // We try both.
-                        let cleanNum = rawNums.replace(/\./g, '').replace(',', '.');
-                        let val = parseFloat(cleanNum);
+                    // --- 1. AMOUNT DETECTION ---
+                    // Skip lines that are clearly NOT the transfer amount
+                    if (cleanLine.includes('saldo') || cleanLine.includes('balance') || cleanLine.includes('sisa') || cleanLine.includes('biaya admin')) {
+                        continue;
+                    }
 
-                        // Validation: Must be realistic number
-                        if (!isNaN(val) && val > foundAmount && val < 10000000000) {
-                            if (lower.includes('rp') || lower.includes('idr') || lower.includes('jum') || lower.includes('tot') || lower.includes('amo')) {
-                                foundAmount = val;
-                            } else if (val > foundAmount) {
-                                foundAmount = val; // Fallback to largest number
+                    // Extract all numbers from line
+                    const numbers = line.match(/[0-9]+[.,]?[0-9]+[.,]?[0-9]*/g);
+
+                    if (numbers) {
+                        for (let rawNum of numbers) {
+                            let cleanNum = rawNum.replace(/[^0-9,.]/g, '');
+
+                            // Heuristic to parse Locale Format
+                            let val = 0;
+                            if (cleanNum.includes('.') && cleanNum.includes(',')) {
+                                if (cleanNum.lastIndexOf(',') > cleanNum.lastIndexOf('.')) {
+                                    val = parseFloat(cleanNum.replace(/\./g, '').replace(',', '.'));
+                                } else {
+                                    val = parseFloat(cleanNum.replace(/,/g, ''));
+                                }
+                            } else if ((cleanNum.match(/\./g) || []).length > 1) {
+                                val = parseFloat(cleanNum.replace(/\./g, ''));
+                            } else if ((cleanNum.match(/,/g) || []).length > 1) {
+                                val = parseFloat(cleanNum.replace(/,/g, ''));
+                            } else {
+                                val = parseFloat(cleanNum.replace(/[,.]/g, ''));
+                                if (cleanNum.match(/[,.]00$/)) {
+                                    val = val / 100;
+                                }
+                            }
+
+                            // FILTER: Realistic Transaction Range
+                            if (val > 1000 && val < 10000000000) {
+                                let score = 0;
+                                // BONUS SCORE: Proximity to keywords
+                                if (lower.includes('total') || lower.includes('jumlah') || lower.includes('amount') || lower.includes('transfer')) score += 5;
+                                if (lower.includes('rp') || lower.includes('idr')) score += 3;
+
+                                // PENALTY: Account Number like (Long int no decimals)
+                                if (!rawNum.includes('.') && !rawNum.includes(',') && rawNum.length >= 10) {
+                                    score -= 10;
+                                }
+
+                                candidateAmounts.push({ val, score, raw: rawNum });
                             }
                         }
                     }
 
-                    // 2. Tanggal (dd/mm/yyyy or yyyy-mm-dd)
-                    // Slash or Dash or Dot separator
-                    const dateMatch = line.match(/(\d{2})[-/.](\d{2})[-/.](\d{4})/);
-                    if (dateMatch) {
-                        // Check if valid date
-                        const d = new Date(`${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`);
-                        if (!isNaN(d.getTime())) foundDate = d.toISOString().split('T')[0];
-                    }
-                    const dateMatchRev = line.match(/(\d{4})[-/.](\d{2})[-/.](\d{2})/);
-                    if (dateMatchRev) {
-                        const d = new Date(`${dateMatchRev[1]}-${dateMatchRev[2]}-${dateMatchRev[3]}`);
-                        if (!isNaN(d.getTime())) foundDate = d.toISOString().split('T')[0];
+                    // --- 2. DATE DETECTION ---
+                    if (!foundDate) {
+                        const dMatch = line.match(/(?:^|\s)(\d{2})[\/\-\.](\d{2})[\/\-\.](\d{4})(?:\s|$)/) ||
+                            line.match(/(?:^|\s)(\d{4})[\/\-\.](\d{2})[\/\-\.](\d{2})(?:\s|$)/);
+                        if (dMatch) {
+                            let d;
+                            if (dMatch[1].length === 4) d = new Date(`${dMatch[1]}-${dMatch[2]}-${dMatch[3]}`);
+                            else d = new Date(`${dMatch[3]}-${dMatch[2]}-${dMatch[1]}`);
+                            if (!isNaN(d.getTime())) foundDate = d.toISOString().split('T')[0];
+                        }
                     }
 
-                    // 3. Rekening (10-16 digits)
-                    if (lower.includes('rek') || lower.includes('tuju') || lower.includes('dest')) {
-                        const rekMatch = line.match(/\b\d{10,16}\b/);
-                        if (rekMatch) foundRekening = rekMatch[0];
+                    // --- 3. REKENING DETECTION (DESTINATION) ---
+                    // CHECK FOR SOURCE ACCOUNT FIRST
+                    if (!foundSource && (lower.includes('sumber') || lower.includes('asal') || lower.includes('dari'))) {
+                        const sMatch = line.match(/\b\d{10,16}\b/);
+                        if (sMatch) foundSource = sMatch[0];
+                    }
+
+                    if (lower.includes('rek') || lower.includes('tujuan') || lower.includes('dest') || lower.includes('ke')) {
+                        // IGNORE if "sumber", "asal", "from" (unless it says "from... to...")
+                        if (lower.includes('sumber') || lower.includes('asal') || lower.includes('dari')) {
+                            continue;
+                        }
+
+                        // PRIORITIZE "Tujuan" / "Ke"
+                        const rMatch = line.match(/\b\d{10,16}\b/);
+                        if (rMatch) {
+                            if (lower.includes('tujuan') || lower.includes('penerima') || lower.includes('ke') || lower.includes('dest')) {
+                                foundRekening = rMatch[0]; // High confidence, overwrite previous
+                            } else if (!foundRekening) {
+                                foundRekening = rMatch[0]; // Normal confidence, take if empty
+                            }
+                        }
+                    }
+
+                    // --- 4. NAMA PENERIMA DETECTION (Advanced Heuristic) ---
+                    // Strategy A: Explicit Keywords
+                    if (!foundName) {
+                        if (lower.match(/^(ke|to|kpd|kepada)\s*[:.]?/)) {
+                            let clean = line.replace(/^(ke|to|kpd|kepada)\s*[:.]?/i, '').replace(/[:.]/g, '').trim();
+                            if (clean.length > 3 && !clean.match(/[0-9]/)) foundName = clean;
+                        }
+                        else if (lower.includes('a/n') || lower.includes('atas nama')) {
+                            let clean = line.replace(/.*(a\/n|atas nama)\s*[:.]?/i, '').replace(/[:.]/g, '').trim();
+                            if (clean.length > 3) foundName = clean;
+                        }
+                        else if (lower.includes('nama') || lower.includes('penerima')) {
+                            let clean = line.replace(/nama|penerima|name|:|bank|tujuan/gi, '').trim();
+                            if (clean.length > 3 && !clean.match(/[0-9]/)) foundName = clean;
+                        }
+                    }
+
+                    // --- 5. REF ID DETECTION ---
+                    if (!foundRef && (lower.includes('id') || lower.includes('ref') || lower.includes('no. trans'))) {
+                        // Alpha numeric usually
+                        let refClean = line.replace(/id|transaksi|ref|no\.|:|trans/gi, '').trim();
+                        if (refClean.length > 5) foundRef = refClean;
                     }
                 }
 
-                console.log("Parsed:", { foundAmount, foundDate, foundRekening });
+                // Strategy B: Proximity to Rekening (Post-Process)
+                if (!foundName && foundRekening) {
+                    // Find index of line containing rekening
+                    const rekIndex = lines.findIndex(l => l.includes(foundRekening));
+                    if (rekIndex >= 0) {
+                        const rekLine = lines[rekIndex];
+
+                        // Strategy C: Same Line Detection (User Suggestion: "Rek - Nama")
+                        if (rekLine.includes('-')) {
+                            const parts = rekLine.split('-');
+                            for (let p of parts) {
+                                const cleanP = p.trim();
+                                if (!cleanP.includes(foundRekening) && cleanP.match(/[a-zA-Z]/) && cleanP.length > 3) {
+                                    // Filter out cleanP if it contains too many digits
+                                    const digitCount = (cleanP.match(/\d/g) || []).length;
+                                    if (digitCount < 3) {
+                                        foundName = cleanP.replace(/[^a-zA-Z\s.]/g, '').trim();
+                                    }
+                                }
+                            }
+                        }
+                        // Strategy C2: Text AFTER Rekening (No dash)
+                        if (!foundName) {
+                            const afterRek = rekLine.substring(rekLine.indexOf(foundRekening) + foundRekening.length).trim();
+                            if (afterRek.length > 3 && afterRek.match(/[a-zA-Z]/)) {
+                                foundName = afterRek.replace(/[^a-zA-Z\s.]/g, '').trim();
+                            }
+                        }
+
+                        // Check Next Line (most common for "Transfer To")
+                        if (lines[rekIndex + 1]) {
+                            let cand = lines[rekIndex + 1].trim();
+                            // Must be Uppercase, no numbers, length > 3
+                            if (cand.length > 3 && !cand.match(/[0-9]/) && cand === cand.toUpperCase()) {
+                                foundName = cand;
+                            }
+                        }
+                        // Check Previous Line
+                        if (!foundName && lines[rekIndex - 1]) {
+                            let cand = lines[rekIndex - 1].trim();
+                            if (cand.length > 3 && !cand.match(/[0-9]/) && cand === cand.toUpperCase()) {
+                                foundName = cand;
+                            }
+                        }
+                    }
+                }
+
+                // DECISION CANDIDATE
+                let bestAmount = 0;
+                if (candidateAmounts.length > 0) {
+                    candidateAmounts.sort((a, b) => b.score - a.score || b.val - a.val);
+                    bestAmount = candidateAmounts[0].val;
+                }
+
+                console.log("Final Decision:", { bestAmount, foundDate, foundRekening, foundName, foundRef });
 
                 // --- AUTO FILL ---
-                if (foundAmount > 0) {
+                if (bestAmount > 0) {
                     const el = document.getElementById('jumlah');
-                    el.value = foundAmount;
+                    el.value = bestAmount;
                     el.classList.add('bg-green-100');
                     setTimeout(() => el.classList.remove('bg-green-100'), 2000);
                 }
@@ -407,17 +563,41 @@
                     setTimeout(() => el.classList.remove('bg-green-100'), 2000);
                 }
 
-                // Description Logic
-                let extraDesc = "[OCR SCAN] ";
-                if (foundRekening) extraDesc += `Rek Tujuan: ${foundRekening}. `;
+                // OCR Note logic updated
+                if (foundRekening) {
+                    const el = document.getElementById('rekeningTujuan');
+                    el.value = foundRekening;
+                    el.classList.add('bg-green-100');
+                    setTimeout(() => el.classList.remove('bg-green-100'), 2000);
+                }
+
+                if (foundName) document.getElementById('namaPenerima').value = foundName;
+                if (foundRef) document.getElementById('idTransaksi').value = foundRef;
+
+                // AUTO-SELECT SUMBER DANA
+                if (foundSource) {
+                    const select = document.getElementById('akunKas');
+                    for (let i = 0; i < select.options.length; i++) {
+                        // Check if option text contains the found source number
+                        if (select.options[i].text.includes(foundSource)) {
+                            select.selectedIndex = i;
+                            select.classList.add('bg-green-100');
+                            setTimeout(() => select.classList.remove('bg-green-100'), 2000);
+                            console.log("Auto-selected Source Fund:", select.options[i].text);
+                            break;
+                        }
+                    }
+                }
 
                 // Try context note
                 const noteLine = lines.find(l => l.toLowerCase().match(/berita|ket|note|desc/));
-                if (noteLine) extraDesc += `Note: ${noteLine.replace(/berita|ket|note|desc/i, '').trim()}`;
-
-                const currentKet = document.getElementById('keterangan').value;
-                if (!currentKet) document.getElementById('keterangan').value = extraDesc;
-                else document.getElementById('keterangan').value = currentKet + "\n" + extraDesc;
+                if (noteLine) {
+                    let noteVal = noteLine.replace(/berita|ket|note|desc/i, '').trim();
+                    const currentKet = document.getElementById('keterangan').value;
+                    if (!currentKet.includes(noteVal)) {
+                        document.getElementById('keterangan').value = currentKet ? currentKet + "\n" + noteVal : noteVal;
+                    }
+                }
 
                 statusEl.innerHTML = '<i class="fas fa-check-circle text-green-600"></i> Selesai!';
 
@@ -441,7 +621,30 @@
                 proyekString = selectedProjects.join(",");
             }
             const jml = Number(document.getElementById("jumlah").value);
-            const ket = document.getElementById("keterangan").value;
+            let ket = document.getElementById("keterangan").value;
+            const rek = document.getElementById("rekeningTujuan").value;
+            const nama = document.getElementById("namaPenerima").value;
+            const ref = document.getElementById("idTransaksi").value;
+
+            // 1. DUPLICATE CHECK (Only if Ref provided)
+            if (ref) {
+                const { data: duplicates } = await client.from('transaksi')
+                    .select('id')
+                    .ilike('keterangan', `%[REF: ${ref}]%`)
+                    .limit(1);
+
+                if (duplicates && duplicates.length > 0) {
+                    return alert("STOP! Transaksi dengan REF ID ini sudah pernah diinput sebelumnya.");
+                }
+            }
+
+            // 2. Format Keterangan
+            let extraInfo = "";
+            if (rek) extraInfo += `[REK: ${rek}] `;
+            if (nama) extraInfo += `[NAMA: ${nama}] `;
+            if (ref) extraInfo += `[REF: ${ref}] `;
+
+            if (extraInfo) ket = extraInfo + ket;
 
             if (!tgl || !akunB || !akunK || jml <= 0) return alert("Mohon lengkapi semua data!");
 
@@ -462,8 +665,12 @@
             else {
                 alert("✅ Terkirim ke Accounting! Silakan cek menu Verifikasi Accounting.");
                 // Reset Form (Partial)
+                // Reset Form (Partial)
                 document.getElementById("jumlah").value = "";
                 document.getElementById("keterangan").value = "";
+                document.getElementById("rekeningTujuan").value = "";
+                document.getElementById("namaPenerima").value = "";
+                document.getElementById("idTransaksi").value = "";
                 document.getElementById("akunBiaya").value = "";
                 // Keep date and source fund for convenience
             }
