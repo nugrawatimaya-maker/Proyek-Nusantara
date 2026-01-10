@@ -518,7 +518,7 @@
           tanggal: tgl,
           nomor_referensi: refJurnal,
           keterangan: `Perolehan Aset: ${nama}`,
-          nama_akun: 'Aktiva Tetap',
+          nama_akun: payload.kategori, // FIXED: Use Account Name from Category Dropdown
           debit: nilai,
           kredit: 0
         },
@@ -536,9 +536,11 @@
 
       if (errJurnal) {
         console.error("Jurnal gagal terbentuk otomatis:", errJurnal.message);
+        alert("⚠️ PERINGATAN: Aset tersimpan, TETAPI Jurnal Otomatis Gagal Terbentuk!\nError: " + errJurnal.message);
+      } else {
+        alert("✅ Aset Berhasil Diregistrasi & Jurnal Perolehan Terbentuk (" + sumberDana + ")!");
       }
 
-      alert("✅ Aset Berhasil Diregistrasi & Jurnal Perolehan Terbentuk (" + sumberDana + ")!");
       this.reset();
       updateLiveCalc();
       calculateAccounting();
