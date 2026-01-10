@@ -493,6 +493,15 @@
       const umur = parseInt(document.getElementById('umur_ekonomis').value);
       const sumberDana = document.getElementById('sumber_dana').value; // Get Value
 
+      if (!document.getElementById('kategori').value) {
+        alert("Mohon pilih Kategori Aset!");
+        return;
+      }
+      if (!sumberDana) {
+        alert("Mohon pilih Sumber Dana!");
+        return;
+      }
+
       const payload = {
         nama_aktiva: nama,
         kategori: document.getElementById('kategori').value,
@@ -505,6 +514,8 @@
         status: 'Aktif'
       };
 
+      console.log("Submitting Asset Payload:", payload); // Debugging
+
       const { data: assetData, error: errAsset } = await client.from('master_aktiva').insert([payload]).select();
 
       if (errAsset) {
@@ -512,7 +523,8 @@
         return;
       }
 
-      const refJurnal = `AST-${Date.now()}`;
+      const assetId = assetData[0].id; // Get the ID of the new asset
+      const refJurnal = `AST-${assetId}`; // Use ID as linkage for Deletion Sync
       const jurnalPayload = [
         {
           tanggal: tgl,

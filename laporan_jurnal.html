@@ -1828,6 +1828,19 @@
                 };
                 // await client.from('audit_log').insert(auditPayload); // If table exists
 
+                // SINKRONISASI HAPUS MASTER AKTIVA
+                // Jika referensi diawali 'AST-', berarti ini jurnal perolehan aset. Hapus juga asetnya.
+                if (ref.startsWith('AST-')) {
+                    const parts = ref.split('-');
+                    if (parts.length >= 2) {
+                        const assetId = parts[1];
+                        // Delete Master Aktiva (Silent attempt)
+                        const { error: errAst } = await client.from('master_aktiva').delete().eq('id', assetId);
+                        if (errAst) console.warn("Sinkronisasi hapus aset gagal:", errAst);
+                        else console.log("Sinkronisasi hapus aset sukses:", assetId);
+                    }
+                }
+
                 const { error } = await client.from('jurnal_umum').delete().eq('nomor_referensi', ref);
 
                 if (error) throw error;
