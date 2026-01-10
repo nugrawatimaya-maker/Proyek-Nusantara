@@ -720,19 +720,33 @@
     async function loadKategoriDariCOA() {
       const { data, error } = await client
         .from('master_akun')
-        .select('nama_akun')
-        .eq('kategori', 'Aset Tetap');
+        .select('nama_akun, kode_akun')
+        .eq('kategori', 'Aset Tetap')
+        .order('nama_akun', { ascending: true });
 
       if (error) {
         console.error("Gagal load kategori aset tetap:", error.message);
         return;
       }
 
+      const selectKategori = document.getElementById("kategori");
+      // Add placeholder for Tom Select
+      selectKategori.innerHTML = '<option value="" disabled selected>Pilih Kategori Aset...</option>';
+
       if (data && data.length > 0) {
-        const selectKategori = document.getElementById("kategori");
-        selectKategori.innerHTML = data.map(akun =>
-          `<option value="${akun.nama_akun}">${akun.nama_akun}</option>`
-        ).join('');
+        data.forEach(akun => {
+          const option = document.createElement('option');
+          option.value = akun.nama_akun;
+          option.innerText = `[${akun.kode_akun}] ${akun.nama_akun}`;
+          selectKategori.appendChild(option);
+        });
+
+        // Initialize Tom Select
+        new TomSelect('#kategori', {
+          create: false,
+          sortField: { field: "text", direction: "asc" },
+          placeholder: "Cari Kategori...",
+        });
       }
     }
 
