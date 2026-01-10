@@ -315,81 +315,120 @@
     </main>
 
     <!-- SECURE EDIT JOURNAL MODAL -->
-    <div id="editJurnalModal" class="fixed inset-0 bg-black/50 z-[60] hidden flex items-center justify-center p-4">
+    <div id="editJurnalModal"
+        class="fixed inset-0 bg-black/60 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
         <div
-            class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 border border-slate-200">
-            <div class="bg-indigo-600 p-4 flex justify-between items-center text-white">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-shield-alt text-lg"></i>
-                    <h3 class="font-bold">Secure Journal Editor</h3>
+            class="bg-white rounded-xl shadow-2xl w-full max-w-md md:max-w-2xl overflow-hidden transform transition-all scale-100 border border-slate-200 flex flex-col max-h-[90vh]">
+
+            <!-- Header -->
+            <div class="bg-indigo-600 p-4 md:p-5 flex justify-between items-center text-white shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-full">
+                        <i class="fas fa-shield-alt text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg leading-tight">Secure Journal Editor</h3>
+                        <p class="text-xs text-indigo-100 opacity-90">Edit transaksi dengan Audit Log</p>
+                    </div>
                 </div>
-                <button onclick="closeEditJurnal()" class="hover:text-red-200 transition"><i
-                        class="fas fa-times text-xl"></i></button>
+                <button onclick="closeEditJurnal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition text-white/80 hover:text-white">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
             </div>
 
-            <form id="formEditJurnal" class="p-6 space-y-4">
-                <input type="hidden" id="edit_jurnal_id">
+            <!-- Scrollable Body -->
+            <div class="overflow-y-auto p-4 md:p-6 custom-scrollbar">
+                <form id="formEditJurnal" class="space-y-5">
+                    <input type="hidden" id="edit_jurnal_id">
 
-                <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 flex items-start gap-3">
-                    <i class="fas fa-info-circle text-indigo-500 mt-1"></i>
-                    <div class="text-xs text-indigo-800 leading-relaxed">
-                        Fitur ini mencatat <strong>Audit Log</strong>. Setiap perubahan akan disimpan lengkap dengan
-                        nama user, waktu, dan alasan perubahan. Data lama akan diarsipkan.
+                    <!-- Info Box -->
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-start gap-3">
+                        <i class="fas fa-info-circle text-blue-600 mt-0.5 text-lg"></i>
+                        <div class="text-xs text-blue-800 leading-relaxed">
+                            <strong>Note:</strong> Setiap perubahan akan dicatat dalam <strong>Audit Log</strong>. Data
+                            historis sebelum perubahan akan diarsipkan untuk keperluan audit trail.
+                        </div>
                     </div>
-                </div>
 
-                <!-- Account Dropdown (Master) -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">Akun (Dari Master)</label>
-                    <select id="edit_jurnal_akun"
-                        class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                        required>
-                        <option value="">-- Pilih Akun Valid --</option>
-                        <!-- Populated by JS -->
-                    </select>
-                </div>
-
-                <!-- Description -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">Keterangan / Uraian</label>
-                    <textarea id="edit_jurnal_desc" rows="2"
-                        class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-                        required></textarea>
-                </div>
-
-                <!-- Debit / Credit -->
-                <div class="grid grid-cols-2 gap-4">
+                    <!-- Account Dropdown (Master) -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Debit</label>
-                        <input type="number" id="edit_jurnal_debit"
-                            class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right"
-                            placeholder="0">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Akun (Dari
+                            Master)</label>
+                        <div class="relative">
+                            <select id="edit_jurnal_akun"
+                                class="w-full border border-slate-300 rounded-lg py-2.5 pl-3 pr-8 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm appearance-none transition"
+                                required>
+                                <option value="">-- Pilih Akun Valid --</option>
+                                <!-- Populated by JS -->
+                            </select>
+                            <div
+                                class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-500">
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Description -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Kredit</label>
-                        <input type="number" id="edit_jurnal_kredit"
-                            class="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-right"
-                            placeholder="0">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Keterangan
+                            / Uraian</label>
+                        <textarea id="edit_jurnal_desc" rows="3"
+                            class="w-full border border-slate-300 rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition resize-none"
+                            placeholder="Deskripsi transaksi..." required></textarea>
                     </div>
-                </div>
 
-                <!-- Reason (Required) -->
-                <div>
-                    <label class="block text-xs font-bold text-red-500 mb-1">Alasan Perubahan (Wajib)</label>
-                    <input type="text" id="edit_jurnal_reason"
-                        class="w-full border border-red-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500 bg-red-50"
-                        placeholder="Contoh: Salah input akun, Typo nominal..." required>
-                </div>
+                    <!-- Debit / Credit -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Debit
+                                (Rp)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2.5 text-slate-400 font-bold text-xs">Rp</span>
+                                <input type="number" id="edit_jurnal_debit"
+                                    class="w-full border border-slate-200 bg-slate-50 rounded-lg py-2.5 pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-indigo-500 font-mono text-right font-bold text-slate-700 shadow-sm transition"
+                                    placeholder="0">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">Kredit
+                                (Rp)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2.5 text-slate-400 font-bold text-xs">Rp</span>
+                                <input type="number" id="edit_jurnal_kredit"
+                                    class="w-full border border-slate-200 bg-slate-50 rounded-lg py-2.5 pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-indigo-500 font-mono text-right font-bold text-slate-700 shadow-sm transition"
+                                    placeholder="0">
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                    <button type="button" onclick="closeEditJurnal()"
-                        class="px-5 py-2.5 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-bold transition">Batal</button>
-                    <button type="submit"
-                        class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-indigo-200 transition active:scale-95 flex items-center gap-2">
-                        <i class="fas fa-save"></i> Simpan & Audit
-                    </button>
-                </div>
-            </form>
+                    <!-- Reason (Required) -->
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-red-600 mb-1.5 uppercase tracking-wider flex items-center justify-between">
+                            <span>Alasan Perubahan (Wajib)</span>
+                            <span class="text-[10px] font-normal text-red-400 normal-case italic">*Min. 5
+                                karakter</span>
+                        </label>
+                        <input type="text" id="edit_jurnal_reason"
+                            class="w-full border border-red-200 rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-red-500 bg-red-50/50 focus:bg-white placeholder-red-300 transition shadow-sm text-red-700"
+                            placeholder="Contoh: Salah input akun, Typo nominal..." required>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
+                <button type="button" onclick="closeEditJurnal()"
+                    class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg text-sm font-bold transition">
+                    Batal
+                </button>
+                <button type="submit" form="formEditJurnal"
+                    class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-indigo-200 transition active:scale-95 flex items-center gap-2">
+                    <i class="fas fa-save"></i>
+                    <span>Simpan & Audit</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -558,6 +597,14 @@
                     const btnEdit = showEdit ?
                         `<button onclick="openEditJurnal(${r.id})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 mx-auto shadow-sm border border-indigo-200 w-full"><i class="fas fa-edit"></i> Edit</button>` : '<span class="text-xs text-slate-300">-</span>';
 
+                    const btnDel = (showEdit && r.nomor_referensi) ?
+                        `<button onclick="confirmDelete(${r.id}, '${r.nomor_referensi}')" class="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 mt-1 mx-auto shadow-sm border border-red-200 w-full" title="Hapus Group Transaksi"><i class="fas fa-trash-alt"></i> Hapus</button>` : '';
+
+                    const actionContent = `
+                        ${btnEdit}
+                        ${btnDel}
+                    `;
+
                     html += `
                     <tr class="${rowBg} hover:bg-yellow-50 transition report-item" data-search="${searchStr}">
                         <td class="p-2.5 text-center text-xs text-slate-500 align-top border-r border-slate-100">
@@ -579,8 +626,8 @@
                         <td class="p-2.5 text-right font-mono text-slate-700 align-top border-l border-slate-200 bg-slate-50/50">
                             ${isCredit ? fmt(r.kredit) : ''}
                         </td>
-                        <td class="p-2.5 text-center border-l border-slate-200">
-                            ${btnEdit}
+                        <td class="p-2.5 text-center border-l border-slate-200 px-2">
+                            ${actionContent}
                         </td>
                     </tr>`;
                 });
@@ -1283,9 +1330,64 @@
                 colStyles = { 2: { halign: 'right' }, 3: { halign: 'right' } };
                 printTable(doc, head, body, colStyles, finalY);
 
+            } else if (currentType === 'LABA_RUGI') {
+                const saldos = hitungSaldo();
+                const { inc, exp, incTotal, expTotal } = filterSaldosByType(saldos, currentType);
+                const labaBersih = incTotal - expTotal;
+
+                // 1. PENDAPATAN
+                body.push([{ content: 'PENDAPATAN', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 253, 244] } }]);
+                if (Object.keys(inc).length === 0) {
+                    body.push(['Belum ada data pendapatan', '-']);
+                } else {
+                    Object.entries(inc).forEach(([ak, val]) => {
+                        body.push([ak, fmtNum(val)]);
+                    });
+                }
+                body.push([{ content: 'Total Pendapatan', styles: { fontStyle: 'bold' } }, { content: fmtNum(incTotal), styles: { fontStyle: 'bold', halign: 'right' } }]);
+
+                // 2. BEBAN
+                body.push([{ content: 'BEBAN OPERASIONAL', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [254, 242, 242] } }]);
+                if (Object.keys(exp).length === 0) {
+                    body.push(['Belum ada data beban', '-']);
+                } else {
+                    Object.entries(exp).forEach(([ak, val]) => {
+                        body.push([ak, `(${fmtNum(val)})`]);
+                    });
+                }
+                body.push([{ content: 'Total Beban', styles: { fontStyle: 'bold' } }, { content: `(${fmtNum(expTotal)})`, styles: { fontStyle: 'bold', halign: 'right' } }]);
+
+                // NET
+                body.push([{ content: 'LABA / RUGI BERSIH', styles: { fontStyle: 'bold', fillColor: [238, 242, 255] } }, { content: fmtNum(labaBersih), styles: { fontStyle: 'bold', halign: 'right', fillColor: [238, 242, 255] } }]);
+
+                printTable(doc, [['Keterangan', 'Nominal']], body, { 1: { halign: 'right' } }, finalY);
+
+            } else if (currentType === 'NERACA') {
+                const saldos = hitungSaldo();
+                const { ast, pas, astTotal, pasTotal } = filterSaldosByType(saldos, currentType);
+
+                // 1. ASET
+                body.push([{ content: 'ASET (AKTIVA)', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [239, 246, 255] } }]);
+                Object.entries(ast).forEach(([ak, val]) => {
+                    if (Math.abs(val) > 0) body.push([ak, fmtNum(val)]);
+                });
+                body.push([{ content: 'TOTAL ASET', styles: { fontStyle: 'bold' } }, { content: fmtNum(astTotal), styles: { fontStyle: 'bold', halign: 'right' } }]);
+
+                // 2. PASIVA
+                body.push([{ content: 'LIABILITAS & EKUITAS (PASIVA)', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [238, 242, 255] } }]);
+                Object.entries(pas).forEach(([ak, val]) => {
+                    if (Math.abs(val) > 0) body.push([ak, fmtNum(val)]);
+                });
+                body.push([{ content: 'TOTAL PASIVA', styles: { fontStyle: 'bold' } }, { content: fmtNum(pasTotal), styles: { fontStyle: 'bold', halign: 'right' } }]);
+
+                // CHECK
+                const balanceMsg = Math.abs(astTotal - pasTotal) < 1 ? 'BALANCE' : `TIDAK BALANCE (${fmtNum(astTotal - pasTotal)})`;
+                body.push([{ content: 'STATUS NERACA', styles: { fontStyle: 'bold' } }, { content: balanceMsg, styles: { fontStyle: 'bold', halign: 'right', textColor: Math.abs(astTotal - pasTotal) < 1 ? [22, 163, 74] : [220, 38, 38] } }]);
+
+                printTable(doc, [['Keterangan', 'Nominal']], body, { 1: { halign: 'right' } }, finalY);
+
             } else {
-                // Laba Rugi / Neraca (Versi Simple Table)
-                // Anda bisa kembangkan lagi jika mau detail, tapi ini sudah cukup untuk PDF
+                // Fallback for Analisis/Arus Kas (Not implemented yet to keep it simple)
                 doc.setFontSize(10);
                 doc.text("Silakan lihat detail di layar aplikasi atau hubungi admin untuk format lengkap Laporan ini.", 14, 50);
             }
@@ -1565,6 +1667,180 @@
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
+            }
+        }
+    </script>
+
+    <!-- SECURE DELETE JOURNAL MODAL -->
+    <div id="deleteJurnalModal"
+        class="fixed inset-0 bg-red-900/30 z-[70] hidden flex items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300">
+        <div
+            class="bg-white rounded-xl shadow-2xl w-full max-w-lg md:max-w-xl overflow-hidden transform transition-all scale-100 border border-red-200">
+
+            <!-- Header -->
+            <div class="bg-red-600 p-4 flex justify-between items-center text-white">
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 p-2 rounded-full">
+                        <i class="fas fa-exclamation-triangle text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg leading-tight">Hapus Transaksi</h3>
+                        <p class="text-xs text-red-100 opacity-90">Penghapusan Grup Transaksi (Balance)</p>
+                    </div>
+                </div>
+                <button onclick="closeDeleteModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition text-white/80 hover:text-white">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-5">
+                <input type="hidden" id="del_jurnal_ref">
+
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                    <p class="text-red-800 font-bold text-sm mb-1">⚠️ Perhatian!</p>
+                    <p class="text-xs text-red-600 leading-relaxed">
+                        Anda akan menghapus sebuah <strong>Grup Transaksi</strong>. Sistem akan menghapus semua baris
+                        jurnal yang memiliki Kode Referensi yang sama untuk menjaga Balance laporan keuangan.
+                    </p>
+                </div>
+
+                <!-- List of Items to be Deleted -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Item yang akan
+                        dihapus:</label>
+                    <div
+                        class="bg-slate-50 border border-slate-200 rounded-lg overflow-hidden max-h-40 overflow-y-auto custom-scrollbar">
+                        <table class="w-full text-xs text-left">
+                            <thead class="bg-slate-100 text-slate-500 font-bold border-b border-slate-200 sticky top-0">
+                                <tr>
+                                    <th class="p-2 w-1/2">Akun</th>
+                                    <th class="p-2 text-right">Debit</th>
+                                    <th class="p-2 text-right">Kredit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="listDeleteItems" class="divide-y divide-slate-100 font-mono text-slate-600">
+                                <!-- Populated by JS -->
+                            </tbody>
+                            <tfoot class="bg-slate-100 border-t border-slate-200 font-bold">
+                                <tr>
+                                    <td class="p-2 text-center text-slate-500">TOTAL</td>
+                                    <td class="p-2 text-right text-slate-700" id="totalDelDebit">0</td>
+                                    <td class="p-2 text-right text-slate-700" id="totalDelKredit">0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Reason -->
+                <div>
+                    <label
+                        class="block text-xs font-bold text-red-600 mb-1.5 uppercase tracking-wider flex items-center justify-between">
+                        <span>Alasan Penghapusan (Wajib)</span>
+                    </label>
+                    <input type="text" id="del_jurnal_reason"
+                        class="w-full border border-red-200 rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-red-500 bg-red-50/50 focus:bg-white placeholder-red-300 transition shadow-sm text-red-700"
+                        placeholder="Contoh: Duplikasi, Batal Transaksi..." required>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeDeleteModal()"
+                        class="px-5 py-2.5 text-slate-500 hover:bg-slate-100 rounded-lg text-sm font-bold transition">Batal</button>
+                    <button type="button" onclick="executeDelete()"
+                        class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-red-200 transition active:scale-95 flex items-center gap-2">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>Hapus Permanen</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 5. DELETE GROUP LOGIC
+        // ==========================================
+        async function confirmDelete(id, ref) {
+            // 1. Fetch Related Rows by REF
+            const { data, error } = await client.from('jurnal_umum').select('*').eq('nomor_referensi', ref);
+
+            if (error || !data || data.length === 0) {
+                alert("Gagal load data grup: " + (error?.message || 'Data kosong'));
+                return;
+            }
+
+            // 2. Populate Modal
+            const tbody = document.getElementById('listDeleteItems');
+            tbody.innerHTML = '';
+            let tD = 0, tK = 0;
+
+            data.forEach(r => {
+                tD += r.debit;
+                tK += r.kredit;
+                tbody.innerHTML += `
+                <tr class="hover:bg-red-50/50">
+                    <td class="p-2 truncate max-w-[150px]" title="${r.nama_akun}">${r.nama_akun}</td>
+                    <td class="p-2 text-right">${r.debit > 0 ? fmtNum(r.debit) : '-'}</td>
+                    <td class="p-2 text-right">${r.kredit > 0 ? fmtNum(r.kredit) : '-'}</td>
+                </tr>`;
+            });
+
+            document.getElementById('totalDelDebit').innerText = fmtNum(tD);
+            document.getElementById('totalDelKredit').innerText = fmtNum(tK);
+            document.getElementById('del_jurnal_ref').value = ref;
+            document.getElementById('del_jurnal_reason').value = '';
+
+            document.getElementById('deleteJurnalModal').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteJurnalModal').classList.add('hidden');
+        }
+
+        async function executeDelete() {
+            const ref = document.getElementById('del_jurnal_ref').value;
+            const reason = document.getElementById('del_jurnal_reason').value;
+
+            if (!reason || reason.length < 5) {
+                alert("Mohon isi alasan penghapusan dengan jelas (min. 5 karakter)!");
+                return;
+            }
+
+            if (!confirm(`⚠️ PERINGATAN TERAKHIR!\n\nAnda akan menghapus seluruh grup transaksi "${ref}".\nTindakan ini tidak dapat dibatalkan.\n\nLanjutkan menghapus?`)) return;
+
+            // Show Loading (Optional UI feedback could be improved here)
+            const btn = document.querySelector('#deleteJurnalModal button[onclick="executeDelete()"]');
+            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Menghapus...`;
+            btn.disabled = true;
+
+            try {
+                // TODO: Idealnya catat ke 'deleted_jurnal_log' dulu (Audit Trail)
+                // Di sini kita langsung hapus by ref
+
+                // Opsional: Insert to Audit Log (Client side insert for simplicity, better via RPC)
+                const auditPayload = {
+                    action: 'DELETE_GROUP',
+                    ref_code: ref,
+                    reason: reason,
+                    user: window.PNAuth?.getSession()?.user?.full_name || 'System',
+                    timestamp: new Date().toISOString()
+                };
+                // await client.from('audit_log').insert(auditPayload); // If table exists
+
+                const { error } = await client.from('jurnal_umum').delete().eq('nomor_referensi', ref);
+
+                if (error) throw error;
+
+                alert("✅ PENGHAPUSAN SUKSES!\nData transaksi telah dihapus.");
+                closeDeleteModal();
+                loadData(); // Refresh Grid
+
+            } catch (err) {
+                alert("❌ GAGAL HAPUS: " + err.message);
+            } finally {
+                btn.innerHTML = `<i class="fas fa-trash-alt"></i> <span>Hapus Permanen</span>`;
+                btn.disabled = false;
             }
         }
     </script>

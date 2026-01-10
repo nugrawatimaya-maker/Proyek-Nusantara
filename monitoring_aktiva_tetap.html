@@ -11,6 +11,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.default.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 
@@ -163,6 +165,13 @@
                 class="w-full border rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Contoh: Toyota Dyna Dump Truck" required>
             </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1">Merek / Brand <span
+                  class="text-slate-400 font-normal italic">(Opsional)</span></label>
+              <input type="text" id="merek"
+                class="w-full border rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Contoh: Toyota, Honda, Samsung...">
+            </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">Kategori</label>
@@ -182,6 +191,18 @@
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">Lokasi Aset</label>
+                <input type="text" id="lokasi_aset" class="w-full border rounded-lg p-2.5 text-sm outline-none"
+                  placeholder="Contoh: Gudang Utama, Kantor Cabang..." required>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">Tahun Perolehan</label>
+                <input type="number" id="tahun_perolehan"
+                  class="w-full border rounded-lg p-2.5 text-sm outline-none bg-slate-50" placeholder="YYYY" required>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">Nilai Perolehan</label>
                 <input type="number" id="nilai_perolehan" class="w-full border rounded-lg p-2.5 text-sm outline-none"
                   placeholder="Rp" required>
@@ -197,10 +218,7 @@
             <div>
               <label class="block text-xs font-bold text-slate-500 mb-1">Sumber Dana (Kredit Akun)</label>
               <select id="sumber_dana" class="w-full border rounded-lg p-2.5 text-sm outline-none bg-yellow-50">
-                <option value="Kas/Bank">Kas/Bank (Default)</option>
-                <option value="Modal Disetor">Modal Disetor (Owner's Equity)</option>
-                <option value="Hutang Usaha">Hutang Usaha (Vendor)</option>
-                <option value="Hutang Bank">Hutang Bank</option>
+                <option value="" disabled selected>Sedang memuat data...</option>
               </select>
             </div>
 
@@ -379,7 +397,11 @@
           <tr class="hover:bg-slate-50 transition border-b">
             <td class="px-4 py-4">
               <div class="font-bold text-slate-800">${asset.nama_aktiva}</div>
-              <div class="text-[10px] text-slate-400 uppercase">${asset.kategori} | ${asset.tgl_perolehan}</div>
+              <div class="text-[10px] text-slate-400 uppercase">
+                ${asset.kategori} | ${asset.tahun || new Date(asset.tgl_perolehan).getFullYear()} 
+                ${asset.merek ? `| <span class="font-bold text-slate-600">${asset.merek}</span>` : ''}
+                ${asset.lokasi ? `| <i class="fas fa-map-marker-alt ml-1"></i> ${asset.lokasi}` : ''}
+              </div>
             </td>
             <td class="px-4 py-4 text-right font-mono">${fmt(asset.nilai_perolehan)}</td>
             <td class="px-4 py-4 text-center text-xs font-bold text-slate-500">${asset.umur_ekonomis} Thn</td>
@@ -453,6 +475,14 @@
       document.getElementById('calcDepresiasi').innerText = fmt(depr);
     }
 
+    // Auto-fill Tahun dari Tgl Perolehan
+    document.getElementById('tgl_perolehan').addEventListener('change', function () {
+      if (this.value) {
+        const year = new Date(this.value).getFullYear();
+        document.getElementById('tahun_perolehan').value = year;
+      }
+    });
+
     // Simpan Data
     document.getElementById('assetForm').addEventListener('submit', async function (e) {
       e.preventDefault();
@@ -469,6 +499,9 @@
         tgl_perolehan: tgl,
         nilai_perolehan: nilai,
         umur_ekonomis: umur,
+        lokasi: document.getElementById('lokasi_aset').value,
+        tahun: document.getElementById('tahun_perolehan').value,
+        merek: document.getElementById('merek').value, // NEW
         status: 'Aktif'
       };
 
@@ -630,8 +663,10 @@
         return [
           index + 1,
           asset.nama_aktiva,
+          asset.merek || '-', // NEW
           asset.kategori,
-          asset.tgl_perolehan,
+          asset.lokasi || '-',
+          asset.tahun || new Date(asset.tgl_perolehan).getFullYear(),
           asset.umur_ekonomis + " Thn",
           fmtNum(asset.nilai_perolehan),
           fmtNum(akmPenyusutan),
@@ -641,7 +676,7 @@
 
       doc.autoTable({
         startY: 48,
-        head: [['No', 'Nama Aktiva', 'Kategori (COA)', 'Tgl Perolehan', 'Umur', 'Nilai Perolehan', 'Akm. Penyusutan', 'Nilai Buku (Net)']],
+        head: [['No', 'Nama Aktiva', 'Merek', 'Kategori', 'Lokasi', 'Thn', 'Umur', 'Nilai Awal', 'Penyusutan', 'Nilai Buku']],
         body: body,
         theme: 'grid',
         headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', fontSize: 8 },
@@ -701,8 +736,60 @@
       }
     }
 
+    async function loadSumberDanaDariCOA() {
+      const { data, error } = await client
+        .from('master_akun')
+        .select('nama_akun, kode_akun, kategori')
+        .or('kategori.ilike.%kas%,kategori.ilike.%bank%,kategori.ilike.%kewajiban%,kategori.ilike.%hutang%,kategori.ilike.%modal%,kategori.ilike.%ekuitas%,kategori.ilike.%aset lancar%,kategori.ilike.%current asset%')
+        .order('kategori', { ascending: true })
+        .order('nama_akun', { ascending: true });
+
+      if (error) {
+        console.error("Gagal load sumber dana:", error.message);
+        return;
+      }
+
+      const select = document.getElementById("sumber_dana");
+      select.innerHTML = '<option value="" disabled selected>Pilih atau Ketik Sumber Dana...</option>';
+
+      if (data && data.length > 0) {
+        data.forEach(acc => {
+          let type = 'Lainnya';
+          const cat = (acc.kategori || '').toLowerCase();
+          if (cat.includes('kas') || cat.includes('bank') || cat.includes('aset lancar') || cat.includes('current')) type = 'ASET LANCAR (KAS & BANK)';
+          else if (cat.includes('hutang') || cat.includes('kewajiban')) type = 'KEWAJIBAN (HUTANG)';
+          else if (cat.includes('modal') || cat.includes('ekuitas')) type = 'MODAL (EKUITAS)';
+
+          // Jika belum ada optgroup untuk type ini
+          let optGroup = select.querySelector(`optgroup[label="${type}"]`);
+          if (!optGroup) {
+            optGroup = document.createElement('optgroup');
+            optGroup.label = type;
+            select.appendChild(optGroup);
+          }
+
+          const option = document.createElement('option');
+          option.value = acc.nama_akun;
+          option.innerText = `[${acc.kode_akun}] ${acc.nama_akun}`;
+          optGroup.appendChild(option);
+        });
+
+        // Initialize Tom Select
+        new TomSelect('#sumber_dana', {
+          create: false,
+          sortField: { field: "text", direction: "asc" },
+          placeholder: "Ketik untuk mencari...",
+          maxOptions: 100
+        });
+
+      } else {
+        select.innerHTML = '<option value="" disabled>Data COA Kosong</option>';
+      }
+    }
+
     // Jalankan Saat Start
     loadKategoriDariCOA();
+    loadSumberDanaDariCOA(); // NEW
     calculateAccounting();
   </script>
 </body>
