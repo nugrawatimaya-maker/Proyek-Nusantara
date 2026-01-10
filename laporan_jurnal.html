@@ -410,6 +410,7 @@
         let currentType = 'JURNAL';
         let rawData = [];
         let akunMap = {};
+        let akunKategori = {}; // Maps Name -> Category (NEW)
 
         const today = new Date();
         document.getElementById("tglMulai").valueAsDate = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -417,36 +418,23 @@
 
         // CHECK URL PARAMS for Actions
         document.addEventListener('DOMContentLoaded', () => {
-            // --- SECURITY CHECK FOR USER TAUFIQ (782757) ---
+            // --- SECURITY CHECK ---
             // Ensure Auth is ready
             if (window.PNAuth) {
                 window.PNAuth.requireAuth(['admin', 'finance', 'direksi', 'accounting', 'superadmin']);
             }
 
             const session = window.PNAuth?.getSession();
-            if (session && session.user) {
-                const u = session.user;
-                // Identifikasi user Taufiq (bisa by name atau role if unique combination)
-                // Disini kita cek jika nama mengandung "Taufiq" dan Role Direksi (as requested)
-                // Atau cukup cek nama jika unique.
-                const isRestrictedUser = u.full_name && u.full_name.toLowerCase().includes('taufiq');
+            // Role Based Access Control for Sensitive Reports (Jurnal Umum)
+            // Restricted roles cannot see Jurnal Umum
+            const restrictedRoles = ['marketing', 'operasional', 'hr']; // Example restricted roles if any specific logic needed
 
-                if (isRestrictedUser) {
-                    // 1. Hide Card in Menu
-                    const card = document.getElementById('card-jurnal-umum');
-                    if (card) card.style.display = 'none';
+            // For specifically requested restriction: Only Superadmin/Finance/Accounting usually need deep dive.
+            // If user is just 'Direksi' without Finance/Admin background, they might be restricted from raw journal.
+            // But per request we remove the "Taufiq" hardcode.
 
-                    // 2. Hide Tab in Report View (if exists)
-                    const tab = document.getElementById('tab-JURNAL');
-                    if (tab) tab.style.display = 'none';
-
-                    // 3. Override currentType if default was JURNAL
-                    if (currentType === 'JURNAL') currentType = 'BUKU_BESAR';
-                }
-
-                // Expose globally for pilihLaporan check
-                window.isRestrictedUser = isRestrictedUser;
-            }
+            // Logic: If we want to hide "Jurnal Umum" from certain people, implement here based on ROLE.
+            // Currently assuming standard RBAC is enough.
 
             const urlParams = new URLSearchParams(window.location.search);
             const action = urlParams.get('action');
@@ -464,11 +452,9 @@
         }
 
         function pilihLaporan(type, el) {
-            // SECURITY BLOCK
-            if (type === 'JURNAL' && window.isRestrictedUser) {
-                alert("⛔ AKSES DITOLAK\n\nMaaf Pak Taufiq, Anda tidak memiliki izin untuk mengakses detail Jurnal Umum.");
-                return;
-            }
+            // SECURITY BLOCK - Role Based
+            // Example: If user is strictly 'viewer' or specific role, block JURNAL
+            // For now we trust the RBAC above.
 
             currentType = type;
             switchView('report');
@@ -503,11 +489,21 @@
             document.getElementById("subJudul").innerText = `${new Date(start).toLocaleDateString('id-ID')} s/d ${new Date(end).toLocaleDateString('id-ID')}`;
             document.getElementById("kontenScreen").innerHTML = `<div class="py-10 text-center"><i class="fas fa-spinner fa-spin text-blue-500"></i> Loading Data...</div>`;
 
+            // 1. Fetch Jurnal Data
             const { data: jurnal } = await client.from('jurnal_umum').select('*').gte('tanggal', start).lte('tanggal', end).order('tanggal', { ascending: true });
-            const { data: master } = await client.from('master_akun').select('nama_akun, kode_akun');
 
-            akunMap = {};
-            if (master) master.forEach(m => { akunMap[m.nama_akun] = m.kode_akun; });
+            // 2. Fetch Master Akun for Category Mapping
+            const { data: master } = await client.from('master_akun').select('nama_akun, kode_akun, kategori');
+
+            akunMap = {}; // Maps Name -> Code
+            akunKategori = {}; // Maps Name -> Category (NEW)
+
+            if (master) {
+                master.forEach(m => {
+                    akunMap[m.nama_akun] = m.kode_akun;
+                    akunKategori[m.nama_akun] = m.kategori; // Store Category
+                });
+            }
             rawData = jurnal || [];
 
             renderScreen(); // Render Tampilan Layar HP
@@ -1117,27 +1113,22 @@
         }
 
         function filterSaldosByType(saldos, type) {
-            // Helper sederhana untuk memisahkan akun Neraca vs Laba Rugi
-            // 1. Definisikan Regex
-            const regInc = /pendapatan|penjualan|sales|revenue|income|omzet/i;
-            const regExp = /beban|biaya|gaji|listrik|air|internet|cost|expense|admin|pajak|bunga|kerugian/i;
-            const regAst = /kas|bank|piutang|persediaan|tanah|bangunan|kendaraan|aset|inventaris|peralatan|perlengkapan|sewa dibayar dimuka/i;
-            const regPas = /hutang|kewajiban|modal|ekuitas|prive|laba ditahan|akumulasi/i;
-
+            // STRICT CATEGORY FILTER using akunKategori map
             if (type === 'LABA_RUGI') {
                 let inc = {}, exp = {}, incTotal = 0, expTotal = 0;
                 for (let [ak, v] of Object.entries(saldos)) {
-                    let net = v.kredit - v.debit; // Default Income Credit
+                    let cat = (akunKategori[ak] || '').toLowerCase();
+                    // Categories for Income (Pendapatan)
+                    const isIncome = cat.includes('pendapatan') || cat.includes('income') || cat.includes('penjualan') || cat.includes('revenue');
+                    // Categories for Expense (Beban/HPP)
+                    const isExpense = cat.includes('beban') || cat.includes('biaya') || cat.includes('hpp') || cat.includes('cost') || cat.includes('expense');
 
-                    // Logic: Jika nama match Income OR (Tidak match expense AND saldo kredit > 0 dan tidak match Asset/Pasiva)
-                    if (ak.match(regInc) || (!ak.match(regExp) && !ak.match(regAst) && !ak.match(regPas) && net > 0)) {
+                    if (isIncome) {
+                        let net = v.kredit - v.debit;
                         inc[ak] = net; incTotal += net;
-                    }
-                    else {
-                        net = v.debit - v.kredit; // Default Expense Debit
-                        if (ak.match(regExp)) {
-                            exp[ak] = net; expTotal += net;
-                        }
+                    } else if (isExpense) {
+                        let net = v.debit - v.kredit;
+                        exp[ak] = net; expTotal += net;
                     }
                 }
                 return { inc, exp, incTotal, expTotal };
@@ -1146,16 +1137,19 @@
             if (type === 'NERACA') {
                 let ast = {}, pas = {}, astTotal = 0, pasTotal = 0;
                 for (let [ak, v] of Object.entries(saldos)) {
-                    // Skip jika itu akun Laba Rugi
-                    if (ak.match(regInc) || ak.match(regExp)) continue;
+                    let cat = (akunKategori[ak] || '').toLowerCase();
+                    // Categories for Assets
+                    const isAsset = cat.includes('aset') || cat.includes('asset') || cat.includes('harta') || cat.includes('aktiva') || cat.includes('kas') || cat.includes('bank') || cat.includes('piutang') || cat.includes('persediaan');
+                    // Categories for Liabilities
+                    const isLiability = cat.includes('kewajiban') || cat.includes('hutang') || cat.includes('utang') || cat.includes('liability');
+                    // Categories for Equity
+                    const isEquity = cat.includes('modal') || cat.includes('ekuitas') || cat.includes('equity') || cat.includes('laba') || cat.includes('prive');
 
-                    let net = v.debit - v.kredit;
-
-                    // Logic: Match Asset OR (Debit Balance & not Pasiva)
-                    if (ak.match(regAst) || (net > 0 && !ak.match(regPas))) {
+                    if (isAsset) {
+                        let net = v.debit - v.kredit;
                         ast[ak] = net; astTotal += net;
-                    } else {
-                        net = v.kredit - v.debit;
+                    } else if (isLiability || isEquity) {
+                        let net = v.kredit - v.debit;
                         pas[ak] = net; pasTotal += net;
                     }
                 }
