@@ -53,7 +53,7 @@
             alert("⚠️ Sesi proyek habis. Silakan pilih proyek kembali di Portal.");
             window.location.href = 'portal_proyek.html';
         }
-        let tempVerifiedItems = {};
+
 
         async function loadOpenPO() {
             const container = document.getElementById("containerPO");
@@ -74,7 +74,7 @@
 
                 if (error) throw error;
                 container.innerHTML = "";
-                tempVerifiedItems = {};
+
 
                 if (!data || data.length === 0) {
                     container.innerHTML = `
@@ -292,7 +292,7 @@
             row.dataset.ready = "true";
             row.dataset.finalQty = valQty;
             row.dataset.finalPrice = valHarga;
-            tempVerifiedItems[id] = row.dataset.po;
+
 
             hitungTotalGroup(groupId);
         }
@@ -406,11 +406,29 @@
             try {
                 const file = fileInput.files[0];
                 const fileExt = file.name.split('.').pop();
-                const fileName = isTestMode ? `TEST_GRN_${safeID}_${Date.now()}.${fileExt}` : `GRN_${safeID}_${Date.now()}.${fileExt}`;
-                const { data: fileData, error: errUp } = await client.storage.from('nota grn').upload(fileName, file);
-                if (errUp) throw new Error("Gagal Upload Foto: " + errUp.message);
 
-                const fileUrl = client.storage.from('nota grn').getPublicUrl(fileName).data.publicUrl;
+                // --- REVERT TO SUPABASE STORAGE ---
+                const fileName = `GRN-${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
+
+                btnUpdate.innerHTML = `<i class="fas fa-cloud-upload-alt fa-spin"></i> Uploading to Supabase...`;
+
+                const { data: uploadData, error: uploadError } = await client
+                    .storage
+                    .from('nota grn')
+                    .upload(fileName, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (uploadError) throw new Error("Gagal Upload Storage: " + uploadError.message);
+
+                const { data: publicURLData } = client
+                    .storage
+                    .from('nota grn')
+                    .getPublicUrl(fileName);
+
+                const fileUrl = publicURLData.publicUrl;
+                // --------------------------------------
 
                 const updates = Array.from(rowsInCard).map(async (row) => {
                     const poId = row.id.split('-')[1];
@@ -474,6 +492,7 @@
                     await client.from('purchase_order').update({
                         status: 'DITERIMA',
                         harga_satuan: harga,
+                        file_nota: fileName, // Save to dedicated column
                         keterangan: `Nota: ${fileName} | ${fileUrl}`
                     }).eq('id', poId);
 
@@ -565,105 +584,9 @@
             }
         }
 
-        async function prosesGRN(id, noPO, bId) {
-            if (!bId || bId === 0) {
-                alert("❌ ERROR: ID Material tidak ditemukan pada PO ini. Hubungi Admin.");
-                return;
-            }
 
-            const btn = event.currentTarget;
-            const qty = Number(document.getElementById(`qty-${id}`).value);
-            const fileInput = document.getElementById(`nota-${id}`);
 
-            if (qty <= 0) return alert("Jumlah fisik tidak boleh 0!");
-            if (fileInput.files.length === 0) return alert("Wajib upload foto nota!");
 
-            if (!confirm(`Konfirmasi penerimaan ${qty} unit?`)) return;
-
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
-
-            try {
-                // A. UPLOAD FOTO
-                const file = fileInput.files[0];
-                const fileName = `Nota_PO_${noPO}_${Date.now()}.jpg`;
-                const { error: errUp } = await client.storage.from('nota grn').upload(fileName, file);
-                if (errUp) throw new Error("Gagal Upload Foto: " + errUp.message);
-
-                // B. AMBIL STOK + HARGA LAMA
-                const hargaNota = Number(document.getElementById(`harga-${id}`).value || 0);
-                if (hargaNota <= 0) return alert("Harga nota wajib diisi!");
-
-                const { data: cur, error: errGet } = await client
-                    .from('master_stok')
-                    .select('total_stok, harga_estimasi')
-                    .eq('id', bId)
-                    .single();
-                if (errGet) throw new Error("Material (ID: " + bId + ") tidak ditemukan di Master Stok.");
-
-                const stokLama = Number(cur.total_stok) || 0;
-                const hargaLama = Number(cur.harga_estimasi) || 0;
-
-                // C. UPDATE MASTER_STOK (stok + harga master)
-                const payloadUpdate = {
-                    total_stok: stokLama + qty,
-                    harga_estimasi: hargaNota,
-                    harga_updated_source: 'GRN',
-                    harga_updated_ref: noPO
-                };
-
-                const { error: errUpdateStok } = await client
-                    .from('master_stok')
-                    .update(payloadUpdate)
-                    .eq('id', bId);
-                if (errUpdateStok) throw errUpdateStok;
-
-                // C2. CATAT STOK HISTORY
-                const { error: errHist } = await client.from('stok_history').insert([{
-                    barang_id: bId,
-                    jenis_transaksi: 'TERIMA GRN',
-                    jumlah: qty,
-                    keterangan: `${activeProject}: ${noPO} | Nota: ${fileName}`
-                }]);
-                if (errHist) throw errHist;
-
-                // D. UPDATE STATUS PO
-                await client.from('purchase_order').update({ status: 'DITERIMA' }).eq('id', id);
-
-                alert("✅ BERHASIL!\nBarang diterima dan stok gudang telah ditambahkan.");
-                loadOpenPO();
-
-            } catch (e) {
-                alert("❌ GAGAL: " + e.message);
-                btn.disabled = false;
-                btn.innerHTML = `Konfirmasi Terima Barang`;
-            }
-        }
-
-        async function batalPO(id, noPO) {
-            const alasan = prompt(`⚠️ BATALKAN PO ${noPO}?\nMasukkan alasan pembatalan:`);
-            if (alasan === null) return;
-            if (alasan.trim() === "") return alert("Alasan pembatalan wajib diisi!");
-            if (!confirm(`Apakah Anda yakin ingin menghapus PO ${noPO} dari antrean GRN?`)) return;
-
-            try {
-                const { error } = await client
-                    .from('purchase_order')
-                    .update({
-                        status: 'CANCELLED',
-                        keterangan: `BATAL DI GRN: ${alasan.trim()}`
-                    })
-                    .eq('id', id);
-
-                if (error) throw error;
-
-                alert(`✅ PO ${noPO} telah berhasil dibatalkan.`);
-                loadOpenPO();
-
-            } catch (e) {
-                alert("❌ Gagal membatalkan PO: " + e.message);
-            }
-        }
 
         loadOpenPO();
     </script>

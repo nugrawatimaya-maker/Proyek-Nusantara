@@ -1,5 +1,10 @@
 import json
 import os
+from dotenv import load_dotenv
+
+# Load environment variables dari file .env
+load_dotenv()
+
 from datetime import date
 from functools import lru_cache
 from typing import List, Optional
@@ -40,56 +45,84 @@ class KavlingUpdate(BaseModel):
     harga: Optional[int] = None
 
 
-kavling_data: List[Kavling] = [
-    Kavling(id=1, blok="A1", status="ready", harga=200_000_000),
-    Kavling(id=2, blok="A2", status="sold", harga=210_000_000),
-    Kavling(id=3, blok="B1", status="booking", harga=250_000_000),
-]
+from database import init_db, get_all_kavling, get_kavling_by_id, create_kavling as db_create, update_kavling as db_update, delete_kavling as db_delete
+
+# Inisialisasi DB saat startup (akan dipanggil manual atau bisa pakai lifespan event di FastAPI nnti, 
+# tapi untuk simplifikasi kita taruh di main scope atau startup event)
+@app.on_event("startup")
+def startup_db():
+    init_db()
 
 
-def _find_kavling(kavling_id: int) -> Kavling:
-    for item in kavling_data:
-        if item.id == kavling_id:
-            return item
-    raise HTTPException(status_code=404, detail="Kavling tidak ditemukan")
+class Kavling(BaseModel):
+    id: int
+    blok: str
+    status: str
+    harga: int
+
+
+class KavlingCreate(BaseModel):
+    blok: str
+    status: str
+    harga: int
+
+
+class KavlingUpdate(BaseModel):
+    blok: Optional[str] = None
+    status: Optional[str] = None
+    harga: Optional[int] = None
 
 
 @app.get("/")
 def home():
-    return {"message": "Backend Proyek Nusantara aktif"}
+    return {"message": "Backend Proyek Nusantara aktif (SQLite Connected)"}
 
 
 @app.get("/kavling", response_model=List[Kavling])
 def list_kavling():
-    return kavling_data
+    return get_all_kavling()
 
 
 @app.get("/kavling/{kavling_id}", response_model=Kavling)
 def get_kavling(kavling_id: int):
-    return _find_kavling(kavling_id)
+    item = get_kavling_by_id(kavling_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Kavling tidak ditemukan")
+    return item
 
 
 @app.post("/kavling", response_model=Kavling, status_code=201)
 def create_kavling(payload: KavlingCreate):
-    new_id = max([item.id for item in kavling_data], default=0) + 1
-    kavling = Kavling(id=new_id, **payload.dict())
-    kavling_data.append(kavling)
-    return kavling
+    new_id = db_create(payload.blok, payload.status, payload.harga)
+    # Return data yang baru dibuat
+    return {
+        "id": new_id,
+        "blok": payload.blok,
+        "status": payload.status,
+        "harga": payload.harga
+    }
 
 
 @app.put("/kavling/{kavling_id}", response_model=Kavling)
 def update_kavling(kavling_id: int, payload: KavlingUpdate):
-    kavling = _find_kavling(kavling_id)
-    update_data = payload.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(kavling, key, value)
-    return kavling
+    # Cek exist
+    if not get_kavling_by_id(kavling_id):
+        raise HTTPException(status_code=404, detail="Kavling tidak ditemukan")
+    
+    success = db_update(kavling_id, payload.dict(exclude_unset=True))
+    if not success:
+         raise HTTPException(status_code=500, detail="Gagal update")
+         
+    return get_kavling_by_id(kavling_id)
 
 
 @app.delete("/kavling/{kavling_id}", status_code=204)
 def delete_kavling(kavling_id: int):
-    kavling = _find_kavling(kavling_id)
-    kavling_data.remove(kavling)
+    # Cek exist
+    if not get_kavling_by_id(kavling_id):
+        raise HTTPException(status_code=404, detail="Kavling tidak ditemukan")
+        
+    db_delete(kavling_id)
 
 
 class Transaksi(BaseModel):
@@ -168,3 +201,57 @@ def submit_transaksi(payload: Transaksi):
         raise HTTPException(status_code=500, detail=f"Gagal menulis ke spreadsheet: {exc}") from exc
 
     return {"status": "ok"}
+
+
+# --- LOCAL STORAGE INTEGRATION (FALLBACK) ---
+from fastapi import UploadFile, File, HTTPException
+from fastapi.staticfiles import StaticFiles
+import shutil
+import uuid
+import os
+
+# Mount folder uploads agar bisa diakses via URL
+# Pastikan folder 'uploads' ada (sudah dibuat manual via command)
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+
+@app.post("/upload-drive")
+async def upload_drive(file: UploadFile = File(...)):
+    """
+    Mengupload file ke penyimpanan LOKAL server (Folder 'uploads').
+    Nama endpoint tetap '/upload-drive' agar tidak perlu ubah frontend.
+    """
+    try:
+        # 1. Generate nama file unik agar tidak bentrok
+        # Ambil ekstensi asli
+        ext = os.path.splitext(file.filename)[1]
+        if not ext:
+            ext = ".png" # Default fallback
+            
+        unique_filename = f"{uuid.uuid4()}{ext}"
+        file_path = f"uploads/{unique_filename}"
+        
+        # 2. Simpan File ke Disk
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # 3. Generate Link Akses
+        # URL Lokal: http://localhost:8000/uploads/namafile.jpg
+        # Kita pakai hardcode base URL atau ambil dari request jika perlu, 
+        # tapi untuk simpel kita return relative atau absolute path
+        
+        # IP 0.0.0.0 berarti listener, untuk akses dari luar pakai IP LAN komputer ini
+        # Untuk localhost user (browser di laptop yang sama), localhost aman.
+        web_view_link = f"http://localhost:8000/{file_path}"
+        
+        return {
+            "file_id": unique_filename,
+            "web_view_link": web_view_link,
+            "download_link": web_view_link
+        }
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Gagal upload file: {exc}") from exc

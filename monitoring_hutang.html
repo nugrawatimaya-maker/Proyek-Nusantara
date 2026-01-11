@@ -8,6 +8,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="app_config.js"></script> <!-- Import Config -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
@@ -89,16 +90,17 @@
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Finance & Accounting
                         Module</p>
                 </div>
-            </div <div class="flex gap-3">
-            <button onclick="window.location.href='dashboard_finance.html'"
-                class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition bg-slate-100 rounded-lg">
-                <i class="fas fa-arrow-left mr-2"></i>Dashboard
-            </button>
-            <button onclick="refreshData()"
-                class="bg-indigo-50 text-indigo-600 w-10 h-10 rounded-lg hover:bg-indigo-100 transition flex items-center justify-center">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-        </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="window.location.href='dashboard_finance.html'"
+                    class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition bg-slate-100 rounded-lg">
+                    <i class="fas fa-arrow-left mr-2"></i>Dashboard
+                </button>
+                <button onclick="refreshData()"
+                    class="bg-indigo-50 text-indigo-600 w-10 h-10 rounded-lg hover:bg-indigo-100 transition flex items-center justify-center">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -132,10 +134,10 @@
                 </div>
 
                 <!-- Card Hutang Bank -->
-                <div onclick="alert('Modul Hutang Bank segera hadir!')"
-                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 opacity-75 grayscale hover:grayscale-0">
+                <div onclick="switchApp('bank')"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48">
                     <div
-                        class="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-3xl mb-4">
+                        class="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-3xl mb-4 group-hover:rotate-12 transition">
                         <i class="fas fa-landmark"></i>
                     </div>
                     <h3 class="font-bold text-slate-700 text-lg">Hutang Bank</h3>
@@ -247,7 +249,43 @@
                 class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition">
                 <i class="fas fa-arrow-left"></i> Kembali ke Menu
             </button>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <!-- Total Pembelian -->
+                <div
+                    class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Pembelian</p>
+                        <h3 class="text-lg font-black text-slate-800" id="statTotalBeli">Rp 0</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                </div>
 
+                <!-- Total Lunas -->
+                <div
+                    class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Lunas</p>
+                        <h3 class="text-lg font-black text-emerald-600" id="statTotalLunas">Rp 0</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <i class="fas fa-check-double"></i>
+                    </div>
+                </div>
+
+                <!-- Belum Dibayar -->
+                <div
+                    class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Belum Dibayar</p>
+                        <h3 class="text-lg font-black text-red-600" id="statTotalHutang">Rp 0</h3>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                </div>
+            </div>
             <div
                 class="glass-panel p-4 flex flex-col md:flex-row gap-4 justify-between items-center sticky top-24 z-40 shadow-sm">
                 <div class="flex items-center gap-2 w-full md:w-auto">
@@ -260,6 +298,13 @@
                 </div>
 
                 <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+
+                    <select id="filterBayar" onchange="applyFilters()"
+                        class="bg-white border border-slate-200 text-xs font-bold text-slate-600 py-2 px-3 rounded-lg outline-none focus:border-indigo-500">
+                        <option value="BELUM_LUNAS">⭕ Belum Lunas</option>
+                        <option value="LUNAS">✅ Sudah Lunas</option>
+                        <option value="ALL">📂 Semua Data</option>
+                    </select>
 
                     <select id="filterStatus" onchange="applyFilters()"
                         class="bg-white border border-slate-200 text-xs font-bold text-slate-600 py-2 px-3 rounded-lg outline-none focus:border-indigo-500">
@@ -312,46 +357,294 @@
             </div>
 
         </div>
+
+        <!-- VIEW: HUTANG BANK -->
+        <div id="view-bank" class="hidden space-y-6 animate-enter">
+            <button onclick="switchApp('menu')"
+                class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition">
+                <i class="fas fa-arrow-left"></i> Kembali ke Menu
+            </button>
+
+            <div class="glass-panel p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fas fa-landmark text-blue-600"></i> Monitoring Hutang Bank
+                        </h2>
+                        <p class="text-sm text-slate-500">Daftar pinjaman modal kerja & investasi</p>
+                    </div>
+                    <button onclick="document.getElementById('modalTambahBank').classList.remove('hidden')"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-lg shadow-blue-200 transition flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Tambah Hutang
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead
+                            class="bg-slate-50 text-slate-500 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-4">Nama Bank / No. PK</th>
+                                <th class="px-6 py-4 text-center">Jenis</th>
+                                <th class="px-6 py-4 text-center">Bunga / Tenor</th>
+                                <th class="px-6 py-4 text-right">Plafon (Limit)</th>
+                                <th class="px-6 py-4 text-right text-red-600">Sisa Hutang</th>
+                                <th class="px-6 py-4 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bankTableBody" class="divide-y divide-slate-100 bg-white">
+                            <!-- Data populated by JS -->
+                        </tbody>
+                        <tfoot class="bg-slate-50 font-bold text-slate-700">
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-right">Total Exposure:</td>
+                                <td class="px-6 py-4 text-right text-red-600" id="totalHutangBank">Rp 0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL TAMBAH BANK -->
+        <div id="modalTambahBank"
+            class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm transition-opacity">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-enter">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg text-slate-800">Catat Hutang Baru</h3>
+                    <button onclick="document.getElementById('modalTambahBank').classList.add('hidden')"
+                        class="text-slate-400 hover:text-red-500 font-bold text-xl">&times;</button>
+                </div>
+
+                <form onsubmit="simpanHutangBank(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Bank</label>
+                        <input type="text" name="nama_bank" required placeholder="Contoh: Bank Mandiri"
+                            class="w-full border border-slate-300 rounded-lg px-3 py-2 font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Jenis Kredit</label>
+                            <select name="jenis_pinjaman"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="KMK">Modal Kerja (KMK)</option>
+                                <option value="INVESTASI">Investasi / Term Loan</option>
+                                <option value="KUR">KUR</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">No. Perjanjian</label>
+                            <input type="text" name="no_perjanjian" required placeholder="No. PK"
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Plafon (Rp)</label>
+                            <input type="number" name="plafon_limit" required
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Bunga (% p.a)</label>
+                            <input type="number" step="0.01" name="bunga_persen" required
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tenor (Bulan)</label>
+                            <input type="number" name="tenor_bulan" required
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tanggal Akad</label>
+                            <input type="date" name="tanggal_akad" required
+                                class="w-full border border-slate-300 rounded-lg px-3 py-2 font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg transition mt-4">
+                        <i class="fas fa-save mr-2"></i> Simpan Data
+                    </button>
+                </form>
+            </div>
+        </div>
     </main>
 
-    <script>
-        // --- CONFIGURATION ---
-        const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-        const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
-        const client = supabase.createClient(supabaseUrl, supabaseKey);
 
+
+    <script>
+        // --- VARIABLES ---
         let rawData = [];
         let filteredData = [];
-        let currentView = 'list'; // 'list' or 'group'
+        let currentView = 'list';
         let chartAgingInstance = null;
         let chartVendorInstance = null;
+        let client = null;
 
+        // --- NAVIGATION (Defined FIRST so it always exists) ---
+        window.switchApp = function (appName) {
+            // Safety Check
+            if (!client && appName !== 'menu') {
+                alert("Koneksi database belum siap. Coba refresh halaman.");
+                return;
+            }
 
-        // Navigation Logic
-        function switchApp(appName) {
             // Hide All
-            ['view-menu', 'view-overview', 'view-vendor'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
+            ['view-menu', 'view-overview', 'view-vendor', 'view-bank'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
             });
 
             // Show Target
-            document.getElementById(`view-${appName}`).classList.remove('hidden');
+            const target = document.getElementById(`view-${appName}`);
+            if (target) target.classList.remove('hidden');
 
-            // Special Actions
+            // Logic per View
             if (appName === 'overview') {
                 setTimeout(() => {
                     if (chartAgingInstance) chartAgingInstance.updateOptions({});
                     if (chartVendorInstance) chartVendorInstance.updateOptions({});
                 }, 100);
             }
+            if (appName === 'bank') {
+                if (typeof refreshBankData === 'function') refreshBankData();
+            }
+        };
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 1. Check Config
+                if (typeof activeConfig === 'undefined' || typeof supabase === 'undefined') {
+                    throw new Error("Library / Config gagal dimuat.");
+                }
+
+                // 2. Init Client
+                const supabaseUrl = activeConfig.URL;
+                const supabaseKey = activeConfig.KEY;
+                client = supabase.createClient(supabaseUrl, supabaseKey);
+
+                // 3. Load Data
+                await refreshData();
+
+            } catch (err) {
+                console.error("Critical Init Error:", err);
+                alert("Sistem Error: " + err.message + "\nPeriksa koneksi internet Anda.");
+
+                // Show Error visual
+                document.body.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-screen text-red-600">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                        <h1 class="text-xl font-bold">Gagal Memuat Aplikasi</h1>
+                        <p>${err.message}</p>
+                        <button onclick="location.reload()" class="mt-4 px-4 py-2 bg-slate-200 rounded text-black font-bold">Coba Lagi</button>
+                    </div>
+                `;
+            }
+        });
+
+
+
+
+        // --- CORE FUNCTIONS (Updated) ---
+
+
+        // --- MODUL HUTANG BANK ---
+        async function refreshBankData() {
+            const tbody = document.getElementById('bankTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-slate-400">Loading data...</td></tr>';
+
+            const { data, error } = await client.from('hutang_bank').select('*').order('created_at', { ascending: false });
+
+            if (error) {
+                console.error(error);
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-red-500 font-bold">Gagal mengambil data</td></tr>';
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Belum ada data hutang bank.</td></tr>';
+                document.getElementById('totalHutangBank').innerText = "Rp 0";
+                return;
+            }
+
+            let totalExposure = 0;
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                totalExposure += (item.sisa_hutang || 0);
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 border-b border-slate-50 last:border-none transition";
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-700">${item.nama_bank}</div>
+                        <div class="text-xs text-slate-500 font-mono">${item.no_perjanjian}</div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded text-xs font-bold">${item.jenis_pinjaman}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center text-xs font-bold text-slate-600">
+                        <div>Bunga: ${item.bunga_persen}%</div>
+                        <div class="text-slate-400">${item.tenor_bulan} Bulan</div>
+                    </td>
+                    <td class="px-6 py-4 text-right font-bold text-slate-500 text-xs">
+                        ${fmt(item.plafon_limit)}
+                    </td>
+                    <td class="px-6 py-4 text-right font-black text-red-600 text-sm">
+                        ${fmt(item.sisa_hutang)}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="px-2 py-1 rounded text-[10px] font-bold ${item.status === 'AKTIF' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}">
+                            ${item.status}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('totalHutangBank').innerText = fmt(totalExposure);
         }
 
-        const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+        async function simpanHutangBank(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const rawData = Object.fromEntries(formData.entries());
 
-        // --- CORE FUNCTIONS ---
+            // Convert numeric
+            const payload = {
+                ...rawData,
+                plafon_limit: Number(rawData.plafon_limit),
+                bunga_persen: Number(rawData.bunga_persen),
+                tenor_bulan: Number(rawData.tenor_bulan),
+                sisa_hutang: Number(rawData.plafon_limit), // Default sisa = plafon
+                status: 'AKTIF'
+            };
 
-        async function init() {
-            await refreshData();
+            const btn = form.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+            btn.disabled = true;
+
+            try {
+                const { error } = await client.from('hutang_bank').insert([payload]);
+                if (error) throw error;
+
+                alert("✅ Berhasil menyimpan data hutang!");
+                document.getElementById('modalTambahBank').classList.add('hidden');
+                form.reset();
+                refreshBankData();
+
+            } catch (err) {
+                alert("❌ Gagal simpan: " + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         }
 
         async function refreshData() {
@@ -372,6 +665,7 @@
                 // Pre-calculate aging fields for faster filtering
                 const today = new Date();
                 rawData = rawData.map(item => {
+                    const today = new Date();
                     const jt = new Date(item.jatuh_tempo);
                     const diffTime = jt - today;
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -384,7 +678,32 @@
                     else if (diffDays <= 30) { status = 'SAFE'; bucket = '8 - 30 Hari'; }
                     else if (diffDays <= 60) { status = 'SAFE'; bucket = '31 - 60 Hari'; }
 
-                    return { ...item, _diffDays: diffDays, _status: status, _bucket: bucket };
+                    // --- FALLBACK RECOVERY: Extract file_nota from keterangan if missing ---
+                    let recoveredFile = item.file_nota;
+                    if (!recoveredFile && item.keterangan && item.keterangan.includes('Nota:')) {
+                        try {
+                            // Format: "Nota: FILENAME.jpg | URL"
+                            const parts = item.keterangan.split('|')[0]; // "Nota: FILENAME.jpg "
+                            recoveredFile = parts.replace('Nota:', '').trim();
+                            // console.log(`Recovered file for PO ${item.nomor_po}: ${recoveredFile}`);
+                        } catch (e) {
+                            console.warn("Failed to recover file from keterangan", e);
+                        }
+                    }
+
+                    // Logic Bayar
+                    const isLunas = item.status_po === 'LUNAS';
+                    const bayarStatus = isLunas ? 'LUNAS' : 'BELUM_LUNAS';
+
+                    // Use recoveredFile instead of item.file_nota
+                    return {
+                        ...item,
+                        file_nota: recoveredFile,
+                        _diffDays: diffDays,
+                        _status: status,
+                        _bucket: bucket,
+                        _bayar: bayarStatus
+                    };
                 });
 
                 applyFilters();
@@ -393,9 +712,53 @@
             if (btn) btn.classList.remove('fa-spin');
         }
 
+        async function markInvoicePaid(poNumber) {
+            if (!confirm(`Tandai PO ${poNumber} sebagai LUNAS?\n\nData yang lunas akan hilang dari daftar hutang aktif.`)) return;
+
+            try {
+                // Asumsi table purchase_orders, kolom status_po
+                const { error } = await client
+                    .from('purchase_order')
+                    .update({ status_po: 'LUNAS' })
+                    .eq('nomor_po', poNumber);
+
+                if (error) throw error;
+
+                alert("✅ Berhasil! Status PO diperbarui menjadi LUNAS.");
+                refreshData(); // Refresh list
+
+            } catch (err) {
+                console.error("Error update status:", err);
+                alert("Gagal update status: " + err.message);
+            }
+        }
+
+        async function deleteInvoice(poNumber) {
+            if (!confirm(`⚠️ PERINGATAN HAPUS\n\nAnda yakin ingin MENGHAPUS PERMANEN Tagihan ${poNumber}?\nData yang dihapus tidak bisa dikembalikan.\n\nLanjutkan menghapus?`)) return;
+
+            try {
+                const { error } = await client
+                    .from('purchase_order')
+                    .delete()
+                    .eq('nomor_po', poNumber);
+
+                if (error) throw error;
+
+                alert("✅ Berhasil! Tagihan telah dihapus.");
+                refreshData(); // Refresh list
+
+            } catch (err) {
+                console.error("Error delete:", err);
+                alert("Gagal menghapus: " + err.message);
+            }
+        }
+
+
+
         function applyFilters() {
             const keyword = document.getElementById('searchInput').value.toLowerCase();
             const statusFilter = document.getElementById('filterStatus').value;
+            const bayarFilter = document.getElementById('filterBayar').value;
             const sortType = document.getElementById('sortBy').value;
 
             // 1. Filtering
@@ -405,8 +768,9 @@
                     (item.nama_proyek || '').toLowerCase().includes(keyword);
 
                 const matchStatus = statusFilter === 'ALL' || item._status === statusFilter;
+                const matchBayar = bayarFilter === 'ALL' || item._bayar === bayarFilter;
 
-                return matchKey && matchStatus;
+                return matchKey && matchStatus && matchBayar;
             });
 
             // 2. Sorting
@@ -417,6 +781,22 @@
                 if (sortType === 'amount_asc') return a.total_tagihan - b.total_tagihan;
                 return 0;
             });
+
+            // 1B. Calculate Stats (Based on Search Keyword ONLY, ignoring status filters)
+            // This ensures "Total Lunas" and "Belum" are always visible for the selected vendor/project
+            const statsBase = rawData.filter(item => {
+                return (item.nomor_po || '').toLowerCase().includes(keyword) ||
+                    (item.nama_vendor || '').toLowerCase().includes(keyword) ||
+                    (item.nama_proyek || '').toLowerCase().includes(keyword);
+            });
+
+            const totalBeli = statsBase.reduce((sum, item) => sum + (item.total_tagihan || 0), 0);
+            const totalLunas = statsBase.filter(i => i._bayar === 'LUNAS').reduce((sum, item) => sum + (item.total_tagihan || 0), 0);
+            const totalHutang = statsBase.filter(i => i._bayar !== 'LUNAS').reduce((sum, item) => sum + (item.total_tagihan || 0), 0);
+
+            document.getElementById('statTotalBeli').innerText = fmt(totalBeli);
+            document.getElementById('statTotalLunas').innerText = fmt(totalLunas);
+            document.getElementById('statTotalHutang').innerText = fmt(totalHutang);
 
             updateKPIs();
             renderCharts();
@@ -460,6 +840,7 @@
                 thead.innerHTML = `
                     <th class="px-6 py-4">PO Info</th>
                     <th class="px-6 py-4">Proyek</th>
+                    <th class="px-6 py-4">Tanggal</th>
                     <th class="px-6 py-4 text-center">Jatuh Tempo</th>
                     <th class="px-6 py-4 text-center">Umur (Hari)</th>
                     <th class="px-6 py-4 text-right">Nilai Tagihan</th>
@@ -473,10 +854,23 @@
                         'WARNING': { bg: 'bg-orange-100', text: 'text-orange-700', label: 'SEGERA' },
                         'SAFE': { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'AMAN' }
                     };
-                    const s = statusConfig[item._status];
+
+                    let s = statusConfig[item._status];
+                    // Override badge if LUNAS
+                    if (item._bayar === 'LUNAS') {
+                        s = { bg: 'bg-emerald-600', text: 'text-white', label: 'LUNAS' };
+                    }
 
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 transition animate-enter border-b border-slate-50 last:border-none";
+
+                    // Button Logic
+                    const btnLunasClass = item._bayar === 'LUNAS'
+                        ? 'bg-slate-100 text-slate-300 border-slate-100 cursor-not-allowed'
+                        : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 border-emerald-100';
+
+                    const btnLunasAction = item._bayar === 'LUNAS' ? '' : `onclick="markInvoicePaid('${item.nomor_po}')"`;
+
                     tr.innerHTML = `
                         <td class="px-6 py-4">
                             <div class="font-bold text-slate-700">${item.nama_vendor}</div>
@@ -487,6 +881,19 @@
                         <td class="px-6 py-4">
                             <div class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded inline-block">
                                 ${item.nama_proyek || '-'}
+                            </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-col gap-1 text-[11px]">
+                                <div class="text-slate-600">
+                                    <span class="font-bold text-slate-400 w-8 inline-block">PO:</span> 
+                                    ${item.tanggal_po ? new Date(item.tanggal_po).toLocaleDateString('id-ID') : '-'}
+                                </div>
+                                <div class="text-slate-600">
+                                    <span class="font-bold text-slate-400 w-8 inline-block">GRN:</span> 
+                                    ${item.updated_at ? new Date(item.updated_at).toLocaleDateString('id-ID') : '-'}
+                                </div>
                             </div>
                         </td>
                         <td class="px-6 py-4 text-center text-xs font-bold text-slate-600">
@@ -506,13 +913,26 @@
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            <div class="flex flex-col gap-2">
+                            <div class="flex items-center justify-center gap-2">
+                                <!-- Cek Dokumen -->
                                 <button onclick="bukaModalDokumen('${item.nomor_po}', '${item.nama_vendor}', '${item.file_po || ''}', '${item.file_nota || ''}')" 
-                                        class="group flex items-center gap-2 bg-white border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition shadow-sm w-fit">
-                                    <div class="bg-indigo-100 text-indigo-600 w-6 h-6 rounded flex items-center justify-center text-xs">
-                                        <i class="fas fa-paperclip"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-slate-600 group-hover:text-indigo-700">Cek Dokumen</span>
+                                        class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 flex items-center justify-center transition shadow-sm border border-indigo-100"
+                                        title="Cek Dokumen & Bukti">
+                                        <i class="fas fa-paperclip text-sm"></i>
+                                </button>
+
+                                <!-- Set Lunas -->
+                                <button ${btnLunasAction} 
+                                        class="w-8 h-8 rounded-lg ${btnLunasClass} flex items-center justify-center transition shadow-sm border"
+                                        title="${item._bayar === 'LUNAS' ? 'Sudah Lunas' : 'Tandai Status LUNAS'}">
+                                        <i class="fas fa-check text-sm"></i>
+                                </button>
+
+                                <!-- Hapus -->
+                                <button onclick="deleteInvoice('${item.nomor_po}')" 
+                                        class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 flex items-center justify-center transition shadow-sm border border-red-100"
+                                        title="Hapus Tagihan Permanen">
+                                        <i class="fas fa-trash text-sm"></i>
                                 </button>
                             </div>
                         </td>
@@ -643,7 +1063,8 @@
         }
 
         // --- INIT ---
-        document.addEventListener('DOMContentLoaded', init);
+        // document.addEventListener('DOMContentLoaded', init); // Moved to top
+
 
         let currentDocPO = '';
         let currentDocNota = '';
@@ -696,7 +1117,10 @@
             loader.classList.add('hidden');
             btnDown.classList.add('hidden');
 
-            if (!filePath || filePath === 'null' || filePath === 'undefined') {
+            console.log("DEBUG RENDER: ", filePath);
+            if (!filePath || filePath === 'null' || filePath === 'undefined' || filePath.trim() === '') {
+                // alert("DEBUG: File Path is EMPTY (" + filePath + ")"); 
+                emptyText.innerText = `File tidak ditemukan (Path: ${filePath})`;
                 empty.classList.remove('hidden');
                 return;
             }
@@ -705,7 +1129,7 @@
             btnDown.classList.remove('hidden');
             btnDown.href = '#';
 
-            const publicUrl = client.storage.from('dokumen_proyek').getPublicUrl(filePath).data.publicUrl;
+            const publicUrl = client.storage.from('nota grn').getPublicUrl(filePath).data.publicUrl;
             btnDown.href = publicUrl;
 
             const ext = filePath.split('.').pop().toLowerCase();
