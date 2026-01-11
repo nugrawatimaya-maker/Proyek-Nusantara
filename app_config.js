@@ -15,13 +15,15 @@ const CONFIG = {
     PROD: {
         URL: "https://nbpxmramqufvxiikxbve.supabase.co",
         KEY: "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN",
-        THEME: "normal"
+        THEME: "normal",
+        PYTHON_API_URL: "http://localhost:8000" // Sesuaikan jika production beda
     },
     DEV: {
         URL: "https://drpnegmcazqnxmbonhwq.supabase.co",
         // ⚠️ PASTIKAN KEY INI ADALAH 'anon public' KEY YANG PANJANG (JWT) DARI SUPABASE
         KEY: "sb_publishable_RDhFfphNpQCg4iYStiI8Ug_3PIWUSip",
-        THEME: "warning"
+        THEME: "warning",
+        PYTHON_API_URL: "http://localhost:8000"
     }
 };
 
@@ -41,6 +43,7 @@ console.log(`🔌 Menghubungkan ke Database: ${CURRENT_ENV}`);
 // Inisialisasi Koneksi Asli
 const _realClient = supabase.createClient(activeConfig.URL, activeConfig.KEY);
 // Expose ke Global (PENTING AGAR AUTH TERJAGA)
+// Expose ke Global (PENTING AGAR AUTH TERJAGA)
 window.client = _realClient;
 
 
@@ -49,6 +52,10 @@ const fmt = (n) => new Intl.NumberFormat('id-ID', {
     currency: 'IDR',
     minimumFractionDigits: 0
 }).format(n);
+
+// EXPLICIT GLOBAL EXPORT
+window.activeConfig = activeConfig;
+window.fmt = fmt;
 
 // Banner Mode DEV
 document.addEventListener("DOMContentLoaded", () => {

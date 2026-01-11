@@ -3,3 +3,6 @@ __pycache__/
 .venv/
 venv/
 beckend/venv/
+beckend/.env
+beckend/credentials.json
+beckend/database.db
