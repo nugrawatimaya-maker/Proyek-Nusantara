@@ -1,58 +1,103 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Siteplan - PT. Nusantara Land Development</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
+  <meta charset="utf-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Siteplan - PT. Nusantara Land Development</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="supabase.js"></script>
+  <style>
     body {
-        overscroll-behavior-y: contain;
-        touch-action: pan-x pan-y;
+      overscroll-behavior-y: contain;
+      touch-action: pan-x pan-y;
     }
+
     /* Peta Wrapper */
-    #mapWrap { 
-        height: 75vh; 
-        touch-action: none !important; 
-        -webkit-user-select: none; 
-        user-select: none; 
-        overflow: hidden; 
-        position: relative; 
-        cursor: grab; 
-        background-color: #f1f5f9; 
+    #mapWrap {
+      height: 75vh;
+      touch-action: none !important;
+      -webkit-user-select: none;
+      user-select: none;
+      overflow: hidden;
+      position: relative;
+      cursor: grab;
+      background-color: #f1f5f9;
     }
-    #mapWrap:active { cursor: grabbing; }
-    #mapWrap { touch-action: none; -webkit-user-select: none; user-select: none; }
-    
+
+    #mapWrap:active {
+      cursor: grabbing;
+    }
+
+    #mapWrap {
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
     /* SVG Styling */
-    #siteplanSvg { 
-        width: 100%; 
-        height: 100%; 
-        display: block !important; 
-        touch-action: none; 
-        transform: translateZ(0);
-        backface-visibility: hidden;
+    #siteplanSvg {
+      width: 100%;
+      height: 100%;
+      display: block !important;
+      touch-action: none;
+      transform: translateZ(0);
+      backface-visibility: hidden;
     }
-    
+
     /* Unit Styling */
-    [data-unit-id] { transition: fill 0.3s ease, opacity 0.3s ease, stroke 0.2s; vector-effect: non-scaling-stroke; cursor: pointer !important; }
-    [data-unit-id]:hover { stroke: #0ea5e9; stroke-width: 2px; filter: brightness(0.9); }
-    
+    [data-unit-id] {
+      transition: fill 0.3s ease, opacity 0.3s ease, stroke 0.2s;
+      vector-effect: non-scaling-stroke;
+      cursor: pointer !important;
+    }
+
+    [data-unit-id]:hover {
+      stroke: #0ea5e9;
+      stroke-width: 2px;
+      filter: brightness(0.9);
+    }
+
     /* UI Components */
-    .chip { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .5rem; border-radius:9999px; border:1px solid rgb(226 232 240); font-size:.75rem; }
-    .dot { width:.6rem; height:.6rem; border-radius:9999px; }
-    .hidden-group { display: none; }
-  
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .25rem .5rem;
+      border-radius: 9999px;
+      border: 1px solid rgb(226 232 240);
+      font-size: .75rem;
+    }
+
+    .dot {
+      width: .6rem;
+      height: .6rem;
+      border-radius: 9999px;
+    }
+
+    .hidden-group {
+      display: none;
+    }
+
 
     /* Blink merah untuk progres berkas >10 hari */
     @keyframes blinkDanger {
-      0%, 49% { background-color: rgba(239,68,68,0.25); }
-      50%, 100% { background-color: rgba(239,68,68,0.05); }
+
+      0%,
+      49% {
+        background-color: rgba(239, 68, 68, 0.25);
+      }
+
+      50%,
+      100% {
+        background-color: rgba(239, 68, 68, 0.05);
+      }
     }
+
     .blink-danger {
       animation: blinkDanger 1s infinite;
       border-radius: 0.5rem;
@@ -61,491 +106,709 @@
       padding: 0.25rem 0.5rem;
       display: inline-block;
     }
-    
+
     @media print {
-      @page { size: landscape; margin: 0.5cm; }
-      body > *:not(#printReportArea) { display: none !important; }
+      @page {
+        size: landscape;
+        margin: 0.5cm;
+      }
+
+      body>*:not(#printReportArea) {
+        display: none !important;
+      }
+
       #printReportArea {
         display: block !important;
         visibility: visible !important;
         width: 100% !important;
       }
+
       * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
       }
-      svg { display: block !important; width: 100% !important; height: auto !important; }
+
+      svg {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+      }
     }
 
-    #printReportArea { display: none; }
+    #printReportArea {
+      display: none;
+    }
+
     @media (max-width: 768px) {
-      #siteplanCard { height: 60vh !important; }
-      #quickInfoPanel { width: calc(100% - 2rem); left: 1rem; bottom: 1rem; }
-      .text-2xl { font-size: 1.25rem; }
+      #siteplanCard {
+        height: 60vh !important;
+      }
+
+      #quickInfoPanel {
+        width: calc(100% - 2rem);
+        left: 1rem;
+        bottom: 1rem;
+      }
+
+      .text-2xl {
+        font-size: 1.25rem;
+      }
     }
   </style>
 </head>
+
 <body class="bg-slate-50 min-h-screen font-sans text-slate-800">
-<main class="max-w-[1400px] mx-auto px-4 py-6">
-<div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-<header class="flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
-<div>
-<h1 class="text-lg font-bold">Sistem Manajemen Siteplan</h1>
-<p class="text-xs text-slate-300 mt-1">Update status real-time terhubung ke Database</p>
-</div>
-<a class="flex items-center gap-2 text-sm font-semibold tracking-wide bg-slate-800/60 hover:bg-slate-800 px-3 py-2 rounded-full border border-white/20 transition" href="dashboard_marketing.html">
-<i class="fas fa-arrow-left"></i> Kembali ke Marketing
-        </a>
-</header>
-<div class="px-4 sm:px-6 py-4 bg-white border-b border-slate-200 grid grid-cols-2 md:grid-cols-5 gap-3">
-  <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 shadow-sm">
-    <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Kavling</div>
-    <div class="text-2xl font-black text-slate-800" id="statTotal">0</div>
-  </div>
-  <div class="bg-yellow-50 p-3 rounded-xl border border-yellow-100 shadow-sm">
-    <div class="text-[10px] font-black text-yellow-600 uppercase tracking-wider">Dipasarkan</div>
-    <div class="text-2xl font-black text-yellow-700" id="statOpen">0</div>
-  </div>
-  <div class="bg-sky-50 p-3 rounded-xl border border-sky-100 shadow-sm">
-    <div class="text-[10px] font-black text-sky-500 uppercase tracking-wider">Terbooking</div>
-    <div class="text-2xl font-black text-sky-600" id="statBooking">0</div>
-  </div>
-  <div class="bg-red-50 p-3 rounded-xl border border-red-100 shadow-sm">
-    <div class="text-[10px] font-black text-red-500 uppercase tracking-wider">Sold Out</div>
-    <div class="text-2xl font-black text-red-600" id="statSold">0</div>
-  </div>
-  <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 shadow-sm hidden md:block">
-    <div class="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Ready Stock</div>
-    <div class="text-2xl font-black text-emerald-700" id="statReady">0</div>
-  </div>
-</div>
-<div class="px-4 sm:px-6 py-4 bg-slate-900 border-b border-slate-700 overflow-x-auto">
-  <div class="flex items-center gap-6 min-w-max">
-    <div class="flex items-center gap-2">
-      <i class="fas fa-trophy text-amber-400"></i>
-      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Top Marketing:</span>
-    </div>
-    <div id="marketingStatsList" class="flex gap-4">
-      <span class="text-xs text-slate-500 italic">Menghitung performa tim...</span>
-    </div>
-  </div>
-</div>
-<section class="p-4 sm:p-6 bg-slate-50 border-t border-slate-200">
-<div class="flex flex-col gap-4">
-  <div class="bg-white border border-slate-200 rounded-xl p-4 shadow">
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Siteplan</h2>
-        <p class="text-xs text-slate-500">Tampilan peta blok dengan legenda status</p>
-      </div>
-      <div class="flex items-center gap-3">
-        <div class="flex flex-col">
-          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Filter Status</label>
-          <select id="filterOverlay" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-sky-500 outline-none transition">
-            <option value="all">Tampilkan Semua</option>
-            <option value="open-booking">🟡 Dipasarkan (Kuning)</option>
-            <option value="booking-unit">🔵 Terbooking (Biru Muda)</option>
-            <option value="sold-out">🔴 Sold Out (Merah)</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="bg-white border border-slate-200 rounded-2xl shadow-inner overflow-hidden relative flex flex-col lg:flex-row" id="siteplanCard" style="height: 75vh;">
-    <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
-      <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600" id="btnFit" title="Fit to Screen">
-        <i class="fa-solid fa-compress"></i>
-      </button>
-      <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600" id="btnResetView" title="Reset Zoom">
-        <i class="fa-solid fa-rotate-left"></i>
-      </button>
-      <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-emerald-50 text-emerald-600 transition" id="btnPrint" title="Cetak Siteplan">
-        <i class="fa-solid fa-print"></i>
-      </button>
-    </div>
-    <div id="mapWrap" class="relative flex-1 h-full border-r border-slate-200">
-      <div class="hidden fixed z-50 pointer-events-none bg-slate-900/90 text-white text-xs px-3 py-2 rounded-lg shadow-xl backdrop-blur-sm border border-slate-700 transform -translate-x-1/2 -translate-y-full mt-[-10px]" id="mapTooltip">
-        <div class="font-bold mb-1 text-xs" id="tipTitle">Blok</div>
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-white" id="tipDot"></span>
-          <span class="text-slate-200 capitalize" id="tipSub"></span>
-        </div>
-      </div>
-      <div id="quickInfoPanel" class="hidden absolute bottom-4 left-4 z-20 w-64 bg-orange-500 text-white rounded-lg shadow-lg overflow-hidden border border-orange-600 transition-all duration-300">
-        <div class="bg-orange-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider">Informasi Blok</div>
-        <div class="p-3 space-y-1.5 text-xs font-semibold">
-          <div class="flex justify-between border-b border-orange-400/50 pb-1">
-            <span>Status Blok</span>
-            <span id="quickStatus">-</span>
-          </div>
-          <div class="flex justify-between border-b border-orange-400/50 pb-1">
-            <span>Nama User</span>
-            <span id="quickUser">-</span>
-          </div>
-          <div class="flex justify-between border-b border-orange-400/50 pb-1">
-            <span>Marketing</span>
-            <span id="quickMkt">-</span>
-          </div>
-          <div class="flex justify-between border-b border-orange-400/50 pb-1">
-            <span>No. Telp User</span>
-            <span id="quickPhone">-</span>
-          </div>
-          <div class="flex flex-col">
-            <span class="text-[10px] opacity-80">Keterangan:</span>
-            <span id="quickNotes" class="italic line-clamp-2">-</span>
-          </div>
-        </div>
-      </div>
-      <svg id="siteplanSvg" preserveaspectratio="xMidYMid meet" viewbox="0 0 29700 21000" xml:space="preserve">
-        <defs>
-          <style type="text/css">
-    /* Garis pembatas jalan & kavling */
-    .str0, .str1 { stroke:#1e293b; stroke-width:20; stroke-miterlimit:22; opacity: 0.3; }
-    .fil2 { fill:none; }
-    
-    /* JALANAN (HITAM PEKAT & SOLID) */
-    .fil5 { 
-        fill: #455169ff !important; 
-        fill-opacity: 1 !important; /* Memastikan tidak transparan */
-        opacity: 1 !important;      /* Memastikan lapisan tidak tembus pandang */
-    } 
-    
-    /* RUMPUT & BACKGROUND (Warna Hijau Segar) */
-    .fil0, .fil6 { fill: #22ab5bff !important; }
-    
-    /* Warna Dasar Kavling (Putih) */
-    .fil1 { fill: #ffffff; }
-    
-    /* Lingkaran Taman Tengah & Ornamen Lain */
-    .fil4 { fill: #000000 !important; opacity: 1 !important; }
-</style>
-        </defs>
-<g id="Layer_x0020_1">
-<path class="fil0" d="M26585.05 2731.37c-20.8,114.84 -388.6,1032.8 -388.6,1032.8l-312.27 555.04 -1246.48 106.83 -1273.83 323.56 -1612.15 38.65 -2195.44 647.55 -1378.17 -72.79 -2044.86 -254.49 -3327.15 -0.92 -1342.51 -58.24 -1405.95 -402.29 -640.18 127.2 -1280.92 254.55 -881.65 879.47 -1544.84 377.41 -1381.55 -218.46 -611.95 1882.29c0,0 -1084.7,375.83 -1057.1,350.92 27.59,-24.91 -1341.16,-15.2 -1341.16,-15.2l-515.09 243.21 404.77 1328.12 636.27 366.56 989.79 -689.68 581.54 800 1611.29 665.8 2545.49 1114.01 405.64 623.67 2004.33 517.27 2532.03 1046.26 1855.37 476.45 1137.89 55.6 2567.69 22.79 522.29 2628.36 2310.65 1135.17 1140.51 -490.04 1706.4 -1132.09 431.17 -4853.17 0 0 1683.27 379.49 412.07 338.79 825.7 1505.35 873.31 -3163.83 -1222.2 -6232.46 1009.74 -1448.62 -1183.16 -790.89z"></path>
-<rect class="fil1" data-progress="0" data-status="ready-stok" data-unit-id="C1" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22314.1 9426.76)" width="4445"></rect>
-<rect class="fil1" data-progress="20" data-unit-id="C9" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21033.7 9681.19)" width="4445"></rect>
-<rect class="fil1" data-progress="40" data-unit-id="C10" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21161 10321.4)" width="4445"></rect>
-<rect class="fil1" data-progress="60" data-unit-id="C11" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21288.2 10961.6)" width="4445"></rect>
-<rect class="fil1" data-progress="80" data-unit-id="C12" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21415.4 11601.7)" width="4445"></rect>
-<rect class="fil1" data-progress="100" data-unit-id="C13" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21542.6 12241.9)" width="4445"></rect>
-<rect class="fil1" data-progress="19" data-unit-id="C14" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21669.8 12882.1)" width="4445"></rect>
-<rect class="fil1" data-progress="39" data-unit-id="C15" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21797 13522.3)" width="4445"></rect>
-<rect class="fil1" data-progress="59" data-unit-id="C16" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21924.2 14162.4)" width="4445"></rect>
-<rect class="fil1" data-progress="79" data-unit-id="C17" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22051.5 14802.6)" width="4445"></rect>
-<rect class="fil1" data-progress="99" data-unit-id="C18" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22178.7 15442.8)" width="4445"></rect>
-<rect class="fil1" data-progress="18" data-unit-id="C19" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22305.9 16083)" width="4445"></rect>
-<rect class="fil1" data-progress="38" data-unit-id="C20" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22433.1 16723.2)" width="4445"></rect>
-<rect class="fil1" data-progress="58" data-unit-id="C2" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22441.3 10066.9)" width="4445"></rect>
-<rect class="fil1" data-progress="78" data-unit-id="C3" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22568.5 10707.1)" width="4445"></rect>
-<rect class="fil1" data-progress="98" data-unit-id="C4" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22695.7 11347.3)" width="4445"></rect>
-<rect class="fil1" data-progress="17" data-unit-id="C5" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22823 11987.5)" width="4445"></rect>
-<rect class="fil1" data-progress="37" data-unit-id="A4" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25213.3 7296.06)" width="4445"></rect>
-<rect class="fil1" data-progress="57" data-unit-id="A7" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23933 7550.49)" width="4445"></rect>
-<rect class="fil1" data-progress="77" data-unit-id="A6" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23805.8 6910.31)" width="4445"></rect>
-<rect class="fil1" data-progress="97" data-unit-id="A5" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23678.6 6270.13)" width="4445"></rect>
-<rect class="fil1" data-progress="16" data-unit-id="A3" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25086.1 6655.88)" width="4445"></rect>
-<rect class="fil1" data-progress="36" data-unit-id="A2" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24958.9 6015.7)" width="4445"></rect>
-<rect class="fil1" data-progress="56" data-unit-id="A1" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24831.7 5375.52)" width="4445"></rect>
-<rect class="fil1" data-progress="76" data-unit-id="B5" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 26030.2 11354.6)" width="4445"></rect>
-<rect class="fil1" data-progress="96" data-unit-id="B4" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25903 10714.4)" width="4445"></rect>
-<rect class="fil1" data-progress="15" data-unit-id="B3" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25775.7 10074.3)" width="4445"></rect>
-<rect class="fil1" data-progress="35" data-unit-id="B2" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25648.5 9434.07)" width="4445"></rect>
-<rect class="fil1" data-progress="55" data-unit-id="B1" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25521.3 8793.89)" width="4445"></rect>
-<rect class="fil1" data-progress="75" data-unit-id="B6" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24241 9048.32)" width="4445"></rect>
-<rect class="fil1" data-progress="95" data-unit-id="B7" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24368.2 9688.5)" width="4445"></rect>
-<rect class="fil1" data-progress="14" data-unit-id="B8" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24495.4 10328.7)" width="4445"></rect>
-<rect class="fil1" data-progress="34" data-unit-id="B9" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24622.6 10968.9)" width="4445"></rect>
-<rect class="fil1" data-progress="54" data-unit-id="B10" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24749.8 11609)" width="4445"></rect>
-<rect class="fil1" data-progress="74" data-unit-id="D1" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19114.6 10060.9)" width="4445"></rect>
-<rect class="fil1" data-progress="94" data-unit-id="D14" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 17834.3 10315.3)" width="4445"></rect>
-<rect class="fil1" data-progress="13" data-unit-id="D15" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 17961.5 10955.5)" width="4445"></rect>
-<rect class="fil1" data-progress="33" data-unit-id="D16" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18088.7 11595.7)" width="4445"></rect>
-<rect class="fil1" data-progress="53" data-unit-id="D17" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18215.9 12235.8)" width="4445"></rect>
-<rect class="fil1" data-progress="73" data-unit-id="D18" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18343.1 12876)" width="4445"></rect>
-<rect class="fil1" data-progress="93" data-unit-id="D19" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18470.3 13516.2)" width="4445"></rect>
-<rect class="fil1" data-progress="12" data-unit-id="D20" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18597.5 14156.4)" width="4445"></rect>
-<rect class="fil1" data-progress="32" data-unit-id="D21" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18724.7 14796.6)" width="4445"></rect>
-<rect class="fil1" data-progress="52" data-unit-id="D22" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18852 15436.7)" width="4445"></rect>
-<rect class="fil1" data-progress="72" data-unit-id="D23" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18979.2 16076.9)" width="4445"></rect>
-<rect class="fil1" data-progress="92" data-unit-id="D24" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19106.4 16717.1)" width="4445"></rect>
-<rect class="fil1" data-progress="11" data-unit-id="D25" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19233.6 17357.3)" width="4445"></rect>
-<rect class="fil1" data-progress="31" data-unit-id="D2" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19241.8 10701.1)" width="4445"></rect>
-<rect class="fil1" data-progress="51" data-unit-id="D3" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19369 11341.2)" width="4445"></rect>
-<rect class="fil1" data-progress="71" data-unit-id="D4" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19496.3 11981.4)" width="4445"></rect>
-<rect class="fil1" data-progress="91" data-unit-id="D5" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19623.5 12621.6)" width="4445"></rect>
-<rect class="fil1" data-progress="10" data-unit-id="D6" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19750.7 13261.8)" width="4445"></rect>
-<rect class="fil1" data-progress="30" data-unit-id="D7" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19877.9 13902)" width="4445"></rect>
-<rect class="fil1" data-progress="50" data-unit-id="D8" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20005.1 14542.1)" width="4445"></rect>
-<rect class="fil1" data-progress="70" data-unit-id="D9" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20132.3 15182.3)" width="4445"></rect>
-<rect class="fil1" data-progress="90" data-unit-id="D10" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20259.5 15822.5)" width="4445"></rect>
-<rect class="fil1" data-progress="9" data-unit-id="D11" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20386.7 16462.7)" width="4445"></rect>
-<rect class="fil1" data-progress="29" data-unit-id="D12" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20514 17102.9)" width="4445"></rect>
-<rect class="fil1" data-progress="49" data-unit-id="D13" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20641.2 17743)" width="4445"></rect>
-<rect class="fil1" data-progress="69" data-unit-id="D13A" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20768.4 18383.2)" width="4445"></rect>
-<rect class="fil1" data-progress="89" data-unit-id="G1" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15915.2 10697.8)" width="4445"></rect>
-<rect class="fil1" data-progress="8" data-unit-id="G8" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14634.8 10952.2)" width="4445"></rect>
-<rect class="fil1" data-progress="28" data-unit-id="G9" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14762 11592.4)" width="4445"></rect>
-<rect class="fil1" data-progress="48" data-unit-id="G10" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14889.2 12232.6)" width="4445"></rect>
-<rect class="fil1" data-progress="68" data-unit-id="G11" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15016.4 12872.8)" width="4445"></rect>
-<rect class="fil1" data-progress="88" data-unit-id="G12" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15143.7 13512.9)" width="4445"></rect>
-<rect class="fil1" data-progress="7" data-unit-id="G13" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15270.9 14153.1)" width="4445"></rect>
-<rect class="fil1" data-progress="27" data-unit-id="G2" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16042.4 11338)" width="4445"></rect>
-<rect class="fil1" data-progress="47" data-unit-id="G3" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16169.6 11978.2)" width="4445"></rect>
-<rect class="fil1" data-progress="67" data-unit-id="G4" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16296.8 12618.3)" width="4445"></rect>
-<rect class="fil1" data-progress="87" data-unit-id="G5" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16424 13258.5)" width="4445"></rect>
-<rect class="fil1" data-progress="6" data-unit-id="G6" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16551.2 13898.7)" width="4445"></rect>
-<rect class="fil1" data-progress="26" data-unit-id="G7" height="8890" transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16678.4 14538.9)" width="4445"></rect>
-<rect class="fil1" data-progress="46" data-unit-id="E4" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18687 7923.74)" width="4445"></rect>
-<rect class="fil1" data-progress="66" data-unit-id="E9" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17406.6 8178.16)" width="4445"></rect>
-<rect class="fil1" data-progress="86" data-unit-id="E8" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17279.4 7537.98)" width="4445"></rect>
-<rect class="fil1" data-progress="5" data-unit-id="E7" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17152.2 6897.8)" width="4445"></rect>
-<rect class="fil1" data-progress="25" data-unit-id="E6" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17025 6257.62)" width="4445"></rect>
-<rect class="fil1" data-progress="45" data-unit-id="E5" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 16897.8 5617.44)" width="4445"></rect>
-<rect class="fil1" data-progress="65" data-unit-id="E3" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18559.8 7283.56)" width="4445"></rect>
-<rect class="fil1" data-progress="85" data-unit-id="E2" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18432.5 6643.38)" width="4445"></rect>
-<rect class="fil1" data-progress="4" data-unit-id="E1" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18305.3 6003.2)" width="4445"></rect>
-<rect class="fil1" data-progress="24" data-unit-id="F6" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15489 8563.84)" width="4445"></rect>
-<rect class="fil1" data-progress="44" data-unit-id="F13" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14208.6 8818.27)" width="4445"></rect>
-<rect class="fil1" data-progress="64" data-unit-id="F12" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14081.4 8178.09)" width="4445"></rect>
-<rect class="fil1" data-progress="84" data-unit-id="F11" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13954.2 7537.91)" width="4445"></rect>
-<rect class="fil1" data-progress="3" data-unit-id="F10" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13827 6897.73)" width="4445"></rect>
-<rect class="fil1" data-progress="23" data-unit-id="F9" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13699.7 6257.55)" width="4445"></rect>
-<rect class="fil1" data-progress="43" data-unit-id="F8" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13572.5 5617.37)" width="4445"></rect>
-<rect class="fil1" data-progress="63" data-unit-id="F5" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15361.7 7923.66)" width="4445"></rect>
-<rect class="fil1" data-progress="83" data-unit-id="F4" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15234.5 7283.48)" width="4445"></rect>
-<rect class="fil1" data-progress="2" data-unit-id="F3" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15107.3 6643.3)" width="4445"></rect>
-<rect class="fil1" data-progress="22" data-unit-id="F2" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14980.1 6003.12)" width="4445"></rect>
-<rect class="fil1" data-progress="42" data-unit-id="F1" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14852.9 5362.94)" width="4445"></rect>
-<rect class="fil1" data-progress="62" data-unit-id="H7" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12289 9203.1)" width="4445"></rect>
-<rect class="fil1" data-progress="82" data-unit-id="H13" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10817.8 8497.26)" width="4445"></rect>
-<rect class="fil1" data-progress="1" data-unit-id="H12" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10690.6 7857.08)" width="4445"></rect>
-<rect class="fil1" data-progress="21" data-unit-id="H11" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10563.4 7216.9)" width="4445"></rect>
-<rect class="fil1" data-progress="41" data-unit-id="H10" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10436.2 6576.72)" width="4445"></rect>
-<rect class="fil1" data-progress="61" data-unit-id="H9" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10309 5936.54)" width="4445"></rect>
-<rect class="fil1" data-progress="81" data-unit-id="H8" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10181.8 5296.36)" width="4445"></rect>
-<rect class="fil1" data-progress="0" data-unit-id="H6" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12161.8 8562.92)" width="4445"></rect>
-<rect class="fil1" data-progress="20" data-unit-id="H5" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12034.6 7922.74)" width="4445"></rect>
-<rect class="fil1" data-progress="40" data-unit-id="H4" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11907.4 7282.56)" width="4445"></rect>
-<rect class="fil1" data-progress="60" data-unit-id="H3" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11780.2 6642.38)" width="4445"></rect>
-<rect class="fil1" data-progress="80" data-unit-id="H2" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11652.9 6002.2)" width="4445"></rect>
-<rect class="fil1" data-progress="100" data-unit-id="H1" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11525.7 5362.02)" width="4445"></rect>
-<rect class="fil1" data-progress="19" data-unit-id="J20" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 3751.47 10046)" width="4445"></rect>
-<rect class="fil1" data-progress="39" data-unit-id="J19" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4348.84 10309)" width="4445"></rect>
-<rect class="fil1" data-progress="59" data-unit-id="J18" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4946.21 10572)" width="4445"></rect>
-<rect class="fil1" data-progress="79" data-unit-id="J15" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6738.33 11360.9)" width="4445"></rect>
-<rect class="fil1" data-progress="99" data-unit-id="J14" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7335.7 11623.9)" width="4445"></rect>
-<rect class="fil1" data-progress="18" data-unit-id="J13" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7933.07 11886.9)" width="4445"></rect>
-<rect class="fil1" data-progress="38" data-unit-id="J12" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8530.44 12149.9)" width="4445"></rect>
-<rect class="fil1" data-progress="58" data-unit-id="J11" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9127.81 12412.9)" width="4445"></rect>
-<rect class="fil1" data-progress="78" data-unit-id="I1" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9725.18 12675.9)" width="4445"></rect>
-<rect class="fil1" data-progress="98" data-unit-id="I2" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 10322.6 12938.9)" width="4445"></rect>
-<rect class="fil1" data-progress="17" data-unit-id="I3" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 10919.9 13201.8)" width="4445"></rect>
-<rect class="fil1" data-progress="37" data-unit-id="I4" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 11517.3 13464.8)" width="4445"></rect>
-<rect class="fil1" data-progress="57" data-unit-id="I5" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 12114.7 13727.8)" width="4445"></rect>
-<rect class="fil1" data-progress="77" data-unit-id="I6" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 12712 13990.8)" width="4445"></rect>
-<rect class="fil1" data-progress="97" data-unit-id="I7" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 13309.4 14253.8)" width="4445"></rect>
-<rect class="fil1" data-progress="16" data-unit-id="I8" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 13906.8 14516.8)" width="4445"></rect>
-<rect class="fil1" data-progress="36" data-unit-id="J17" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5543.58 10835)" width="4445"></rect>
-<rect class="fil1" data-progress="56" data-unit-id="J16" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6140.95 11098)" width="4445"></rect>
-<rect class="fil1" data-progress="76" data-unit-id="J9" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4632.22 8042.22)" width="4445"></rect>
-<rect class="fil1" data-progress="96" data-unit-id="J8" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5229.6 8305.21)" width="4445"></rect>
-<rect class="fil1" data-progress="15" data-unit-id="J7" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5826.97 8568.19)" width="4445"></rect>
-<rect class="fil1" data-progress="35" data-unit-id="J6" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6424.34 8831.18)" width="4445"></rect>
-<rect class="fil1" data-progress="55" data-unit-id="J5" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7021.71 9094.16)" width="4445"></rect>
-<rect class="fil1" data-progress="75" data-unit-id="J4" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7619.08 9357.15)" width="4445"></rect>
-<rect class="fil1" data-progress="95" data-unit-id="J3" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8216.45 9620.13)" width="4445"></rect>
-<rect class="fil1" data-progress="14" data-unit-id="J2" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8813.82 9883.12)" width="4445"></rect>
-<rect class="fil1" data-progress="34" data-unit-id="J1" height="8890" transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9411.19 10146.1)" width="4445"></rect>
-<path class="fil2" d="M20906.54 9041.02l2566.6 -510.02m640.2 -127.22l2560.71 -508.86"></path>
-<path class="fil2" d="M9867.44 10347.36l1.07 -0.21 631.43 -125.48 -631.43 125.48 -1.07 0.21zm10875.38 -2161.1l2560.72 -508.85m640.18 -127.21l2560.72 -508.85"></path>
-<line class="fil2" x1="27947.01" x2="26758.46" y1="10952.07" y2="4970.88"></line>
-<path class="fil2" d="M24750.25 11608.95l-636.92 -3205.18m-169.61 -853.57l-382 -1922.32"></path>
-<g>
-<path class="fil3" d="M22438.99 16722l-1526.56 -7682.16 1526.56 7682.16zm-1696.17 -8535.74l-509.85 -2565.73 2560.71 -508.87 509.86 2565.75 -2560.72 508.85z"></path>
-</g>
-<path class="fil2" d="M19237.77 17356.46l-1526.55 -7682.16m-169.3 -851.97l-637.14 -3206.28"></path>
-<path class="fil2" d="M27189.37 10488.18l-515.32 -2593.26m-169.61 -853.57l-509.85 -2565.74"></path>
-<path class="fil2" d="M23988.47 11124.25l-515.32 -2593.26m-169.61 -853.58l-509.85 -2565.74"></path>
-<line class="fil2" x1="21733.84" x2="20272.25" y1="16522.26" y2="9167.05"></line>
-<line class="fil2" x1="18597.59" x2="17071.35" y1="17483.67" y2="9803.12"></line>
-<path class="fil2" d="M15273.81 14152.53l-763.28 -3841.08m-169.51 -853.05l-763.47 -3842.03"></path>
-<line class="fil2" x1="14633.63" x2="14441.29" y1="14279.74" y2="13311.8"></line>
-<path class="fil2" d="M11527.31 12042.95l-3.05 -15.33m-574.5 -2891.12l-892.12 -4489.44"></path>
-<path class="fil2" d="M10798.05 11721.9l-3.04 -15.33m-295.07 -1484.9l-1082.48 -5447.39"></path>
-<path class="fil2" d="M21733.84 16522.26l-4.75 -2.09m-2912.27 -1282.09l-4.76 -2.1m-3641.52 -1603.13l-3.35 -1.48m-725.9 -319.57l-10784.57 -4747.77"></path>
-<path class="fil2" d="M22256.03 15801.29l-6.72 -2.96m-722.53 -318.09l-4.76 -2.09m-2912.27 -1282.09l-4.75 -2.1m-724.5 -318.95l-3.35 -1.47m-2913.67 -1282.71l-3.36 -1.48"></path>
-<line class="fil2" x1="9867.44" x2="9411.19" y1="10347.36" y2="10146.1"></line>
-<rect class="fil1" data-progress="54" data-unit-id="J10" height="8890" transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 8136.54 5028.81)" width="4445"></rect>
-<line class="fil2" x1="10945.04" x2="12416.22" y1="9137.44" y2="9843.28"></line>
-<circle class="fil4" r="4762.5" transform="matrix(0.106697 -0.0212022 0.0212022 0.106697 13330.9 11321.1)"></circle>
-<polygon class="fil5 str1" points="27630.41,3527.45 26758.47,4970.88 27947.01,10952.07 27310.53,11100.18 26674.05,7894.92 24113.74,8408.14 24750.25,11608.94 24103.32,11733.06 23467.25,8532.16 20906.53,9041.01 22629.48,17743.52 22048.75,18128.8 20272.26,9167.06 17711.22,9674.29 19237.77,17356.45 18597.59,17483.67 17068.31,9803.18 14507.59,10312.04 15273.81,14152.53 14633.63,14279.74 14441.28,13311.8 3680.07,8588.3 4034.85,7779.24 9868.5,10347.14 10499.95,10221.67 9417.46,4774.27 10057.64,4647.07 10945.05,9137.45 12416.22,9843.28 13696.58,9588.86 12806.1,5107.6 13504.88,5107.8 13577.55,5616.36 14335.81,9458.45 16896.53,8949.6 16133.25,5108.52 16849.13,5197.62 16904.77,5616.04 17533.82,8818.34 20094.54,8309.49 19585.69,5748.77 20232.97,5620.53 20742.81,8186.27 23303.54,7677.41 22793.68,5111.66 23363.87,4749.6 23943.72,7550.2 26493.7,7041.64 25884.18,4319.21 26239.19,3656.91 26585.05,2731.37 "></polygon>
-<circle class="fil6 str1" cx="13003.06" cy="11264.92" r="715.25"></circle>
-</g>
-</svg>
-
-    </div>
-    <aside id="updatePanelCard"
-      class="w-full lg:w-[420px] h-full overflow-y-auto bg-white p-4 sm:p-5 space-y-4 flex-shrink-0">
-
-      <div class="flex items-start justify-between gap-3">
+  <main class="max-w-[1400px] mx-auto px-4 py-6">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+      <header class="flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
         <div>
-          <h3 class="text-base font-extrabold text-slate-800 tracking-tight">Update Siteplan</h3>
-        <p class="text-[11px] text-slate-500">Klik blok di peta, lalu update statusnya.</p>
+          <h1 class="text-lg font-bold">Sistem Manajemen Siteplan</h1>
+          <p class="text-xs text-slate-300 mt-1">Update status real-time terhubung ke Database</p>
+        </div>
+        <a class="flex items-center gap-2 text-sm font-semibold tracking-wide bg-slate-800/60 hover:bg-slate-800 px-3 py-2 rounded-full border border-white/20 transition"
+          href="dashboard_marketing.html">
+          <i class="fas fa-arrow-left"></i> Kembali ke Marketing
+        </a>
+      </header>
+      <div class="px-4 sm:px-6 py-4 bg-white border-b border-slate-200 grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 shadow-sm">
+          <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Kavling</div>
+          <div class="text-2xl font-black text-slate-800" id="statTotal">0</div>
+        </div>
+        <div class="bg-yellow-50 p-3 rounded-xl border border-yellow-100 shadow-sm">
+          <div class="text-[10px] font-black text-yellow-600 uppercase tracking-wider">Dipasarkan</div>
+          <div class="text-2xl font-black text-yellow-700" id="statOpen">0</div>
+        </div>
+        <div class="bg-sky-50 p-3 rounded-xl border border-sky-100 shadow-sm">
+          <div class="text-[10px] font-black text-sky-500 uppercase tracking-wider">Terbooking</div>
+          <div class="text-2xl font-black text-sky-600" id="statBooking">0</div>
+        </div>
+        <div class="bg-red-50 p-3 rounded-xl border border-red-100 shadow-sm">
+          <div class="text-[10px] font-black text-red-500 uppercase tracking-wider">Sold Out</div>
+          <div class="text-2xl font-black text-red-600" id="statSold">0</div>
+        </div>
+        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 shadow-sm hidden md:block">
+          <div class="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Ready Stock</div>
+          <div class="text-2xl font-black text-emerald-700" id="statReady">0</div>
+        </div>
       </div>
-      <div class="text-[10px] px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 whitespace-nowrap" id="syncStatus">
-        <i class="fa-solid fa-cloud"></i> Ready
-      </div>
-      </div>
-
-
-      <div class="mb-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
-        <div class="flex justify-between items-start">
-          <div>
-            <div class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Blok Terpilih</div>
-            <div class="text-3xl font-extrabold text-slate-800 mt-1" id="selectedUnit">—</div>
+      <div class="px-4 sm:px-6 py-4 bg-slate-900 border-b border-slate-700 overflow-x-auto">
+        <div class="flex items-center gap-6 min-w-max">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-trophy text-amber-400"></i>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Top Marketing:</span>
           </div>
-          <div class="text-xs font-bold px-2 py-1 bg-white rounded border border-slate-200 text-slate-600" id="selectedProgress">
-            0%
+          <div id="marketingStatsList" class="flex gap-4">
+            <span class="text-xs text-slate-500 italic">Menghitung performa tim...</span>
           </div>
         </div>
-        <div class="text-xs text-slate-400 mt-2" id="selectedMeta">Silakan klik blok di peta.</div>
       </div>
-      <div id="updateForm" class="space-y-4 opacity-50 pointer-events-none transition-opacity">
-        <div class="flex items-center justify-between gap-2">
-          <div class="min-w-0">
-            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status Saat Ini</div>
-            <div id="currentStatusText" class="mt-1 text-sm font-extrabold text-slate-800 truncate">-</div>
-          </div>
-          <button id="btnToggleStatus" type="button"
-            class="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled>
-            <i class="fa-solid fa-pen-to-square"></i> Update Status Blok
-          </button>
-        </div>
-
-        <div id="statusEditor" class="hidden space-y-4">
-          <div>
-            <label class="text-xs font-bold text-slate-600">Pilih Status</label>
-            <select id="statusSelect"
-              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">
-              <option value="not-planning">Not Planning / Belum Dijual</option>
-              <option value="open-booking">Open Booking</option>
-              <option value="booking-unit">Booking Unit</option>
-              <option value="sold-out">Sold Out</option>
-            </select>
-          </div>
-
-          <div id="formBooking" class="hidden-group space-y-3">
-            <div class="text-xs font-extrabold text-slate-700">Data Booking</div>
-            <div>
-              <label class="text-xs font-bold text-slate-600">Nama Calon Pembeli</label>
-              <input id="inputBookingName" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                placeholder="Contoh: Andi Saputra" />
-            </div>
-            <div>
-              <label class="text-xs font-bold text-slate-600">Nomor Telepon (Opsional)</label>
-              <input id="inputBookingPhone" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                placeholder="08xxxxxxxxxx" />
-            </div>
-            <div>
-              <label class="text-xs font-bold text-slate-600">Nama Marketing</label>
-              <input id="inputBookingMarketing" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                placeholder="Contoh: Maya" />
-            </div>
-            <div>
-              <label class="text-xs font-bold text-slate-600">Rencana Pembelian</label>
-              <select id="selectBookingPlan"
-                class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">
-                <option value="">- pilih -</option>
-                <option value="cash">Cash</option>
-                <option value="cash-bertahap">Cash Bertahap</option>
-                <option value="kpr">KPR</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="formSold" class="hidden-group space-y-3">
-            <div class="text-xs font-extrabold text-slate-700">Konfirmasi Sold Out</div>
-            <div>
-              <label class="text-xs font-bold text-slate-600">Pembeli sama dengan data Booking?</label>
-              <select id="soldBuyerMode"
-                class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">
-                <option value="same">Ya, pembeli sama</option>
-                <option value="different">Tidak, pembeli berbeda</option>
-              </select>
-            </div>
-            <div id="soldSameBox" class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-              <div class="font-bold text-slate-700">Pembeli: <span id="soldSameBuyerName">-</span></div>
-              <div class="text-slate-600 mt-1">Marketing: <span id="soldSameMarketingName">-</span></div>
-            </div>
-            <div id="soldDifferentBox" class="hidden space-y-3">
+      <section class="p-4 sm:p-6 bg-slate-50 border-t border-slate-200">
+        <div class="flex flex-col gap-4">
+          <div class="bg-white border border-slate-200 rounded-xl p-4 shadow">
+            <div class="flex items-center justify-between">
               <div>
-                <label class="text-xs font-bold text-slate-600">Nama Pembeli</label>
-                <input id="inputSoldName" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                  placeholder="Contoh: Budi" />
+                <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Siteplan</h2>
+                <p class="text-xs text-slate-500">Tampilan peta blok dengan legenda status</p>
               </div>
-              <div>
-                <label class="text-xs font-bold text-slate-600">Nama Marketing</label>
-                <input id="inputSoldMarketing" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                  placeholder="Wajib diisi jika pembeli berbeda" />
+              <div class="flex items-center gap-3">
+                <div class="flex flex-col">
+                  <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Filter
+                    Status</label>
+                  <select id="filterOverlay"
+                    class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-sky-500 outline-none transition">
+                    <option value="all">Tampilkan Semua</option>
+                    <option value="open-booking">🟡 Dipasarkan (Kuning)</option>
+                    <option value="booking-unit">🔵 Terbooking (Biru Muda)</option>
+                    <option value="sold-out">🔴 Sold Out (Merah)</option>
+                  </select>
+                </div>
               </div>
             </div>
-            <div>
-              <label class="text-xs font-bold text-slate-600">Tanggal Akad Kredit</label>
-              <input id="inputAkadDate" type="date"
-                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+          </div>
+          <div
+            class="bg-white border border-slate-200 rounded-2xl shadow-inner overflow-hidden relative flex flex-col lg:flex-row"
+            id="siteplanCard" style="height: 75vh;">
+            <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
+              <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600"
+                id="btnFit" title="Fit to Screen">
+                <i class="fa-solid fa-compress"></i>
+              </button>
+              <button class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-slate-50 text-slate-600"
+                id="btnResetView" title="Reset Zoom">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+              <button
+                class="bg-white p-2 rounded-lg shadow border border-slate-200 hover:bg-emerald-50 text-emerald-600 transition"
+                id="btnPrint" title="Cetak Siteplan">
+                <i class="fa-solid fa-print"></i>
+              </button>
             </div>
-          </div>
+            <div id="mapWrap" class="relative flex-1 h-full border-r border-slate-200">
+              <div
+                class="hidden fixed z-50 pointer-events-none bg-slate-900/90 text-white text-xs px-3 py-2 rounded-lg shadow-xl backdrop-blur-sm border border-slate-700 transform -translate-x-1/2 -translate-y-full mt-[-10px]"
+                id="mapTooltip">
+                <div class="font-bold mb-1 text-xs" id="tipTitle">Blok</div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-white" id="tipDot"></span>
+                  <span class="text-slate-200 capitalize" id="tipSub"></span>
+                </div>
+              </div>
+              <div id="quickInfoPanel"
+                class="hidden absolute bottom-4 left-4 z-20 w-64 bg-orange-500 text-white rounded-lg shadow-lg overflow-hidden border border-orange-600 transition-all duration-300">
+                <div class="bg-orange-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider">Informasi Blok
+                </div>
+                <div class="p-3 space-y-1.5 text-xs font-semibold">
+                  <div class="flex justify-between border-b border-orange-400/50 pb-1">
+                    <span>Status Blok</span>
+                    <span id="quickStatus">-</span>
+                  </div>
+                  <div class="flex justify-between border-b border-orange-400/50 pb-1">
+                    <span>Nama User</span>
+                    <span id="quickUser">-</span>
+                  </div>
+                  <div class="flex justify-between border-b border-orange-400/50 pb-1">
+                    <span>Marketing</span>
+                    <span id="quickMkt">-</span>
+                  </div>
+                  <div class="flex justify-between border-b border-orange-400/50 pb-1">
+                    <span>No. Telp User</span>
+                    <span id="quickPhone">-</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-[10px] opacity-80">Keterangan:</span>
+                    <span id="quickNotes" class="italic line-clamp-2">-</span>
+                  </div>
+                </div>
+              </div>
+              <svg id="siteplanSvg" preserveaspectratio="xMidYMid meet" viewbox="0 0 29700 21000" xml:space="preserve">
+                <defs>
+                  <style type="text/css">
+                    /* Garis pembatas jalan & kavling */
+                    .str0,
+                    .str1 {
+                      stroke: #1e293b;
+                      stroke-width: 20;
+                      stroke-miterlimit: 22;
+                      opacity: 0.3;
+                    }
 
-          <div>
-            <label class="text-xs font-bold text-slate-600">Catatan Tambahan</label>
-            <textarea id="noteInput" rows="3"
-              class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              placeholder="Contoh: Menunggu ACC bank..."></textarea>
-          </div>
+                    .fil2 {
+                      fill: none;
+                    }
 
-          <div class="flex gap-2">
-            <button id="btnSave"
-              class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-500 transition">
-              <i class="fa-solid fa-floppy-disk"></i> Simpan
-            </button>
-            <button id="btnClear" type="button"
-              class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold hover:bg-slate-50 transition">
-              Reset
-            </button>
+                    /* JALANAN (HITAM PEKAT & SOLID) */
+                    .fil5 {
+                      fill: #455169ff !important;
+                      fill-opacity: 1 !important;
+                      /* Memastikan tidak transparan */
+                      opacity: 1 !important;
+                      /* Memastikan lapisan tidak tembus pandang */
+                    }
+
+                    /* RUMPUT & BACKGROUND (Warna Hijau Segar) */
+                    .fil0,
+                    .fil6 {
+                      fill: #22ab5bff !important;
+                    }
+
+                    /* Warna Dasar Kavling (Putih) */
+                    .fil1 {
+                      fill: #ffffff;
+                    }
+
+                    /* Lingkaran Taman Tengah & Ornamen Lain */
+                    .fil4 {
+                      fill: #000000 !important;
+                      opacity: 1 !important;
+                    }
+                  </style>
+                </defs>
+                <g id="Layer_x0020_1">
+                  <path class="fil0"
+                    d="M26585.05 2731.37c-20.8,114.84 -388.6,1032.8 -388.6,1032.8l-312.27 555.04 -1246.48 106.83 -1273.83 323.56 -1612.15 38.65 -2195.44 647.55 -1378.17 -72.79 -2044.86 -254.49 -3327.15 -0.92 -1342.51 -58.24 -1405.95 -402.29 -640.18 127.2 -1280.92 254.55 -881.65 879.47 -1544.84 377.41 -1381.55 -218.46 -611.95 1882.29c0,0 -1084.7,375.83 -1057.1,350.92 27.59,-24.91 -1341.16,-15.2 -1341.16,-15.2l-515.09 243.21 404.77 1328.12 636.27 366.56 989.79 -689.68 581.54 800 1611.29 665.8 2545.49 1114.01 405.64 623.67 2004.33 517.27 2532.03 1046.26 1855.37 476.45 1137.89 55.6 2567.69 22.79 522.29 2628.36 2310.65 1135.17 1140.51 -490.04 1706.4 -1132.09 431.17 -4853.17 0 0 1683.27 379.49 412.07 338.79 825.7 1505.35 873.31 -3163.83 -1222.2 -6232.46 1009.74 -1448.62 -1183.16 -790.89z">
+                  </path>
+                  <rect class="fil1" data-progress="0" data-status="ready-stok" data-unit-id="C1" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22314.1 9426.76)" width="4445"></rect>
+                  <rect class="fil1" data-progress="20" data-unit-id="C9" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21033.7 9681.19)" width="4445"></rect>
+                  <rect class="fil1" data-progress="40" data-unit-id="C10" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21161 10321.4)" width="4445"></rect>
+                  <rect class="fil1" data-progress="60" data-unit-id="C11" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21288.2 10961.6)" width="4445"></rect>
+                  <rect class="fil1" data-progress="80" data-unit-id="C12" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21415.4 11601.7)" width="4445"></rect>
+                  <rect class="fil1" data-progress="100" data-unit-id="C13" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21542.6 12241.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="19" data-unit-id="C14" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21669.8 12882.1)" width="4445"></rect>
+                  <rect class="fil1" data-progress="39" data-unit-id="C15" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21797 13522.3)" width="4445"></rect>
+                  <rect class="fil1" data-progress="59" data-unit-id="C16" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 21924.2 14162.4)" width="4445"></rect>
+                  <rect class="fil1" data-progress="79" data-unit-id="C17" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22051.5 14802.6)" width="4445"></rect>
+                  <rect class="fil1" data-progress="99" data-unit-id="C18" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22178.7 15442.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="18" data-unit-id="C19" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22305.9 16083)" width="4445"></rect>
+                  <rect class="fil1" data-progress="38" data-unit-id="C20" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22433.1 16723.2)" width="4445"></rect>
+                  <rect class="fil1" data-progress="58" data-unit-id="C2" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22441.3 10066.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="78" data-unit-id="C3" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22568.5 10707.1)" width="4445"></rect>
+                  <rect class="fil1" data-progress="98" data-unit-id="C4" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22695.7 11347.3)" width="4445"></rect>
+                  <rect class="fil1" data-progress="17" data-unit-id="C5" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 22823 11987.5)" width="4445"></rect>
+                  <rect class="fil1" data-progress="37" data-unit-id="A4" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25213.3 7296.06)" width="4445"></rect>
+                  <rect class="fil1" data-progress="57" data-unit-id="A7" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23933 7550.49)" width="4445"></rect>
+                  <rect class="fil1" data-progress="77" data-unit-id="A6" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23805.8 6910.31)" width="4445"></rect>
+                  <rect class="fil1" data-progress="97" data-unit-id="A5" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 23678.6 6270.13)" width="4445"></rect>
+                  <rect class="fil1" data-progress="16" data-unit-id="A3" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25086.1 6655.88)" width="4445"></rect>
+                  <rect class="fil1" data-progress="36" data-unit-id="A2" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24958.9 6015.7)" width="4445"></rect>
+                  <rect class="fil1" data-progress="56" data-unit-id="A1" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24831.7 5375.52)" width="4445"></rect>
+                  <rect class="fil1" data-progress="76" data-unit-id="B5" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 26030.2 11354.6)" width="4445"></rect>
+                  <rect class="fil1" data-progress="96" data-unit-id="B4" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25903 10714.4)" width="4445"></rect>
+                  <rect class="fil1" data-progress="15" data-unit-id="B3" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25775.7 10074.3)" width="4445"></rect>
+                  <rect class="fil1" data-progress="35" data-unit-id="B2" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25648.5 9434.07)" width="4445"></rect>
+                  <rect class="fil1" data-progress="55" data-unit-id="B1" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 25521.3 8793.89)" width="4445"></rect>
+                  <rect class="fil1" data-progress="75" data-unit-id="B6" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24241 9048.32)" width="4445"></rect>
+                  <rect class="fil1" data-progress="95" data-unit-id="B7" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24368.2 9688.5)" width="4445"></rect>
+                  <rect class="fil1" data-progress="14" data-unit-id="B8" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24495.4 10328.7)" width="4445"></rect>
+                  <rect class="fil1" data-progress="34" data-unit-id="B9" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24622.6 10968.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="54" data-unit-id="B10" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 24749.8 11609)" width="4445"></rect>
+                  <rect class="fil1" data-progress="74" data-unit-id="D1" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19114.6 10060.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="94" data-unit-id="D14" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 17834.3 10315.3)" width="4445"></rect>
+                  <rect class="fil1" data-progress="13" data-unit-id="D15" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 17961.5 10955.5)" width="4445"></rect>
+                  <rect class="fil1" data-progress="33" data-unit-id="D16" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18088.7 11595.7)" width="4445"></rect>
+                  <rect class="fil1" data-progress="53" data-unit-id="D17" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18215.9 12235.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="73" data-unit-id="D18" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18343.1 12876)" width="4445"></rect>
+                  <rect class="fil1" data-progress="93" data-unit-id="D19" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18470.3 13516.2)" width="4445"></rect>
+                  <rect class="fil1" data-progress="12" data-unit-id="D20" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18597.5 14156.4)" width="4445"></rect>
+                  <rect class="fil1" data-progress="32" data-unit-id="D21" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18724.7 14796.6)" width="4445"></rect>
+                  <rect class="fil1" data-progress="52" data-unit-id="D22" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18852 15436.7)" width="4445"></rect>
+                  <rect class="fil1" data-progress="72" data-unit-id="D23" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 18979.2 16076.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="92" data-unit-id="D24" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19106.4 16717.1)" width="4445"></rect>
+                  <rect class="fil1" data-progress="11" data-unit-id="D25" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19233.6 17357.3)" width="4445"></rect>
+                  <rect class="fil1" data-progress="31" data-unit-id="D2" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19241.8 10701.1)" width="4445"></rect>
+                  <rect class="fil1" data-progress="51" data-unit-id="D3" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19369 11341.2)" width="4445"></rect>
+                  <rect class="fil1" data-progress="71" data-unit-id="D4" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19496.3 11981.4)" width="4445"></rect>
+                  <rect class="fil1" data-progress="91" data-unit-id="D5" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19623.5 12621.6)" width="4445"></rect>
+                  <rect class="fil1" data-progress="10" data-unit-id="D6" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19750.7 13261.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="30" data-unit-id="D7" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 19877.9 13902)" width="4445"></rect>
+                  <rect class="fil1" data-progress="50" data-unit-id="D8" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20005.1 14542.1)" width="4445"></rect>
+                  <rect class="fil1" data-progress="70" data-unit-id="D9" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20132.3 15182.3)" width="4445"></rect>
+                  <rect class="fil1" data-progress="90" data-unit-id="D10" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20259.5 15822.5)" width="4445"></rect>
+                  <rect class="fil1" data-progress="9" data-unit-id="D11" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20386.7 16462.7)" width="4445"></rect>
+                  <rect class="fil1" data-progress="29" data-unit-id="D12" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20514 17102.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="49" data-unit-id="D13" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20641.2 17743)" width="4445"></rect>
+                  <rect class="fil1" data-progress="69" data-unit-id="D13A" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 20768.4 18383.2)" width="4445"></rect>
+                  <rect class="fil1" data-progress="89" data-unit-id="G1" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15915.2 10697.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="8" data-unit-id="G8" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14634.8 10952.2)" width="4445"></rect>
+                  <rect class="fil1" data-progress="28" data-unit-id="G9" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14762 11592.4)" width="4445"></rect>
+                  <rect class="fil1" data-progress="48" data-unit-id="G10" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 14889.2 12232.6)" width="4445"></rect>
+                  <rect class="fil1" data-progress="68" data-unit-id="G11" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15016.4 12872.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="88" data-unit-id="G12" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15143.7 13512.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="7" data-unit-id="G13" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 15270.9 14153.1)" width="4445"></rect>
+                  <rect class="fil1" data-progress="27" data-unit-id="G2" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16042.4 11338)" width="4445"></rect>
+                  <rect class="fil1" data-progress="47" data-unit-id="G3" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16169.6 11978.2)" width="4445"></rect>
+                  <rect class="fil1" data-progress="67" data-unit-id="G4" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16296.8 12618.3)" width="4445"></rect>
+                  <rect class="fil1" data-progress="87" data-unit-id="G5" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16424 13258.5)" width="4445"></rect>
+                  <rect class="fil1" data-progress="6" data-unit-id="G6" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16551.2 13898.7)" width="4445"></rect>
+                  <rect class="fil1" data-progress="26" data-unit-id="G7" height="8890"
+                    transform="matrix(-0.0286194 -0.144022 0.144022 -0.0286194 16678.4 14538.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="46" data-unit-id="E4" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18687 7923.74)" width="4445"></rect>
+                  <rect class="fil1" data-progress="66" data-unit-id="E9" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17406.6 8178.16)" width="4445"></rect>
+                  <rect class="fil1" data-progress="86" data-unit-id="E8" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17279.4 7537.98)" width="4445"></rect>
+                  <rect class="fil1" data-progress="5" data-unit-id="E7" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17152.2 6897.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="25" data-unit-id="E6" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 17025 6257.62)" width="4445"></rect>
+                  <rect class="fil1" data-progress="45" data-unit-id="E5" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 16897.8 5617.44)" width="4445"></rect>
+                  <rect class="fil1" data-progress="65" data-unit-id="E3" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18559.8 7283.56)" width="4445"></rect>
+                  <rect class="fil1" data-progress="85" data-unit-id="E2" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18432.5 6643.38)" width="4445"></rect>
+                  <rect class="fil1" data-progress="4" data-unit-id="E1" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 18305.3 6003.2)" width="4445"></rect>
+                  <rect class="fil1" data-progress="24" data-unit-id="F6" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15489 8563.84)" width="4445"></rect>
+                  <rect class="fil1" data-progress="44" data-unit-id="F13" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14208.6 8818.27)" width="4445"></rect>
+                  <rect class="fil1" data-progress="64" data-unit-id="F12" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14081.4 8178.09)" width="4445"></rect>
+                  <rect class="fil1" data-progress="84" data-unit-id="F11" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13954.2 7537.91)" width="4445"></rect>
+                  <rect class="fil1" data-progress="3" data-unit-id="F10" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13827 6897.73)" width="4445"></rect>
+                  <rect class="fil1" data-progress="23" data-unit-id="F9" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13699.7 6257.55)" width="4445"></rect>
+                  <rect class="fil1" data-progress="43" data-unit-id="F8" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 13572.5 5617.37)" width="4445"></rect>
+                  <rect class="fil1" data-progress="63" data-unit-id="F5" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15361.7 7923.66)" width="4445"></rect>
+                  <rect class="fil1" data-progress="83" data-unit-id="F4" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15234.5 7283.48)" width="4445"></rect>
+                  <rect class="fil1" data-progress="2" data-unit-id="F3" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 15107.3 6643.3)" width="4445"></rect>
+                  <rect class="fil1" data-progress="22" data-unit-id="F2" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14980.1 6003.12)" width="4445"></rect>
+                  <rect class="fil1" data-progress="42" data-unit-id="F1" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 14852.9 5362.94)" width="4445"></rect>
+                  <rect class="fil1" data-progress="62" data-unit-id="H7" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12289 9203.1)" width="4445"></rect>
+                  <rect class="fil1" data-progress="82" data-unit-id="H13" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10817.8 8497.26)" width="4445"></rect>
+                  <rect class="fil1" data-progress="1" data-unit-id="H12" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10690.6 7857.08)" width="4445"></rect>
+                  <rect class="fil1" data-progress="21" data-unit-id="H11" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10563.4 7216.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="41" data-unit-id="H10" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10436.2 6576.72)" width="4445"></rect>
+                  <rect class="fil1" data-progress="61" data-unit-id="H9" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10309 5936.54)" width="4445"></rect>
+                  <rect class="fil1" data-progress="81" data-unit-id="H8" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 10181.8 5296.36)" width="4445"></rect>
+                  <rect class="fil1" data-progress="0" data-unit-id="H6" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12161.8 8562.92)" width="4445"></rect>
+                  <rect class="fil1" data-progress="20" data-unit-id="H5" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 12034.6 7922.74)" width="4445"></rect>
+                  <rect class="fil1" data-progress="40" data-unit-id="H4" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11907.4 7282.56)" width="4445"></rect>
+                  <rect class="fil1" data-progress="60" data-unit-id="H3" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11780.2 6642.38)" width="4445"></rect>
+                  <rect class="fil1" data-progress="80" data-unit-id="H2" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11652.9 6002.2)" width="4445"></rect>
+                  <rect class="fil1" data-progress="100" data-unit-id="H1" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 11525.7 5362.02)" width="4445"></rect>
+                  <rect class="fil1" data-progress="19" data-unit-id="J20" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 3751.47 10046)" width="4445"></rect>
+                  <rect class="fil1" data-progress="39" data-unit-id="J19" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4348.84 10309)" width="4445"></rect>
+                  <rect class="fil1" data-progress="59" data-unit-id="J18" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4946.21 10572)" width="4445"></rect>
+                  <rect class="fil1" data-progress="79" data-unit-id="J15" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6738.33 11360.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="99" data-unit-id="J14" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7335.7 11623.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="18" data-unit-id="J13" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7933.07 11886.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="38" data-unit-id="J12" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8530.44 12149.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="58" data-unit-id="J11" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9127.81 12412.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="78" data-unit-id="I1" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9725.18 12675.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="98" data-unit-id="I2" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 10322.6 12938.9)" width="4445"></rect>
+                  <rect class="fil1" data-progress="17" data-unit-id="I3" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 10919.9 13201.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="37" data-unit-id="I4" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 11517.3 13464.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="57" data-unit-id="I5" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 12114.7 13727.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="77" data-unit-id="I6" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 12712 13990.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="97" data-unit-id="I7" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 13309.4 14253.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="16" data-unit-id="I8" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 13906.8 14516.8)" width="4445"></rect>
+                  <rect class="fil1" data-progress="36" data-unit-id="J17" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5543.58 10835)" width="4445"></rect>
+                  <rect class="fil1" data-progress="56" data-unit-id="J16" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6140.95 11098)" width="4445"></rect>
+                  <rect class="fil1" data-progress="76" data-unit-id="J9" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 4632.22 8042.22)" width="4445"></rect>
+                  <rect class="fil1" data-progress="96" data-unit-id="J8" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5229.6 8305.21)" width="4445"></rect>
+                  <rect class="fil1" data-progress="15" data-unit-id="J7" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 5826.97 8568.19)" width="4445"></rect>
+                  <rect class="fil1" data-progress="35" data-unit-id="J6" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 6424.34 8831.18)" width="4445"></rect>
+                  <rect class="fil1" data-progress="55" data-unit-id="J5" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7021.71 9094.16)" width="4445"></rect>
+                  <rect class="fil1" data-progress="75" data-unit-id="J4" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 7619.08 9357.15)" width="4445"></rect>
+                  <rect class="fil1" data-progress="95" data-unit-id="J3" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8216.45 9620.13)" width="4445"></rect>
+                  <rect class="fil1" data-progress="14" data-unit-id="J2" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 8813.82 9883.12)" width="4445"></rect>
+                  <rect class="fil1" data-progress="34" data-unit-id="J1" height="8890"
+                    transform="matrix(-0.134392 -0.0591643 0.0591643 -0.134392 9411.19 10146.1)" width="4445"></rect>
+                  <path class="fil2" d="M20906.54 9041.02l2566.6 -510.02m640.2 -127.22l2560.71 -508.86"></path>
+                  <path class="fil2"
+                    d="M9867.44 10347.36l1.07 -0.21 631.43 -125.48 -631.43 125.48 -1.07 0.21zm10875.38 -2161.1l2560.72 -508.85m640.18 -127.21l2560.72 -508.85">
+                  </path>
+                  <line class="fil2" x1="27947.01" x2="26758.46" y1="10952.07" y2="4970.88"></line>
+                  <path class="fil2" d="M24750.25 11608.95l-636.92 -3205.18m-169.61 -853.57l-382 -1922.32"></path>
+                  <g>
+                    <path class="fil3"
+                      d="M22438.99 16722l-1526.56 -7682.16 1526.56 7682.16zm-1696.17 -8535.74l-509.85 -2565.73 2560.71 -508.87 509.86 2565.75 -2560.72 508.85z">
+                    </path>
+                  </g>
+                  <path class="fil2" d="M19237.77 17356.46l-1526.55 -7682.16m-169.3 -851.97l-637.14 -3206.28"></path>
+                  <path class="fil2" d="M27189.37 10488.18l-515.32 -2593.26m-169.61 -853.57l-509.85 -2565.74"></path>
+                  <path class="fil2" d="M23988.47 11124.25l-515.32 -2593.26m-169.61 -853.58l-509.85 -2565.74"></path>
+                  <line class="fil2" x1="21733.84" x2="20272.25" y1="16522.26" y2="9167.05"></line>
+                  <line class="fil2" x1="18597.59" x2="17071.35" y1="17483.67" y2="9803.12"></line>
+                  <path class="fil2" d="M15273.81 14152.53l-763.28 -3841.08m-169.51 -853.05l-763.47 -3842.03"></path>
+                  <line class="fil2" x1="14633.63" x2="14441.29" y1="14279.74" y2="13311.8"></line>
+                  <path class="fil2" d="M11527.31 12042.95l-3.05 -15.33m-574.5 -2891.12l-892.12 -4489.44"></path>
+                  <path class="fil2" d="M10798.05 11721.9l-3.04 -15.33m-295.07 -1484.9l-1082.48 -5447.39"></path>
+                  <path class="fil2"
+                    d="M21733.84 16522.26l-4.75 -2.09m-2912.27 -1282.09l-4.76 -2.1m-3641.52 -1603.13l-3.35 -1.48m-725.9 -319.57l-10784.57 -4747.77">
+                  </path>
+                  <path class="fil2"
+                    d="M22256.03 15801.29l-6.72 -2.96m-722.53 -318.09l-4.76 -2.09m-2912.27 -1282.09l-4.75 -2.1m-724.5 -318.95l-3.35 -1.47m-2913.67 -1282.71l-3.36 -1.48">
+                  </path>
+                  <line class="fil2" x1="9867.44" x2="9411.19" y1="10347.36" y2="10146.1"></line>
+                  <rect class="fil1" data-progress="54" data-unit-id="J10" height="8890"
+                    transform="matrix(0.0286194 0.144022 0.144022 -0.0286194 8136.54 5028.81)" width="4445"></rect>
+                  <line class="fil2" x1="10945.04" x2="12416.22" y1="9137.44" y2="9843.28"></line>
+                  <circle class="fil4" r="4762.5"
+                    transform="matrix(0.106697 -0.0212022 0.0212022 0.106697 13330.9 11321.1)"></circle>
+                  <polygon class="fil5 str1"
+                    points="27630.41,3527.45 26758.47,4970.88 27947.01,10952.07 27310.53,11100.18 26674.05,7894.92 24113.74,8408.14 24750.25,11608.94 24103.32,11733.06 23467.25,8532.16 20906.53,9041.01 22629.48,17743.52 22048.75,18128.8 20272.26,9167.06 17711.22,9674.29 19237.77,17356.45 18597.59,17483.67 17068.31,9803.18 14507.59,10312.04 15273.81,14152.53 14633.63,14279.74 14441.28,13311.8 3680.07,8588.3 4034.85,7779.24 9868.5,10347.14 10499.95,10221.67 9417.46,4774.27 10057.64,4647.07 10945.05,9137.45 12416.22,9843.28 13696.58,9588.86 12806.1,5107.6 13504.88,5107.8 13577.55,5616.36 14335.81,9458.45 16896.53,8949.6 16133.25,5108.52 16849.13,5197.62 16904.77,5616.04 17533.82,8818.34 20094.54,8309.49 19585.69,5748.77 20232.97,5620.53 20742.81,8186.27 23303.54,7677.41 22793.68,5111.66 23363.87,4749.6 23943.72,7550.2 26493.7,7041.64 25884.18,4319.21 26239.19,3656.91 26585.05,2731.37 ">
+                  </polygon>
+                  <circle class="fil6 str1" cx="13003.06" cy="11264.92" r="715.25"></circle>
+                </g>
+              </svg>
+
+            </div>
+            <aside id="updatePanelCard"
+              class="w-full lg:w-[420px] h-full overflow-y-auto bg-white p-4 sm:p-5 space-y-4 flex-shrink-0">
+
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h3 class="text-base font-extrabold text-slate-800 tracking-tight">Update Siteplan</h3>
+                  <p class="text-[11px] text-slate-500">Klik blok di peta, lalu update statusnya.</p>
+                </div>
+                <div
+                  class="text-[10px] px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-500 whitespace-nowrap"
+                  id="syncStatus">
+                  <i class="fa-solid fa-cloud"></i> Ready
+                </div>
+              </div>
+
+
+              <div class="mb-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <div class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Blok Terpilih</div>
+                    <div class="text-3xl font-extrabold text-slate-800 mt-1" id="selectedUnit">—</div>
+                  </div>
+                  <div class="text-xs font-bold px-2 py-1 bg-white rounded border border-slate-200 text-slate-600"
+                    id="selectedProgress">
+                    0%
+                  </div>
+                </div>
+                <div class="text-xs text-slate-400 mt-2" id="selectedMeta">Silakan klik blok di peta.</div>
+              </div>
+              <div id="updateForm" class="space-y-4 opacity-50 pointer-events-none transition-opacity">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status Saat Ini</div>
+                    <div id="currentStatusText" class="mt-1 text-sm font-extrabold text-slate-800 truncate">-</div>
+                  </div>
+                  <button id="btnToggleStatus" type="button"
+                    class="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                    <i class="fa-solid fa-pen-to-square"></i> Update Status Blok
+                  </button>
+                </div>
+
+                <div id="statusEditor" class="hidden space-y-4">
+                  <div>
+                    <label class="text-xs font-bold text-slate-600">Pilih Status</label>
+                    <select id="statusSelect"
+                      class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">
+                      <option value="not-planning">Not Planning / Belum Dijual</option>
+                      <option value="open-booking">Open Booking</option>
+                      <option value="booking-unit">Booking Unit</option>
+                      <option value="sold-out">Sold Out</option>
+                    </select>
+                  </div>
+
+                  <div id="formBooking" class="hidden-group space-y-3">
+                    <div class="text-xs font-extrabold text-slate-700">Data Booking</div>
+                    <div>
+                      <label class="text-xs font-bold text-slate-600">Nama Calon Pembeli</label>
+                      <input id="inputBookingName"
+                        class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        placeholder="Contoh: Andi Saputra" />
+                    </div>
+                    <div>
+                      <label class="text-xs font-bold text-slate-600">Nomor Telepon (Opsional)</label>
+                      <input id="inputBookingPhone"
+                        class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        placeholder="08xxxxxxxxxx" />
+                    </div>
+                    <div>
+                      <label class="text-xs font-bold text-slate-600">Nama Marketing</label>
+                      <input id="inputBookingMarketing"
+                        class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        placeholder="Contoh: Maya" />
+                    </div>
+                    <div>
+                      <label class="text-xs font-bold text-slate-600">Rencana Pembelian</label>
+                      <select id="selectBookingPlan"
+                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">
+                        <option value="">- pilih -</option>
+                        <option value="cash">Cash</option>
+                        <option value="cash-bertahap">Cash Bertahap</option>
+                        <option value="kpr">KPR</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div id="formSold" class="hidden-group space-y-3">
+                    <div class="text-xs font-extrabold text-slate-700">Konfirmasi Sold Out</div>
+                    <div>
+                      <label class="text-xs font-bold text-slate-600">Pembeli sama dengan data Booking?</label>
+                      <select id="soldBuyerMode"
+                        class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold">
+                        <option value="same">Ya, pembeli sama</option>
+                        <option value="different">Tidak, pembeli berbeda</option>
+                      </select>
+                    </div>
+                    <div id="soldSameBox" class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+                      <div class="font-bold text-slate-700">Pembeli: <span id="soldSameBuyerName">-</span></div>
+                      <div class="text-slate-600 mt-1">Marketing: <span id="soldSameMarketingName">-</span></div>
+                    </div>
+                    <div id="soldDifferentBox" class="hidden space-y-3">
+                      <div>
+                        <label class="text-xs font-bold text-slate-600">Nama Pembeli</label>
+                        <input id="inputSoldName"
+                          class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          placeholder="Contoh: Budi" />
+                      </div>
+                      <div>
+                        <label class="text-xs font-bold text-slate-600">Nama Marketing</label>
+                        <input id="inputSoldMarketing"
+                          class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          placeholder="Wajib diisi jika pembeli berbeda" />
+                      </div>
+                    </div>
+                    <div>
+                      <label class="text-xs font-bold text-slate-600">Tanggal Akad Kredit</label>
+                      <input id="inputAkadDate" type="date"
+                        class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="text-xs font-bold text-slate-600">Catatan Tambahan</label>
+                    <textarea id="noteInput" rows="3"
+                      class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                      placeholder="Contoh: Menunggu ACC bank..."></textarea>
+                  </div>
+
+                  <div class="flex gap-2">
+                    <button id="btnSave"
+                      class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-emerald-600 text-white font-extrabold hover:bg-emerald-500 transition">
+                      <i class="fa-solid fa-floppy-disk"></i> Simpan
+                    </button>
+                    <button id="btnClear" type="button"
+                      class="px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold hover:bg-slate-50 transition">
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-4 border-t border-slate-200">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Legenda Peta</div>
+                <div class="flex flex-wrap gap-2 select-none">
+                  <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot"
+                      style="background:#facc15"></span>Dipasarkan</span>
+                  <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot"
+                      style="background:#0ea5e9"></span>Terbooking</span>
+                  <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot"
+                      style="background:#ef4444"></span>Sold Out</span>
+                </div>
+              </div>
+
+
+            </aside>
           </div>
         </div>
-      </div>
-
-      <div class="mt-4 pt-4 border-t border-slate-200">
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Legenda Peta</div>
-        <div class="flex flex-wrap gap-2 select-none">
-          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#facc15"></span>Dipasarkan</span>
-          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#0ea5e9"></span>Terbooking</span>
-          <span class="chip cursor-pointer hover:bg-slate-50"><span class="dot" style="background:#ef4444"></span>Sold Out</span>
-        </div>
-      </div>
-
-
-</aside>
-  </div>
-</div>
-</div>
-</section>
-</div>
-</main>
-<script>
+    </div>
+    </section>
+    </div>
+  </main>
+  <script>
     // ====== 1. KONFIGURASI SUPABASE ======
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
     const client = supabase.createClient(supabaseUrl, supabaseKey);
 
     const STATUS_COLORS = {
-  "open-booking": "#facc15", // Kuning (Dipasarkan)
-  "booking-unit": "#0ea5e9", // Biru muda terang (Terbooking)
-  "sold-out": "#ef4444" // Merah (Sold Out)
-};
+      "open-booking": "#facc15", // Kuning (Dipasarkan)
+      "booking-unit": "#0ea5e9", // Biru muda terang (Terbooking)
+      "sold-out": "#ef4444" // Merah (Sold Out)
+    };
 
     let globalUnitData = {};
     let currentSelectedId = null;
@@ -564,10 +827,10 @@
     const selectedUnitEl = document.getElementById("selectedUnit");
     const selectedMetaEl = document.getElementById("selectedMeta");
     const selectedProgressEl = document.getElementById("selectedProgress");
-    
+
     const statusSelect = document.getElementById("statusSelect");
     const noteInput = document.getElementById("noteInput");
-    
+
     // Groups
     const formBooking = document.getElementById("formBooking");
     const inputBookingName = document.getElementById("inputBookingName");
@@ -657,7 +920,7 @@
     let startPoint = { x: 0, y: 0 };
     let startViewBox = { x: 0, y: 0, w: 0, h: 0 };
     let lastTouchDistance = 0; // Menyimpan jarak terakhir antar dua jari saat pinch
-    
+
     // Simpan viewBox awal
     const vbBase = svg.viewBox.baseVal;
     const INITIAL_VB = { x: vbBase.x, y: vbBase.y, w: vbBase.width, h: vbBase.height };
@@ -666,228 +929,228 @@
     mapWrap.addEventListener("dragstart", e => e.preventDefault());
 
     mapWrap.addEventListener("pointerdown", (e) => {
-        // Jangan geser jika klik unit
-        if (e.target.closest("[data-unit-id]")) return;
-        
-        isPanning = true;
-        mapWrap.setPointerCapture(e.pointerId);
-        startPoint = { x: e.clientX, y: e.clientY };
-        startViewBox = { x: vbBase.x, y: vbBase.y, w: vbBase.width, h: vbBase.height };
-        mapWrap.style.cursor = "grabbing";
+      // Jangan geser jika klik unit
+      if (e.target.closest("[data-unit-id]")) return;
+
+      isPanning = true;
+      mapWrap.setPointerCapture(e.pointerId);
+      startPoint = { x: e.clientX, y: e.clientY };
+      startViewBox = { x: vbBase.x, y: vbBase.y, w: vbBase.width, h: vbBase.height };
+      mapWrap.style.cursor = "grabbing";
     });
 
     mapWrap.addEventListener("pointermove", (e) => {
-        if (!isPanning) return;
-        
-        e.preventDefault();
-        const dx = e.clientX - startPoint.x;
-        const dy = e.clientY - startPoint.y;
+      if (!isPanning) return;
 
-        // Skala sensitivitas berdasarkan zoom saat ini
-        const rect = mapWrap.getBoundingClientRect();
-        const scale = vbBase.width / rect.width;
+      e.preventDefault();
+      const dx = e.clientX - startPoint.x;
+      const dy = e.clientY - startPoint.y;
 
-        vbBase.x = startViewBox.x - (dx * scale);
-        vbBase.y = startViewBox.y - (dy * scale);
+      // Skala sensitivitas berdasarkan zoom saat ini
+      const rect = mapWrap.getBoundingClientRect();
+      const scale = vbBase.width / rect.width;
+
+      vbBase.x = startViewBox.x - (dx * scale);
+      vbBase.y = startViewBox.y - (dy * scale);
     });
 
     const stopPan = () => {
-        isPanning = false;
-        mapWrap.style.cursor = "grab";
+      isPanning = false;
+      mapWrap.style.cursor = "grab";
     };
     mapWrap.addEventListener("pointerup", stopPan);
     mapWrap.addEventListener("pointerleave", stopPan);
 
     let lastTap = 0;
     mapWrap.addEventListener("touchend", (e) => {
-        const currentTime = new Date().getTime();
-        const tapLength = currentTime - lastTap;
-        if (tapLength < 300 && tapLength > 0) {
-            btnResetView.click();
-            e.preventDefault();
-        }
-        lastTap = currentTime;
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTap;
+      if (tapLength < 300 && tapLength > 0) {
+        btnResetView.click();
+        e.preventDefault();
+      }
+      lastTap = currentTime;
     });
 
     // Zoom Smooth
     mapWrap.addEventListener("wheel", (e) => {
-        e.preventDefault();
-        const scaleFactor = 1.1;
-        const direction = e.deltaY > 0 ? 1 : -1;
-        
-        // Ambil posisi mouse relatif ke SVG
-        const rect = mapWrap.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-        
-        // Ubah mouse pos ke koordinat SVG
-        const svgW = vbBase.width;
-        const svgH = vbBase.height;
-        const ratioX = mx / rect.width;
-        const ratioY = my / rect.height;
+      e.preventDefault();
+      const scaleFactor = 1.1;
+      const direction = e.deltaY > 0 ? 1 : -1;
 
-        // Hitung Viewbox baru
-        let newW = direction > 0 ? svgW * scaleFactor : svgW / scaleFactor;
-        let newH = direction > 0 ? svgH * scaleFactor : svgH / scaleFactor;
-        
-        // Batasi Zoom
-        if (newW < INITIAL_VB.w / 10) return; // Max zoom in
-        if (newW > INITIAL_VB.w * 2) return;  // Max zoom out
+      // Ambil posisi mouse relatif ke SVG
+      const rect = mapWrap.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
 
-        let newX = vbBase.x + (svgW - newW) * ratioX;
-        let newY = vbBase.y + (svgH - newH) * ratioY;
+      // Ubah mouse pos ke koordinat SVG
+      const svgW = vbBase.width;
+      const svgH = vbBase.height;
+      const ratioX = mx / rect.width;
+      const ratioY = my / rect.height;
 
-        vbBase.x = newX; vbBase.y = newY; vbBase.width = newW; vbBase.height = newH;
+      // Hitung Viewbox baru
+      let newW = direction > 0 ? svgW * scaleFactor : svgW / scaleFactor;
+      let newH = direction > 0 ? svgH * scaleFactor : svgH / scaleFactor;
+
+      // Batasi Zoom
+      if (newW < INITIAL_VB.w / 10) return; // Max zoom in
+      if (newW > INITIAL_VB.w * 2) return;  // Max zoom out
+
+      let newX = vbBase.x + (svgW - newW) * ratioX;
+      let newY = vbBase.y + (svgH - newH) * ratioY;
+
+      vbBase.x = newX; vbBase.y = newY; vbBase.width = newW; vbBase.height = newH;
     }, { passive: false });
 
     // === LOGIKA ZOOM 2 JARI (MOBILE) ===
     mapWrap.addEventListener("touchmove", (e) => {
-        if (e.touches.length === 2) {
-            e.preventDefault(); // Mencegah layar HP scroll naik-turun
+      if (e.touches.length === 2) {
+        e.preventDefault(); // Mencegah layar HP scroll naik-turun
 
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            const currentDistance = Math.hypot(touch2.pageX - touch1.pageX, touch2.pageY - touch1.pageY);
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const currentDistance = Math.hypot(touch2.pageX - touch1.pageX, touch2.pageY - touch1.pageY);
 
-            if (lastTouchDistance > 0) {
-                const delta = currentDistance - lastTouchDistance;
-                const scaleFactor2 = 1.05;
-                
-                const svgW = vbBase.width;
-                const svgH = vbBase.height;
+        if (lastTouchDistance > 0) {
+          const delta = currentDistance - lastTouchDistance;
+          const scaleFactor2 = 1.05;
 
-                let newW = delta > 0 ? svgW / scaleFactor2 : svgW * scaleFactor2;
-                let newH = delta > 0 ? svgH / scaleFactor2 : svgH * scaleFactor2;
+          const svgW = vbBase.width;
+          const svgH = vbBase.height;
 
-                if (newW > INITIAL_VB.w / 10 && newW < INITIAL_VB.w * 3) {
-                    const midX = (touch1.clientX + touch2.clientX) / 2;
-                    const midY = (touch1.clientY + touch2.clientY) / 2;
-                    const rect = mapWrap.getBoundingClientRect();
-                    const ratioX = (midX - rect.left) / rect.width;
-                    const ratioY = (midY - rect.top) / rect.height;
+          let newW = delta > 0 ? svgW / scaleFactor2 : svgW * scaleFactor2;
+          let newH = delta > 0 ? svgH / scaleFactor2 : svgH * scaleFactor2;
 
-                    vbBase.x += (svgW - newW) * ratioX;
-                    vbBase.y += (svgH - newH) * ratioY;
-                    vbBase.width = newW;
-                    vbBase.height = newH;
-                }
-            }
-            lastTouchDistance = currentDistance;
+          if (newW > INITIAL_VB.w / 10 && newW < INITIAL_VB.w * 3) {
+            const midX = (touch1.clientX + touch2.clientX) / 2;
+            const midY = (touch1.clientY + touch2.clientY) / 2;
+            const rect = mapWrap.getBoundingClientRect();
+            const ratioX = (midX - rect.left) / rect.width;
+            const ratioY = (midY - rect.top) / rect.height;
+
+            vbBase.x += (svgW - newW) * ratioX;
+            vbBase.y += (svgH - newH) * ratioY;
+            vbBase.width = newW;
+            vbBase.height = newH;
+          }
         }
+        lastTouchDistance = currentDistance;
+      }
     }, { passive: false });
 
     mapWrap.addEventListener("touchend", () => {
-        lastTouchDistance = 0;
+      lastTouchDistance = 0;
     });
 
     // Reset Buttons
     btnResetView.onclick = () => {
-        vbBase.x = INITIAL_VB.x; vbBase.y = INITIAL_VB.y;
-        vbBase.width = INITIAL_VB.w; vbBase.height = INITIAL_VB.h;
+      vbBase.x = INITIAL_VB.x; vbBase.y = INITIAL_VB.y;
+      vbBase.width = INITIAL_VB.w; vbBase.height = INITIAL_VB.h;
     };
     btnFit.onclick = btnResetView.onclick;
 
 
     // ====== 4. LOGIKA SUPABASE ======
     async function loadData() {
-        syncStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Syncing...';
-        try {
-            const { data, error } = await client.from('unit_status').select('*');
-            if (error) throw error;
-            
-            globalUnitData = {};
-            if (data) data.forEach(row => globalUnitData[row.unit_id] = row);
-            
-            applyColorsToMap();
-            updateStatistics();
-            updateStatistics();
-            syncStatus.innerHTML = '<i class="fa-solid fa-check text-green-500"></i> Online';
-        } catch (err) {
-            console.error(err);
-            syncStatus.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-red-500"></i> Offline';
-        }
+      syncStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Syncing...';
+      try {
+        const { data, error } = await client.from('unit_status').select('*');
+        if (error) throw error;
+
+        globalUnitData = {};
+        if (data) data.forEach(row => globalUnitData[row.unit_id] = row);
+
+        applyColorsToMap();
+        updateStatistics();
+        updateStatistics();
+        syncStatus.innerHTML = '<i class="fa-solid fa-check text-green-500"></i> Online';
+      } catch (err) {
+        console.error(err);
+        syncStatus.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-red-500"></i> Offline';
+      }
     }
 
     function normalizeStatus(raw) {
-        const s = (raw || "").toLowerCase().trim();
+      const s = (raw || "").toLowerCase().trim();
 
-        if (!s) return "not-planning";
+      if (!s) return "not-planning";
 
-        if (["not-planning", "not planning", "belum-dijual", "belum dijual", "belum_dijual"].includes(s)) {
-            return "not-planning";
-        }
-
-        if ([
-            "open-booking", "open booking", "openbooking",
-            "ready-stock", "ready stock", "readystock",
-            "ready-stok", "ready stok", "readystok"
-        ].includes(s)) {
-            return "open-booking";
-        }
-
-        if ([
-            "booking-unit", "booking unit",
-            "booking",
-            "proses-berkas", "proses berkas",
-            "proses-bank", "proses bank",
-            "akad",
-            "pembangunan"
-        ].includes(s)) {
-            return "booking-unit";
-        }
-
-        if ([
-            "sold-out", "sold out", "soldout",
-            "serah-terima", "serah terima"
-        ].includes(s)) {
-            return "sold-out";
-        }
-
-        if (["cancel", "batal", "dibatalkan"].includes(s)) return "open-booking";
-
+      if (["not-planning", "not planning", "belum-dijual", "belum dijual", "belum_dijual"].includes(s)) {
         return "not-planning";
+      }
+
+      if ([
+        "open-booking", "open booking", "openbooking",
+        "ready-stock", "ready stock", "readystock",
+        "ready-stok", "ready stok", "readystok"
+      ].includes(s)) {
+        return "open-booking";
+      }
+
+      if ([
+        "booking-unit", "booking unit",
+        "booking",
+        "proses-berkas", "proses berkas",
+        "proses-bank", "proses bank",
+        "akad",
+        "pembangunan"
+      ].includes(s)) {
+        return "booking-unit";
+      }
+
+      if ([
+        "sold-out", "sold out", "soldout",
+        "serah-terima", "serah terima"
+      ].includes(s)) {
+        return "sold-out";
+      }
+
+      if (["cancel", "batal", "dibatalkan"].includes(s)) return "open-booking";
+
+      return "not-planning";
     }
 
     function updateStatistics() {
-        const units = document.querySelectorAll("[data-unit-id]");
-        const stats = { total: 0, open: 0, booking: 0, sold: 0, ready: 0 };
-        const marketingRank = {};
+      const units = document.querySelectorAll("[data-unit-id]");
+      const stats = { total: 0, open: 0, booking: 0, sold: 0, ready: 0 };
+      const marketingRank = {};
 
-        units.forEach(el => {
-            stats.total += 1;
-            const id = el.dataset.unitId;
-            const data = globalUnitData[id] || {};
-            const st = normalizeStatus(data.status ?? el.dataset.status ?? "");
+      units.forEach(el => {
+        stats.total += 1;
+        const id = el.dataset.unitId;
+        const data = globalUnitData[id] || {};
+        const st = normalizeStatus(data.status ?? el.dataset.status ?? "");
 
-            if (st === "open-booking") stats.open += 1;
-            else if (st === "booking-unit") stats.booking += 1;
-            else if (st === "sold-out") {
-                stats.sold += 1;
-                const mktName = data.sold_marketing_name || data.marketing_name || "Tanpa Nama";
-                marketingRank[mktName] = (marketingRank[mktName] || 0) + 1;
-            } else stats.ready += 1;
-        });
+        if (st === "open-booking") stats.open += 1;
+        else if (st === "booking-unit") stats.booking += 1;
+        else if (st === "sold-out") {
+          stats.sold += 1;
+          const mktName = data.sold_marketing_name || data.marketing_name || "Tanpa Nama";
+          marketingRank[mktName] = (marketingRank[mktName] || 0) + 1;
+        } else stats.ready += 1;
+      });
 
-        document.getElementById("statTotal").textContent = stats.total;
-        document.getElementById("statOpen").textContent = stats.open;
-        document.getElementById("statBooking").textContent = stats.booking;
-        document.getElementById("statSold").textContent = stats.sold;
-        document.getElementById("statReady").textContent = stats.ready;
+      document.getElementById("statTotal").textContent = stats.total;
+      document.getElementById("statOpen").textContent = stats.open;
+      document.getElementById("statBooking").textContent = stats.booking;
+      document.getElementById("statSold").textContent = stats.sold;
+      document.getElementById("statReady").textContent = stats.ready;
 
-        renderMarketingRank(marketingRank);
+      renderMarketingRank(marketingRank);
     }
 
     function renderMarketingRank(rankData) {
-        const container = document.getElementById("marketingStatsList");
-        if (!container) return;
+      const container = document.getElementById("marketingStatsList");
+      if (!container) return;
 
-        const sortedMkt = Object.entries(rankData).sort((a, b) => b[1] - a[1]);
-        if (sortedMkt.length === 0) {
-            container.innerHTML = '<span class="text-xs text-slate-500 italic">Belum ada penjualan sold out.</span>';
-            return;
-        }
+      const sortedMkt = Object.entries(rankData).sort((a, b) => b[1] - a[1]);
+      if (sortedMkt.length === 0) {
+        container.innerHTML = '<span class="text-xs text-slate-500 italic">Belum ada penjualan sold out.</span>';
+        return;
+      }
 
-        container.innerHTML = sortedMkt.map(([name, count], index) => `
+      container.innerHTML = sortedMkt.map(([name, count], index) => `
             <div class="flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-slate-700 shadow-sm">
                 <span class="text-[10px] font-bold ${index === 0 ? "text-amber-400" : "text-slate-400"}">#${index + 1}</span>
                 <span class="text-xs font-bold text-white">${name}</span>
@@ -897,263 +1160,263 @@
     }
 
     function applyColorsToMap() {
-        const units = document.querySelectorAll("[data-unit-id]");
-        const filter = getFilterValue();
+      const units = document.querySelectorAll("[data-unit-id]");
+      const filter = getFilterValue();
 
-        units.forEach(el => {
-            const id = el.dataset.unitId;
-            const data = globalUnitData[id] || {};
-            const rawStatus = data.status ?? el.dataset.status ?? "";
-            const st = normalizeStatus(rawStatus);
-            
-            // Simpan status bersih ke elemen
-            el.dataset.status = st;
+      units.forEach(el => {
+        const id = el.dataset.unitId;
+        const data = globalUnitData[id] || {};
+        const rawStatus = data.status ?? el.dataset.status ?? "";
+        const st = normalizeStatus(rawStatus);
 
-            const isMatched = (filter === "all") || (st === filter);
+        // Simpan status bersih ke elemen
+        el.dataset.status = st;
 
-            if (isMatched) {
-                // WARNA AKTIF (Kuning/Pink/Merah)
-                const targetColor = STATUS_COLORS[st] || "#ffffff";
-                el.style.setProperty("fill", targetColor, "important");
-                el.style.opacity = "1";
-                el.style.stroke = "#334155";
-                el.style.strokeWidth = "2";
-                el.style.pointerEvents = "all";
-                el.dataset.filteredOut = "0";
-            } else {
-                // WARNA REDUP (Putih Tulang agar tidak nabrak Jalan Grey)
-                el.style.setProperty("fill", "#f8fafc", "important");
-                el.style.opacity = "1"; // Tetap 1 agar rumput hijau tidak tembus
-                el.style.stroke = "#e2e8f0";
-                el.style.strokeWidth = "1";
-                el.style.pointerEvents = "none";
-                el.dataset.filteredOut = "1";
-            }
-        });
+        const isMatched = (filter === "all") || (st === filter);
+
+        if (isMatched) {
+          // WARNA AKTIF (Kuning/Pink/Merah)
+          const targetColor = STATUS_COLORS[st] || "#ffffff";
+          el.style.setProperty("fill", targetColor, "important");
+          el.style.opacity = "1";
+          el.style.stroke = "#334155";
+          el.style.strokeWidth = "2";
+          el.style.pointerEvents = "all";
+          el.dataset.filteredOut = "0";
+        } else {
+          // WARNA REDUP (Putih Tulang agar tidak nabrak Jalan Grey)
+          el.style.setProperty("fill", "#f8fafc", "important");
+          el.style.opacity = "1"; // Tetap 1 agar rumput hijau tidak tembus
+          el.style.stroke = "#e2e8f0";
+          el.style.strokeWidth = "1";
+          el.style.pointerEvents = "none";
+          el.dataset.filteredOut = "1";
+        }
+      });
     }
 
     // Listener Filter Dropdown
     if (filterOverlay) filterOverlay.addEventListener("change", () => {
-        applyColorsToMap();
-        updateStatistics();
+      applyColorsToMap();
+      updateStatistics();
     });
 
     // ====== 5. INTERAKSI KLIK & HOVER ======
     let selectedEl = null;
 
     function selectUnit(el) {
-        const id = el.dataset.unitId;
-        currentSelectedId = id;
+      const id = el.dataset.unitId;
+      currentSelectedId = id;
 
-        // === ANTI MACET: begitu blok kepilih, tombol update langsung aktif ===
-        if (btnToggleStatus) {
-            btnToggleStatus.disabled = false;
-            btnToggleStatus.removeAttribute("disabled");
-        }
-        if (updateForm) {
-            updateForm.classList.remove("opacity-50", "pointer-events-none");
-        }
-
-        // Highlight
-        if(selectedEl) {
-            selectedEl.style.stroke = "none";
-            selectedEl.style.strokeWidth = "0";
-        }
-        selectedEl = el;
-        // Kita gunakan style inline agar override CSS hover
-        el.style.stroke = "#0ea5e9";
-        el.style.strokeWidth = "2px"; 
-
-        // Isi Panel
+      // === ANTI MACET: begitu blok kepilih, tombol update langsung aktif ===
+      if (btnToggleStatus) {
+        btnToggleStatus.disabled = false;
+        btnToggleStatus.removeAttribute("disabled");
+      }
+      if (updateForm) {
         updateForm.classList.remove("opacity-50", "pointer-events-none");
-        selectedUnitEl.textContent = id;
-        selectedProgressEl.textContent = `${el.dataset.progress || 0}%`;
-        
-        const data = globalUnitData[id] || {};
-        const st = normalizeStatus(data.status ?? el.dataset.status ?? null);
-        
-        statusSelect.value = st;
-        noteInput.value = data.notes || "";
-        selectedMetaEl.textContent = st.replace("-", " ").toUpperCase();
+      }
 
-        inputBookingName.value = data.customer_name || "";
-        inputBookingPhone.value = data.customer_phone || "";
-        inputBookingKTP.value = data.customer_ktp || "";
-        inputSoldName.value = data.customer_name || ""; 
-        inputSoldPayment.value = data.payment_method || "";
-        if (inputBookingMarketing) inputBookingMarketing.value = data.marketing_name || "";
-        if (selectBookingPlan) selectBookingPlan.value = data.purchase_plan || "";
-        if (inputAkadDate) inputAkadDate.value = data.akad_date ? String(data.akad_date).slice(0, 10) : "";
-        if (inputSoldMarketing) inputSoldMarketing.value = data.sold_marketing_name || data.marketing_name || "";
-        syncSoldSamePreview();
-        if (soldBuyerMode) {
-          soldBuyerMode.value = (data.sold_same_buyer === false) ? "different" : "same";
-        }
-        applySoldBuyerMode(soldBuyerMode?.value || "same");
+      // Highlight
+      if (selectedEl) {
+        selectedEl.style.stroke = "none";
+        selectedEl.style.strokeWidth = "0";
+      }
+      selectedEl = el;
+      // Kita gunakan style inline agar override CSS hover
+      el.style.stroke = "#0ea5e9";
+      el.style.strokeWidth = "2px";
 
-        toggleDynamicForms(st);
+      // Isi Panel
+      updateForm.classList.remove("opacity-50", "pointer-events-none");
+      selectedUnitEl.textContent = id;
+      selectedProgressEl.textContent = `${el.dataset.progress || 0}%`;
 
-        if (currentStatusText) currentStatusText.textContent = selectedMetaEl.textContent;
-        if (btnToggleStatus) btnToggleStatus.disabled = false;
-        setStatusEditor(false);
+      const data = globalUnitData[id] || {};
+      const st = normalizeStatus(data.status ?? el.dataset.status ?? null);
+
+      statusSelect.value = st;
+      noteInput.value = data.notes || "";
+      selectedMetaEl.textContent = st.replace("-", " ").toUpperCase();
+
+      inputBookingName.value = data.customer_name || "";
+      inputBookingPhone.value = data.customer_phone || "";
+      inputBookingKTP.value = data.customer_ktp || "";
+      inputSoldName.value = data.customer_name || "";
+      inputSoldPayment.value = data.payment_method || "";
+      if (inputBookingMarketing) inputBookingMarketing.value = data.marketing_name || "";
+      if (selectBookingPlan) selectBookingPlan.value = data.purchase_plan || "";
+      if (inputAkadDate) inputAkadDate.value = data.akad_date ? String(data.akad_date).slice(0, 10) : "";
+      if (inputSoldMarketing) inputSoldMarketing.value = data.sold_marketing_name || data.marketing_name || "";
+      syncSoldSamePreview();
+      if (soldBuyerMode) {
+        soldBuyerMode.value = (data.sold_same_buyer === false) ? "different" : "same";
+      }
+      applySoldBuyerMode(soldBuyerMode?.value || "same");
+
+      toggleDynamicForms(st);
+
+      if (currentStatusText) currentStatusText.textContent = selectedMetaEl.textContent;
+      if (btnToggleStatus) btnToggleStatus.disabled = false;
+      setStatusEditor(false);
     }
 
     svg.addEventListener("click", (evt) => {
-        const t = evt.target.closest("[data-unit-id]");
-        if (!t) return;
-        if (t.dataset.filteredOut === "1") return;
-        selectUnit(t);
+      const t = evt.target.closest("[data-unit-id]");
+      if (!t) return;
+      if (t.dataset.filteredOut === "1") return;
+      selectUnit(t);
     });
 
     // Tooltip Logic
     svg.addEventListener("mousemove", (evt) => {
-        const t = evt.target.closest("[data-unit-id]");
-        if(t && t !== selectedEl) {
-            const id = t.dataset.unitId;
-            const st = normalizeStatus(globalUnitData[id]?.status ?? t.dataset.status ?? null);
-            
-            tooltip.classList.remove("hidden");
-            tooltip.style.left = evt.clientX + "px";
-            tooltip.style.top = evt.clientY + "px";
-            
-            tipTitle.textContent = "Blok " + id;
-            tipSub.textContent = st.replace("-", " ");
-            tipDot.style.backgroundColor = STATUS_COLORS[st] || "#94a3b8";
-        } else {
-            tooltip.classList.add("hidden");
-        }
+      const t = evt.target.closest("[data-unit-id]");
+      if (t && t !== selectedEl) {
+        const id = t.dataset.unitId;
+        const st = normalizeStatus(globalUnitData[id]?.status ?? t.dataset.status ?? null);
+
+        tooltip.classList.remove("hidden");
+        tooltip.style.left = evt.clientX + "px";
+        tooltip.style.top = evt.clientY + "px";
+
+        tipTitle.textContent = "Blok " + id;
+        tipSub.textContent = st.replace("-", " ");
+        tipDot.style.backgroundColor = STATUS_COLORS[st] || "#94a3b8";
+      } else {
+        tooltip.classList.add("hidden");
+      }
     });
 
     // ====== 6. FORM LOGIC ======
     function toggleDynamicForms(status) {
-        formBooking.classList.add("hidden-group");
-        formSold.classList.add("hidden-group");
+      formBooking.classList.add("hidden-group");
+      formSold.classList.add("hidden-group");
 
-        if (status === "booking-unit") formBooking.classList.remove("hidden-group");
-        else if (status === "sold-out") formSold.classList.remove("hidden-group");
+      if (status === "booking-unit") formBooking.classList.remove("hidden-group");
+      else if (status === "sold-out") formSold.classList.remove("hidden-group");
     }
 
     statusSelect.addEventListener("change", (e) => {
-        toggleDynamicForms(e.target.value);
-        if (e.target.value === "sold-out") {
-            syncSoldSamePreview();
-            applySoldBuyerMode(soldBuyerMode?.value || "same");
-        }
+      toggleDynamicForms(e.target.value);
+      if (e.target.value === "sold-out") {
+        syncSoldSamePreview();
+        applySoldBuyerMode(soldBuyerMode?.value || "same");
+      }
     });
 
     btnSave.addEventListener("click", async () => {
-        if (!currentSelectedId) return;
+      if (!currentSelectedId) return;
 
-        const oriText = btnSave.innerHTML;
-        btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ...';
-        btnSave.disabled = true;
+      const oriText = btnSave.innerHTML;
+      btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ...';
+      btnSave.disabled = true;
 
-        const must = (cond, msg) => {
-            if (!cond) {
-                alert(msg);
-                throw new Error("validation");
-            }
+      const must = (cond, msg) => {
+        if (!cond) {
+          alert(msg);
+          throw new Error("validation");
+        }
+      };
+
+      try {
+        const st = statusSelect.value;
+
+        let payload = {
+          unit_id: currentSelectedId,
+          status: st,
+          notes: noteInput?.value || "",
+          updated_at: new Date()
         };
 
-        try {
-            const st = statusSelect.value;
+        if (st === "booking-unit") {
+          const buyer = (inputBookingName?.value || "").trim();
+          const mkt = (inputBookingMarketing?.value || "").trim();
+          const plan = (selectBookingPlan?.value || "").trim();
 
-            let payload = {
-                unit_id: currentSelectedId,
-                status: st,
-                notes: noteInput?.value || "",
-                updated_at: new Date()
-            };
+          must(!!buyer, "Nama Calon Pembeli wajib diisi.");
+          must(!!mkt, "Nama Marketing wajib diisi.");
+          must(!!plan, "Rencana pembelian wajib dipilih.");
 
-            if (st === "booking-unit") {
-                const buyer = (inputBookingName?.value || "").trim();
-                const mkt = (inputBookingMarketing?.value || "").trim();
-                const plan = (selectBookingPlan?.value || "").trim();
+          payload.customer_name = buyer;
+          payload.customer_phone = (inputBookingPhone?.value || "").trim() || null;
+          payload.customer_ktp = (inputBookingKTP?.value || "").trim() || null;
+          payload.marketing_name = mkt;
+          payload.purchase_plan = plan;
 
-                must(!!buyer, "Nama Calon Pembeli wajib diisi.");
-                must(!!mkt, "Nama Marketing wajib diisi.");
-                must(!!plan, "Rencana pembelian wajib dipilih.");
+          payload.akad_date = null;
+          payload.sold_same_buyer = null;
+          payload.sold_marketing_name = null;
+          payload.payment_method = null;
 
-                payload.customer_name = buyer;
-                payload.customer_phone = (inputBookingPhone?.value || "").trim() || null;
-                payload.customer_ktp = (inputBookingKTP?.value || "").trim() || null;
-                payload.marketing_name = mkt;
-                payload.purchase_plan = plan;
+        } else if (st === "sold-out") {
+          const akad = (inputAkadDate?.value || "").trim();
+          must(!!akad, "Tanggal Akad Kredit wajib diisi.");
 
-                payload.akad_date = null;
-                payload.sold_same_buyer = null;
-                payload.sold_marketing_name = null;
-                payload.payment_method = null;
+          const mode = soldBuyerMode?.value || "same";
+          payload.akad_date = akad;
+          payload.payment_method = (inputSoldPayment?.value || "").trim() || null;
+          payload.sold_same_buyer = (mode === "same");
 
-            } else if (st === "sold-out") {
-                const akad = (inputAkadDate?.value || "").trim();
-                must(!!akad, "Tanggal Akad Kredit wajib diisi.");
+          if (mode === "same") {
+            const buyer = (inputBookingName?.value || "").trim();
+            const mkt = (inputBookingMarketing?.value || "").trim();
+            must(!!buyer, "Data Booking belum ada. Isi data booking dulu, atau pilih mode 'pembeli berbeda'.");
+            must(!!mkt, "Nama marketing dari booking belum ada. Isi dulu ya.");
 
-                const mode = soldBuyerMode?.value || "same";
-                payload.akad_date = akad;
-                payload.payment_method = (inputSoldPayment?.value || "").trim() || null;
-                payload.sold_same_buyer = (mode === "same");
+            payload.customer_name = buyer;
+            payload.customer_phone = (inputBookingPhone?.value || "").trim() || null;
+            payload.customer_ktp = (inputBookingKTP?.value || "").trim() || null;
+            payload.marketing_name = mkt;
+            payload.sold_marketing_name = mkt;
+          } else {
+            const buyer = (inputSoldName?.value || "").trim();
+            const mkt = (inputSoldMarketing?.value || "").trim();
+            must(!!buyer, "Nama Pembeli (Sold Out) wajib diisi.");
+            must(!!mkt, "Nama Marketing wajib diisi jika pembeli berbeda.");
 
-                if (mode === "same") {
-                    const buyer = (inputBookingName?.value || "").trim();
-                    const mkt = (inputBookingMarketing?.value || "").trim();
-                    must(!!buyer, "Data Booking belum ada. Isi data booking dulu, atau pilih mode 'pembeli berbeda'.");
-                    must(!!mkt, "Nama marketing dari booking belum ada. Isi dulu ya.");
+            payload.customer_name = buyer;
+            payload.customer_phone = null;
+            payload.customer_ktp = null;
+            payload.marketing_name = mkt;
+            payload.sold_marketing_name = mkt;
+          }
 
-                    payload.customer_name = buyer;
-                    payload.customer_phone = (inputBookingPhone?.value || "").trim() || null;
-                    payload.customer_ktp = (inputBookingKTP?.value || "").trim() || null;
-                    payload.marketing_name = mkt;
-                    payload.sold_marketing_name = mkt;
-                } else {
-                    const buyer = (inputSoldName?.value || "").trim();
-                    const mkt = (inputSoldMarketing?.value || "").trim();
-                    must(!!buyer, "Nama Pembeli (Sold Out) wajib diisi.");
-                    must(!!mkt, "Nama Marketing wajib diisi jika pembeli berbeda.");
+          payload.purchase_plan = payload.purchase_plan ?? null;
 
-                    payload.customer_name = buyer;
-                    payload.customer_phone = null;
-                    payload.customer_ktp = null;
-                    payload.marketing_name = mkt;
-                    payload.sold_marketing_name = mkt;
-                }
-
-                payload.purchase_plan = payload.purchase_plan ?? null;
-
-            } else {
-                payload.customer_name = null;
-                payload.customer_phone = null;
-                payload.customer_ktp = null;
-                payload.marketing_name = null;
-                payload.purchase_plan = null;
-                payload.payment_method = null;
-                payload.akad_date = null;
-                payload.sold_same_buyer = null;
-                payload.sold_marketing_name = null;
-            }
-
-            const { error } = await client.from('unit_status').upsert(payload);
-            if (error) throw error;
-
-            globalUnitData[currentSelectedId] = { ...globalUnitData[currentSelectedId], ...payload };
-            applyColorsToMap();
-            updateStatistics();
-
-            alert("Berhasil disimpan!");
-            setStatusEditor(false);
-
-        } catch (err) {
-            if (err?.message !== "validation") {
-                alert("Error: " + (err?.message || err));
-            }
-        } finally {
-            btnSave.innerHTML = oriText;
-            btnSave.disabled = false;
+        } else {
+          payload.customer_name = null;
+          payload.customer_phone = null;
+          payload.customer_ktp = null;
+          payload.marketing_name = null;
+          payload.purchase_plan = null;
+          payload.payment_method = null;
+          payload.akad_date = null;
+          payload.sold_same_buyer = null;
+          payload.sold_marketing_name = null;
         }
+
+        const { error } = await client.from('unit_status').upsert(payload);
+        if (error) throw error;
+
+        globalUnitData[currentSelectedId] = { ...globalUnitData[currentSelectedId], ...payload };
+        applyColorsToMap();
+        updateStatistics();
+
+        alert("Berhasil disimpan!");
+        setStatusEditor(false);
+
+      } catch (err) {
+        if (err?.message !== "validation") {
+          alert("Error: " + (err?.message || err));
+        }
+      } finally {
+        btnSave.innerHTML = oriText;
+        btnSave.disabled = false;
+      }
     });
 
     btnClear.addEventListener("click", () => {
-        if(selectedEl) selectUnit(selectedEl);
+      if (selectedEl) selectUnit(selectedEl);
     });
 
 
@@ -1302,9 +1565,9 @@
     }
 
     document.getElementById("btnOpenSiteplan")?.addEventListener("click", showSiteplan);
-    
+
     document.getElementById("btnBackToTable")?.addEventListener("click", showProgress);
-document.getElementById("btnRefreshProgress")?.addEventListener("click", loadMarketingProgress);
+    document.getElementById("btnRefreshProgress")?.addEventListener("click", loadMarketingProgress);
 
     // Init
     loadMarketingProgress();
@@ -1314,13 +1577,13 @@ document.getElementById("btnRefreshProgress")?.addEventListener("click", loadMar
 
     // Memastikan warna langsung terpasang saat halaman dibuka
     window.addEventListener("DOMContentLoaded", () => {
-        setTimeout(() => {
-            if (typeof applyColorsToMap === "function") {
-                applyColorsToMap();
-                updateStatistics();
-                console.log("Siteplan mobile synced!");
-            }
-        }, 500);
+      setTimeout(() => {
+        if (typeof applyColorsToMap === "function") {
+          applyColorsToMap();
+          updateStatistics();
+          console.log("Siteplan mobile synced!");
+        }
+      }, 500);
     });
 
     // === CETAK SITEPLAN TERINTEGRASI ===
@@ -1331,93 +1594,95 @@ document.getElementById("btnRefreshProgress")?.addEventListener("click", loadMar
     const svgOriginal = document.getElementById("siteplanSvg");
 
     const preparePrintReport = () => {
-        if (displayPrintDate) {
-            const now = new Date();
-            displayPrintDate.textContent = now.toLocaleString("id-ID", {
-                weekday: "long", year: "numeric", month: "long", day: "numeric",
-                hour: "2-digit", minute: "2-digit"
-            });
-        }
-        
-        if (svgPrintContent && svgOriginal) {
-            svgPrintContent.innerHTML = "";
-            const svgClone = svgOriginal.cloneNode(true);
-            
-            const oriPaths = svgOriginal.querySelectorAll("path, rect, circle, polygon");
-            const clonePaths = svgClone.querySelectorAll("path, rect, circle, polygon");
-            
-            oriPaths.forEach((el, i) => {
-                const color = window.getComputedStyle(el).fill;
-                const stroke = window.getComputedStyle(el).stroke;
-                if (clonePaths[i]) {
-                    clonePaths[i].style.setProperty("fill", color, "important");
-                    clonePaths[i].style.setProperty("stroke", stroke, "important");
-                }
-            });
+      if (displayPrintDate) {
+        const now = new Date();
+        displayPrintDate.textContent = now.toLocaleString("id-ID", {
+          weekday: "long", year: "numeric", month: "long", day: "numeric",
+          hour: "2-digit", minute: "2-digit"
+        });
+      }
 
-            svgClone.setAttribute("viewBox", "0 0 29700 21000");
-            svgClone.style.width = "100%";
-            svgClone.style.height = "auto";
-            
-            svgPrintContent.appendChild(svgClone);
-        }
+      if (svgPrintContent && svgOriginal) {
+        svgPrintContent.innerHTML = "";
+        const svgClone = svgOriginal.cloneNode(true);
+
+        const oriPaths = svgOriginal.querySelectorAll("path, rect, circle, polygon");
+        const clonePaths = svgClone.querySelectorAll("path, rect, circle, polygon");
+
+        oriPaths.forEach((el, i) => {
+          const color = window.getComputedStyle(el).fill;
+          const stroke = window.getComputedStyle(el).stroke;
+          if (clonePaths[i]) {
+            clonePaths[i].style.setProperty("fill", color, "important");
+            clonePaths[i].style.setProperty("stroke", stroke, "important");
+          }
+        });
+
+        svgClone.setAttribute("viewBox", "0 0 29700 21000");
+        svgClone.style.width = "100%";
+        svgClone.style.height = "auto";
+
+        svgPrintContent.appendChild(svgClone);
+      }
     };
 
     if (btnPrint) {
-        btnPrint.addEventListener("click", () => {
-            preparePrintReport();
-            const pArea = printArea;
-            if (pArea) pArea.style.display = "block";
-            setTimeout(() => {
-                window.print();
-                setTimeout(() => { if (pArea) pArea.style.display = "none"; }, 1000);
-            }, 500);
-        });
+      btnPrint.addEventListener("click", () => {
+        preparePrintReport();
+        const pArea = printArea;
+        if (pArea) pArea.style.display = "block";
+        setTimeout(() => {
+          window.print();
+          setTimeout(() => { if (pArea) pArea.style.display = "none"; }, 1000);
+        }, 500);
+      });
     }
 
     window.addEventListener("beforeprint", () => {
-        preparePrintReport();
-        if (printArea) printArea.style.display = "block";
+      preparePrintReport();
+      if (printArea) printArea.style.display = "block";
     });
     window.addEventListener("afterprint", () => {
-        if (printArea) printArea.style.display = "none";
+      if (printArea) printArea.style.display = "none";
     });
 
     const btnDownloadPDF = document.getElementById("btnDownloadPDF");
     if (btnDownloadPDF) {
-        btnDownloadPDF.addEventListener("click", async () => {
-            const { jsPDF } = window.jspdf;
-            const pArea = printArea;
-            preparePrintReport();
-            if (pArea) pArea.style.display = "block";
-            syncStatus.innerHTML = '<i class="fa-solid fa-file-pdf fa-beat"></i> Processing...';
+      btnDownloadPDF.addEventListener("click", async () => {
+        const { jsPDF } = window.jspdf;
+        const pArea = printArea;
+        preparePrintReport();
+        if (pArea) pArea.style.display = "block";
+        syncStatus.innerHTML = '<i class="fa-solid fa-file-pdf fa-beat"></i> Processing...';
 
-            try {
-                const canvas = await html2canvas(pArea, {
-                    scale: 1.5,
-                    useCORS: true,
-                    backgroundColor: "#ffffff",
-                    logging: false
-                });
-                const imgData = canvas.toDataURL("image/jpeg", 0.8);
-                const pdf = new jsPDF("l", "mm", "a4");
-                pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
-                pdf.save(`Siteplan_SunriseCity_${new Date().getTime()}.pdf`);
-                syncStatus.innerHTML = '<i class="fa-solid fa-check text-green-500"></i> PDF Ready';
-            } catch (err) {
-                console.error("PDF Error:", err);
-                alert("Gagal membuat PDF. Coba gunakan fitur Print (Ikon Hijau) lalu pilih 'Save as PDF'.");
-            } finally {
-                if (pArea) pArea.style.display = "none";
-                setTimeout(() => syncStatus.innerHTML = '<i class="fa-solid fa-cloud"></i> Ready', 2000);
-            }
-        });
+        try {
+          const canvas = await html2canvas(pArea, {
+            scale: 1.5,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+            logging: false
+          });
+          const imgData = canvas.toDataURL("image/jpeg", 0.8);
+          const pdf = new jsPDF("l", "mm", "a4");
+          pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+          pdf.save(`Siteplan_SunriseCity_${new Date().getTime()}.pdf`);
+          syncStatus.innerHTML = '<i class="fa-solid fa-check text-green-500"></i> PDF Ready';
+        } catch (err) {
+          console.error("PDF Error:", err);
+          alert("Gagal membuat PDF. Coba gunakan fitur Print (Ikon Hijau) lalu pilih 'Save as PDF'.");
+        } finally {
+          if (pArea) pArea.style.display = "none";
+          setTimeout(() => syncStatus.innerHTML = '<i class="fa-solid fa-cloud"></i> Ready', 2000);
+        }
+      });
     }
 
   </script>
   <div id="printReportArea" style="display: none; width: 100%; background: white; padding: 10px;">
-    <div style="text-align: center; font-family: sans-serif; margin-bottom: 20px; border-bottom: 3px double #334155; padding-bottom: 10px;">
-      <h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #1e293b; text-transform: uppercase;">PT. Nusantara Land Development</h1>
+    <div
+      style="text-align: center; font-family: sans-serif; margin-bottom: 20px; border-bottom: 3px double #334155; padding-bottom: 10px;">
+      <h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #1e293b; text-transform: uppercase;">PT.
+        Nusantara Land Development</h1>
       <p style="margin: 5px 0; font-size: 16px; font-weight: 600;">UPDATED SITEPLAN SUNRISE CITY MAROS</p>
       <p style="margin: 0; font-size: 12px; color: #64748b;">Tanggal Cetak: <span id="displayPrintDate"></span></p>
     </div>
@@ -1430,9 +1695,11 @@ document.getElementById("btnRefreshProgress")?.addEventListener("click", loadMar
     </div>
   </div>
   <div class="fixed bottom-6 right-6 z-[100]">
-    <button id="btnDownloadPDF" class="bg-red-600 hover:bg-red-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition active:scale-90 border-4 border-white">
+    <button id="btnDownloadPDF"
+      class="bg-red-600 hover:bg-red-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition active:scale-90 border-4 border-white">
       <i class="fas fa-file-pdf fa-lg"></i>
     </button>
   </div>
 </body>
+
 </html>

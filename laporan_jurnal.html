@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Laporan Keuangan Terintegrasi</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="app_config.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
@@ -440,9 +441,8 @@
     </div>
 
     <script>
-        const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-        const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
-        const client = supabase.createClient(supabaseUrl, supabaseKey);
+        // Menggunakan client dari app_config.js
+        const client = window.client;
         const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
         const fmtNum = (n) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(n);
 

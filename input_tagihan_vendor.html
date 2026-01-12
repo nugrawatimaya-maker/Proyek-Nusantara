@@ -1,432 +1,504 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Manajemen Tagihan Vendor (AP)</title>
-  
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-  
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-    body { background-color: #f8fafc; font-family: 'Inter', sans-serif; padding-bottom: 80px; }
-    
-    .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
-    .st-lunas { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-    .st-hutang { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-    .st-warning { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
-    
-    /* Scrollbar halus */
-    .custom-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    
-    /* STICKY HEADER FIX */
-    thead th { position: sticky; top: 0; z-index: 20; background-color: #f8fafc; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-  </style>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Manajemen Tagihan Vendor (AP)</title>
+
+    <script src="supabase.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        body {
+            background-color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            padding-bottom: 80px;
+        }
+
+        .status-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .st-lunas {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .st-hutang {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .st-warning {
+            background: #ffedd5;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+        }
+
+        /* Scrollbar halus */
+        .custom-scroll::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        /* STICKY HEADER FIX */
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background-color: #f8fafc;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
 </head>
+
 <body>
 
-  <nav class="bg-white border-b px-6 py-4 sticky top-0 z-40 shadow-sm flex justify-between items-center">
-    <div class="flex items-center gap-3">
-        <div class="bg-indigo-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg shadow-indigo-200">
-            <i class="fas fa-file-invoice-dollar text-lg"></i>
-        </div>
-        <div>
-            <h1 class="text-lg font-bold text-slate-800 leading-tight">Vendor Invoice Management</h1>
-            <p class="text-xs text-slate-500">Input, Verifikasi, Bayar & Laporan</p>
-        </div>
-    </div>
-    <div class="flex gap-3">
-        <button onclick="postingJurnalHutangMasal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow transition flex items-center gap-2">
-            <i class="fas fa-sync-alt"></i> Posting Semua Hutang
-        </button>
-        <a href="dashboard_finance.html" class="bg-slate-100 text-slate-500 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-200 transition">
-            <i class="fas fa-arrow-left"></i>
-        </a>
-    </div>
-  </nav>
-
-  <div class="max-w-7xl mx-auto px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-white p-4 rounded-xl border border-red-100 shadow-sm flex justify-between items-center relative overflow-hidden">
-          <div class="absolute right-0 top-0 opacity-5"><i class="fas fa-exclamation-circle text-8xl text-red-600"></i></div>
-          <div>
-              <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Total Hutang (Outstanding)</div>
-              <div class="text-2xl font-bold text-red-600 mt-1" id="sumHutang">Rp 0</div>
-          </div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-purple-100 shadow-sm flex justify-between items-center relative overflow-hidden">
-          <div class="absolute right-0 top-0 opacity-5"><i class="fas fa-file-contract text-8xl text-purple-600"></i></div>
-          <div>
-              <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Belum Terposting (Jurnal)</div>
-              <div class="text-2xl font-bold text-purple-600 mt-1" id="countUnposted">0 Item</div>
-          </div>
-      </div>
-      <div class="bg-white p-4 rounded-xl border border-green-100 shadow-sm flex justify-between items-center relative overflow-hidden">
-          <div class="absolute right-0 top-0 opacity-5"><i class="fas fa-check-double text-8xl text-green-600"></i></div>
-          <div>
-              <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Total Lunas</div>
-              <div class="text-2xl font-bold text-green-600 mt-1" id="sumLunas">Rp 0</div>
-          </div>
-      </div>
-  </div>
-
-  <div class="max-w-7xl mx-auto px-6 mb-4">
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-          <div class="flex flex-col md:flex-row gap-3 items-center">
-              
-              <div class="flex bg-slate-50 p-1.5 rounded-lg border border-slate-200 items-center w-full md:w-auto">
-                  <select id="tipeTanggal" class="bg-transparent text-xs font-bold text-indigo-700 outline-none border-r border-slate-300 pr-2 mr-2 cursor-pointer">
-                      <option value="created_at">📅 Tgl Input</option>
-                      <option value="jatuh_tempo">⚠️ Tgl Jatuh Tempo</option>
-                  </select>
-                  <input type="date" id="tglMulai" class="bg-transparent text-xs font-semibold text-slate-600 outline-none">
-                  <span class="text-slate-300 mx-1">-</span>
-                  <input type="date" id="tglSelesai" class="bg-transparent text-xs font-semibold text-slate-600 outline-none">
-              </div>
-
-              <div class="relative flex-1 w-full">
-                  <i class="fas fa-search absolute left-3 top-2.5 text-slate-400 text-xs"></i>
-                  <input type="text" id="cariVendor" list="listData" placeholder="Ketik Nama Vendor..." 
-                         class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 transition font-bold text-slate-700">
-                  
-                  <datalist id="listData">
-                      </datalist>
-              </div>
-
-              <button onclick="loadData()" class="bg-slate-800 text-white w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-700 transition shadow">
-                  <i class="fas fa-sync-alt text-xs"></i>
-              </button>
-          </div>
-
-          <div class="flex gap-2 overflow-x-auto pb-1 custom-scroll">
-              <select id="filterStatus" onchange="applyFilter()" class="bg-white border border-slate-300 text-slate-600 text-xs rounded-full px-3 py-1.5 outline-none focus:border-indigo-500 font-bold cursor-pointer">
-                  <option value="ALL">Semua Status</option>
-                  <option value="DITERIMA" selected>⚡ Belum Lunas (Hutang)</option>
-                  <option value="LUNAS">✅ Sudah Lunas</option>
-              </select>
-
-              <select id="filterTempo" onchange="applyFilter()" class="bg-white border border-slate-300 text-slate-600 text-xs rounded-full px-3 py-1.5 outline-none focus:border-indigo-500 font-bold cursor-pointer">
-                  <option value="ALL">Semua Periode</option>
-                  <option value="OVERDUE">🚨 Lewat Jatuh Tempo</option>
-                  <option value="7_DAYS">⚠️ Jatuh Tempo 7 Hari</option>
-                  <option value="30_DAYS">📅 Jatuh Tempo 30 Hari</option>
-              </select>
-          </div>
-      </div>
-  </div>
-
-  <div class="max-w-7xl mx-auto px-6 pb-24 h-[600px] flex flex-col">
-      <div class="flex justify-between items-end mb-2 flex-none">
-          <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide">Daftar Tagihan</h2>
-          <span class="text-[10px] text-slate-400" id="countData">0 Data</span>
-      </div>
-      
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 overflow-hidden flex flex-col">
-          <div class="overflow-auto custom-scroll flex-1">
-              <table class="w-full text-left text-sm whitespace-nowrap relative">
-                  <thead class="bg-slate-50 text-slate-600 font-bold text-xs uppercase border-b border-slate-200">
-                      <tr>
-                          <th class="px-6 py-4 w-10 bg-slate-50">No</th>
-                          <th class="px-6 py-4 bg-slate-50">Vendor & Detail</th>
-                          <th class="px-6 py-4 text-center bg-slate-50">Jatuh Tempo</th>
-                          <th class="px-6 py-4 text-right bg-slate-50">Nilai Tagihan</th>
-                          <th class="px-6 py-4 text-center bg-slate-50">Status Jurnal</th>
-                          <th class="px-6 py-4 text-center bg-slate-50">Aksi</th>
-                      </tr>
-                  </thead>
-                  <tbody id="listContainer" class="divide-y divide-slate-100 text-slate-700">
-                      <tr><td colspan="6" class="p-8 text-center text-slate-400">Memuat data...</td></tr>
-                  </tbody>
-              </table>
-          </div>
-      </div>
-  </div>
-
-  <div class="fixed bottom-6 right-6 z-50">
-      <button onclick="downloadPDF()" class="bg-red-600 hover:bg-red-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition transform hover:scale-105 active:scale-90 ring-4 ring-red-100" title="Download Laporan PDF">
-          <i class="fas fa-file-pdf fa-lg"></i>
-      </button>
-  </div>
-
-  <div id="modalBayar" class="hidden fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center backdrop-blur-sm">
-    <div class="bg-white w-full max-w-lg p-6 rounded-2xl shadow-2xl relative transform transition-all scale-100">
-        <button onclick="tutupModal()" class="absolute top-4 right-4 text-slate-400 hover:text-red-600 font-bold text-xl transition">✕</button>
-        
-        <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                <i class="fas fa-wallet text-lg"></i>
+    <nav class="bg-white border-b px-6 py-4 sticky top-0 z-40 shadow-sm flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div
+                class="bg-indigo-600 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg shadow-indigo-200">
+                <i class="fas fa-file-invoice-dollar text-lg"></i>
             </div>
             <div>
-                <h2 class="text-xl font-bold text-slate-800">Form Pembayaran</h2>
-                <p class="text-xs text-slate-500">Pastikan saldo mencukupi sebelum konfirmasi.</p>
+                <h1 class="text-lg font-bold text-slate-800 leading-tight">Vendor Invoice Management</h1>
+                <p class="text-xs text-slate-500">Input, Verifikasi, Bayar & Laporan</p>
             </div>
         </div>
+        <div class="flex gap-3">
+            <button onclick="postingJurnalHutangMasal()"
+                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow transition flex items-center gap-2">
+                <i class="fas fa-sync-alt"></i> Posting Semua Hutang
+            </button>
+            <a href="dashboard_finance.html"
+                class="bg-slate-100 text-slate-500 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-200 transition">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+    </nav>
 
-        <form id="formBayar" class="space-y-4">
-            <input type="hidden" id="bayarIdPO">
-            <input type="hidden" id="bayarNoPO">
-            <input type="hidden" id="bayarVendor">
-            
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <div class="flex justify-between text-sm mb-1">
-                    <span class="text-slate-500">Total Tagihan:</span>
-                    <span class="font-bold text-slate-800 text-lg" id="displayTotal">Rp 0</span>
+    <div class="max-w-7xl mx-auto px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div
+            class="bg-white p-4 rounded-xl border border-red-100 shadow-sm flex justify-between items-center relative overflow-hidden">
+            <div class="absolute right-0 top-0 opacity-5"><i
+                    class="fas fa-exclamation-circle text-8xl text-red-600"></i></div>
+            <div>
+                <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Total Hutang (Outstanding)</div>
+                <div class="text-2xl font-bold text-red-600 mt-1" id="sumHutang">Rp 0</div>
+            </div>
+        </div>
+        <div
+            class="bg-white p-4 rounded-xl border border-purple-100 shadow-sm flex justify-between items-center relative overflow-hidden">
+            <div class="absolute right-0 top-0 opacity-5"><i class="fas fa-file-contract text-8xl text-purple-600"></i>
+            </div>
+            <div>
+                <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Belum Terposting (Jurnal)</div>
+                <div class="text-2xl font-bold text-purple-600 mt-1" id="countUnposted">0 Item</div>
+            </div>
+        </div>
+        <div
+            class="bg-white p-4 rounded-xl border border-green-100 shadow-sm flex justify-between items-center relative overflow-hidden">
+            <div class="absolute right-0 top-0 opacity-5"><i class="fas fa-check-double text-8xl text-green-600"></i>
+            </div>
+            <div>
+                <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Total Lunas</div>
+                <div class="text-2xl font-bold text-green-600 mt-1" id="sumLunas">Rp 0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-6 mb-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex flex-col md:flex-row gap-3 items-center">
+
+                <div class="flex bg-slate-50 p-1.5 rounded-lg border border-slate-200 items-center w-full md:w-auto">
+                    <select id="tipeTanggal"
+                        class="bg-transparent text-xs font-bold text-indigo-700 outline-none border-r border-slate-300 pr-2 mr-2 cursor-pointer">
+                        <option value="created_at">📅 Tgl Input</option>
+                        <option value="jatuh_tempo">⚠️ Tgl Jatuh Tempo</option>
+                    </select>
+                    <input type="date" id="tglMulai"
+                        class="bg-transparent text-xs font-semibold text-slate-600 outline-none">
+                    <span class="text-slate-300 mx-1">-</span>
+                    <input type="date" id="tglSelesai"
+                        class="bg-transparent text-xs font-semibold text-slate-600 outline-none">
                 </div>
-                <div class="flex justify-between text-xs">
-                    <span class="text-slate-500">Penerima:</span>
-                    <span class="font-bold text-indigo-600 uppercase tracking-wide" id="displayVendor">-</span>
+
+                <div class="relative flex-1 w-full">
+                    <i class="fas fa-search absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                    <input type="text" id="cariVendor" list="listData" placeholder="Ketik Nama Vendor..."
+                        class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 transition font-bold text-slate-700">
+
+                    <datalist id="listData">
+                    </datalist>
                 </div>
+
+                <button onclick="loadData()"
+                    class="bg-slate-800 text-white w-9 h-9 rounded-lg flex items-center justify-center hover:bg-slate-700 transition shadow">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                </button>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Sumber Dana</label>
-                <select id="pilihAkun" class="w-full border border-slate-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white" required>
-                    <option value="">-- Memuat Bank... --</option>
+            <div class="flex gap-2 overflow-x-auto pb-1 custom-scroll">
+                <select id="filterStatus" onchange="applyFilter()"
+                    class="bg-white border border-slate-300 text-slate-600 text-xs rounded-full px-3 py-1.5 outline-none focus:border-indigo-500 font-bold cursor-pointer">
+                    <option value="ALL">Semua Status</option>
+                    <option value="DITERIMA" selected>⚡ Belum Lunas (Hutang)</option>
+                    <option value="LUNAS">✅ Sudah Lunas</option>
+                </select>
+
+                <select id="filterTempo" onchange="applyFilter()"
+                    class="bg-white border border-slate-300 text-slate-600 text-xs rounded-full px-3 py-1.5 outline-none focus:border-indigo-500 font-bold cursor-pointer">
+                    <option value="ALL">Semua Periode</option>
+                    <option value="OVERDUE">🚨 Lewat Jatuh Tempo</option>
+                    <option value="7_DAYS">⚠️ Jatuh Tempo 7 Hari</option>
+                    <option value="30_DAYS">📅 Jatuh Tempo 30 Hari</option>
                 </select>
             </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Nomor Cek / Ref</label>
-                    <input type="text" id="nomorCek" class="w-full border border-slate-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" placeholder="Cth: BG-881">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Bayar</label>
-                    <input type="date" id="tglBayar" class="w-full border border-slate-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" required>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Catatan</label>
-                <textarea id="ketBayar" rows="2" class="w-full border border-slate-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none" placeholder="Keterangan pelunasan..."></textarea>
-            </div>
-
-            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-green-200 mt-2 transition transform active:scale-95 flex justify-center items-center gap-2">
-                <i class="fas fa-check-circle"></i> Konfirmasi Pembayaran
-            </button>
-        </form>
+        </div>
     </div>
-  </div>
 
-  <script>
-    // --- KONFIGURASI SUPABASE ---
-    const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
-    const client = supabase.createClient(supabaseUrl, supabaseKey);
-    
-    // --- FORMATTER ---
-    const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
-    const fmtDate = (d) => new Date(d).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
+    <div class="max-w-7xl mx-auto px-6 pb-24 h-[600px] flex flex-col">
+        <div class="flex justify-between items-end mb-2 flex-none">
+            <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wide">Daftar Tagihan</h2>
+            <span class="text-[10px] text-slate-400" id="countData">0 Data</span>
+        </div>
 
-    // --- STATE ---
-    let rawData = [];
-    let filteredData = [];
-    let postedSet = new Set();
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 overflow-hidden flex flex-col">
+            <div class="overflow-auto custom-scroll flex-1">
+                <table class="w-full text-left text-sm whitespace-nowrap relative">
+                    <thead class="bg-slate-50 text-slate-600 font-bold text-xs uppercase border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-4 w-10 bg-slate-50">No</th>
+                            <th class="px-6 py-4 bg-slate-50">Vendor & Detail</th>
+                            <th class="px-6 py-4 text-center bg-slate-50">Jatuh Tempo</th>
+                            <th class="px-6 py-4 text-right bg-slate-50">Nilai Tagihan</th>
+                            <th class="px-6 py-4 text-center bg-slate-50">Status Jurnal</th>
+                            <th class="px-6 py-4 text-center bg-slate-50">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listContainer" class="divide-y divide-slate-100 text-slate-700">
+                        <tr>
+                            <td colspan="6" class="p-8 text-center text-slate-400">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-    // --- INIT ---
-    const today = new Date();
-    document.getElementById("tglMulai").valueAsDate = new Date(today.getFullYear(), today.getMonth(), 1);
-    document.getElementById("tglSelesai").valueAsDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    <div class="fixed bottom-6 right-6 z-50">
+        <button onclick="downloadPDF()"
+            class="bg-red-600 hover:bg-red-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition transform hover:scale-105 active:scale-90 ring-4 ring-red-100"
+            title="Download Laporan PDF">
+            <i class="fas fa-file-pdf fa-lg"></i>
+        </button>
+    </div>
 
-    async function init() {
-        await loadAkunBank();
-        await loadData();
-    }
+    <div id="modalBayar"
+        class="hidden fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center backdrop-blur-sm">
+        <div class="bg-white w-full max-w-lg p-6 rounded-2xl shadow-2xl relative transform transition-all scale-100">
+            <button onclick="tutupModal()"
+                class="absolute top-4 right-4 text-slate-400 hover:text-red-600 font-bold text-xl transition">✕</button>
 
-    async function loadAkunBank() {
-        const { data } = await client.from('master_akun').select('nama_akun').order('nama_akun');
-        const sel = document.getElementById("pilihAkun");
-        sel.innerHTML = '<option value="">-- Pilih Bank / Kas --</option>';
-        if(data) {
-            data.forEach(a => {
-                const nama = a.nama_akun.toUpperCase();
-                if(nama.includes("BANK") || nama.includes("KAS") || nama.includes("MANDIRI") || nama.includes("BCA") || nama.includes("TUNAI")) {
-                    sel.innerHTML += `<option value="${a.nama_akun}">${a.nama_akun}</option>`;
-                }
-            });
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                    <i class="fas fa-wallet text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800">Form Pembayaran</h2>
+                    <p class="text-xs text-slate-500">Pastikan saldo mencukupi sebelum konfirmasi.</p>
+                </div>
+            </div>
+
+            <form id="formBayar" class="space-y-4">
+                <input type="hidden" id="bayarIdPO">
+                <input type="hidden" id="bayarNoPO">
+                <input type="hidden" id="bayarVendor">
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="text-slate-500">Total Tagihan:</span>
+                        <span class="font-bold text-slate-800 text-lg" id="displayTotal">Rp 0</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-500">Penerima:</span>
+                        <span class="font-bold text-indigo-600 uppercase tracking-wide" id="displayVendor">-</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Sumber Dana</label>
+                    <select id="pilihAkun"
+                        class="w-full border border-slate-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white"
+                        required>
+                        <option value="">-- Memuat Bank... --</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Nomor Cek / Ref</label>
+                        <input type="text" id="nomorCek"
+                            class="w-full border border-slate-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                            placeholder="Cth: BG-881">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal Bayar</label>
+                        <input type="date" id="tglBayar"
+                            class="w-full border border-slate-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                            required>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Catatan</label>
+                    <textarea id="ketBayar" rows="2"
+                        class="w-full border border-slate-300 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                        placeholder="Keterangan pelunasan..."></textarea>
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-green-200 mt-2 transition transform active:scale-95 flex justify-center items-center gap-2">
+                    <i class="fas fa-check-circle"></i> Konfirmasi Pembayaran
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- KONFIGURASI SUPABASE ---
+        const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
+        const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
+        const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // --- FORMATTER ---
+        const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+        const fmtDate = (d) => new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+
+        // --- STATE ---
+        let rawData = [];
+        let filteredData = [];
+        let postedSet = new Set();
+
+        // --- INIT ---
+        const today = new Date();
+        document.getElementById("tglMulai").valueAsDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        document.getElementById("tglSelesai").valueAsDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+        async function init() {
+            await loadAkunBank();
+            await loadData();
         }
-    }
 
-    async function loadData() {
-        const start = document.getElementById("tglMulai").value;
-        const end = document.getElementById("tglSelesai").value;
-        const typeDate = document.getElementById("tipeTanggal").value;
-
-        document.getElementById("listContainer").innerHTML = `<tr><td colspan="6" class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-indigo-600 text-2xl"></i><br><span class="text-xs text-slate-400 mt-2">Sinkronisasi Data (Manual Link)...</span></td></tr>`;
-
-        try {
-            const { data: listPO, error: errPO } = await client
-                .from('purchase_order')
-                .select('*')
-                .gte(typeDate, start)
-                .lte(typeDate, end)
-                .order('jatuh_tempo', { ascending: true });
-
-            if(errPO) throw errPO;
-            
-            if(!listPO || listPO.length === 0) {
-                 document.getElementById("listContainer").innerHTML = `<tr><td colspan="6" class="p-10 text-center italic">Tidak ada data PO pada periode ini.</td></tr>`;
-                 rawData = []; return;
-            }
-
-            const listIDs = listPO.map(p => p.id);
-            
-            const { data: listGRN, error: errGRN } = await client
-                .from('grn_terima')
-                .select('po_id, tanggal_terima, bukti_nota')
-                .in('po_id', listIDs);
-
-            if(errGRN) throw errGRN;
-
-            const mapGRN = {};
-            if(listGRN) {
-                listGRN.forEach(g => {
-                    if(!mapGRN[g.po_id]) mapGRN[g.po_id] = [];
-                    mapGRN[g.po_id].push(g);
+        async function loadAkunBank() {
+            const { data } = await client.from('master_akun').select('nama_akun').order('nama_akun');
+            const sel = document.getElementById("pilihAkun");
+            sel.innerHTML = '<option value="">-- Pilih Bank / Kas --</option>';
+            if (data) {
+                data.forEach(a => {
+                    const nama = a.nama_akun.toUpperCase();
+                    if (nama.includes("BANK") || nama.includes("KAS") || nama.includes("MANDIRI") || nama.includes("BCA") || nama.includes("TUNAI")) {
+                        sel.innerHTML += `<option value="${a.nama_akun}">${a.nama_akun}</option>`;
+                    }
                 });
             }
+        }
 
-            const validInvoiceData = listPO.filter(po => {
-                const dataGRN = mapGRN[po.id];
-                const punyaGRN = dataGRN && dataGRN.length > 0;
-                
-                if(punyaGRN) {
-                    po.grn_terima = dataGRN; 
+        async function loadData() {
+            const start = document.getElementById("tglMulai").value;
+            const end = document.getElementById("tglSelesai").value;
+            const typeDate = document.getElementById("tipeTanggal").value;
+
+            document.getElementById("listContainer").innerHTML = `<tr><td colspan="6" class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-indigo-600 text-2xl"></i><br><span class="text-xs text-slate-400 mt-2">Sinkronisasi Data (Manual Link)...</span></td></tr>`;
+
+            try {
+                const { data: listPO, error: errPO } = await client
+                    .from('purchase_order')
+                    .select('*')
+                    .gte(typeDate, start)
+                    .lte(typeDate, end)
+                    .order('jatuh_tempo', { ascending: true });
+
+                if (errPO) throw errPO;
+
+                if (!listPO || listPO.length === 0) {
+                    document.getElementById("listContainer").innerHTML = `<tr><td colspan="6" class="p-10 text-center italic">Tidak ada data PO pada periode ini.</td></tr>`;
+                    rawData = []; return;
                 }
 
-                const isLegacy = po.status === 'DITERIMA' || po.status === 'LUNAS';
-                return punyaGRN || isLegacy;
+                const listIDs = listPO.map(p => p.id);
+
+                const { data: listGRN, error: errGRN } = await client
+                    .from('grn_terima')
+                    .select('po_id, tanggal_terima, bukti_nota')
+                    .in('po_id', listIDs);
+
+                if (errGRN) throw errGRN;
+
+                const mapGRN = {};
+                if (listGRN) {
+                    listGRN.forEach(g => {
+                        if (!mapGRN[g.po_id]) mapGRN[g.po_id] = [];
+                        mapGRN[g.po_id].push(g);
+                    });
+                }
+
+                const validInvoiceData = listPO.filter(po => {
+                    const dataGRN = mapGRN[po.id];
+                    const punyaGRN = dataGRN && dataGRN.length > 0;
+
+                    if (punyaGRN) {
+                        po.grn_terima = dataGRN;
+                    }
+
+                    const isLegacy = po.status === 'DITERIMA' || po.status === 'LUNAS';
+                    return punyaGRN || isLegacy;
+                });
+
+                rawData = validInvoiceData;
+
+                const { data: jurnalList } = await client.from('jurnal_umum').select('nomor_referensi').ilike('nomor_referensi', 'INV-%');
+                postedSet = new Set(jurnalList ? jurnalList.map(j => j.nomor_referensi) : []);
+
+                updateSearchSuggestions();
+                applyFilter();
+
+            } catch (err) {
+                console.error(err);
+                alert("Terjadi kesalahan sistem: " + err.message);
+                document.getElementById("listContainer").innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">Gagal memuat data. Cek console.</td></tr>`;
+            }
+        }
+
+        // --- FUNGSI AUTO-SUGGESTION (VENDOR SAJA) ---
+        function updateSearchSuggestions() {
+            const datalist = document.getElementById("listData");
+            datalist.innerHTML = ""; // Reset
+
+            const uniqueSet = new Set();
+            rawData.forEach(po => {
+                // HANYA NAMA VENDOR (Sesuai Permintaan)
+                if (po.nama_vendor) uniqueSet.add(po.nama_vendor);
             });
 
-            rawData = validInvoiceData;
-
-            const { data: jurnalList } = await client.from('jurnal_umum').select('nomor_referensi').ilike('nomor_referensi', 'INV-%');
-            postedSet = new Set(jurnalList ? jurnalList.map(j => j.nomor_referensi) : []);
-
-            updateSearchSuggestions();
-            applyFilter();
-
-        } catch (err) {
-            console.error(err);
-            alert("Terjadi kesalahan sistem: " + err.message);
-            document.getElementById("listContainer").innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">Gagal memuat data. Cek console.</td></tr>`;
-        }
-    }
-
-    // --- FUNGSI AUTO-SUGGESTION (VENDOR SAJA) ---
-    function updateSearchSuggestions() {
-        const datalist = document.getElementById("listData");
-        datalist.innerHTML = ""; // Reset
-        
-        const uniqueSet = new Set();
-        rawData.forEach(po => {
-            // HANYA NAMA VENDOR (Sesuai Permintaan)
-            if(po.nama_vendor) uniqueSet.add(po.nama_vendor);
-        });
-
-        // Urutkan A-Z
-        Array.from(uniqueSet).sort().forEach(val => {
-            const opt = document.createElement("option");
-            opt.value = val;
-            datalist.appendChild(opt);
-        });
-    }
-
-    function applyFilter() {
-        const search = document.getElementById("cariVendor").value.toLowerCase();
-        const status = document.getElementById("filterStatus").value;
-        const tempo = document.getElementById("filterTempo").value;
-        const todayTime = new Date().setHours(0,0,0,0);
-
-        filteredData = rawData.filter(po => {
-            // Filter Text (Bisa cari Vendor & PO meski dropdown cuma vendor)
-            const matchText = po.nama_vendor.toLowerCase().includes(search) || po.nomor_po.toLowerCase().includes(search);
-            if(!matchText) return false;
-
-            // Filter Status
-            if(status !== 'ALL' && po.status !== status) return false;
-
-            // Filter Jatuh Tempo Canggih
-            if(tempo !== 'ALL' && po.status === 'DITERIMA') {
-                const jtDate = new Date(po.jatuh_tempo).getTime();
-                const diffTime = jtDate - todayTime;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                if(tempo === 'OVERDUE') { if(diffDays >= 0) return false; } 
-                else if(tempo === '7_DAYS') { if(diffDays < 0 || diffDays > 7) return false; }
-                else if(tempo === '30_DAYS') { if(diffDays < 0 || diffDays > 30) return false; }
-            } else if (tempo !== 'ALL' && po.status === 'LUNAS') {
-                return false; 
-            }
-            return true;
-        });
-
-        renderList();
-        hitungSummary();
-    }
-
-    function renderList() {
-        const container = document.getElementById("listContainer");
-        container.innerHTML = "";
-        document.getElementById("countData").innerText = `${filteredData.length} Data`;
-
-        if(filteredData.length === 0) {
-            container.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-slate-400 italic">Tidak ada data sesuai filter.</td></tr>`;
-            return;
+            // Urutkan A-Z
+            Array.from(uniqueSet).sort().forEach(val => {
+                const opt = document.createElement("option");
+                opt.value = val;
+                datalist.appendChild(opt);
+            });
         }
 
-        const today = new Date();
-        let unpostedCount = 0;
+        function applyFilter() {
+            const search = document.getElementById("cariVendor").value.toLowerCase();
+            const status = document.getElementById("filterStatus").value;
+            const tempo = document.getElementById("filterTempo").value;
+            const todayTime = new Date().setHours(0, 0, 0, 0);
 
-        filteredData.forEach((po, index) => {
-            // Hitung Status
-            const jt = new Date(po.jatuh_tempo);
-            const diff = Math.ceil((jt - today) / (1000 * 60 * 60 * 24));
-            
-            let statusBadge = "";
-            let rowClass = "hover:bg-slate-50 transition border-b group";
+            filteredData = rawData.filter(po => {
+                // Filter Text (Bisa cari Vendor & PO meski dropdown cuma vendor)
+                const matchText = po.nama_vendor.toLowerCase().includes(search) || po.nomor_po.toLowerCase().includes(search);
+                if (!matchText) return false;
 
-            if(po.status === 'LUNAS') {
-                statusBadge = `<span class="status-badge st-lunas"><i class="fas fa-check-circle"></i> LUNAS</span>`;
-            } else {
-                if(diff < 0) statusBadge = `<span class="status-badge st-hutang animate-pulse">Telat ${Math.abs(diff)} Hari</span>`;
-                else if(diff <= 7) statusBadge = `<span class="status-badge st-warning">${diff} Hari Lagi</span>`;
-                else statusBadge = `<span class="status-badge bg-slate-100 text-slate-500 border border-slate-200">Tempo OK</span>`;
+                // Filter Status
+                if (status !== 'ALL' && po.status !== status) return false;
+
+                // Filter Jatuh Tempo Canggih
+                if (tempo !== 'ALL' && po.status === 'DITERIMA') {
+                    const jtDate = new Date(po.jatuh_tempo).getTime();
+                    const diffTime = jtDate - todayTime;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (tempo === 'OVERDUE') { if (diffDays >= 0) return false; }
+                    else if (tempo === '7_DAYS') { if (diffDays < 0 || diffDays > 7) return false; }
+                    else if (tempo === '30_DAYS') { if (diffDays < 0 || diffDays > 30) return false; }
+                } else if (tempo !== 'ALL' && po.status === 'LUNAS') {
+                    return false;
+                }
+                return true;
+            });
+
+            renderList();
+            hitungSummary();
+        }
+
+        function renderList() {
+            const container = document.getElementById("listContainer");
+            container.innerHTML = "";
+            document.getElementById("countData").innerText = `${filteredData.length} Data`;
+
+            if (filteredData.length === 0) {
+                container.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-slate-400 italic">Tidak ada data sesuai filter.</td></tr>`;
+                return;
             }
 
-            // Tombol Jurnal & Bayar
-            const refNo = `INV-${po.nomor_po}`;
-            const isPosted = postedSet.has(refNo);
-            let jurnalBtn = "", actionBtn = "";
+            const today = new Date();
+            let unpostedCount = 0;
 
-            if (po.status === 'DITERIMA') {
-                if (isPosted) {
-                    jurnalBtn = `<div class="flex items-center justify-center gap-1 text-purple-600 font-bold text-xs"><i class="fas fa-check-double"></i> Terposting</div>`;
-                    actionBtn = `<button onclick="bukaModalBayar(${po.id}, '${po.nomor_po}', '${po.nama_vendor}', ${po.total_harga})" 
+            filteredData.forEach((po, index) => {
+                // Hitung Status
+                const jt = new Date(po.jatuh_tempo);
+                const diff = Math.ceil((jt - today) / (1000 * 60 * 60 * 24));
+
+                let statusBadge = "";
+                let rowClass = "hover:bg-slate-50 transition border-b group";
+
+                if (po.status === 'LUNAS') {
+                    statusBadge = `<span class="status-badge st-lunas"><i class="fas fa-check-circle"></i> LUNAS</span>`;
+                } else {
+                    if (diff < 0) statusBadge = `<span class="status-badge st-hutang animate-pulse">Telat ${Math.abs(diff)} Hari</span>`;
+                    else if (diff <= 7) statusBadge = `<span class="status-badge st-warning">${diff} Hari Lagi</span>`;
+                    else statusBadge = `<span class="status-badge bg-slate-100 text-slate-500 border border-slate-200">Tempo OK</span>`;
+                }
+
+                // Tombol Jurnal & Bayar
+                const refNo = `INV-${po.nomor_po}`;
+                const isPosted = postedSet.has(refNo);
+                let jurnalBtn = "", actionBtn = "";
+
+                if (po.status === 'DITERIMA') {
+                    if (isPosted) {
+                        jurnalBtn = `<div class="flex items-center justify-center gap-1 text-purple-600 font-bold text-xs"><i class="fas fa-check-double"></i> Terposting</div>`;
+                        actionBtn = `<button onclick="bukaModalBayar(${po.id}, '${po.nomor_po}', '${po.nama_vendor}', ${po.total_harga})" 
                                     class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg shadow hover:bg-indigo-700 font-bold text-xs flex items-center gap-2 mx-auto transition active:scale-95">
                                     <i class="fas fa-wallet"></i> Bayar
                                  </button>`;
-                } else {
-                    unpostedCount++;
-                    jurnalBtn = `<button onclick="postingSatuTagihan('${po.nomor_po}', '${po.nama_vendor}', ${po.total_harga})" 
+                    } else {
+                        unpostedCount++;
+                        jurnalBtn = `<button onclick="postingSatuTagihan('${po.nomor_po}', '${po.nama_vendor}', ${po.total_harga})" 
                                     class="bg-purple-100 hover:bg-purple-200 text-purple-700 border border-purple-200 px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-95 flex items-center gap-1 mx-auto">
                                     <i class="fas fa-plus-circle"></i> Post Hutang
                                  </button>`;
-                    actionBtn = `<button disabled class="bg-slate-100 text-slate-400 px-3 py-1.5 rounded-lg font-bold text-xs cursor-not-allowed mx-auto border border-slate-200">Verifikasi Dulu</button>`;
+                        actionBtn = `<button disabled class="bg-slate-100 text-slate-400 px-3 py-1.5 rounded-lg font-bold text-xs cursor-not-allowed mx-auto border border-slate-200">Verifikasi Dulu</button>`;
+                    }
+                } else {
+                    jurnalBtn = `<span class="text-slate-300 text-xs">-</span>`;
+                    actionBtn = `<span class="text-green-600 font-bold text-xs"><i class="fas fa-check"></i> Selesai</span>`;
                 }
-            } else {
-                jurnalBtn = `<span class="text-slate-300 text-xs">-</span>`;
-                actionBtn = `<span class="text-green-600 font-bold text-xs"><i class="fas fa-check"></i> Selesai</span>`;
-            }
 
-            const grn = po.grn_terima && po.grn_terima[0] ? po.grn_terima[0] : { tanggal_terima: po.created_at };
-            
-            const html = `
+                const grn = po.grn_terima && po.grn_terima[0] ? po.grn_terima[0] : { tanggal_terima: po.created_at };
+
+                const html = `
             <tr class="${rowClass}">
                 <td class="px-6 py-4 text-slate-400 text-xs">${index + 1}</td>
                 <td class="px-6 py-4">
@@ -442,169 +514,170 @@
                 <td class="px-6 py-4 text-center">${actionBtn}</td>
             </tr>
             `;
-            container.insertAdjacentHTML('beforeend', html);
-        });
+                container.insertAdjacentHTML('beforeend', html);
+            });
 
-        document.getElementById("countUnposted").innerText = unpostedCount + " Item";
-    }
+            document.getElementById("countUnposted").innerText = unpostedCount + " Item";
+        }
 
-    function hitungSummary() {
-        let h = 0, l = 0;
-        filteredData.forEach(po => {
-            if(po.status === 'DITERIMA') h += po.total_harga;
-            else l += po.total_harga;
-        });
-        document.getElementById("sumHutang").innerText = fmt(h);
-        document.getElementById("sumLunas").innerText = fmt(l);
-    }
+        function hitungSummary() {
+            let h = 0, l = 0;
+            filteredData.forEach(po => {
+                if (po.status === 'DITERIMA') h += po.total_harga;
+                else l += po.total_harga;
+            });
+            document.getElementById("sumHutang").innerText = fmt(h);
+            document.getElementById("sumLunas").innerText = fmt(l);
+        }
 
-    // --- LOGIKA JURNAL & POSTING ---
-    async function postingSatuTagihan(noPO, vendor, nominal) {
-        const refNo = `INV-${noPO}`;
-        const { data: exist } = await client.from('jurnal_umum').select('id').eq('nomor_referensi', refNo).maybeSingle();
-        if(exist) { alert("Data sudah ada!"); loadData(); return; }
+        // --- LOGIKA JURNAL & POSTING ---
+        async function postingSatuTagihan(noPO, vendor, nominal) {
+            const refNo = `INV-${noPO}`;
+            const { data: exist } = await client.from('jurnal_umum').select('id').eq('nomor_referensi', refNo).maybeSingle();
+            if (exist) { alert("Data sudah ada!"); loadData(); return; }
 
-        if(!confirm(`Verifikasi Tagihan:\nVendor: ${vendor}\nNominal: ${fmt(nominal)}\n\nPost ke Jurnal Hutang?`)) return;
+            if (!confirm(`Verifikasi Tagihan:\nVendor: ${vendor}\nNominal: ${fmt(nominal)}\n\nPost ke Jurnal Hutang?`)) return;
 
-        const jurnalPayload = [
-            { tanggal: new Date().toISOString().split('T')[0], nomor_referensi: refNo, keterangan: `Tagihan Masuk: ${vendor}`, nama_akun: 'Persediaan Material', debit: nominal, kredit: 0 },
-            { tanggal: new Date().toISOString().split('T')[0], nomor_referensi: refNo, keterangan: `Tagihan Masuk: ${vendor}`, nama_akun: 'Hutang Usaha', debit: 0, kredit: nominal }
-        ];
+            const jurnalPayload = [
+                { tanggal: new Date().toISOString().split('T')[0], nomor_referensi: refNo, keterangan: `Tagihan Masuk: ${vendor}`, nama_akun: 'Persediaan Material', debit: nominal, kredit: 0 },
+                { tanggal: new Date().toISOString().split('T')[0], nomor_referensi: refNo, keterangan: `Tagihan Masuk: ${vendor}`, nama_akun: 'Hutang Usaha', debit: 0, kredit: nominal }
+            ];
 
-        const { error } = await client.from('jurnal_umum').insert(jurnalPayload);
-        if(error) alert("Gagal: " + error.message);
-        else loadData();
-    }
+            const { error } = await client.from('jurnal_umum').insert(jurnalPayload);
+            if (error) alert("Gagal: " + error.message);
+            else loadData();
+        }
 
-    async function postingJurnalHutangMasal() {
-        if(!confirm("Posting SEMUA tagihan belum tercatat sekaligus?")) return;
-        const { data: poList } = await client.from('purchase_order').select('*').eq('status', 'DITERIMA');
-        let c = 0;
-        if(poList) {
-            for (const po of poList) {
-                const refNo = `INV-${po.nomor_po}`;
-                const { data: exist } = await client.from('jurnal_umum').select('id').eq('nomor_referensi', refNo).maybeSingle();
-                if (!exist) {
-                    await client.from('jurnal_umum').insert([
-                        { tanggal: new Date().toISOString().split('T')[0], nomor_referensi: refNo, keterangan: `Tagihan Masuk: ${po.nama_vendor}`, nama_akun: 'Persediaan Material', debit: po.total_harga, kredit: 0 },
-                        { tanggal: new Date().toISOString().split('T')[0], nomor_referensi: refNo, keterangan: `Tagihan Masuk: ${po.nama_vendor}`, nama_akun: 'Hutang Usaha', debit: 0, kredit: po.total_harga }
-                    ]);
-                    c++;
+        async function postingJurnalHutangMasal() {
+            if (!confirm("Posting SEMUA tagihan belum tercatat sekaligus?")) return;
+            const { data: poList } = await client.from('purchase_order').select('*').eq('status', 'DITERIMA');
+            let c = 0;
+            if (poList) {
+                for (const po of poList) {
+                    const refNo = `INV-${po.nomor_po}`;
+                    const { data: exist } = await client.from('jurnal_umum').select('id').eq('nomor_referensi', refNo).maybeSingle();
+                    if (!exist) {
+                        await client.from('jurnal_umum').insert([
+                            { tanggal: new Date().toISOString().split('T')[0], nomor_referensi: refNo, keterangan: `Tagihan Masuk: ${po.nama_vendor}`, nama_akun: 'Persediaan Material', debit: po.total_harga, kredit: 0 },
+                            { tanggal: new Date().toISOString().split('T')[0], nomor_referensi: refNo, keterangan: `Tagihan Masuk: ${po.nama_vendor}`, nama_akun: 'Hutang Usaha', debit: 0, kredit: po.total_harga }
+                        ]);
+                        c++;
+                    }
                 }
             }
+            alert(`${c} Data berhasil diposting.`);
+            loadData();
         }
-        alert(`${c} Data berhasil diposting.`);
-        loadData();
-    }
 
-    // --- LOGIKA BAYAR ---
-    function bukaModalBayar(id, noPO, vendor, total) {
-        document.getElementById("bayarIdPO").value = id;
-        document.getElementById("bayarNoPO").value = noPO;
-        document.getElementById("bayarVendor").value = vendor;
-        document.getElementById("displayTotal").innerText = fmt(total);
-        document.getElementById("displayVendor").innerText = vendor;
-        document.getElementById("tglBayar").value = new Date().toISOString().split('T')[0];
-        document.getElementById("nomorCek").value = "";
-        document.getElementById("ketBayar").value = `Pelunasan ${noPO}`;
-        document.getElementById("modalBayar").classList.remove("hidden");
-    }
-    function tutupModal() { document.getElementById("modalBayar").classList.add("hidden"); }
-
-    document.getElementById("formBayar").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const idPO = document.getElementById("bayarIdPO").value;
-        const noPO = document.getElementById("bayarNoPO").value;
-        const vendor = document.getElementById("bayarVendor").value;
-        const akunBank = document.getElementById("pilihAkun").value;
-        const tglBayar = document.getElementById("tglBayar").value;
-        const noCek = document.getElementById("nomorCek").value || "-";
-        const ket = document.getElementById("ketBayar").value;
-        
-        const totalStr = document.getElementById("displayTotal").innerText;
-        const totalVal = Number(totalStr.replace(/[^0-9,-]+/g,"").replace(",","."));
-
-        if(!akunBank) return alert("Pilih Akun Bank!");
-        if(!confirm(`Konfirmasi pembayaran Rp ${totalStr}?`)) return;
-
-        try {
-            const { error: errUp } = await client.from('purchase_order').update({ status: 'LUNAS' }).eq('id', idPO);
-            if(errUp) throw errUp;
-
-            await client.from('transaksi').insert([{
-                tanggal: tglBayar, jenis_transaksi: 'KELUAR', akun: 'Hutang Usaha', 
-                bank_sumber: akunBank, jumlah: totalVal, keterangan: `${ket} (Ref: ${noCek})`
-            }]);
-
-            const ref = `PAY-${noPO}`;
-            await client.from('jurnal_umum').insert([
-                { tanggal: tglBayar, nomor_referensi: ref, keterangan: `${ket} - ${vendor}`, nama_akun: 'Hutang Usaha', debit: totalVal, kredit: 0 },
-                { tanggal: tglBayar, nomor_referensi: ref, keterangan: `${ket} - ${vendor}`, nama_akun: akunBank, debit: 0, kredit: totalVal }
-            ]);
-
-            alert("✅ Pembayaran Sukses & Terjurnal!");
-            tutupModal();
-            loadData(); 
-        } catch (e) {
-            alert("Gagal: " + e.message);
+        // --- LOGIKA BAYAR ---
+        function bukaModalBayar(id, noPO, vendor, total) {
+            document.getElementById("bayarIdPO").value = id;
+            document.getElementById("bayarNoPO").value = noPO;
+            document.getElementById("bayarVendor").value = vendor;
+            document.getElementById("displayTotal").innerText = fmt(total);
+            document.getElementById("displayVendor").innerText = vendor;
+            document.getElementById("tglBayar").value = new Date().toISOString().split('T')[0];
+            document.getElementById("nomorCek").value = "";
+            document.getElementById("ketBayar").value = `Pelunasan ${noPO}`;
+            document.getElementById("modalBayar").classList.remove("hidden");
         }
-    });
+        function tutupModal() { document.getElementById("modalBayar").classList.add("hidden"); }
 
-    // --- PDF GENERATOR ---
-    async function downloadPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
-        
-        doc.setFontSize(16); doc.setFont("helvetica", "bold");
-        doc.text("PT. NUSANTARA LAND DEVELOPMENT", 14, 15);
-        doc.setFontSize(10); doc.setFont("helvetica", "normal");
-        doc.text("Jl. Sunset Boulevard Blok 5B/16 CitraLand City, Makassar", 14, 20);
-        doc.text("Laporan Hutang & Pembayaran Vendor (AP)", 14, 25);
-        doc.setLineWidth(0.5); doc.line(14, 28, 283, 28);
+        document.getElementById("formBayar").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const idPO = document.getElementById("bayarIdPO").value;
+            const noPO = document.getElementById("bayarNoPO").value;
+            const vendor = document.getElementById("bayarVendor").value;
+            const akunBank = document.getElementById("pilihAkun").value;
+            const tglBayar = document.getElementById("tglBayar").value;
+            const noCek = document.getElementById("nomorCek").value || "-";
+            const ket = document.getElementById("ketBayar").value;
 
-        doc.setFontSize(9); doc.setFont("helvetica", "italic");
-        const tglInfo = `${document.getElementById("tglMulai").value} s/d ${document.getElementById("tglSelesai").value}`;
-        doc.text(`Periode Data: ${tglInfo}`, 14, 34);
+            const totalStr = document.getElementById("displayTotal").innerText;
+            const totalVal = Number(totalStr.replace(/[^0-9,-]+/g, "").replace(",", "."));
 
-        const head = [['No. PO', 'Tgl', 'Nama Vendor', 'Jatuh Tempo', 'Status', 'Total Tagihan']];
-        const body = filteredData.map(po => [
-            po.nomor_po,
-            fmtDate(po.created_at),
-            po.nama_vendor,
-            fmtDate(po.jatuh_tempo),
-            po.status === 'LUNAS' ? 'LUNAS' : 'BELUM LUNAS',
-            fmt(po.total_harga)
-        ]);
+            if (!akunBank) return alert("Pilih Akun Bank!");
+            if (!confirm(`Konfirmasi pembayaran Rp ${totalStr}?`)) return;
 
-        let totalVal = filteredData.reduce((acc, curr) => acc + curr.total_harga, 0);
-        body.push([{content: 'TOTAL', colSpan: 5, styles: {halign: 'right', fontStyle: 'bold'}}, {content: fmt(totalVal), styles: {fontStyle: 'bold'}}]);
+            try {
+                const { error: errUp } = await client.from('purchase_order').update({ status: 'LUNAS' }).eq('id', idPO);
+                if (errUp) throw errUp;
 
-        doc.autoTable({
-            startY: 38,
-            head: head, body: body, theme: 'grid',
-            headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
-            columnStyles: { 5: {halign: 'right'} },
-            styles: { fontSize: 9, cellPadding: 2 }
+                await client.from('transaksi').insert([{
+                    tanggal: tglBayar, jenis_transaksi: 'KELUAR', akun: 'Hutang Usaha',
+                    bank_sumber: akunBank, jumlah: totalVal, keterangan: `${ket} (Ref: ${noCek})`
+                }]);
+
+                const ref = `PAY-${noPO}`;
+                await client.from('jurnal_umum').insert([
+                    { tanggal: tglBayar, nomor_referensi: ref, keterangan: `${ket} - ${vendor}`, nama_akun: 'Hutang Usaha', debit: totalVal, kredit: 0 },
+                    { tanggal: tglBayar, nomor_referensi: ref, keterangan: `${ket} - ${vendor}`, nama_akun: akunBank, debit: 0, kredit: totalVal }
+                ]);
+
+                alert("✅ Pembayaran Sukses & Terjurnal!");
+                tutupModal();
+                loadData();
+            } catch (e) {
+                alert("Gagal: " + e.message);
+            }
         });
 
-        let finalY = doc.lastAutoTable.finalY + 15;
-        if (finalY > 170) { doc.addPage(); finalY = 20; }
-        
-        const dateStr = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
-        doc.setFont("helvetica", "normal");
-        doc.text(`Makassar, ${dateStr}`, 220, finalY);
-        doc.text("Dibuat Oleh,", 220, finalY + 5);
-        doc.setFont("helvetica", "bold");
-        doc.text("Wahyuni", 220, finalY + 25);
-        doc.setLineWidth(0.2); doc.line(220, finalY + 26, 260, finalY + 26);
+        // --- PDF GENERATOR ---
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
 
-        doc.save(`Laporan_Tagihan_${dateStr}.pdf`);
-    }
+            doc.setFontSize(16); doc.setFont("helvetica", "bold");
+            doc.text("PT. NUSANTARA LAND DEVELOPMENT", 14, 15);
+            doc.setFontSize(10); doc.setFont("helvetica", "normal");
+            doc.text("Jl. Sunset Boulevard Blok 5B/16 CitraLand City, Makassar", 14, 20);
+            doc.text("Laporan Hutang & Pembayaran Vendor (AP)", 14, 25);
+            doc.setLineWidth(0.5); doc.line(14, 28, 283, 28);
 
-    // Listener Search
-    document.getElementById("cariVendor").addEventListener("keyup", (e) => { if(e.key==='Enter') applyFilter(); });
+            doc.setFontSize(9); doc.setFont("helvetica", "italic");
+            const tglInfo = `${document.getElementById("tglMulai").value} s/d ${document.getElementById("tglSelesai").value}`;
+            doc.text(`Periode Data: ${tglInfo}`, 14, 34);
 
-    init();
-  </script>
+            const head = [['No. PO', 'Tgl', 'Nama Vendor', 'Jatuh Tempo', 'Status', 'Total Tagihan']];
+            const body = filteredData.map(po => [
+                po.nomor_po,
+                fmtDate(po.created_at),
+                po.nama_vendor,
+                fmtDate(po.jatuh_tempo),
+                po.status === 'LUNAS' ? 'LUNAS' : 'BELUM LUNAS',
+                fmt(po.total_harga)
+            ]);
+
+            let totalVal = filteredData.reduce((acc, curr) => acc + curr.total_harga, 0);
+            body.push([{ content: 'TOTAL', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } }, { content: fmt(totalVal), styles: { fontStyle: 'bold' } }]);
+
+            doc.autoTable({
+                startY: 38,
+                head: head, body: body, theme: 'grid',
+                headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' },
+                columnStyles: { 5: { halign: 'right' } },
+                styles: { fontSize: 9, cellPadding: 2 }
+            });
+
+            let finalY = doc.lastAutoTable.finalY + 15;
+            if (finalY > 170) { doc.addPage(); finalY = 20; }
+
+            const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            doc.setFont("helvetica", "normal");
+            doc.text(`Makassar, ${dateStr}`, 220, finalY);
+            doc.text("Dibuat Oleh,", 220, finalY + 5);
+            doc.setFont("helvetica", "bold");
+            doc.text("Wahyuni", 220, finalY + 25);
+            doc.setLineWidth(0.2); doc.line(220, finalY + 26, 260, finalY + 26);
+
+            doc.save(`Laporan_Tagihan_${dateStr}.pdf`);
+        }
+
+        // Listener Search
+        document.getElementById("cariVendor").addEventListener("keyup", (e) => { if (e.key === 'Enter') applyFilter(); });
+
+        init();
+    </script>
 </body>
+
 </html>

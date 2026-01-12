@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8" />
   <title>Finance - Daftar Tagihan Vendor</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-gray-100 font-sans text-gray-800 p-6">
 
   <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
     <div>
-      <h1 class="text-2xl font-bold text-blue-800"><i class="fas fa-file-invoice-dollar mr-2"></i>Daftar Tagihan Vendor</h1>
+      <h1 class="text-2xl font-bold text-blue-800"><i class="fas fa-file-invoice-dollar mr-2"></i>Daftar Tagihan Vendor
+      </h1>
       <p class="text-sm text-gray-500">Invoice Masuk (Menunggu Pembayaran)</p>
     </div>
     <a href="dashboard_operasional.html" class="text-sm text-gray-600 hover:underline">Kembali ke Dashboard</a>
@@ -23,7 +26,7 @@
 
   <script>
     const supabaseUrl = "https://nbpxmramqufvxiikxbve.supabase.co";
-    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN"; 
+    const supabaseKey = "sb_publishable_peLRGV8YGA5djczYBgLnkQ_buXXBknN";
     const client = supabase.createClient(supabaseUrl, supabaseKey);
     const formatRupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(num);
 
@@ -89,17 +92,18 @@
     }
 
     async function bayarTagihan(id) {
-        if(!confirm("Yakin tandai tagihan ini sebagai LUNAS?")) return;
-        const { error } = await client.from('purchase_order').update({ status: 'LUNAS' }).eq('id', id);
-        if(error) {
-            alert("Gagal update: " + error.message);
-        } else {
-            alert("✅ Pembayaran berhasil dicatat. Tagihan diarsipkan.");
-            loadTagihan();
-        }
+      if (!confirm("Yakin tandai tagihan ini sebagai LUNAS?")) return;
+      const { error } = await client.from('purchase_order').update({ status: 'LUNAS' }).eq('id', id);
+      if (error) {
+        alert("Gagal update: " + error.message);
+      } else {
+        alert("✅ Pembayaran berhasil dicatat. Tagihan diarsipkan.");
+        loadTagihan();
+      }
     }
 
     loadTagihan();
   </script>
 </body>
+
 </html>
