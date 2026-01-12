@@ -449,7 +449,8 @@
         let currentType = 'JURNAL';
         let rawData = [];
         let akunMap = {};
-        let akunKategori = {}; // Maps Name -> Category (NEW)
+        let akunKategori = {};
+        let saldoAwalMap = {}; // Global Opening Balance Map
 
         const today = new Date();
         document.getElementById("tglMulai").valueAsDate = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -534,15 +535,29 @@
             // 2. Fetch Master Akun for Category Mapping
             const { data: master } = await client.from('master_akun').select('nama_akun, kode_akun, kategori');
 
-            akunMap = {}; // Maps Name -> Code
-            akunKategori = {}; // Maps Name -> Category (NEW)
-
+            akunMap = {};
+            akunKategori = {};
             if (master) {
                 master.forEach(m => {
                     akunMap[m.nama_akun] = m.kode_akun;
-                    akunKategori[m.nama_akun] = m.kategori; // Store Category
+                    akunKategori[m.nama_akun] = m.kategori;
                 });
             }
+
+            // 3. FETCH SALDO AWAL (Opening Balance)
+            saldoAwalMap = {};
+            const { data: prevData } = await client
+                .from('jurnal_umum')
+                .select('nama_akun, debit, kredit')
+                .lt('tanggal', start);
+
+            if (prevData) {
+                prevData.forEach(r => {
+                    if (!saldoAwalMap[r.nama_akun]) saldoAwalMap[r.nama_akun] = 0;
+                    saldoAwalMap[r.nama_akun] += (r.debit - r.kredit);
+                });
+            }
+
             rawData = jurnal || [];
 
             renderScreen(); // Render Tampilan Layar HP
@@ -646,8 +661,33 @@
                 html += `<div class="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto custom-scrollbar pr-2">`;
 
                 Object.keys(groups).sort().forEach(akun => {
-                    let s = 0;
+                    const kategori = akunKategori[akun] || '';
+                    const isCreditNormal = ['Kewajiban', 'Ekuitas', 'Pendapatan', 'Hutang', 'Modal', 'Penjualan'].some(k => kategori.includes(k));
+
+                    // Logic Saldo Awal
+                    let rawSaldo = saldoAwalMap[akun] || 0;
+
+                    // Jika Normal Kredit, Saldo = Kredit - Debit. (Jadi Saldo Awal Accounting (-100) dibaca 100)
+                    // Tapi di DB kita simpan Debit +, Kredit -. (Net Debit).
+                    // Jadi: Net Debit -100 (Credit 100).
+                    // Kalau kita mau tampilkan Positive for Credit Balance: loop harus s -= (debit - kredit) aka s += (kredit - debit).
+
+                    let displaySaldo = isCreditNormal ? -rawSaldo : rawSaldo; // Flip sign for display if credit normal
+                    let runningSaldo = rawSaldo; // Keep raw tracking for math
+
                     let rows = '';
+
+                    // FORCE SHOW Saldo Awal (Even if 0) for clarity
+                    rows += `
+                    <tr class="bg-yellow-50 border-b transition">
+                        <td class="p-2.5 text-center text-slate-400 align-top">-</td>
+                        <td class="p-2.5 font-bold text-slate-600 align-top">Saldo Awal ${isCreditNormal ? '(Normal Kredit)' : '(Normal Debit)'}</td>
+                        <td class="p-2.5 text-right font-mono text-slate-500 border-l border-slate-100 align-top">-</td>
+                        <td class="p-2.5 text-right font-mono text-slate-500 border-l border-slate-100 align-top">-</td>
+                        <td class="p-2.5 text-right font-mono font-bold text-slate-700 border-l border-slate-100 bg-slate-50/30 align-top">
+                            ${fmt(displaySaldo)}
+                        </td>
+                    </tr>`;
 
                     // TABLE HEADER
                     const tableHeader = `
@@ -666,13 +706,18 @@
 
                     // Calculate & Generate Rows
                     groups[akun].forEach(r => {
-                        s += (r.debit - r.kredit); // Normal Balance Asset/Exp logic usually Debit +, Liab/Eq/Rev -. But simpler general ledger view usually treats it as Net Debit.
-                        // Adjust logic if needed: For simplicity in display, we show Net Running Balance.
-                        // Or we can color code it.
+                        // Update Running Balance (Raw Net Debit)
+                        runningSaldo += (r.debit - r.kredit);
+
+                        // Calculate Display
+                        let sDisp = isCreditNormal ? -runningSaldo : runningSaldo;
 
                         const searchStr = `${r.keterangan} ${r.debit} ${r.kredit}`.toLowerCase();
                         const isDebit = r.debit > 0;
                         const isCredit = r.kredit > 0;
+
+                        // Color logic: Negative is Red
+                        const colorClass = sDisp < 0 ? 'text-red-600' : 'text-blue-700';
 
                         rows += `
                      <tr class="hover:bg-slate-50 transition report-item" data-search="${searchStr}">
@@ -680,12 +725,12 @@
                         <td class="p-2.5 text-slate-700 italic align-top">${r.keterangan || '-'}</td>
                         <td class="p-2.5 text-right font-mono text-slate-700 border-l border-slate-100 align-top">${isDebit ? fmt(r.debit) : ''}</td>
                         <td class="p-2.5 text-right font-mono text-slate-700 border-l border-slate-100 align-top">${isCredit ? fmt(r.kredit) : ''}</td>
-                        <td class="p-2.5 text-right font-mono font-bold ${s < 0 ? 'text-red-600' : 'text-blue-700'} border-l border-slate-100 bg-slate-50/30 align-top">${fmt(s)}</td>
+                        <td class="p-2.5 text-right font-mono font-bold ${colorClass} border-l border-slate-100 bg-slate-50/30 align-top">${fmt(sDisp)}</td>
                      </tr>`;
                     });
 
                     const tableFooter = `</tbody></table></div>`;
-                    const searchGroup = `${akun} ${s}`.toLowerCase();
+                    const searchGroup = `${akun} ${displaySaldo}`.toLowerCase(); // Use final displaySaldo
 
                     // Accordion Item
                     html += `
@@ -697,13 +742,13 @@
                             </div>
                             <div>
                                 <span class="font-bold text-slate-700 text-sm block">${akun}</span>
-                                <span class="text-[10px] text-slate-400 font-normal">${groups[akun].length} Transaksi</span>
+                                <span class="text-[10px] text-slate-400 font-normal border px-1 rounded bg-slate-100">${isCreditNormal ? 'Saldo Normal: KREDIT' : 'Saldo Normal: DEBIT'}</span>
                             </div>
                         </div>
                         <div class="text-right">
                             <div class="text-[10px] uppercase text-slate-400 font-bold tracking-wider">Saldo Akhir</div>
-                            <div class="font-mono font-bold ${s >= 0 ? 'text-blue-700' : 'text-red-600'}">
-                                ${fmt(s)}
+                            <div class="font-mono font-bold ${displaySaldo < 0 ? 'text-red-600' : 'text-blue-700'}">
+                                ${fmt(displaySaldo)}
                             </div>
                         </div>
                     </summary>
@@ -1297,11 +1342,20 @@
                     doc.text(`Akun: ${akun} [${akunMap[akun] || ''}]`, 14, finalY);
                     finalY += 2;
 
+                    const kategori = akunKategori[akun] || '';
+                    const isCreditNormal = ['Kewajiban', 'Ekuitas', 'Pendapatan', 'Hutang', 'Modal', 'Penjualan'].some(k => kategori.includes(k));
+
                     let subBody = [];
-                    let sal = 0;
+                    let rawSaldo = saldoAwalMap[akun] || 0;
+                    let displaySaldo = isCreditNormal ? -rawSaldo : rawSaldo;
+
+                    // Always show opening balance
+                    subBody.push(['-', 'Saldo Awal', '-', '-', fmtNum(displaySaldo)]);
+
                     groups[akun].forEach(r => {
-                        sal += (r.debit - r.kredit);
-                        subBody.push([new Date(r.tanggal).toLocaleDateString('id-ID'), r.keterangan, r.debit > 0 ? fmtNum(r.debit) : '-', r.kredit > 0 ? fmtNum(r.kredit) : '-', fmtNum(sal)]);
+                        rawSaldo += (r.debit - r.kredit);
+                        displaySaldo = isCreditNormal ? -rawSaldo : rawSaldo; // Recalculate display
+                        subBody.push([new Date(r.tanggal).toLocaleDateString('id-ID'), r.keterangan, r.debit > 0 ? fmtNum(r.debit) : '-', r.kredit > 0 ? fmtNum(r.kredit) : '-', fmtNum(displaySaldo)]);
                     });
 
                     doc.autoTable({
