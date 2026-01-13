@@ -290,11 +290,14 @@
                             const src = (item.source_table || '').toLowerCase();
                             const amt = Number(item.amount) || 0;
 
+                            // Allow Proyek Baru
+                            if (src.includes('master_proyek')) return true;
+
                             // Allow PO < 5M
                             if (src.includes('purchase_order') || src.includes('inventory_req')) {
                                 return amt < 5000000;
                             }
-                            // Block EVERYTHING else (Transaksi, Proyek, Upah, etc)
+
                             return false;
                         });
                     }
