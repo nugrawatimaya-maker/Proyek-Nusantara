@@ -585,45 +585,34 @@
             // 2. UI Feedback (Loading State) - Disable semua tombol & Show Spinner
             const allBtns = document.querySelectorAll('button');
             allBtns.forEach(btn => btn.disabled = true);
-
-            // Set Loading Icon on clicked button
             const originalContent = btnElement.innerHTML;
             btnElement.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Proses...`;
 
-            try {
-                // Fetch info untuk Logging
-                let titleCtx = 'Pengajuan';
-                if (sourceTable === 'transaksi_upah') {
-                    const { data: upahItem } = await client.from('transaksi_upah').select('nama_pekerjaan').eq('id', queueId).single();
-                    titleCtx = upahItem?.nama_pekerjaan || 'Upah Tukang';
-                } else {
-                    const { data: queueItem } = await client.from('approval_queue').select('title').eq('id', queueId).single();
-                    titleCtx = queueItem?.title || 'Pengajuan';
-                }
+            if (!client) {
+                alert("CRITICAL: Supabase CLIENT is missing/undefined!");
+                return;
+            }
 
-                // --- LOGIC: REJECTION ---
+            try {
+                // Fetch info untuk Logging (Sederhana, tanpa blocking query berat)
+                // Kita gunakan data yang ada saja atau skip detail fetch untuk menghindari hang di koneksi lambat
+                let titleCtx = 'Item Pengajuan';
+
                 // --- LOGIC: REJECTION ---
                 if (action === 'REJECTED') {
                     if (sourceTable === 'transaksi') {
                         // FIX: Use sourceId (Real Transaction ID) same as Approval logic
                         const targetId = sourceId && sourceId != 0 ? sourceId : queueId;
-                        const { error } = await client.from('transaksi').update({ jenis_transaksi: 'REJECTED' }).eq('id', targetId);
-
-                        // Also update queue if it exists (for sync)
+                        await client.from('transaksi').update({ jenis_transaksi: 'REJECTED' }).eq('id', targetId);
                         await client.from('approval_queue').update({ status: 'REJECTED' }).eq('id', queueId);
-
-                        if (error) throw error;
                     } else if (sourceTable === 'purchase_order') {
                         await updateStatusPO(sourceId, 'REJECTED');
-                        const { error } = await client.from('approval_queue').update({ status: 'REJECTED' }).eq('id', queueId);
-                        if (error) throw error;
+                        await client.from('approval_queue').update({ status: 'REJECTED' }).eq('id', queueId);
                     } else if (sourceTable === 'transaksi_upah') {
-                        const { error } = await client.from('transaksi_upah').update({ status: 'REJECTED' }).eq('id', queueId);
-                        if (error) throw error;
+                        await client.from('transaksi_upah').update({ status: 'REJECTED' }).eq('id', queueId);
                     } else {
-                        const { error } = await client.from('approval_queue').update({ status: 'REJECTED' }).eq('id', queueId);
-                        if (error) throw error;
-                        if (sourceId) await client.from(sourceTable).update({ status: 'REJECTED' }).eq('id', sourceId).then(r => { });
+                        await client.from('approval_queue').update({ status: 'REJECTED' }).eq('id', queueId);
+                        if (sourceId) await client.from(sourceTable).update({ status: 'REJECTED' }).eq('id', sourceId);
                     }
 
                     try { await PNAuth.logActivity(`Direksi MENOLAK: ${titleCtx}`, 'APPROVAL', 'fa-times-circle'); } catch (e) { }
@@ -636,48 +625,43 @@
                 // --- LOGIC: APPROVAL ---
                 else if (action === 'APPROVED') {
                     if (sourceTable === 'transaksi') {
-                        // FIX: Use sourceId (Real Transaction ID), not queueId
-                        // Also handle case where sourceId might be 0 (Orphan) -> We hope Heal function fixed it, or we try to use queueId as fallback if mapped directly.
-
                         const targetId = sourceId && sourceId != 0 ? sourceId : queueId;
-
-                        console.log(`Approving Transaksi. Target ID: ${targetId}, Source: ${sourceTable}`);
-
-                        // Approve Transaksi -> Status 'APPROVED_BY_DIREKSI' (Finance Execution Pending)
                         const { error } = await client.from('transaksi').update({ jenis_transaksi: 'APPROVED_BY_DIREKSI' }).eq('id', targetId);
-
-                        if (error) {
-                            console.error("Trans Update Error:", error);
-                            throw new Error("Gagal update status transaksi: " + error.message);
-                        }
-
-                        // Also update Queue status to remove it from list
+                        if (error) throw error;
                         await client.from('approval_queue').update({ status: 'APPROVED' }).eq('id', queueId);
 
                     } else if (sourceTable === 'purchase_order') {
                         await updateStatusPO(sourceId, 'APPROVED');
-
-                        // Update Queue
-                        const { error: errQueue } = await client.from('approval_queue').update({ status: 'APPROVED' }).eq('id', queueId);
-                        if (errQueue) throw errQueue;
-                    } else if (sourceTable === 'transaksi_upah') {
-                        // Approve Upah Tukang -> Status 'APPROVED_BY_DIREKSI'
-                        const { error } = await client
-                            .from('transaksi_upah')
-                            .update({ status: 'APPROVED_BY_DIREKSI' })
-                            .eq('id', queueId);
+                        const { error } = await client.from('approval_queue').update({ status: 'APPROVED' }).eq('id', queueId);
                         if (error) throw error;
-                    }
 
-                } else {
-                    await approveGeneric(queueId, sourceTable, sourceId);
-                    window.location.reload();
+                    } else if (sourceTable === 'transaksi_upah') {
+                        const { error } = await client.from('transaksi_upah').update({ status: 'APPROVED_BY_DIREKSI' }).eq('id', sourceId);
+                        if (error) throw error;
+
+                    } else {
+                        // GENERIC PATH (Master Proyek, dll)
+                        const numericSourceId = parseInt(sourceId) || sourceId;
+
+                        // 1. Update Source Table
+                        let targetStatus = 'APPROVED';
+                        if (sourceTable === 'master_proyek') targetStatus = 'BERJALAN';
+
+                        const { error: errSource } = await client.from(sourceTable).update({ status: targetStatus }).eq('id', numericSourceId);
+                        // Toleransi jika source table tidak punya kolom status atau gagal update (opsional, tapi sebaiknya warn)
+                        if (errSource) console.warn("Note: Source table update failed or not needed", errSource);
+
+                        // 2. Update Queue
+                        const { error: errQueue } = await client.from('approval_queue').update({ status: 'APPROVED' }).eq('id', queueId);
+                        if (errQueue) throw new Error("Gagal Update Queue: " + errQueue.message);
+
+                        window.location.reload();
+                    }
                 }
 
             } catch (err) {
                 console.error("Process Error:", err);
                 alert("Gagal memproses: " + err.message);
-                // Restore button content if error, because we might not reload
                 btnElement.innerHTML = originalContent;
                 allBtns.forEach(btn => btn.disabled = false);
             }
