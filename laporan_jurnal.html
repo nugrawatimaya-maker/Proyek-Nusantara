@@ -443,7 +443,10 @@
     <script>
         // Menggunakan client dari app_config.js
         const client = window.client;
-        const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+        // fmt sudah ada di app_config.js sebagai global window.fmt
+        // const fmt = (n) => ... (DIHAPUS SUPAYA TIDAK KONFLIK)
+
         const fmtNum = (n) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(n);
 
         let currentType = 'JURNAL';
@@ -492,9 +495,17 @@
         }
 
         function pilihLaporan(type, el) {
+            // DEBUG CLICK
+            // alert("DEBUG: Menu Clicked -> " + type);
+
             // SECURITY BLOCK - Role Based
             // Example: If user is strictly 'viewer' or specific role, block JURNAL
             // For now we trust the RBAC above.
+
+            if (!client) {
+                alert("Error: Database connection not ready.");
+                return;
+            }
 
             currentType = type;
             switchView('report');
