@@ -48,6 +48,17 @@
     </div>
 
     <script>
+        // GLOBAL ERROR TRAP
+        window.onerror = function (msg, url, line, col, error) {
+            alert("JS ERROR: " + msg + "\nLine: " + line);
+            return false;
+        };
+
+        if (!window.client) {
+            alert("CRITICAL ERROR: Supabase Client not initialized in app_config.js!");
+        }
+        const client = window.client;
+
         const activeProject = sessionStorage.getItem('active_project_name');
         if (!activeProject) {
             alert("⚠️ Sesi proyek habis. Silakan pilih proyek kembali di Portal.");

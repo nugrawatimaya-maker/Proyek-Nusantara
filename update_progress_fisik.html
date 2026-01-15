@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Progress Fisik - Operasional Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Supabase & Config -->
+    <script src="supabase.js"></script>
+    <script src="app_config.js"></script>
+    <script src="auth.js"></script>
+
+    <script>
+        // Auth Check
+        PNAuth.requireAuth(['operasional', 'finance', 'direksi', 'superadmin']);
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-100 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-lg">
+                <i class="fas fa-hard-hat text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-slate-800 text-lg leading-tight">Update Progress Fisik</h1>
+                <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Operasional Module</p>
+            </div>
+        </div>
+        <div>
+            <a href="dashboard_operasional.html"
+                class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition text-sm">
+                <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <main class="flex-grow p-6 max-w-4xl mx-auto w-full space-y-6">
+
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h2 class="text-xl font-bold text-slate-800 mb-4">Input Progress Pembangunan</h2>
+
+            <div class="flex gap-4 mb-6">
+                <div class="relative w-full">
+                    <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+                    <input type="text" id="searchInput" placeholder="Cari Unit ID... (Contoh: A1, B5)"
+                        class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button onclick="loadUnits()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold transition">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+
+            <div class="overflow-x-auto border border-slate-200 rounded-lg">
+                <table class="w-full text-sm text-left text-slate-500">
+                    <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Unit ID</th>
+                            <th scope="col" class="px-6 py-3">Status Jual</th>
+                            <th scope="col" class="px-6 py-3">Progress Saat Ini (%)</th>
+                            <th scope="col" class="px-6 py-3">Tanggal Update</th>
+                            <th scope="col" class="px-6 py-3 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-slate-400 italic">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Edit -->
+    <div id="editModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 transform transition-all scale-100">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-slate-800">Update Progress Unit <span id="modalUnitId"
+                        class="text-indigo-600"></span></h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i
+                        class="fas fa-times text-xl"></i></button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Persentase Progress (0-100)</label>
+                    <input type="number" id="inputProgress" min="0" max="100"
+                        class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:border-indigo-500 font-bold text-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Catatan (Opsional)</label>
+                    <textarea id="inputNotes" rows="3"
+                        class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:border-indigo-500 text-sm"></textarea>
+                </div>
+            </div>
+
+            <div class="mt-8 flex gap-3">
+                <button onclick="saveProgress()" id="btnSave"
+                    class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg font-bold transition shadow-lg shadow-indigo-200">
+                    Simpan Perubahan
+                </button>
+                <button onclick="closeModal()"
+                    class="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg font-bold transition">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allUnits = [];
+        let currentEditId = null;
+
+        document.getElementById('searchInput').addEventListener('keyup', renderTable);
+
+        async function loadUnits() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 italic"><i class="fas fa-circle-notch fa-spin mr-2"></i> Mengambil data...</td></tr>`;
+
+            try {
+                // Fetch unit_status from DB
+                const { data, error } = await window.client
+                    .from('unit_status')
+                    .select('unit_id, status, progress, notes, customer_name, updated_at')
+                    .order('unit_id', { ascending: true });
+
+                if (error) throw error;
+
+                // Also fetch SVG to get ALL unit IDs (even those not in DB yet) if needed.
+                // For simplicity, we only show units that exist in DB OR we can fetch siteplan.
+                // Let's stick to DB + manual add if needed? 
+                // Better approach: User wants to update ANY unit. 
+                // So we should ideally fetch siteplan structure too. 
+                // But for "Update Progress", showing only what's in DB is safer for now effectively.
+                // If unit not in DB, it means it's "Ready Stock" and never touched. 
+                // To allow updating "Ready Stock" (empty DB), we need the list of ALL IDs.
+                // Let's fetch sunrise_city_maros.html for structure.
+
+                const response = await fetch('sunrise_city_maros.html?' + new Date().getTime());
+                const htmlText = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                const blocks = doc.querySelectorAll('rect[data-unit-id]');
+
+                const dbMap = new Map();
+                if (data) data.forEach(row => dbMap.set(row.unit_id, row));
+
+                allUnits = [];
+                blocks.forEach(el => {
+                    const id = el.getAttribute('data-unit-id');
+                    const dbRow = dbMap.get(id);
+
+                    allUnits.push({
+                        id: id,
+                        status: dbRow?.status || 'ready-stok',
+                        progress: dbRow?.progress || 0,
+                        notes: dbRow?.notes || '',
+                        updated_at: dbRow?.updated_at || null
+                    });
+                });
+
+                // Sort alpha-numeric
+                allUnits.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
+
+                renderTable();
+
+            } catch (error) {
+                console.error(error);
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-red-500 font-bold">Gagal memuat data: ${error.message}</td></tr>`;
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const filter = document.getElementById('searchInput').value.toLowerCase();
+
+            const filtered = allUnits.filter(u => u.id.toLowerCase().includes(filter));
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 italic">Unit tidak ditemukan.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(u => {
+                const dateStr = u.updated_at ? new Date(u.updated_at).toLocaleDateString("id-ID", {
+                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                }) : '-';
+
+                return `
+                <tr class="bg-white border-b border-slate-100 hover:bg-slate-50 transition">
+                    <td class="px-6 py-4 font-bold text-slate-800">${u.id}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs font-bold rounded border ${getStatusColor(u.status)}">
+                            ${formatStatus(u.status)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 border border-slate-300">
+                            <div class="bg-indigo-600 h-2.5 rounded-full" style="width: ${u.progress}%"></div>
+                        </div>
+                        <span class="text-xs font-bold text-slate-600 mt-1 block">${u.progress}%</span>
+                    </td>
+                    <td class="px-6 py-4 text-xs text-slate-500 font-mono">
+                        ${dateStr}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="openEdit('${u.id}')" class="text-indigo-600 hover:text-indigo-800 font-bold text-sm bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition">
+                            <i class="fas fa-edit mr-1"></i> Update
+                        </button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'sold-out': return 'bg-red-100 text-red-700 border-red-200';
+                case 'booking-unit': return 'bg-sky-100 text-sky-700 border-sky-200';
+                case 'open-booking': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                default: return 'bg-slate-100 text-slate-600 border-slate-200';
+            }
+        }
+
+        function formatStatus(status) {
+            switch (status) {
+                case 'sold-out': return 'Sold Out';
+                case 'booking-unit': return 'Terbooking';
+                case 'open-booking': return 'Dipasarkan';
+                default: return 'Ready Stock';
+            }
+        }
+
+        function openEdit(id) {
+            const unit = allUnits.find(u => u.id === id);
+            if (!unit) return;
+
+            currentEditId = id;
+            document.getElementById('modalUnitId').innerText = id;
+            document.getElementById('inputProgress').value = unit.progress;
+            document.getElementById('inputNotes').value = unit.notes || '';
+
+            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editModal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('editModal').classList.remove('flex');
+            currentEditId = null;
+        }
+
+        async function saveProgress() {
+            if (!currentEditId) return;
+
+            const btn = document.getElementById('btnSave');
+            const originalText = btn.innerText;
+            btn.innerText = 'Menyimpan...';
+            btn.disabled = true;
+
+            const newProgress = parseInt(document.getElementById('inputProgress').value) || 0;
+            const newNotes = document.getElementById('inputNotes').value;
+
+            try {
+                // Upsert data
+                // We must be careful not to overwrite existing status/customer data if it exists.
+                // So we first check if record exists? 
+                // Actuallyupsert with onConflict is better, but we only want to update progress.
+
+                // Fetch first to see if exists
+                const { data: existing } = await window.client.from('unit_status').select('*').eq('unit_id', currentEditId).single();
+
+                let payload = {};
+                if (existing) {
+                    // Update
+                    const { error } = await window.client
+                        .from('unit_status')
+                        .update({ progress: newProgress, notes: newNotes, updated_at: new Date() })
+                        .eq('unit_id', currentEditId);
+                    if (error) throw error;
+                } else {
+                    // Insert new (assume ready-stok if not exists)
+                    const { error } = await window.client
+                        .from('unit_status')
+                        .insert({
+                            unit_id: currentEditId,
+                            status: 'ready-stok',
+                            progress: newProgress,
+                            notes: newNotes,
+                            updated_at: new Date()
+                        });
+                    if (error) throw error;
+                }
+
+                // Success
+                // Update local data
+                const unit = allUnits.find(u => u.id === currentEditId);
+                if (unit) {
+                    unit.progress = newProgress;
+                    unit.notes = newNotes;
+                    // If we just inserted, status is ready-stok, which it already was by default
+                }
+
+                renderTable();
+                closeModal();
+                alert('Progress berhasil disimpan!');
+
+                // Log Activity
+                if (typeof window.catatLog === 'function') {
+                    window.catatLog('UPDATE_PROGRESS', `Update progress unit ${currentEditId} ke ${newProgress}%`);
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert('Gagal menyimpan: ' + error.message);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', loadUnits);
+
+    </script>
+</body>
+
+</html>

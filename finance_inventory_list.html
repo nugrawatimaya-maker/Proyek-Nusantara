@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Persediaan Kavling - Finance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-100 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-lg">
+                <i class="fas fa-cube text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-slate-800 text-lg leading-tight">NLD Finance <span
+                        class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full ml-2">v2.0</span></h1>
+                <p class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Inventory Module</p>
+            </div>
+        </div>
+        <div>
+            <a href="dashboard_finance.html"
+                class="flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition text-sm">
+                <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+            </a>
+        </div>
+    </nav>
+
+    <main class="flex-grow p-6 max-w-7xl mx-auto w-full space-y-6">
+
+        <!-- Header Stat -->
+        <div class="flex justify-between items-end flex-wrap gap-4">
+            <div>
+                <h2 class="text-2xl font-black text-slate-800">Persediaan Kavling</h2>
+                <p class="text-slate-500">Data real-time dari Siteplan Sunrise City Maros</p>
+            </div>
+            <div class="flex gap-3 flex-wrap">
+                <div class="px-4 py-2 bg-white rounded-xl border border-slate-200 shadow-sm min-w-[100px]">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase">Total Kavling</div>
+                    <div class="text-xl font-black text-slate-700" id="countTotal">0</div>
+                </div>
+                <div class="px-4 py-2 bg-yellow-50 rounded-xl border border-yellow-100 shadow-sm min-w-[100px]">
+                    <div class="text-[10px] text-yellow-600 font-bold uppercase">Dipasarkan</div>
+                    <div class="text-xl font-black text-yellow-700" id="countOpen">0</div>
+                </div>
+                <div class="px-4 py-2 bg-sky-50 rounded-xl border border-sky-100 shadow-sm min-w-[100px]">
+                    <div class="text-[10px] text-sky-600 font-bold uppercase">Terbooking</div>
+                    <div class="text-xl font-black text-sky-700" id="countBooking">0</div>
+                </div>
+                <div class="px-4 py-2 bg-red-50 rounded-xl border border-red-100 shadow-sm min-w-[100px]">
+                    <div class="text-[10px] text-red-600 font-bold uppercase">Sold Out</div>
+                    <div class="text-xl font-black text-red-700" id="countSold">0</div>
+                </div>
+                <div class="px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100 shadow-sm min-w-[100px]">
+                    <div class="text-[10px] text-emerald-600 font-bold uppercase">Ready Stock</div>
+                    <div class="text-xl font-black text-emerald-700" id="countReady">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search -->
+        <div
+            class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between">
+            <div
+                class="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 w-full md:w-96">
+                <i class="fas fa-search text-slate-400"></i>
+                <input type="text" id="searchInput" placeholder="Cari Nomor Blok..."
+                    class="bg-transparent outline-none w-full text-sm text-slate-700 font-semibold">
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="text-xs font-bold text-slate-500">Status:</label>
+                <select id="statusFilter"
+                    class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 font-bold">
+                    <option value="all">Semua Status</option>
+                    <option value="ready-stok">Ready Stock / Kosong</option>
+                    <option value="open-booking">Dipasarkan</option>
+                    <option value="booking-unit">Terbooking</option>
+                    <option value="sold-out">Sold Out</option>
+                </select>
+                <button onclick="loadInventory()"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-slate-500">
+                    <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th scope="col" class="px-6 py-4">Nomor Blok</th>
+                            <th scope="col" class="px-6 py-4">Status</th>
+                            <th scope="col" class="px-6 py-4">Progress Pembangunan</th>
+                            <th scope="col" class="px-6 py-4">Harga / Nilai (Est)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody">
+                        <tr>
+                            <td colspan="4" class="px-6 py-8 text-center text-slate-400 italic">
+                                <i class="fas fa-circle-notch fa-spin mr-2"></i> Mengambil data siteplan...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Supabase Core -->
+    <script src="supabase.js"></script>
+
+    <!-- Config & Auth -->
+    <script src="app_config.js"></script>
+
+    <script>
+        // Client is already initialized in app_config.js as window.client
+        // Ensure we wait for it if needed, but app_config runs synchronously.
+
+        let rawData = [];
+
+        async function loadInventory() {
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-slate-400 italic"><i class="fas fa-circle-notch fa-spin mr-2"></i> Mengambil data siteplan...</td></tr>`;
+
+            try {
+                // 1. Fetch file sunrise_city_maros.html (Untuk Struktur Unit ID)
+                const response = await fetch('sunrise_city_maros.html?' + new Date().getTime());
+                const htmlText = await response.text();
+
+                // 2. Parse HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+
+                // 3. Select all rect with data-unit-id
+                const blocks = doc.querySelectorAll('rect[data-unit-id]');
+
+                // 4. Fetch Real-time Data from Supabase
+                // 4. Fetch Real-time Data from Supabase
+                const { data: dbData, error } = await client
+                    .from('unit_status')
+                    .select('unit_id, status, progress, notes, customer_name, marketing_name');
+
+                if (error) {
+                    console.error("Supabase Error:", error.message);
+                }
+
+                // Indexing DB data for faster lookup
+                const dbMap = new Map();
+                if (dbData) {
+                    dbData.forEach(row => dbMap.set(row.unit_id, row));
+                }
+
+                rawData = [];
+                let stats = { total: 0, ready: 0, sold: 0, open: 0, booking: 0 };
+
+                blocks.forEach(el => {
+                    const id = el.getAttribute('data-unit-id');
+
+                    // Priority: DB Data > HTML Attribute > Default
+                    const dbRow = dbMap.get(id);
+
+                    let status = dbRow?.status || el.getAttribute('data-status') || 'ready-stok';
+
+                    // Priority: DB Only (Manual Input)
+                    let progress = 0;
+                    if (dbRow && dbRow.progress !== undefined && dbRow.progress !== null) {
+                        progress = dbRow.progress;
+                    }
+
+                    // Map empty status to ready-stok
+                    if (!status) status = 'ready-stok';
+
+                    // Normalize progress
+                    progress = parseInt(progress);
+                    if (isNaN(progress)) progress = 0;
+
+                    rawData.push({
+                        id: id,
+                        status: status,
+                        progress: progress,
+                        marketing: dbRow?.marketing_name || '-',
+                        customer: dbRow?.customer_name || '-'
+                    });
+
+                    // Stat Counters
+                    stats.total++;
+                    if (status === 'sold-out') stats.sold++;
+                    else if (status === 'booking-unit') stats.booking++;
+                    else if (status === 'open-booking') stats.open++;
+                    else stats.ready++; // ready-stok or fallback
+                });
+
+                // Update Header Stats
+                document.getElementById('countTotal').innerText = stats.total;
+                document.getElementById('countReady').innerText = stats.ready;
+                document.getElementById('countSold').innerText = stats.sold;
+                document.getElementById('countOpen').innerText = stats.open;
+                document.getElementById('countBooking').innerText = stats.booking;
+
+                renderTable(rawData);
+
+            } catch (error) {
+                console.error(error);
+                alert("Error loading data: " + error.message);
+                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-red-500 font-bold"><i class="fas fa-exclamation-triangle mr-2"></i> Gagal memuat data: ${error.message}</td></tr>`;
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('inventoryTableBody');
+            const filterText = document.getElementById('searchInput').value.toLowerCase();
+            const filterStatus = document.getElementById('statusFilter').value;
+
+            // Filter
+            const filtered = data.filter(item => {
+                const matchText = item.id.toLowerCase().includes(filterText);
+                const matchStatus = filterStatus === 'all' || item.status === filterStatus;
+                return matchText && matchStatus;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-slate-400 italic">Tidak ada data ditemukan.</td></tr>`;
+                return;
+            }
+
+            // Sort by ID (Alpha-numeric sort logic simple)
+            filtered.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
+
+            tbody.innerHTML = filtered.map(item => {
+                let badgeClass = '';
+                let statusLabel = '';
+
+                switch (item.status) {
+                    case 'sold-out':
+                        badgeClass = 'bg-red-100 text-red-700 border-red-200';
+                        statusLabel = 'Sold Out';
+                        break;
+                    case 'booking-unit':
+                        badgeClass = 'bg-sky-100 text-sky-700 border-sky-200';
+                        statusLabel = 'Terbooking';
+                        break;
+                    case 'open-booking':
+                        badgeClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                        statusLabel = 'Dipasarkan';
+                        break;
+                    case 'ready-stok':
+                        badgeClass = 'bg-slate-100 text-slate-600 border-slate-200'; // White/Grey matches siteplan "Available"
+                        statusLabel = 'Ready Stock';
+                        break;
+                    default:
+                        badgeClass = 'bg-slate-100 text-slate-600 border-slate-200';
+                        statusLabel = 'Ready Stock';
+                }
+
+                return `
+                    <tr class="bg-white border-b border-slate-100 hover:bg-slate-50 transition">
+                        <td class="px-6 py-4 font-bold text-slate-800">
+                            ${item.id}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="${badgeClass} text-xs font-bold px-2.5 py-0.5 rounded border">
+                                ${statusLabel}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-200 border border-slate-300">
+                                <div class="bg-indigo-600 h-2.5 rounded-full" style="width: ${item.progress}%"></div>
+                            </div>
+                            <span class="text-xs text-slate-500 font-bold mt-1 block">${item.progress}%</span>
+                        </td>
+                        <td class="px-6 py-4 text-slate-500 font-mono text-xs">
+                           ${item.customer !== '-' ? `<div class="font-bold text-slate-700">${item.customer}</div>` : '-'}
+                           ${item.marketing !== '-' ? `<div class="text-[10px] text-slate-400">Mkt: ${item.marketing}</div>` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Event Listeners
+        document.getElementById('searchInput').addEventListener('keyup', () => renderTable(rawData));
+        document.getElementById('statusFilter').addEventListener('change', () => renderTable(rawData));
+
+        // Init
+        document.addEventListener('DOMContentLoaded', loadInventory);
+
+    </script>
+</body>
+
+</html>

@@ -680,6 +680,21 @@
                 </div>
 
                 <div id="statusEditor" class="hidden space-y-4">
+                  <!-- PROGRESS INPUT -->
+                  <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                    <label class="text-xs font-bold text-indigo-900 flex justify-between">
+                      Progress Pembangunan
+                      <span id="labelProgressVal" class="text-indigo-600">0%</span>
+                    </label>
+                    <input type="range" id="inputProgress" min="0" max="100" step="5" value="0"
+                      class="w-full mt-2 h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                    <div class="flex justify-between text-[10px] text-indigo-400 mt-1 font-semibold">
+                      <span>0%</span>
+                      <span>50%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+
                   <div>
                     <label class="text-xs font-bold text-slate-600">Pilih Status</label>
                     <select id="statusSelect"
@@ -1230,10 +1245,16 @@
       // Isi Panel
       updateForm.classList.remove("opacity-50", "pointer-events-none");
       selectedUnitEl.textContent = id;
-      selectedProgressEl.textContent = `${el.dataset.progress || 0}%`;
 
       const data = globalUnitData[id] || {};
       const st = normalizeStatus(data.status ?? el.dataset.status ?? null);
+
+      // PROGRESS LOGIC: Ambil dari DB atau fallback ke dataset HTML
+      const currentProgress = data.progress !== undefined ? data.progress : (el.dataset.progress || 0);
+      selectedProgressEl.textContent = `${currentProgress}%`;
+
+      if (inputProgress) inputProgress.value = currentProgress;
+      if (labelProgressVal) labelProgressVal.textContent = `${currentProgress}%`;
 
       statusSelect.value = st;
       noteInput.value = data.notes || "";
@@ -1288,6 +1309,17 @@
     });
 
     // ====== 6. FORM LOGIC ======
+
+    // Progress Slider Logic
+    const inputProgress = document.getElementById("inputProgress");
+    const labelProgressVal = document.getElementById("labelProgressVal");
+
+    if (inputProgress && labelProgressVal) {
+      inputProgress.addEventListener("input", (e) => {
+        labelProgressVal.textContent = e.target.value + "%";
+      });
+    }
+
     function toggleDynamicForms(status) {
       formBooking.classList.add("hidden-group");
       formSold.classList.add("hidden-group");
@@ -1320,10 +1352,12 @@
 
       try {
         const st = statusSelect.value;
+        const prog = inputProgress ? parseInt(inputProgress.value) : 0;
 
         let payload = {
           unit_id: currentSelectedId,
           status: st,
+          progress: prog, // ADDED: Save progress to DB
           notes: noteInput?.value || "",
           updated_at: new Date()
         };
@@ -1398,7 +1432,16 @@
         const { error } = await client.from('unit_status').upsert(payload);
         if (error) throw error;
 
+        // Update Global Data
         globalUnitData[currentSelectedId] = { ...globalUnitData[currentSelectedId], ...payload };
+
+        // Update DOM attributes for immediate feedback
+        if (selectedEl) {
+          selectedEl.setAttribute("data-status", st);
+          selectedEl.setAttribute("data-progress", prog);
+        }
+        selectedProgressEl.textContent = `${prog}%`;
+
         applyColorsToMap();
         updateStatistics();
 
