@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="id">
 
 <head>
@@ -59,8 +59,18 @@
                     <input type="text" id="searchInput" placeholder="Cari Unit ID... (Contoh: A1, B5)"
                         class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
+
+                <select id="statusFilter" onchange="renderTable()"
+                    class="px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-slate-600 font-medium bg-white">
+                    <option value="">Semua Status</option>
+                    <option value="ready-stok">Ready Stock</option>
+                    <option value="open-booking">Dipasarkan</option>
+                    <option value="booking-unit">Terbooking</option>
+                    <option value="sold-out">Sold Out</option>
+                </select>
+
                 <button onclick="loadUnits()"
-                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold transition">
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold transition whitespace-nowrap">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
@@ -188,9 +198,14 @@
 
         function renderTable() {
             const tbody = document.getElementById('tableBody');
-            const filter = document.getElementById('searchInput').value.toLowerCase();
+            const filterText = document.getElementById('searchInput').value.toLowerCase();
+            const filterStatus = document.getElementById('statusFilter').value;
 
-            const filtered = allUnits.filter(u => u.id.toLowerCase().includes(filter));
+            const filtered = allUnits.filter(u => {
+                const matchText = u.id.toLowerCase().includes(filterText);
+                const matchStatus = filterStatus ? u.status === filterStatus : true;
+                return matchText && matchStatus;
+            });
 
             if (filtered.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 italic">Unit tidak ditemukan.</td></tr>`;
@@ -247,13 +262,12 @@
         }
 
         function openEdit(id) {
-            const unit = allUnits.find(u => u.id === id);
-            if (!unit) return;
-
             currentEditId = id;
+            const unit = allUnits.find(u => u.id === id);
+
             document.getElementById('modalUnitId').innerText = id;
-            document.getElementById('inputProgress').value = unit.progress;
-            document.getElementById('inputNotes').value = unit.notes || '';
+            document.getElementById('inputProgress').value = unit ? unit.progress : 0;
+            document.getElementById('inputNotes').value = unit ? unit.notes : '';
 
             document.getElementById('editModal').classList.remove('hidden');
             document.getElementById('editModal').classList.add('flex');
@@ -273,58 +287,46 @@
             btn.innerText = 'Menyimpan...';
             btn.disabled = true;
 
-            const newProgress = parseInt(document.getElementById('inputProgress').value) || 0;
-            const newNotes = document.getElementById('inputNotes').value;
+            const progress = parseInt(document.getElementById('inputProgress').value) || 0;
+            const notes = document.getElementById('inputNotes').value;
 
             try {
-                // Upsert data
-                // We must be careful not to overwrite existing status/customer data if it exists.
-                // So we first check if record exists? 
-                // Actuallyupsert with onConflict is better, but we only want to update progress.
+                // Periksa apakah unit sudah ada di database
+                const { data: existing } = await window.client
+                    .from('unit_status')
+                    .select('id')
+                    .eq('unit_id', currentEditId)
+                    .single();
 
-                // Fetch first to see if exists
-                const { data: existing } = await window.client.from('unit_status').select('*').eq('unit_id', currentEditId).single();
+                let error;
+                const timestamp = new Date();
 
-                let payload = {};
                 if (existing) {
-                    // Update
-                    const { error } = await window.client
+                    const { error: err } = await window.client
                         .from('unit_status')
-                        .update({ progress: newProgress, notes: newNotes, updated_at: new Date() })
+                        .update({
+                            progress: progress,
+                            notes: notes,
+                            updated_at: timestamp
+                        })
                         .eq('unit_id', currentEditId);
-                    if (error) throw error;
+                    error = err;
                 } else {
-                    // Insert new (assume ready-stok if not exists)
-                    const { error } = await window.client
+                    const { error: err } = await window.client
                         .from('unit_status')
-                        .insert({
+                        .insert([{
                             unit_id: currentEditId,
-                            status: 'ready-stok',
-                            progress: newProgress,
-                            notes: newNotes,
-                            updated_at: new Date()
-                        });
-                    if (error) throw error;
+                            status: 'ready-stok', // Default status for new entry
+                            progress: progress,
+                            notes: notes,
+                            updated_at: timestamp
+                        }]);
+                    error = err;
                 }
 
-                // Success
-                // Update local data
-                const unit = allUnits.find(u => u.id === currentEditId);
-                if (unit) {
-                    unit.progress = newProgress;
-                    unit.notes = newNotes;
-                    // If we just inserted, status is ready-stok, which it already was by default
-                }
-
-                renderTable();
-                closeModal();
-                alert('Progress berhasil disimpan!');
+                if (error) throw error;
 
                 // Log Activity
-                if (typeof window.catatLog === 'function') {
-                    window.catatLog('UPDATE_PROGRESS', `Update progress unit ${currentEditId} ke ${newProgress}%`);
-                }
-
             } catch (error) {
                 console.error(error);
                 alert('Gagal menyimpan: ' + error.message);

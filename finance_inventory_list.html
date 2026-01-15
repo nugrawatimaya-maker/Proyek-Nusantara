@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 
     <style>
         body {
@@ -48,6 +50,13 @@
                 <p class="text-slate-500">Data real-time dari Siteplan Sunrise City Maros</p>
             </div>
             <div class="flex gap-3 flex-wrap">
+                <div
+                    class="px-5 py-2 bg-indigo-600 rounded-xl border border-indigo-700 shadow-lg min-w-[140px] flex flex-col justify-center">
+                    <div class="text-[10px] text-indigo-100 font-bold uppercase tracking-wider mb-1">Nilai Persediaan
+                    </div>
+                    <div class="text-lg font-black text-white leading-none" id="valInventory">Rp 0</div>
+                    <div class="text-[9px] text-indigo-200 mt-1">*Excl. Sold Out</div>
+                </div>
                 <div class="px-4 py-2 bg-white rounded-xl border border-slate-200 shadow-sm min-w-[100px]">
                     <div class="text-[10px] text-slate-400 font-bold uppercase">Total Kavling</div>
                     <div class="text-xl font-black text-slate-700" id="countTotal">0</div>
@@ -91,8 +100,12 @@
                     <option value="sold-out">Sold Out</option>
                 </select>
                 <button onclick="loadInventory()"
-                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition">
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition shadow-sm">
                     <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button onclick="downloadSummaryPDF()"
+                    class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition shadow-sm">
+                    <i class="fas fa-file-pdf"></i> Download PDF
                 </button>
             </div>
         </div>
@@ -100,18 +113,32 @@
         <!-- Table -->
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-slate-500">
-                    <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
+                <table class="w-full text-left border-collapse">
+                    <thead
+                        class="bg-slate-50 text-slate-500 uppercase text-[10px] font-extrabold tracking-wider sticky top-0 z-10">
                         <tr>
-                            <th scope="col" class="px-6 py-4">Nomor Blok</th>
-                            <th scope="col" class="px-6 py-4">Status</th>
-                            <th scope="col" class="px-6 py-4">Progress Pembangunan</th>
-                            <th scope="col" class="px-6 py-4">Harga / Nilai (Est)</th>
+                            <th scope="col" class="p-3 border-b text-center">Blok</th>
+                            <th scope="col" class="p-3 border-b text-right">Tanah (Rp)</th>
+                            <th scope="col" class="p-3 border-b text-right">Matang (Rp)</th>
+                            <th scope="col" class="p-3 border-b text-right">Sertif (Rp)</th>
+                            <th scope="col" class="p-3 border-b text-right">Upah (Rp)</th>
+                            <th scope="col" class="p-3 border-b text-right">Material (Rp)</th>
+                            <th scope="col" class="p-3 border-b text-right">Infra (Rp)</th>
+                            <th scope="col" class="p-3 border-b text-right">Listrik (Rp)</th>
+                            <th scope="col" class="p-3 border-b text-right">Sumur (Rp)</th>
+                            <th scope="col" class="p-3 border-b text-center">Status</th>
+                            <th scope="col" class="p-3 border-b text-center">Progress</th>
+                            <th scope="col" class="p-3 border-b text-right bg-blue-50 text-blue-800">Total HPP (Rp)</th>
+                            <th scope="col" class="p-3 border-b text-right bg-green-50 text-green-800">Harga Jual (Rp)
+                            </th>
+                            <th scope="col"
+                                class="p-3 border-b text-right bg-emerald-100 text-emerald-900 border-l border-emerald-200">
+                                Est. Laba (Rp)</th>
                         </tr>
                     </thead>
-                    <tbody id="inventoryTableBody">
+                    <tbody id="inventoryBody" class="divide-y divide-slate-100 text-slate-600 text-xs">
                         <tr>
-                            <td colspan="4" class="px-6 py-8 text-center text-slate-400 italic">
+                            <td colspan="10" class="p-3 text-center text-slate-400 italic">
                                 <i class="fas fa-circle-notch fa-spin mr-2"></i> Mengambil data siteplan...
                             </td>
                         </tr>
@@ -121,6 +148,30 @@
         </div>
 
     </main>
+
+    <!-- Modal Edit Sertifikat -->
+    <div id="modalSertifikat"
+        class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 transform transition-all scale-100">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Edit Biaya Sertifikat <span id="certUnitId"
+                    class="text-indigo-600"></span></h3>
+
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-slate-500 mb-1">Biaya Manual (Rp)</label>
+                <input type="number" id="inputCertCost"
+                    class="w-full border border-slate-300 rounded p-2 outline-none focus:border-indigo-500 font-bold">
+                <p class="text-[10px] text-slate-400 mt-1 italic">Isi 0 untuk kembali ke hitungan otomatis (standar).
+                </p>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="saveSertifikat()" id="btnSaveCert"
+                    class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded font-bold transition">Simpan</button>
+                <button onclick="document.getElementById('modalSertifikat').classList.add('hidden')"
+                    class="px-4 py-2 border border-slate-200 text-slate-600 rounded font-bold hover:bg-slate-50">Batal</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Supabase Core -->
     <script src="supabase.js"></script>
@@ -135,8 +186,8 @@
         let rawData = [];
 
         async function loadInventory() {
-            const tbody = document.getElementById('inventoryTableBody');
-            tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-slate-400 italic"><i class="fas fa-circle-notch fa-spin mr-2"></i> Mengambil data siteplan...</td></tr>`;
+            const tbody = document.getElementById('inventoryBody');
+            tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400 italic"><i class="fas fa-circle-notch fa-spin mr-2"></i> Mengambil data siteplan...</td></tr>`;
 
             try {
                 // 1. Fetch file sunrise_city_maros.html (Untuk Struktur Unit ID)
@@ -154,10 +205,43 @@
                 // 4. Fetch Real-time Data from Supabase
                 const { data: dbData, error } = await client
                     .from('unit_status')
-                    .select('unit_id, status, progress, notes, customer_name, marketing_name');
+                    .select('unit_id, status, progress, notes, customer_name, marketing_name, harga_tanah, biaya_sertifikat, biaya_infrastruktur, biaya_upah, biaya_material, biaya_listrik, biaya_sumur');
 
                 if (error) {
                     console.error("Supabase Error:", error.message);
+                }
+
+                // 4.b Fetch Upah Tukang (Real-time from transaksi_upah)
+                const { data: dataUpah } = await client
+                    .from('transaksi_upah')
+                    .select('kavling, nilai_bayar');
+
+                // Aggregate Upah per Unit
+                const upahMap = {};
+                if (dataUpah) {
+                    dataUpah.forEach(u => {
+                        const k = u.kavling || "";
+                        upahMap[k] = (upahMap[k] || 0) + (u.nilai_bayar || 0);
+                    });
+                }
+
+                // 4.c Fetch Biaya Material (Real-time from jurnal_umum 'Beban Proyek')
+                // Note: Keterangan field usually contains "Material: A1 (...)" or similar pattern.
+                // We will try to match substring or use a better tagging system if available.
+                // For now, we search string match. This might be heavy but accurate enough for now.
+                const { data: dataMaterial } = await client
+                    .from('jurnal_umum')
+                    .select('keterangan, debit')
+                    .eq('nama_akun', 'Beban Proyek');
+
+                const materialMap = {};
+                if (dataMaterial) {
+                    dataMaterial.forEach(m => {
+                        const ket = m.keterangan || "";
+                        // Simple heuristic: Try to find Unit ID in description
+                        // We iterate all known blocks later, or simply extract?
+                        // Extraction is risky. Let's do reverse matching inside the loop below.
+                    });
                 }
 
                 // Indexing DB data for faster lookup
@@ -167,7 +251,7 @@
                 }
 
                 rawData = [];
-                let stats = { total: 0, ready: 0, sold: 0, open: 0, booking: 0 };
+                let stats = { total: 0, ready: 0, sold: 0, open: 0, booking: 0, currValue: 0 };
 
                 blocks.forEach(el => {
                     const id = el.getAttribute('data-unit-id');
@@ -190,23 +274,102 @@
                     progress = parseInt(progress);
                     if (isNaN(progress)) progress = 0;
 
+                    // Calculate Base Price (Harga Dasar Tanah)
+                    // Logic from User: Block A & B = Commercial, Others = Subsidi
+                    const isCommercial = id.toUpperCase().startsWith('A') || id.toUpperCase().startsWith('B');
+                    const defaultHargaTanah = isCommercial ? 43144202 : 36980744;
+
+                    // Priority: DB > Calculated Default
+                    let hargaTanah = (dbRow && dbRow.harga_tanah > 0) ? dbRow.harga_tanah : defaultHargaTanah;
+
+                    // Biaya Pematangan (Fixed per Unit based on user image)
+                    const biayaPematangan = 1952647;
+
+                    // Biaya Pemisahan Sertifikat (Hybrid Logic)
+                    // 1. Defined in DB (Manual Input)? Use it.
+                    // 2. Sold Out? Use Standard Rule (3.5jt Comm / 2jt Sub).
+                    // 3. Ready Stock / Others? Default 0 (Not yet incurred).
+                    let biayaSertifikat = 0;
+                    const standardSertifikat = isCommercial ? 3500000 : 2000000;
+
+                    if (dbRow && dbRow.biaya_sertifikat > 0) {
+                        biayaSertifikat = dbRow.biaya_sertifikat;
+                    } else if (status === 'sold-out') {
+                        biayaSertifikat = standardSertifikat;
+                    } else {
+                        biayaSertifikat = 0; // Ready Stock, etc default to 0
+                    }
+
+                    // Biaya Infrastruktur (Manual Input DB)
+                    const biayaInfra = dbRow?.biaya_infrastruktur || 0;
+                    const biayaListrik = dbRow?.biaya_listrik || 0;
+                    const biayaSumur = dbRow?.biaya_sumur || 0;
+
+                    // --- BIAYA UPAH TUKANG ---
+                    // Priority: 1. DB Manual | 2. Sold Out Default (16jt) | 3. Real Transaction
+                    let biayaUpah = 0;
+                    if (dbRow && dbRow.biaya_upah > 0) {
+                        biayaUpah = dbRow.biaya_upah;
+                    } else if (status === 'sold-out') {
+                        biayaUpah = 16000000;
+                    } else {
+                        biayaUpah = upahMap[id] || 0;
+                    }
+
+                    // --- BIAYA MATERIAL ---
+                    // Priority: 1. DB Manual | 2. Sold Out Default (65jt) | 3. Real Journal
+                    let biayaMaterial = 0;
+                    if (dbRow && dbRow.biaya_material > 0) {
+                        biayaMaterial = dbRow.biaya_material;
+                    } else if (status === 'sold-out') {
+                        biayaMaterial = 65000000;
+                    } else {
+                        // Real Data Calc
+                        if (dataMaterial) {
+                            const regex = new RegExp(`\\b${id}\\b`, 'i');
+                            dataMaterial.filter(m => regex.test(m.keterangan)).forEach(m => {
+                                biayaMaterial += (m.debit || 0);
+                            });
+                        }
+                    }
+
                     rawData.push({
                         id: id,
                         status: status,
                         progress: progress,
+                        harga_tanah: hargaTanah,
+                        biaya_pematangan: biayaPematangan,
+                        biaya_sertifikat: biayaSertifikat,
+                        biaya_infra: biayaInfra,
+                        biaya_upah: biayaUpah,
+                        biaya_material: biayaMaterial,
+                        biaya_listrik: biayaListrik,
+                        biaya_sumur: biayaSumur,
                         marketing: dbRow?.marketing_name || '-',
                         customer: dbRow?.customer_name || '-'
                     });
 
                     // Stat Counters
                     stats.total++;
-                    if (status === 'sold-out') stats.sold++;
-                    else if (status === 'booking-unit') stats.booking++;
-                    else if (status === 'open-booking') stats.open++;
-                    else stats.ready++; // ready-stok or fallback
+                    if (status === 'sold-out') {
+                        stats.sold++;
+                    } else {
+                        // Calculate Inventory Value (Only if NOT Sold Out)
+                        // TOTAL HPP PERSEDIAAN
+                        stats.currValue = (stats.currValue || 0) + hargaTanah + biayaPematangan + biayaSertifikat + biayaInfra + biayaUpah + biayaMaterial + biayaListrik + biayaSumur;
+
+                        if (status === 'booking-unit') stats.booking++;
+                        else if (status === 'open-booking') stats.open++;
+                        else stats.ready++;
+                    }
                 });
 
                 // Update Header Stats
+                document.getElementById('valInventory').innerText = 'Rp ' + new Intl.NumberFormat('id-ID', { notation: "compact", compactDisplay: "short" }).format(stats.currValue || 0);
+                // Also show full tooltip or detailed somewhere? Compact is good for header. 
+                // Let's use full format if it fits, or compact. 5 Billion fits.
+                document.getElementById('valInventory').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(stats.currValue || 0);
+
                 document.getElementById('countTotal').innerText = stats.total;
                 document.getElementById('countReady').innerText = stats.ready;
                 document.getElementById('countSold').innerText = stats.sold;
@@ -223,7 +386,7 @@
         }
 
         function renderTable(data) {
-            const tbody = document.getElementById('inventoryTableBody');
+            const tbody = document.getElementById('inventoryBody');
             const filterText = document.getElementById('searchInput').value.toLowerCase();
             const filterStatus = document.getElementById('statusFilter').value;
 
@@ -234,63 +397,129 @@
                 return matchText && matchStatus;
             });
 
+            // Sort by ID
+            filtered.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
+
+            tbody.innerHTML = "";
+
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-slate-400 italic">Tidak ada data ditemukan.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400 italic">Tidak ada data ditemukan.</td></tr>`;
                 return;
             }
 
-            // Sort by ID (Alpha-numeric sort logic simple)
-            filtered.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
+            const fmt = (n) => new Intl.NumberFormat('id-ID').format(n);
 
-            tbody.innerHTML = filtered.map(item => {
-                let badgeClass = '';
-                let statusLabel = '';
+            filtered.forEach(item => {
+                let badgeClass = "bg-slate-100 text-slate-600";
+                let statusLabel = item.status;
 
-                switch (item.status) {
-                    case 'sold-out':
-                        badgeClass = 'bg-red-100 text-red-700 border-red-200';
-                        statusLabel = 'Sold Out';
-                        break;
-                    case 'booking-unit':
-                        badgeClass = 'bg-sky-100 text-sky-700 border-sky-200';
-                        statusLabel = 'Terbooking';
-                        break;
-                    case 'open-booking':
-                        badgeClass = 'bg-yellow-100 text-yellow-700 border-yellow-200';
-                        statusLabel = 'Dipasarkan';
-                        break;
-                    case 'ready-stok':
-                        badgeClass = 'bg-slate-100 text-slate-600 border-slate-200'; // White/Grey matches siteplan "Available"
-                        statusLabel = 'Ready Stock';
-                        break;
-                    default:
-                        badgeClass = 'bg-slate-100 text-slate-600 border-slate-200';
-                        statusLabel = 'Ready Stock';
+                if (item.status === 'ready-stok') {
+                    badgeClass = "bg-emerald-100 text-emerald-700";
+                    statusLabel = "READY";
+                } else if (item.status === 'sold-out') {
+                    badgeClass = "bg-red-100 text-red-700";
+                    statusLabel = "SOLD";
+                } else if (item.status === 'booking-unit') {
+                    badgeClass = "bg-amber-100 text-amber-700";
+                    statusLabel = "BOOKED";
+                } else if (item.status === 'open-booking') {
+                    badgeClass = "bg-yellow-100 text-yellow-700";
+                    statusLabel = "OPEN";
                 }
 
-                return `
-                    <tr class="bg-white border-b border-slate-100 hover:bg-slate-50 transition">
-                        <td class="px-6 py-4 font-bold text-slate-800">
+                // Total HPP
+                const totalHPP = item.harga_tanah + item.biaya_pematangan + item.biaya_sertifikat + item.biaya_upah + item.biaya_material + item.biaya_infra + item.biaya_listrik + item.biaya_sumur;
+
+                // Harga Jual Logic
+                // Commercial (A & B) = 250jt, Others = 173jt
+                const isComm = item.id.toUpperCase().startsWith('A') || item.id.toUpperCase().startsWith('B');
+                const hargaJual = isComm ? 250000000 : 173000000;
+
+                // Est Laba
+                const estLaba = hargaJual - totalHPP;
+                const labaClass = estLaba >= 0 ? "text-emerald-700" : "text-red-600"; // Green if profit, Red if loss
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="p-3 font-bold text-slate-800 text-center border-r border-slate-50">
                             ${item.id}
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="${badgeClass} text-xs font-bold px-2.5 py-0.5 rounded border">
+                        <td class="p-3 text-right font-mono text-slate-600 text-xs border-r border-slate-50">
+                           ${fmt(item.harga_tanah)}
+                        </td>
+                        <td class="p-3 text-right font-mono text-slate-600 text-xs border-r border-slate-50">
+                           ${fmt(item.biaya_pematangan)}
+                        </td>
+                        <td class="p-3 text-right font-mono text-slate-600 text-xs border-r border-slate-50">
+                            <div class="flex items-center justify-end gap-2">
+                                <span>${fmt(item.biaya_sertifikat)}</span>
+                                <button onclick="openEditCost('${item.id}', 'biaya_sertifikat', ${item.biaya_sertifikat})" class="text-slate-300 hover:text-blue-600 transition">
+                                    <i class="fas fa-pencil-alt text-[10px]"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="p-3 text-right font-mono text-slate-600 text-xs border-r border-slate-50">
+                            <div class="flex items-center justify-end gap-2">
+                                <span>${fmt(item.biaya_upah)}</span>
+                                <button onclick="openEditCost('${item.id}', 'biaya_upah', ${item.biaya_upah})" class="text-slate-300 hover:text-blue-600 transition">
+                                    <i class="fas fa-pencil-alt text-[10px]"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="p-3 text-right font-mono text-slate-600 text-xs border-r border-slate-50">
+                            <div class="flex items-center justify-end gap-2">
+                                <span>${fmt(item.biaya_material)}</span>
+                                <button onclick="openEditCost('${item.id}', 'biaya_material', ${item.biaya_material})" class="text-slate-300 hover:text-blue-600 transition">
+                                    <i class="fas fa-pencil-alt text-[10px]"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="p-3 text-right font-mono text-slate-600 text-xs border-r border-slate-50">
+                            <div class="flex items-center justify-end gap-2">
+                                <span>${fmt(item.biaya_infra)}</span>
+                                <button onclick="openEditCost('${item.id}', 'biaya_infrastruktur', ${item.biaya_infra})" class="text-slate-300 hover:text-blue-600 transition">
+                                    <i class="fas fa-pencil-alt text-[10px]"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="p-3 text-right font-mono text-slate-600 text-xs border-r border-slate-50">
+                            <div class="flex items-center justify-end gap-2">
+                                <span>${fmt(item.biaya_listrik)}</span>
+                                <button onclick="openEditCost('${item.id}', 'biaya_listrik', ${item.biaya_listrik})" class="text-slate-300 hover:text-blue-600 transition">
+                                    <i class="fas fa-pencil-alt text-[10px]"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="p-3 text-right font-mono text-slate-600 text-xs border-r border-slate-50">
+                            <div class="flex items-center justify-end gap-2">
+                                <span>${fmt(item.biaya_sumur)}</span>
+                                <button onclick="openEditCost('${item.id}', 'biaya_sumur', ${item.biaya_sumur})" class="text-slate-300 hover:text-blue-600 transition">
+                                    <i class="fas fa-pencil-alt text-[10px]"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="p-3 text-center border-r border-slate-50">
+                            <span class="${badgeClass} text-[9px] font-black px-2 py-0.5 rounded shadow-sm border border-slate-200/50 uppercase">
                                 ${statusLabel}
                             </span>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-200 border border-slate-300">
-                                <div class="bg-indigo-600 h-2.5 rounded-full" style="width: ${item.progress}%"></div>
+                        <td class="p-3 align-middle border-r border-slate-50">
+                            <div class="w-full bg-slate-200 rounded-full h-1.5 mb-1">
+                                <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${item.progress}%"></div>
                             </div>
-                            <span class="text-xs text-slate-500 font-bold mt-1 block">${item.progress}%</span>
+                            <div class="text-[9px] font-bold text-slate-500 text-center">${item.progress}%</div>
                         </td>
-                        <td class="px-6 py-4 text-slate-500 font-mono text-xs">
-                           ${item.customer !== '-' ? `<div class="font-bold text-slate-700">${item.customer}</div>` : '-'}
-                           ${item.marketing !== '-' ? `<div class="text-[10px] text-slate-400">Mkt: ${item.marketing}</div>` : ''}
+                        <td class="p-3 text-right font-black text-blue-900 bg-blue-50/30 text-xs border-r border-blue-100">
+                           ${fmt(totalHPP)}
                         </td>
-                    </tr>
-                `;
-            }).join('');
+                        <td class="p-3 text-right font-bold text-slate-700 bg-green-50/30 text-xs border-r border-green-100">
+                           ${fmt(hargaJual)}
+                        </td>
+                        <td class="p-3 text-right font-black ${labaClass} bg-emerald-100/30 text-xs border-l border-emerald-100">
+                           ${fmt(estLaba)}
+                        </td>
+                    </tr>`;
+            });
         }
 
         // Event Listeners
@@ -300,6 +529,148 @@
         // Init
         document.addEventListener('DOMContentLoaded', loadInventory);
 
+        // --- FITUR EDIT BIAYA GENERIC (Sertifikat & Infra) ---
+        let currentEditUnitId = null;
+        let currentEditField = null; // 'biaya_sertifikat' or 'biaya_infrastruktur'
+
+        function openEditCost(id, field, val) {
+            currentEditUnitId = id;
+            currentEditField = field;
+            let label = "";
+            if (field === 'biaya_sertifikat') label = "Sertifikat";
+            else if (field === 'biaya_infrastruktur') label = "Infrastruktur";
+            else if (field === 'biaya_upah') label = "Upah Tukang";
+            else if (field === 'biaya_material') label = "Material";
+            else if (field === 'biaya_listrik') label = "Listrik";
+            else if (field === 'biaya_sumur') label = "Sumur Bor";
+
+            document.getElementById('certUnitId').innerText = id + " (" + label + ")";
+            document.getElementById('inputCertCost').value = val;
+            document.getElementById('modalSertifikat').classList.remove('hidden');
+            document.getElementById('modalSertifikat').classList.add('flex');
+        }
+
+        async function saveSertifikat() {
+            if (!currentEditUnitId || !currentEditField) return;
+
+            const newVal = parseInt(document.getElementById('inputCertCost').value) || 0;
+            const btn = document.getElementById('btnSaveCert');
+            btn.innerText = "Menyimpan...";
+            btn.disabled = true;
+
+            try {
+                // Upsert
+                const { data: existing } = await client.from('unit_status').select('id').eq('unit_id', currentEditUnitId).single();
+
+                let error;
+                const updatePayload = {};
+                updatePayload[currentEditField] = newVal;
+
+                if (existing) {
+                    const { error: err } = await client.from('unit_status').update(updatePayload).eq('unit_id', currentEditUnitId);
+                    error = err;
+                } else {
+                    updatePayload['unit_id'] = currentEditUnitId;
+                    updatePayload['status'] = 'ready-stok';
+                    const { error: err } = await client.from('unit_status').insert([updatePayload]);
+                    error = err;
+                }
+
+                if (error) throw error;
+
+                alert("✅ Biaya berhasil diupdate.");
+                document.getElementById('modalSertifikat').classList.add('hidden');
+                document.getElementById('modalSertifikat').classList.remove('flex');
+                loadInventory();
+
+            } catch (e) {
+                console.error(e);
+                alert("Gagal menyimpan: " + e.message);
+            } finally {
+                btn.innerText = "Simpan";
+                btn.disabled = false;
+            }
+        }
+
+        // --- PDF GENERATION ---
+        function downloadSummaryPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape', 'mm', 'a4'); // Landscape for many columns
+
+            // 1. Title & Header
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.text("Laporan Keuangan Persediaan Kavling - Sunrise City Maros", 15, 15);
+
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text("Tanggal Cetak: " + new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }), 15, 22);
+
+            // 2. Summary Stats (Optional - Simple Layout)
+            const valInventory = document.getElementById('valInventory').innerText;
+            const countTotal = document.getElementById('countTotal').innerText;
+            const countSold = document.getElementById('countSold').innerText;
+
+            doc.setFillColor(241, 245, 249); // slate-100
+            doc.rect(15, 28, 60, 18, 'F');
+            doc.setFontSize(9);
+            doc.setTextColor(100);
+            doc.text("Nilai Persediaan (Est)", 20, 34);
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.setFont("helvetica", "bold");
+            doc.text(valInventory, 20, 42);
+
+            // 3. Prepare Table Data
+            // We use the currently FILTERED data (re-apply filter logic or use global state?)
+            // Let's re-run filter logic to match what user sees
+            const filterText = document.getElementById('searchInput').value.toLowerCase();
+            const filterStatus = document.getElementById('statusFilter').value;
+
+            const filtered = rawData.filter(item => {
+                const matchText = item.id.toLowerCase().includes(filterText);
+                const matchStatus = filterStatus === 'all' || item.status === filterStatus;
+                return matchText && matchStatus;
+            });
+
+            filtered.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
+
+            const tableRows = filtered.map(item => {
+                const totalHPP = item.harga_tanah + item.biaya_pematangan + item.biaya_sertifikat + item.biaya_upah + item.biaya_material + item.biaya_infra + item.biaya_listrik + item.biaya_sumur;
+
+                return [
+                    item.id,
+                    new Intl.NumberFormat('id-ID').format(item.harga_tanah),
+                    new Intl.NumberFormat('id-ID').format(item.biaya_pematangan),
+                    new Intl.NumberFormat('id-ID').format(item.biaya_sertifikat),
+                    new Intl.NumberFormat('id-ID').format(item.biaya_upah),
+                    new Intl.NumberFormat('id-ID').format(item.biaya_material),
+                    new Intl.NumberFormat('id-ID').format(item.biaya_infra),
+                    new Intl.NumberFormat('id-ID').format(item.biaya_listrik),
+                    new Intl.NumberFormat('id-ID').format(item.biaya_sumur),
+                    item.status.toUpperCase(),
+                    new Intl.NumberFormat('id-ID').format(totalHPP)
+                ];
+            });
+
+            // 4. AutoTable
+            doc.autoTable({
+                startY: 50,
+                head: [['Blok', 'Tanah', 'Matang', 'Sertif', 'Upah', 'Mat', 'Infra', 'Listrik', 'Sumur', 'Status', 'HPP']],
+                body: tableRows,
+                theme: 'grid',
+                styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle', halign: 'right' },
+                headStyles: { fillColor: [79, 70, 229], textColor: 255, halign: 'center', fontStyle: 'bold' },
+                columnStyles: {
+                    0: { halign: 'center', fontStyle: 'bold', cellWidth: 12 }, // Blok
+                    9: { halign: 'center', fontSize: 6 }, // Status
+                    10: { fillColor: [239, 246, 255], fontStyle: 'bold' }, // HPP (Blue tint)
+                }
+            });
+
+            // 5. Save
+            doc.save(`Laporan_Persediaan_${new Date().toISOString().slice(0, 10)}.pdf`);
+        }
     </script>
 </body>
 

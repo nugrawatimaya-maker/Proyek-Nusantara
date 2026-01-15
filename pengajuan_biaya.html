@@ -133,11 +133,87 @@
                             <input type="number" id="pcPrevBalance" class="w-full border p-1 rounded text-sm text-right"
                                 placeholder="0">
                         </div>
+
+                        <!-- Auto-calculated Realization -->
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Total Terpakai (Realisasi)
+                            <label class="block text-[10px] font-bold text-slate-400 mb-1">Total Terpakai (Auto-Hitung)
                                 (Rp)</label>
-                            <input type="number" id="pcRealization" class="w-full border p-1 rounded text-sm text-right"
-                                placeholder="0">
+                            <input type="text" id="pcRealization"
+                                class="w-full border p-1 rounded text-sm text-right bg-gray-100 text-slate-500 font-bold cursor-not-allowed"
+                                placeholder="0" readonly>
+                        </div>
+
+                        <!-- Multi-Item List -->
+                        <div class="bg-white p-3 rounded border border-gray-200 mt-2">
+                            <h5 class="text-[10px] font-bold text-slate-500 mb-2 uppercase">Rincian
+                                Pengeluaran/Realisasi</h5>
+
+                            <!-- Input Form (Improved Layout) -->
+                            <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 mb-3">
+                                <h6 class="text-[10px] font-bold text-indigo-500 mb-2 uppercase tracking-wide">Input
+                                    Pengeluaran Baru</h6>
+
+                                <div class="grid grid-cols-12 gap-3">
+                                    <!-- Row 1: Date & Description -->
+                                    <div class="col-span-4 md:col-span-3">
+                                        <label class="block text-[10px] text-slate-500 mb-1">Tanggal</label>
+                                        <input type="date" id="pettyItemDate"
+                                            class="w-full border border-gray-300 rounded p-1.5 text-xs text-slate-700 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition">
+                                    </div>
+                                    <div class="col-span-8 md:col-span-9">
+                                        <label class="block text-[10px] text-slate-500 mb-1">Keperluan / Deskripsi
+                                            Item</label>
+                                        <input type="text" id="pettyItemName"
+                                            placeholder="Contoh: Beli Kertas A4, Bensin Mobil..."
+                                            class="w-full border border-gray-300 rounded p-1.5 text-xs focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition"
+                                            onkeypress="handleEnterPetty(event)">
+                                    </div>
+
+                                    <!-- Row 2: Amount, File, Button -->
+                                    <div class="col-span-5 md:col-span-4">
+                                        <label class="block text-[10px] text-slate-500 mb-1">Nominal (Rp)</label>
+                                        <input type="number" id="pettyItemAmount" placeholder="0"
+                                            class="w-full border border-gray-300 rounded p-1.5 text-xs text-right font-bold text-slate-700"
+                                            onkeypress="handleEnterPetty(event)">
+                                    </div>
+                                    <div class="col-span-7 md:col-span-6">
+                                        <label class="block text-[10px] text-slate-500 mb-1">Foto Bukti / Nota
+                                            (Opsional)</label>
+                                        <input type="file" id="pettyItemProof"
+                                            class="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200">
+                                    </div>
+                                    <div class="col-span-12 md:col-span-2 flex items-end">
+                                        <button type="button" onclick="addPettyItem()" id="btnAddPetty"
+                                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded p-1.5 text-xs font-bold shadow-sm transition transform active:scale-95 flex justify-center items-center gap-2 h-[34px]">
+                                            <i class="fas fa-plus-circle"></i> TAMBAH
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- List -->
+                            <div class="border rounded overflow-hidden mb-2">
+                                <table class="w-full text-xs">
+                                    <tbody id="pettyItemsBody" class="divide-y divide-gray-100">
+                                        <tr>
+                                            <td class="p-2 text-center text-slate-400 italic">Belum ada item.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Draft Controls -->
+                            <div
+                                class="flex justify-between items-center text-xs mt-3 bg-gray-50 p-2 rounded border border-gray-100">
+                                <button type="button" onclick="saveDraftPetty()"
+                                    class="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded transition">
+                                    <i class="fas fa-save"></i> Simpan Draft (Sementara)
+                                </button>
+                                <button type="button" onclick="clearDraftPetty()"
+                                    class="flex items-center gap-2 text-slate-400 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded transition">
+                                    <i class="fas fa-trash-alt"></i> Hapus Draft
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -446,6 +522,12 @@
 
             if (type === 'PETTY') {
                 document.getElementById("fieldPetty").style.display = 'block';
+                pettyItems = []; // Reset first
+                renderPettyItems();
+                document.getElementById('lblReqAmount').innerText = "Jumlah Pengajuan Kas Kecil (Rp)";
+
+                // Try load draft
+                loadDraftPetty();
             } else if (type === 'REIMBURSE') {
                 document.getElementById("fieldReimburse").style.display = 'block';
                 // HIDE Globals for Reimburse
@@ -664,8 +746,77 @@
             }
         }
 
+        // --- 3C. PETTY CASH ITEMS LOGIC (NEW) ---
+        let pettyItems = [];
 
-        // --- 3C. CASBON HISTORY LOGIC ---
+        function handleEnterPetty(e) {
+            if (e.key === 'Enter') addPettyItem();
+        }
+
+        function addPettyItem() {
+            const nameEl = document.getElementById('pettyItemName');
+            const amtEl = document.getElementById('pettyItemAmount');
+
+            const name = nameEl.value.trim();
+            const amt = Number(amtEl.value);
+
+            if (!name) { alert("Isi deskripsi item!"); nameEl.focus(); return; }
+            if (!amt || amt <= 0) { alert("Isi nominal!"); amtEl.focus(); return; }
+
+            pettyItems.push({ name: name, amount: amt });
+
+            nameEl.value = "";
+            amtEl.value = "";
+            nameEl.focus();
+            renderPettyItems();
+        }
+
+        function removePettyItem(index) {
+            pettyItems.splice(index, 1);
+            renderPettyItems();
+        }
+
+        function renderPettyItems() {
+            const tbody = document.getElementById('pettyItemsBody');
+            const totalEl = document.getElementById('pcRealization');
+
+            if (!tbody) return;
+
+            tbody.innerHTML = "";
+            let total = 0;
+
+            if (pettyItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="p-2 text-center text-slate-400 italic">Belum ada item.</td></tr>`;
+            } else {
+                pettyItems.forEach((item, index) => {
+                    total += item.amount;
+                    const fmtAmt = (window.fmt) ? window.fmt(item.amount) : item.amount.toLocaleString();
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-50 border-b border-gray-50";
+                    tr.innerHTML = `
+                        <td class="p-2 text-slate-700">${item.name}</td>
+                        <td class="p-2 text-right font-mono text-slate-600">${fmtAmt}</td>
+                        <td class="p-2 text-center w-8">
+                            <button onclick="removePettyItem(${index})" class="text-gray-300 hover:text-red-500"><i class="fas fa-times"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Update Total (ReadOnly Input)
+            if (totalEl) {
+                totalEl.value = total; // Just number for value, format for display?? Input type is text now?
+                // Wait, previous replace made it "text" to support formatted string or just number?
+                // Let's stick to raw number in value for simplicity, or formatted?
+                // The input was changed to type="text" in previous step.
+                totalEl.value = (window.fmt) ? window.fmt(total) : total;
+                // Store raw total in data attribute if needed, but we can recalc from array
+            }
+        }
+
+        // --- 3D. CASBON HISTORY LOGIC ---
         async function loadCasbonHistory() {
             if (!window.client || !currentUser) return;
 
@@ -852,13 +1003,35 @@
                 if (!amt || !desc) return alert("Lengkapi data nominal dan keperluan!");
 
                 if (type === 'PETTY') {
-                    const prevBal = document.getElementById('pcPrevBalance').value;
-                    const prevReal = document.getElementById('pcRealization').value;
+                    // NEW LOGIC FOR PETTY
+                    amt = Number(document.getElementById('reqAmount').value);
+                    if (!amt) return alert("Isi nominal pengajuan (topup)!");
+
+                    const prevBal = document.getElementById('pcPrevBalance').value || "0";
+                    // Calculate realization from items
+                    const used = pettyItems.reduce((acc, curr) => acc + curr.amount, 0);
+
+                    let realizationStr = "";
+                    if (pettyItems.length > 0) {
+                        realizationStr = pettyItems.map(i => {
+                            const dateFmt = new Date(i.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                            const note = i.proofUrl ? ` (Nota: ${i.proofUrl})` : "";
+                            return `- [${dateFmt}] ${i.name}: ${window.fmt ? window.fmt(i.amount) : i.amount}${note}`;
+                        }).join('\n');
+                    } else {
+                        realizationStr = "(Tidak ada rincian item)";
+                    }
 
                     const fmt = window.fmt || ((n) => n);
 
-                    if (prevBal && prevReal) extraInfo = ` | PrevBal: ${fmt(prevBal)}, Real: ${fmt(prevReal)}`;
-                    else validationError = "Mohon isi info Petty Cash sebelumnya!";
+                    desc = `Topup Kas Kecil.\n` +
+                        `Saldo Awal: Rp ${fmt(prevBal)}\n` +
+                        `Total Terpakai: Rp ${fmt(used)}\n` +
+                        `Detail Realisasi:\n${realizationStr}\n\n` +
+                        `Catatan: ` + document.getElementById("reqDesc").value;
+
+                    extraInfo = " | [Topup Petty]";
+
                 } else if (type === 'DINAS' || type === 'EVENT') {
                     const file = document.getElementById('planDoc').value;
                     if (!file) validationError = "Wajib upload Rencana Kerja/TOR!";
