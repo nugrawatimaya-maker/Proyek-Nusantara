@@ -129,11 +129,7 @@
                             <th scope="col" class="p-3 border-b text-center">Status</th>
                             <th scope="col" class="p-3 border-b text-center">Progress</th>
                             <th scope="col" class="p-3 border-b text-right bg-blue-50 text-blue-800">Total HPP (Rp)</th>
-                            <th scope="col" class="p-3 border-b text-right bg-green-50 text-green-800">Harga Jual (Rp)
-                            </th>
-                            <th scope="col"
-                                class="p-3 border-b text-right bg-emerald-100 text-emerald-900 border-l border-emerald-200">
-                                Est. Laba (Rp)</th>
+
                         </tr>
                     </thead>
                     <tbody id="inventoryBody" class="divide-y divide-slate-100 text-slate-600 text-xs">
@@ -430,14 +426,7 @@
                 // Total HPP
                 const totalHPP = item.harga_tanah + item.biaya_pematangan + item.biaya_sertifikat + item.biaya_upah + item.biaya_material + item.biaya_infra + item.biaya_listrik + item.biaya_sumur;
 
-                // Harga Jual Logic
-                // Commercial (A & B) = 250jt, Others = 173jt
-                const isComm = item.id.toUpperCase().startsWith('A') || item.id.toUpperCase().startsWith('B');
-                const hargaJual = isComm ? 250000000 : 173000000;
 
-                // Est Laba
-                const estLaba = hargaJual - totalHPP;
-                const labaClass = estLaba >= 0 ? "text-emerald-700" : "text-red-600"; // Green if profit, Red if loss
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition border-b border-slate-100">
@@ -512,12 +501,7 @@
                         <td class="p-3 text-right font-black text-blue-900 bg-blue-50/30 text-xs border-r border-blue-100">
                            ${fmt(totalHPP)}
                         </td>
-                        <td class="p-3 text-right font-bold text-slate-700 bg-green-50/30 text-xs border-r border-green-100">
-                           ${fmt(hargaJual)}
-                        </td>
-                        <td class="p-3 text-right font-black ${labaClass} bg-emerald-100/30 text-xs border-l border-emerald-100">
-                           ${fmt(estLaba)}
-                        </td>
+
                     </tr>`;
             });
         }
