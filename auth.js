@@ -6,10 +6,11 @@
   // --- SESSION MANAGE ---
   function setSession(userData) {
     const session = {
-      user: userData, // { id, full_name, role }
+      user: userData, // { id, full_name, role, session_token }
       ts: Date.now()
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    startHeartbeat(); // Start monitoring immediately
   }
 
   function getSession() {
@@ -18,7 +19,7 @@
       if (!raw) return null;
       const session = JSON.parse(raw);
 
-      // Expire setelah 24 jam
+      // Expire setelah 24 jam (Client Side Fallback)
       const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
       if (Date.now() - session.ts > TWENTY_FOUR_HOURS) {
         logout();
@@ -29,6 +30,41 @@
       return null;
     }
   }
+
+  // --- SECURITY HEARTBEAT ---
+  let heartbeatInterval = null;
+
+  async function checkSession() {
+    const s = getSession();
+    if (!s || !s.user.session_token) return; // Ignore if no token yet
+
+    // Skip for Superadmin (Optional, but backend already handles it)
+    if (s.user.role === 'superadmin') return;
+
+    try {
+      const { data, error } = await window.client.rpc('check_session_validity', {
+        p_user_id: s.user.id,
+        p_token: s.user.session_token
+      });
+
+      if (data === false) {
+        // INVALID!
+        alert("SESI BERAKHIR!\n\nAkun Anda telah dikunci karena terdeteksi login di perangkat lain, atau sesi telah kadaluarsa.");
+        logout();
+      }
+    } catch (e) {
+      console.warn("Heartbeat check failed:", e);
+    }
+  }
+
+  function startHeartbeat() {
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    // Cek setiap 30 detik
+    heartbeatInterval = setInterval(checkSession, 30000);
+  }
+
+  // Auto start if logged in
+  if (getSession()) startHeartbeat();
 
   // --- UTILS ---
   async function logActivity(aktivitas, tipe = 'UMUM', icon = 'fa-info-circle') {

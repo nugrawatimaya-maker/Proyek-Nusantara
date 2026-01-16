@@ -7,6 +7,7 @@
     <title>Keuangan Upah Tukang - PT NLD</title>
 
     <script src="supabase.js"></script>
+    <script src="auth.js"></script>
     <script src="app_config.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -909,6 +910,9 @@
                 return;
             }
 
+            const session = PNAuth.getSession();
+            const isSuperAdmin = session && session.user && session.user.role === 'superadmin';
+
             historyDataCache.forEach(item => {
                 const { meta, displayVol } = deriveHistoryMeta(item);
                 const displayName = item.nama_pekerjaan;
@@ -917,11 +921,24 @@
                 const btnGrup = safeGrup.replace('T-', '');
                 const btnBobot = (meta.bobot || "").replace('%', '');
 
+                let dateHtml = `${new Date(item.tanggal_bayar).toLocaleDateString('id-ID')}`;
+
+                // FEATURE: Edit Date (Superadmin Only)
+                if (isSuperAdmin) {
+                    const isoDate = new Date(item.tanggal_bayar).toISOString().split('T')[0];
+                    dateHtml += `
+                        <button onclick="editTanggal(${item.id}, '${isoDate}', '${safeName}')" 
+                            class="ml-2 text-blue-400 hover:text-blue-600 transition-colors" title="Edit Tanggal (Super Admin)">
+                            <i class="fas fa-pencil-alt text-[10px]"></i>
+                        </button>
+                     `;
+                }
+
                 tbody.innerHTML += `
             <tr class="border-b hover:bg-purple-50 transition">
                 <td class="td-excel font-bold text-xs text-center">${item.kavling}</td>
                 <td class="td-excel text-center text-xs font-bold text-slate-600">
-                    ${new Date(item.tanggal_bayar).toLocaleDateString('id-ID')}
+                    ${dateHtml}
                 </td>
                 <td class="td-excel text-center font-mono text-[10px] text-slate-400">${meta.grup}</td>
                 <td class="td-excel font-semibold text-xs text-slate-700">
@@ -1027,6 +1044,30 @@
                 await client.from('pengajuan_upah').insert([{ kavling: kav, tahap: t, nama_pekerjaan: `${n} (VOID: ${al})`, bobot: b, nilai: v, status: 'DIAJUKAN', tanggal_ajukan: new Date() }]);
                 await client.from('transaksi_upah').delete().eq('id', id);
                 alert("Selesai!"); loadHistoryData();
+            }
+        }
+
+        async function editTanggal(id, oldDate, name) {
+            const newDate = prompt(`Ubah Tanggal Bayar untuk:\n${name}\n\nFormat: YYYY-MM-DD`, oldDate);
+
+            if (!newDate || newDate === oldDate) return;
+
+            // Validate Date (Simple)
+            if (isNaN(new Date(newDate).getTime())) return alert("Format tanggal tidak valid!");
+
+            if (confirm(`Ubah tanggal menjadi ${newDate}?`)) {
+                try {
+                    const { error } = await client.from('transaksi_upah')
+                        .update({ tanggal_bayar: newDate })
+                        .eq('id', id);
+
+                    if (error) throw error;
+
+                    alert("✅ Tanggal berhasil diubah.");
+                    loadHistoryData();
+                } catch (e) {
+                    alert("Gagal update: " + e.message);
+                }
             }
         }
     </script>

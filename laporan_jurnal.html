@@ -145,6 +145,17 @@
                     <p class="text-xs text-slate-400 mt-1">Rasio & Kesehatan</p>
                 </div>
 
+                <!-- CARD: NERACA LAJUR (NEW) -->
+                <div onclick="pilihLaporan('NERACA_LAJUR', null)"
+                    class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 bg-white rounded-xl shadow border border-slate-100 transition-all">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center text-3xl mb-4 group-hover:rotate-12 transition">
+                        <i class="fas fa-table"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-700 text-lg">Neraca Lajur</h3>
+                    <p class="text-xs text-slate-400 mt-1">Worksheet 10 Kolom</p>
+                </div>
+
                 <!-- CARD: SETUP SALDO AWAL -->
                 <div onclick="loadSetupSaldo()"
                     class="glass-panel p-6 flex flex-col items-center justify-center text-center hover:scale-105 cursor-pointer group h-48 bg-white rounded-xl shadow border border-slate-200 transition-all ring-2 ring-slate-100">
@@ -209,6 +220,9 @@
                             <button onclick="pilihLaporan('ANALISIS', this)"
                                 class="nav-tab px-3 py-1 rounded text-[10px] font-bold transition whitespace-nowrap"
                                 id="tab-ANALISIS">Analisis</button>
+                            <button onclick="pilihLaporan('NERACA_LAJUR', this)"
+                                class="nav-tab px-3 py-1 rounded text-[10px] font-bold transition whitespace-nowrap"
+                                id="tab-NERACA_LAJUR">Neraca Lajur</button>
                         </div>
                     </div>
 
@@ -528,66 +542,78 @@
                 'JURNAL': 'JURNAL UMUM', 'BUKU_BESAR': 'BUKU BESAR',
                 'NERACA_SALDO': 'NERACA SALDO', 'LABA_RUGI': 'LAPORAN LABA RUGI',
                 'NERACA': 'NERACA KEUANGAN', 'ARUS_KAS': 'LAPORAN ARUS KAS',
-                'ANALISIS': 'ANALISIS KEUANGAN'
+                'ANALISIS': 'ANALISIS KEUANGAN', 'NERACA_LAJUR': 'NERACA LAJUR (WORKSHEET)'
             };
             document.getElementById("judulLap").innerText = mapJudul[type];
             loadData();
         }
 
         async function loadData() {
-            const start = document.getElementById("tglMulai").value;
-            const end = document.getElementById("tglSelesai").value;
-            document.getElementById("subJudul").innerText = `${new Date(start).toLocaleDateString('id-ID')} s/d ${new Date(end).toLocaleDateString('id-ID')}`;
-            document.getElementById("kontenScreen").innerHTML = `<div class="py-10 text-center"><i class="fas fa-spinner fa-spin text-blue-500"></i> Loading Data...</div>`;
+            try {
+                const start = document.getElementById("tglMulai").value;
+                const end = document.getElementById("tglSelesai").value;
+                document.getElementById("subJudul").innerText = `${new Date(start).toLocaleDateString('id-ID')} s/d ${new Date(end).toLocaleDateString('id-ID')}`;
+                document.getElementById("kontenScreen").innerHTML = `<div class="py-10 text-center"><i class="fas fa-spinner fa-spin text-blue-500"></i> Loading Data...</div>`;
 
-            // 1. Fetch Jurnal Data
-            const { data: jurnal } = await client.from('jurnal_umum').select('*').gte('tanggal', start).lte('tanggal', end).order('tanggal', { ascending: true });
+                // 1. Fetch Jurnal Data
+                const { data: jurnal, error: errJ } = await client.from('jurnal_umum').select('*').gte('tanggal', start).lte('tanggal', end).order('tanggal', { ascending: true });
+                if (errJ) throw new Error("Fetch Jurnal: " + errJ.message);
 
-            // 2. Fetch Master Akun for Category Mapping
-            const { data: master } = await client.from('master_akun').select('nama_akun, kode_akun, kategori');
+                // 2. Fetch Master Akun for Category Mapping
+                const { data: master, error: errM } = await client.from('master_akun').select('nama_akun, kode_akun, kategori');
+                if (errM) throw new Error("Fetch Master: " + errM.message);
 
-            akunMap = {};
-            akunKategori = {};
-            if (master) {
-                master.forEach(m => {
-                    akunMap[m.nama_akun] = m.kode_akun;
-                    akunKategori[m.nama_akun] = m.kategori;
-                });
+                akunMap = {};
+                akunKategori = {};
+                if (master) {
+                    master.forEach(m => {
+                        akunMap[m.nama_akun] = m.kode_akun;
+                        akunKategori[m.nama_akun] = m.kategori;
+                    });
+                }
+
+                // 3. FETCH SALDO AWAL (Opening Balance)
+                saldoAwalMap = {};
+                const { data: prevData, error: errP } = await client
+                    .from('jurnal_umum')
+                    .select('nama_akun, debit, kredit')
+                    .lt('tanggal', start);
+
+                if (errP) throw new Error("Fetch Saldo Awal: " + errP.message);
+
+                if (prevData) {
+                    prevData.forEach(r => {
+                        if (!saldoAwalMap[r.nama_akun]) saldoAwalMap[r.nama_akun] = 0;
+                        saldoAwalMap[r.nama_akun] += (r.debit - r.kredit);
+                    });
+                }
+
+                rawData = jurnal || [];
+
+                renderScreen(); // Render Tampilan Layar HP
+            } catch (e) {
+                console.error(e);
+                alert("Gagal memuat data: " + e.message);
+                document.getElementById("kontenScreen").innerHTML = `<div class="text-red-500 p-8 text-center font-bold">Error: ${e.message}</div>`;
             }
-
-            // 3. FETCH SALDO AWAL (Opening Balance)
-            saldoAwalMap = {};
-            const { data: prevData } = await client
-                .from('jurnal_umum')
-                .select('nama_akun, debit, kredit')
-                .lt('tanggal', start);
-
-            if (prevData) {
-                prevData.forEach(r => {
-                    if (!saldoAwalMap[r.nama_akun]) saldoAwalMap[r.nama_akun] = 0;
-                    saldoAwalMap[r.nama_akun] += (r.debit - r.kredit);
-                });
-            }
-
-            rawData = jurnal || [];
-
-            renderScreen(); // Render Tampilan Layar HP
         }
 
         // ==========================================
         // 1. RENDER SCREEN (TAMPILAN HP) - INTERAKTIF
         // ==========================================
         function renderScreen() {
-            // DEBUG: Temporary check for user status
-            // console.log("User:", window.PNAuth?.getSession()?.user?.full_name, "Restricted:", window.isRestrictedUser);
+            try {
+                // DEBUG: Temporary check for user status
+                // console.log("User:", window.PNAuth?.getSession()?.user?.full_name, "Restricted:", window.isRestrictedUser);
 
-            let html = `<div class="space-y-3" id="reportValues">`;
-            const saldos = hitungSaldo();
+                let html = `<div class="space-y-3" id="reportValues">`;
+                const saldos = hitungSaldo();
 
-            // A. JURNAL UMUM
-            // A. JURNAL UMUM (Double Entry Style)
-            if (currentType === 'JURNAL') {
-                html += `
+
+                // A. JURNAL UMUM
+                // A. JURNAL UMUM (Double Entry Style)
+                if (currentType === 'JURNAL') {
+                    html += `
                 <div class="overflow-auto max-h-[calc(100vh-280px)] border rounded-lg shadow-inner relative custom-scrollbar">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -603,35 +629,35 @@
                         </thead>
                         <tbody class="text-sm divide-y divide-slate-100 table-auto">`;
 
-                rawData.forEach((r, idx) => {
-                    const kode = akunMap[r.nama_akun] || '-';
-                    const isDebit = r.debit > 0;
-                    const isCredit = r.kredit > 0;
+                    rawData.forEach((r, idx) => {
+                        const kode = akunMap[r.nama_akun] || '-';
+                        const isDebit = r.debit > 0;
+                        const isCredit = r.kredit > 0;
 
-                    // Indentasi & Styling untuk Kredit
-                    const indentClass = isCredit ? 'pl-8 text-slate-600' : 'font-bold text-slate-800';
-                    const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-[#f8fafc]'; // Zebra Striping subtle
+                        // Indentasi & Styling untuk Kredit
+                        const indentClass = isCredit ? 'pl-8 text-slate-600' : 'font-bold text-slate-800';
+                        const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-[#f8fafc]'; // Zebra Striping subtle
 
-                    // Search Keyword Check
-                    const searchStr = `${r.nama_akun} ${r.keterangan} ${kode} ${r.debit} ${r.kredit}`.toLowerCase();
+                        // Search Keyword Check
+                        const searchStr = `${r.nama_akun} ${r.keterangan} ${kode} ${r.debit} ${r.kredit}`.toLowerCase();
 
-                    // Edit Button Logic (Restricted to SUPERADMIN only)
-                    const session = window.PNAuth?.getSession();
-                    const isSuperAdmin = session?.user?.role === 'superadmin';
-                    const showEdit = isSuperAdmin;
+                        // Edit Button Logic (Restricted to SUPERADMIN only)
+                        const session = window.PNAuth?.getSession();
+                        const isSuperAdmin = session?.user?.role === 'superadmin';
+                        const showEdit = isSuperAdmin;
 
-                    const btnEdit = showEdit ?
-                        `<button onclick="openEditJurnal(${r.id})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 mx-auto shadow-sm border border-indigo-200 w-full"><i class="fas fa-edit"></i> Edit</button>` : '<span class="text-xs text-slate-300">-</span>';
+                        const btnEdit = showEdit ?
+                            `<button onclick="openEditJurnal(${r.id})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 mx-auto shadow-sm border border-indigo-200 w-full"><i class="fas fa-edit"></i> Edit</button>` : '<span class="text-xs text-slate-300">-</span>';
 
-                    const btnDel = (showEdit && r.nomor_referensi) ?
-                        `<button onclick="confirmDelete(${r.id}, '${r.nomor_referensi}')" class="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 mt-1 mx-auto shadow-sm border border-red-200 w-full" title="Hapus Group Transaksi"><i class="fas fa-trash-alt"></i> Hapus</button>` : '';
+                        const btnDel = (showEdit && r.nomor_referensi) ?
+                            `<button onclick="confirmDelete(${r.id}, '${r.nomor_referensi}')" class="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 mt-1 mx-auto shadow-sm border border-red-200 w-full" title="Hapus Group Transaksi"><i class="fas fa-trash-alt"></i> Hapus</button>` : '';
 
-                    const actionContent = `
+                        const actionContent = `
                         ${btnEdit}
                         ${btnDel}
                     `;
 
-                    html += `
+                        html += `
                     <tr class="${rowBg} hover:bg-yellow-50 transition report-item" data-search="${searchStr}">
                         <td class="p-2.5 text-center text-xs text-slate-500 align-top border-r border-slate-100">
                            ${new Date(r.tanggal).toLocaleDateString('id-ID')}
@@ -656,40 +682,40 @@
                             ${actionContent}
                         </td>
                     </tr>`;
-                });
+                    });
 
-                html += `</tbody></table></div>
+                    html += `</tbody></table></div>
                 <div class="mt-4 text-xs text-slate-400 text-center italic border-t pt-2">
                     *Tampilan Jurnal Umum Standar Akuntansi (Double Entry)
                 </div>`;
 
-                // B. BUKU BESAR (ACCORDION STYLE WITH TABLE)
-            } else if (currentType === 'BUKU_BESAR') {
-                const groups = {};
-                rawData.forEach(r => { if (!groups[r.nama_akun]) groups[r.nama_akun] = []; groups[r.nama_akun].push(r); });
+                    // B. BUKU BESAR (ACCORDION STYLE WITH TABLE)
+                } else if (currentType === 'BUKU_BESAR') {
+                    const groups = {};
+                    rawData.forEach(r => { if (!groups[r.nama_akun]) groups[r.nama_akun] = []; groups[r.nama_akun].push(r); });
 
-                // Wrapper untuk scroll jika konten panjang
-                html += `<div class="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto custom-scrollbar pr-2">`;
+                    // Wrapper untuk scroll jika konten panjang
+                    html += `<div class="space-y-4 max-h-[calc(100vh-280px)] overflow-y-auto custom-scrollbar pr-2">`;
 
-                Object.keys(groups).sort().forEach(akun => {
-                    const kategori = akunKategori[akun] || '';
-                    const isCreditNormal = ['Kewajiban', 'Ekuitas', 'Pendapatan', 'Hutang', 'Modal', 'Penjualan'].some(k => kategori.includes(k));
+                    Object.keys(groups).sort().forEach(akun => {
+                        const kategori = akunKategori[akun] || '';
+                        const isCreditNormal = ['Kewajiban', 'Ekuitas', 'Pendapatan', 'Hutang', 'Modal', 'Penjualan'].some(k => kategori.includes(k));
 
-                    // Logic Saldo Awal
-                    let rawSaldo = saldoAwalMap[akun] || 0;
+                        // Logic Saldo Awal
+                        let rawSaldo = saldoAwalMap[akun] || 0;
 
-                    // Jika Normal Kredit, Saldo = Kredit - Debit. (Jadi Saldo Awal Accounting (-100) dibaca 100)
-                    // Tapi di DB kita simpan Debit +, Kredit -. (Net Debit).
-                    // Jadi: Net Debit -100 (Credit 100).
-                    // Kalau kita mau tampilkan Positive for Credit Balance: loop harus s -= (debit - kredit) aka s += (kredit - debit).
+                        // Jika Normal Kredit, Saldo = Kredit - Debit. (Jadi Saldo Awal Accounting (-100) dibaca 100)
+                        // Tapi di DB kita simpan Debit +, Kredit -. (Net Debit).
+                        // Jadi: Net Debit -100 (Credit 100).
+                        // Kalau kita mau tampilkan Positive for Credit Balance: loop harus s -= (debit - kredit) aka s += (kredit - debit).
 
-                    let displaySaldo = isCreditNormal ? -rawSaldo : rawSaldo; // Flip sign for display if credit normal
-                    let runningSaldo = rawSaldo; // Keep raw tracking for math
+                        let displaySaldo = isCreditNormal ? -rawSaldo : rawSaldo; // Flip sign for display if credit normal
+                        let runningSaldo = rawSaldo; // Keep raw tracking for math
 
-                    let rows = '';
+                        let rows = '';
 
-                    // FORCE SHOW Saldo Awal (Even if 0) for clarity
-                    rows += `
+                        // FORCE SHOW Saldo Awal (Even if 0) for clarity
+                        rows += `
                     <tr class="bg-yellow-50 border-b transition">
                         <td class="p-2.5 text-center text-slate-400 align-top">-</td>
                         <td class="p-2.5 font-bold text-slate-600 align-top">Saldo Awal ${isCreditNormal ? '(Normal Kredit)' : '(Normal Debit)'}</td>
@@ -700,8 +726,8 @@
                         </td>
                     </tr>`;
 
-                    // TABLE HEADER
-                    const tableHeader = `
+                        // TABLE HEADER
+                        const tableHeader = `
                     <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead>
@@ -715,22 +741,22 @@
                         </thead>
                         <tbody class="divide-y divide-slate-50">`;
 
-                    // Calculate & Generate Rows
-                    groups[akun].forEach(r => {
-                        // Update Running Balance (Raw Net Debit)
-                        runningSaldo += (r.debit - r.kredit);
+                        // Calculate & Generate Rows
+                        groups[akun].forEach(r => {
+                            // Update Running Balance (Raw Net Debit)
+                            runningSaldo += (r.debit - r.kredit);
 
-                        // Calculate Display
-                        let sDisp = isCreditNormal ? -runningSaldo : runningSaldo;
+                            // Calculate Display
+                            let sDisp = isCreditNormal ? -runningSaldo : runningSaldo;
 
-                        const searchStr = `${r.keterangan} ${r.debit} ${r.kredit}`.toLowerCase();
-                        const isDebit = r.debit > 0;
-                        const isCredit = r.kredit > 0;
+                            const searchStr = `${r.keterangan} ${r.debit} ${r.kredit}`.toLowerCase();
+                            const isDebit = r.debit > 0;
+                            const isCredit = r.kredit > 0;
 
-                        // Color logic: Negative is Red
-                        const colorClass = sDisp < 0 ? 'text-red-600' : 'text-blue-700';
+                            // Color logic: Negative is Red
+                            const colorClass = sDisp < 0 ? 'text-red-600' : 'text-blue-700';
 
-                        rows += `
+                            rows += `
                      <tr class="hover:bg-slate-50 transition report-item" data-search="${searchStr}">
                         <td class="p-2.5 text-center text-slate-500 align-top">${new Date(r.tanggal).toLocaleDateString('id-ID')}</td>
                         <td class="p-2.5 text-slate-700 italic align-top">${r.keterangan || '-'}</td>
@@ -738,13 +764,13 @@
                         <td class="p-2.5 text-right font-mono text-slate-700 border-l border-slate-100 align-top">${isCredit ? fmt(r.kredit) : ''}</td>
                         <td class="p-2.5 text-right font-mono font-bold ${colorClass} border-l border-slate-100 bg-slate-50/30 align-top">${fmt(sDisp)}</td>
                      </tr>`;
-                    });
+                        });
 
-                    const tableFooter = `</tbody></table></div>`;
-                    const searchGroup = `${akun} ${displaySaldo}`.toLowerCase(); // Use final displaySaldo
+                        const tableFooter = `</tbody></table></div>`;
+                        const searchGroup = `${akun} ${displaySaldo}`.toLowerCase(); // Use final displaySaldo
 
-                    // Accordion Item
-                    html += `
+                        // Accordion Item
+                        html += `
                  <details class="group bg-white border border-slate-200 rounded-lg overflow-hidden transition-all duration-300 open:shadow-md report-group mb-4" open data-search="${searchGroup}">
                     <summary class="flex justify-between items-center p-4 bg-slate-50 hover:bg-slate-100 cursor-pointer select-none list-none sticky top-0 z-10 border-b border-transparent group-open:border-slate-200">
                         <div class="flex items-center gap-3">
@@ -769,28 +795,28 @@
                         ${tableFooter}
                     </div>
                  </details>`;
-                });
-
-                html += `</div>`; // Close Wrapper
-                // C. NERACA SALDO & LAINNYA (WITH VISUAL BARS)
-            } else {
-                // Logic generic (Neraca Saldo, Laba Rugi, Neraca, Analisis)
-                const saldoMap = (currentType === 'NERACA_SALDO' || currentType === 'ARUS_KAS' || currentType === 'ANALISIS') ? saldos : filterSaldosByType(saldos, currentType);
-
-                // Cari nilai max (Skip untuk Arus Kas & Analisis karena punya logic sendiri)
-                let maxVal = 0;
-                if (currentType !== 'ARUS_KAS' && currentType !== 'ANALISIS') {
-                    Object.values(saldoMap).forEach(v => {
-                        const n = Math.abs(currentType === 'NERACA_SALDO' ? (v.debit - v.kredit) : v);
-                        if (n > maxVal) maxVal = n;
                     });
-                }
 
-                // GROUPING: Jika Neraca/Laba Rugi, pisahkan based on category
-                // C. NERACA SALDO (TABLE STYLE)
-                if (currentType === 'NERACA_SALDO') {
+                    html += `</div>`; // Close Wrapper
+                    // C. NERACA SALDO & LAINNYA (WITH VISUAL BARS)
+                } else {
+                    // Logic generic (Neraca Saldo, Laba Rugi, Neraca, Analisis)
+                    const saldoMap = (currentType === 'NERACA_SALDO' || currentType === 'ARUS_KAS' || currentType === 'ANALISIS') ? saldos : filterSaldosByType(saldos, currentType);
 
-                    html += `
+                    // Cari nilai max (Skip untuk Arus Kas & Analisis karena punya logic sendiri)
+                    let maxVal = 0;
+                    if (currentType !== 'ARUS_KAS' && currentType !== 'ANALISIS' && saldoMap) {
+                        Object.values(saldoMap).forEach(v => {
+                            const n = Math.abs(currentType === 'NERACA_SALDO' ? (v.debit - v.kredit) : v);
+                            if (n > maxVal) maxVal = n;
+                        });
+                    }
+
+                    // GROUPING: Jika Neraca/Laba Rugi, pisahkan based on category
+                    // C. NERACA SALDO (TABLE STYLE)
+                    if (currentType === 'NERACA_SALDO') {
+
+                        html += `
                     <div class="overflow-auto max-h-[calc(100vh-280px)] border rounded-lg shadow-inner relative custom-scrollbar bg-white">
                         <table class="w-full text-left border-collapse">
                             <thead>
@@ -802,17 +828,18 @@
                             </thead>
                             <tbody class="text-sm divide-y divide-slate-50">`;
 
-                    let tD = 0, tK = 0;
-                    Object.keys(saldoMap).sort().forEach(akun => {
-                        const net = saldoMap[akun].debit - saldoMap[akun].kredit;
-                        if (net === 0) return; // Skip zero balance
+                        let tD = 0, tK = 0;
+                        if (saldoMap) {
+                            Object.keys(saldoMap).sort().forEach(akun => {
+                                const net = saldoMap[akun].debit - saldoMap[akun].kredit;
+                                if (net === 0) return; // Skip zero balance
 
-                        const isD = net > 0;
-                        const nom = Math.abs(net);
+                                const isD = net > 0;
+                                const nom = Math.abs(net);
 
-                        if (isD) tD += nom; else tK += nom;
+                                if (isD) tD += nom; else tK += nom;
 
-                        html += `
+                                html += `
                         <tr class="hover:bg-slate-50 transition border-b border-slate-50">
                             <td class="p-3 pl-4 font-medium text-slate-700">${akun}</td>
                             <td class="p-3 text-right font-mono text-slate-700 border-l border-slate-100">
@@ -822,12 +849,13 @@
                                 ${!isD ? fmt(nom) : ''}
                             </td>
                         </tr>`;
-                    });
+                            });
+                        }
 
-                    // Footer Total
-                    const isBalanced = Math.abs(tD - tK) < 1;
+                        // Footer Total
+                        const isBalanced = Math.abs(tD - tK) < 1;
 
-                    html += `
+                        html += `
                             </tbody>
                             <tfoot class="sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                                 <tr class="${isBalanced ? 'bg-slate-800 text-white' : 'bg-red-600 text-white'} text-sm font-bold">
@@ -841,18 +869,18 @@
                     ${!isBalanced ? `<div class="bg-red-50 text-red-600 text-xs font-bold p-2 text-center mt-2 rounded border border-red-200">⚠️ Neraca Saldo Tidak Seimbang (Selisih: ${fmt(Math.abs(tD - tK))})</div>` : ''}
                     `;
 
-                    // F. ARUS KAS (TABLE STYLE)
-                } else if (currentType === 'ARUS_KAS') {
-                    // Keywords untuk deteksi akun Kas/Bank
-                    const validCashRegex = /kas|bank|cash|tunai|bca|mandiri|bri|bni|cimb|danamon|permata|wallet|dompet/i;
+                        // F. ARUS KAS (TABLE STYLE)
+                    } else if (currentType === 'ARUS_KAS') {
+                        // Keywords untuk deteksi akun Kas/Bank
+                        const validCashRegex = /kas|bank|cash|tunai|bca|mandiri|bri|bni|cimb|danamon|permata|wallet|dompet/i;
 
-                    let tableRows = '';
-                    let totalMasuk = 0;
-                    let totalKeluar = 0;
-                    let hasData = false;
+                        let tableRows = '';
+                        let totalMasuk = 0;
+                        let totalKeluar = 0;
+                        let hasData = false;
 
-                    // Header Table
-                    html += `
+                        // Header Table
+                        html += `
                     <div class="overflow-auto max-h-[calc(100vh-280px)] border rounded-lg shadow-inner relative custom-scrollbar">
                         <table class="w-full text-left border-collapse">
                             <thead>
@@ -865,19 +893,19 @@
                             </thead>
                             <tbody class="text-sm divide-y divide-slate-50 font-mono">`;
 
-                    for (let [ak, v] of Object.entries(saldos)) {
-                        if (ak.match(validCashRegex)) {
-                            // Filter hanya yang ada mutasi
-                            if (v.debit === 0 && v.kredit === 0) continue;
+                        for (let [ak, v] of Object.entries(saldos)) {
+                            if (ak.match(validCashRegex)) {
+                                // Filter hanya yang ada mutasi
+                                if (v.debit === 0 && v.kredit === 0) continue;
 
-                            hasData = true;
-                            totalMasuk += v.debit;
-                            totalKeluar += v.kredit;
-                            const net = v.debit - v.kredit;
+                                hasData = true;
+                                totalMasuk += v.debit;
+                                totalKeluar += v.kredit;
+                                const net = v.debit - v.kredit;
 
-                            const rowClass = net >= 0 ? 'text-blue-700' : 'text-orange-600';
+                                const rowClass = net >= 0 ? 'text-blue-700' : 'text-orange-600';
 
-                            tableRows += `
+                                tableRows += `
                             <tr class="hover:bg-slate-50 transition border-b border-slate-50">
                                 <td class="p-3 font-sans font-bold text-slate-700">${ak}</td>
                                 <td class="p-3 text-right text-emerald-600 border-l border-slate-100 bg-emerald-50/20">
@@ -890,18 +918,18 @@
                                     ${fmt(net)}
                                 </td>
                             </tr>`;
+                            }
                         }
-                    }
 
-                    if (!hasData) {
-                        tableRows = `<tr><td colspan="4" class="p-8 text-center text-slate-400 italic">Tidak ada mutasi arus kas pada periode ini.</td></tr>`;
-                    }
+                        if (!hasData) {
+                            tableRows = `<tr><td colspan="4" class="p-8 text-center text-slate-400 italic">Tidak ada mutasi arus kas pada periode ini.</td></tr>`;
+                        }
 
-                    html += tableRows;
+                        html += tableRows;
 
-                    // Footer Total
-                    const netTotal = totalMasuk - totalKeluar;
-                    html += `
+                        // Footer Total
+                        const netTotal = totalMasuk - totalKeluar;
+                        html += `
                             </tbody>
                             <tfoot class="bg-slate-50 border-t-2 border-slate-200 font-bold text-sm shadow-[0_-2px_10px_rgba(0,0,0,0.05)] sticky bottom-0 z-20">
                                 <tr>
@@ -927,13 +955,13 @@
                     </div>
                     `;
 
-                    // G. LABA RUGI (TABLE STYLE)
-                } else if (currentType === 'LABA_RUGI') {
-                    const { inc, exp, incTotal, expTotal } = saldoMap;
-                    const labaBersih = incTotal - expTotal;
-                    const isProfit = labaBersih >= 0;
+                        // G. LABA RUGI (TABLE STYLE)
+                    } else if (currentType === 'LABA_RUGI') {
+                        const { inc, exp, incTotal, expTotal } = saldoMap;
+                        const labaBersih = incTotal - expTotal;
+                        const isProfit = labaBersih >= 0;
 
-                    html += `
+                        html += `
                     <div class="overflow-auto max-h-[calc(100vh-280px)] border rounded-lg shadow-inner relative custom-scrollbar bg-white">
                         <table class="w-full text-left border-collapse">
                              <!-- HEADER PENDAPATAN -->
@@ -945,21 +973,21 @@
                             </thead>
                             <tbody class="text-sm border-b border-slate-100">`;
 
-                    // List Pendapatan
-                    if (Object.keys(inc).length === 0) {
-                        html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data pendapatan</td></tr>`;
-                    } else {
-                        Object.entries(inc).forEach(([ak, val]) => {
-                            html += `
+                        // List Pendapatan
+                        if (Object.keys(inc).length === 0) {
+                            html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data pendapatan</td></tr>`;
+                        } else {
+                            Object.entries(inc).forEach(([ak, val]) => {
+                                html += `
                                 <tr class="hover:bg-emerald-50/30 transition border-b border-slate-50">
                                     <td class="p-3 pl-6 text-slate-700 font-medium">${ak}</td>
                                     <td class="p-3 text-right font-mono text-slate-700">${fmt(val)}</td>
                                 </tr>`;
-                        });
-                    }
+                            });
+                        }
 
-                    // Total Pendapatan
-                    html += `
+                        // Total Pendapatan
+                        html += `
                             <tr class="bg-emerald-100/50 font-bold text-emerald-800 text-sm">
                                 <td class="p-3 text-right uppercase tracking-wider text-xs">Total Pendapatan</td>
                                 <td class="p-3 text-right font-mono">${fmt(incTotal)}</td>
@@ -975,21 +1003,21 @@
                             </thead>
                             <tbody class="text-sm">`;
 
-                    // List Beban
-                    if (Object.keys(exp).length === 0) {
-                        html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data beban</td></tr>`;
-                    } else {
-                        Object.entries(exp).forEach(([ak, val]) => {
-                            html += `
+                        // List Beban
+                        if (Object.keys(exp).length === 0) {
+                            html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data beban</td></tr>`;
+                        } else {
+                            Object.entries(exp).forEach(([ak, val]) => {
+                                html += `
                                 <tr class="hover:bg-rose-50/30 transition border-b border-slate-50">
                                     <td class="p-3 pl-6 text-slate-700 font-medium">${ak}</td>
                                     <td class="p-3 text-right font-mono text-slate-700">${fmt(val)}</td>
                                 </tr>`;
-                        });
-                    }
+                            });
+                        }
 
-                    // Total Beban
-                    html += `
+                        // Total Beban
+                        html += `
                             <tr class="bg-rose-100/50 font-bold text-rose-800 text-sm border-b border-slate-200">
                                 <td class="p-3 text-right uppercase tracking-wider text-xs">Total Beban</td>
                                 <td class="p-3 text-right font-mono">(${fmt(expTotal)})</td>
@@ -1007,12 +1035,12 @@
                     </div>
                 `;
 
-                    // H. NERACA (TABLE STYLE)
-                } else if (currentType === 'NERACA') {
-                    const { ast, pas, astTotal, pasTotal } = saldoMap;
-                    const isBalanced = Math.abs(astTotal - pasTotal) < 1; // Tolerance for float
+                        // H. NERACA (TABLE STYLE)
+                    } else if (currentType === 'NERACA') {
+                        const { ast, pas, astTotal, pasTotal } = saldoMap;
+                        const isBalanced = Math.abs(astTotal - pasTotal) < 1; // Tolerance for float
 
-                    html += `
+                        html += `
                     <div class="overflow-auto max-h-[calc(100vh-280px)] border rounded-lg shadow-inner relative custom-scrollbar bg-white">
                         <table class="w-full text-left border-collapse">
                             
@@ -1025,21 +1053,21 @@
                             </thead>
                             <tbody class="text-sm border-b border-slate-100">`;
 
-                    if (Object.keys(ast).length === 0) {
-                        html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data aset</td></tr>`;
-                    } else {
-                        Object.entries(ast).forEach(([ak, val]) => {
-                            if (Math.abs(val) < 1) return; // SKIP ZERO BALANCE
-                            html += `
+                        if (Object.keys(ast).length === 0) {
+                            html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data aset</td></tr>`;
+                        } else {
+                            Object.entries(ast).forEach(([ak, val]) => {
+                                if (Math.abs(val) < 1) return; // SKIP ZERO BALANCE
+                                html += `
                                 <tr class="hover:bg-blue-50/30 transition border-b border-slate-50">
                                     <td class="p-3 pl-6 text-slate-700 font-medium">${ak}</td>
                                     <td class="p-3 text-right font-mono text-slate-700">${fmt(val)}</td>
                                 </tr>`;
-                        });
-                    }
+                            });
+                        }
 
-                    // Total Assets
-                    html += `
+                        // Total Assets
+                        html += `
                             <tr class="bg-blue-100/50 font-bold text-blue-800 text-sm">
                                 <td class="p-3 text-right uppercase tracking-wider text-xs">Total Aset</td>
                                 <td class="p-3 text-right font-mono">${fmt(astTotal)}</td>
@@ -1055,21 +1083,21 @@
                             </thead>
                             <tbody class="text-sm">`;
 
-                    if (Object.keys(pas).length === 0) {
-                        html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data pasiva</td></tr>`;
-                    } else {
-                        Object.entries(pas).forEach(([ak, val]) => {
-                            if (Math.abs(val) < 1) return; // SKIP ZERO BALANCE
-                            html += `
+                        if (Object.keys(pas).length === 0) {
+                            html += `<tr><td colspan="2" class="p-4 text-center text-slate-400 italic font-mono text-xs">Belum ada data pasiva</td></tr>`;
+                        } else {
+                            Object.entries(pas).forEach(([ak, val]) => {
+                                if (Math.abs(val) < 1) return; // SKIP ZERO BALANCE
+                                html += `
                                 <tr class="hover:bg-indigo-50/30 transition border-b border-slate-50">
                                     <td class="p-3 pl-6 text-slate-700 font-medium">${ak}</td>
                                     <td class="p-3 text-right font-mono text-slate-700">${fmt(val)}</td>
                                 </tr>`;
-                        });
-                    }
+                            });
+                        }
 
-                    // Total Pasiva
-                    html += `
+                        // Total Pasiva
+                        html += `
                             <tr class="bg-indigo-100/50 font-bold text-indigo-800 text-sm border-b border-slate-200">
                                 <td class="p-3 text-right uppercase tracking-wider text-xs">Total Pasiva</td>
                                 <td class="p-3 text-right font-mono">${fmt(pasTotal)}</td>
@@ -1093,44 +1121,44 @@
                         </table>
                     </div>`;
 
-                    // I. ANALISIS & LAINNYA
-                } else if (currentType === 'ANALISIS') {
-                    // CALCULATE VARIABLES
-                    let currentAssets = 0, currentLiabilities = 0;
-                    let totalRevenue = 0, totalExpense = 0;
-                    let totalDebt = 0, totalEquity = 0;
+                        // I. ANALISIS & LAINNYA
+                    } else if (currentType === 'ANALISIS') {
+                        // CALCULATE VARIABLES
+                        let currentAssets = 0, currentLiabilities = 0;
+                        let totalRevenue = 0, totalExpense = 0;
+                        let totalDebt = 0, totalEquity = 0;
 
-                    for (let [ak, v] of Object.entries(saldos)) {
-                        let net = v.debit - v.kredit;
+                        for (let [ak, v] of Object.entries(saldos)) {
+                            let net = v.debit - v.kredit;
 
-                        // 1. Current Assets (Kas, Bank, Piutang, Persediaan)
-                        if (ak.match(/kas|bank|piutang|persediaan/i)) currentAssets += net;
+                            // 1. Current Assets (Kas, Bank, Piutang, Persediaan)
+                            if (ak.match(/kas|bank|piutang|persediaan/i)) currentAssets += net;
 
-                        // 2. Current Liabilities (Hutang) - Normally Credit Balance (Negative net)
-                        // We take absolute value for ratio calc
-                        if (ak.match(/hutang/i)) currentLiabilities += Math.abs(net);
+                            // 2. Current Liabilities (Hutang) - Normally Credit Balance (Negative net)
+                            // We take absolute value for ratio calc
+                            if (ak.match(/hutang/i)) currentLiabilities += Math.abs(net);
 
-                        // 3. Profitability
-                        let netPL = v.kredit - v.debit;
-                        if (ak.match(/pendapatan|penjualan/i)) totalRevenue += netPL;
-                        if (ak.match(/beban|biaya|gaji|listrik/i)) totalExpense += Math.abs(v.debit - v.kredit);
-                    }
+                            // 3. Profitability
+                            let netPL = v.kredit - v.debit;
+                            if (ak.match(/pendapatan|penjualan/i)) totalRevenue += netPL;
+                            if (ak.match(/beban|biaya|gaji|listrik/i)) totalExpense += Math.abs(v.debit - v.kredit);
+                        }
 
-                    // RATIO CALCULATIONS
-                    const currentRatio = currentLiabilities > 0 ? (currentAssets / currentLiabilities) : (currentAssets > 0 ? 99 : 0);
-                    const netProfit = totalRevenue - totalExpense;
-                    const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-                    const oprRatio = totalRevenue > 0 ? (totalExpense / totalRevenue) * 100 : 0;
+                        // RATIO CALCULATIONS
+                        const currentRatio = currentLiabilities > 0 ? (currentAssets / currentLiabilities) : (currentAssets > 0 ? 99 : 0);
+                        const netProfit = totalRevenue - totalExpense;
+                        const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+                        const oprRatio = totalRevenue > 0 ? (totalExpense / totalRevenue) * 100 : 0;
 
-                    // RENDER CARDS
-                    html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-6">`;
+                        // RENDER CARDS
+                        html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-6">`;
 
-                    // CARD 1: LIQUIDITY
-                    let crColor = currentRatio >= 1.5 ? 'text-green-600' : (currentRatio >= 1.0 ? 'text-yellow-600' : 'text-red-600');
-                    let crStatus = currentRatio >= 1.5 ? 'Sangat Sehat' : (currentRatio >= 1.0 ? 'Cukup Aman' : 'Waspada');
-                    let crIcon = currentRatio >= 1.0 ? 'fa-check-circle' : 'fa-exclamation-triangle';
+                        // CARD 1: LIQUIDITY
+                        let crColor = currentRatio >= 1.5 ? 'text-green-600' : (currentRatio >= 1.0 ? 'text-yellow-600' : 'text-red-600');
+                        let crStatus = currentRatio >= 1.5 ? 'Sangat Sehat' : (currentRatio >= 1.0 ? 'Cukup Aman' : 'Waspada');
+                        let crIcon = currentRatio >= 1.0 ? 'fa-check-circle' : 'fa-exclamation-triangle';
 
-                    html += `
+                        html += `
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between h-48">
                     <div>
                         <h4 class="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2">Likuiditas (Current Ratio)</h4>
@@ -1145,11 +1173,11 @@
                     </div>
                 </div>`;
 
-                    // CARD 2: PROFITABILITY
-                    let npmColor = netMargin >= 20 ? 'text-emerald-600' : (netMargin > 0 ? 'text-blue-600' : 'text-red-600');
-                    let npmStatus = netMargin >= 20 ? 'High Profit' : (netMargin > 0 ? 'Profitable' : 'Loss');
+                        // CARD 2: PROFITABILITY
+                        let npmColor = netMargin >= 20 ? 'text-emerald-600' : (netMargin > 0 ? 'text-blue-600' : 'text-red-600');
+                        let npmStatus = netMargin >= 20 ? 'High Profit' : (netMargin > 0 ? 'Profitable' : 'Loss');
 
-                    html += `
+                        html += `
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between h-48">
                     <div>
                         <h4 class="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2">Profitabilitas (Net Margin)</h4>
@@ -1164,10 +1192,10 @@
                     </div>
                 </div>`;
 
-                    // CARD 3: OPERATIONAL EFFICIENCY
-                    let oprColor = oprRatio <= 60 ? 'text-green-600' : (oprRatio <= 85 ? 'text-yellow-600' : 'text-red-600');
+                        // CARD 3: OPERATIONAL EFFICIENCY
+                        let oprColor = oprRatio <= 60 ? 'text-green-600' : (oprRatio <= 85 ? 'text-yellow-600' : 'text-red-600');
 
-                    html += `
+                        html += `
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between h-48">
                     <div>
                         <h4 class="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2">Efisiensi (BOPO)</h4>
@@ -1181,10 +1209,10 @@
                     </div>
                 </div>`;
 
-                    html += `</div>`; // End Grid
+                        html += `</div>`; // End Grid
 
-                    // RECOMMENDATION SECTION
-                    html += `
+                        // RECOMMENDATION SECTION
+                        html += `
                 <div class="mt-6 p-5 bg-indigo-50 rounded-xl border border-indigo-100">
                     <h4 class="font-bold text-indigo-900 mb-2"><i class="fas fa-lightbulb text-yellow-500 mr-2"></i>Insight Keuangan</h4>
                     <p class="text-sm text-indigo-800 leading-relaxed">
@@ -1192,12 +1220,195 @@
                         Posisi likuiditas berada di level <strong>${crStatus}</strong>, yang berarti perusahaan ${currentRatio >= 1.0 ? 'mampu' : 'mungkin kesulitan'} memenuhi kewajiban jangka pendeknya saat ini.
                     </p>
                 </div>`;
-                }
-            }
 
-            html += `</div>`;
-            document.getElementById("kontenScreen").innerHTML = html;
-            document.getElementById('quickSearch').value = '';
+                        // J. NERACA LAJUR (NEW: 10 Columns)
+                    } else if (currentType === 'NERACA_LAJUR') {
+                        console.log("DEBUG: Start Neraca Lajur Render");
+                        html += `
+                    <div class="overflow-auto max-h-[calc(100vh-280px)] border rounded-lg shadow-inner relative custom-scrollbar bg-white">
+                        <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
+                            <thead class="sticky top-0 z-20 shadow-sm">
+                                <!-- Group Headers -->
+                                <tr class="bg-slate-800 text-white font-bold uppercase tracking-wider text-[10px] text-center">
+                                    <th class="p-2 border-r border-slate-700 w-64" rowspan="2">Nama Akun</th>
+                                    <th class="p-2 border-r border-slate-700 bg-sky-900" colspan="2">Neraca Saldo</th>
+                                    <th class="p-2 border-r border-slate-700 bg-amber-900" colspan="2">Penyesuaian (AJP)</th>
+                                    <th class="p-2 border-r border-slate-700 bg-indigo-900" colspan="2">NS Disesuaikan</th>
+                                    <th class="p-2 border-r border-slate-700 bg-emerald-900" colspan="2">Laba Rugi</th>
+                                    <th class="p-2 bg-rose-900" colspan="2">Neraca</th>
+                                </tr>
+                                <!-- Sub Headers -->
+                                <tr class="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[10px] text-center border-b border-slate-300">
+                                    <th class="p-2 w-28 bg-sky-50 border-r border-slate-200">Debit</th>
+                                    <th class="p-2 w-28 bg-sky-50 border-r border-slate-200">Kredit</th>
+                                    <th class="p-2 w-28 bg-amber-50 border-r border-slate-200">Debit</th>
+                                    <th class="p-2 w-28 bg-amber-50 border-r border-slate-200">Kredit</th>
+                                    <th class="p-2 w-28 bg-indigo-50 border-r border-slate-200">Debit</th>
+                                    <th class="p-2 w-28 bg-indigo-50 border-r border-slate-200">Kredit</th>
+                                    <th class="p-2 w-28 bg-emerald-50 border-r border-slate-200">Debit</th>
+                                    <th class="p-2 w-28 bg-emerald-50 border-r border-slate-200">Kredit</th>
+                                    <th class="p-2 w-28 bg-rose-50 border-r border-slate-200">Debit</th>
+                                    <th class="p-2 w-28 bg-rose-50">Kredit</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 font-mono text-slate-700">`;
+
+                        let sumNS_D = 0, sumNS_K = 0;
+                        let sumAJP_D = 0, sumAJP_K = 0;
+                        let sumNSD_D = 0, sumNSD_K = 0;
+                        let sumLR_D = 0, sumLR_K = 0;
+                        let sumNR_D = 0, sumNR_K = 0;
+
+                        if (!saldos) { console.error("DEBUG: Saldos is null"); throw new Error("Saldos is null"); }
+                        console.log("DEBUG: Getting sortedAkun");
+                        const sortedAkun = Object.keys(saldos).sort();
+
+                        if (sortedAkun.length === 0) {
+                            html += `<tr><td colspan="11" class="p-8 text-center text-slate-400 italic">Belum ada data transaksi</td></tr>`;
+                        } else {
+                            sortedAkun.forEach(ak => {
+                                // console.log("DEBUG: Processing " + ak);
+                                const v = saldos[ak];
+                                const net = v.debit - v.kredit;
+                                if (Math.abs(net) < 1) return; // Skip zero balance
+
+                                // 1. Neraca Saldo (NS)
+                                const ns_d = net > 0 ? net : 0;
+                                const ns_k = net < 0 ? Math.abs(net) : 0;
+                                sumNS_D += ns_d; sumNS_K += ns_k;
+
+                                // 2. AJP (Adjustment) - Currently 0
+                                const ajp_d = 0;
+                                const ajp_k = 0;
+                                sumAJP_D += ajp_d; sumAJP_K += ajp_k;
+
+                                // 3. NS Disesuaikan (NSD) = NS + AJP
+                                // Debits add to Debits, Credits add to Credits
+                                const net_adj = (ns_d - ns_k) + (ajp_d - ajp_k);
+                                const nsd_d = net_adj > 0 ? net_adj : 0;
+                                const nsd_k = net_adj < 0 ? Math.abs(net_adj) : 0;
+                                sumNSD_D += nsd_d; sumNSD_K += nsd_k;
+
+                                // 4. Split to L/R or Neraca
+                                // Fix Error: Ensure akunKategori is safe
+                                let cat = '';
+                                if (typeof akunKategori !== 'undefined' && akunKategori[ak]) {
+                                    cat = akunKategori[ak].toLowerCase();
+                                }
+
+                                const isLR = cat.includes('pendapatan') || cat.includes('revenue') || cat.includes('penjualan') ||
+                                    cat.includes('beban') || cat.includes('biaya') || cat.includes('hpp') || cat.includes('cost') || cat.includes('expense');
+
+                                let lr_d = 0, lr_k = 0, nr_d = 0, nr_k = 0;
+
+                                if (isLR) {
+                                    lr_d = nsd_d; lr_k = nsd_k;
+                                } else {
+                                    nr_d = nsd_d; nr_k = nsd_k;
+                                }
+                                sumLR_D += lr_d; sumLR_K += lr_k;
+                                sumNR_D += nr_d; sumNR_K += nr_k;
+
+                                // RENDER ROW
+                                html += `
+                            <tr class="hover:bg-yellow-50 transition">
+                                <td class="p-2 border-r border-slate-100 font-bold text-slate-600 bg-white sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] truncate max-w-xs" title="${ak}">
+                                    ${ak}
+                                </td>
+                                <td class="p-2 text-right border-r border-slate-100 bg-sky-50/20 text-sky-700">${ns_d ? fmt(ns_d) : '-'}</td>
+                                <td class="p-2 text-right border-r border-slate-100 bg-sky-50/20 text-sky-700">${ns_k ? fmt(ns_k) : '-'}</td>
+                                
+                                <td class="p-2 text-right border-r border-slate-100 bg-amber-50/20 text-amber-700">${ajp_d ? fmt(ajp_d) : '-'}</td>
+                                <td class="p-2 text-right border-r border-slate-100 bg-amber-50/20 text-amber-700">${ajp_k ? fmt(ajp_k) : '-'}</td>
+                                
+                                <td class="p-2 text-right border-r border-slate-100 bg-indigo-50/20 text-indigo-700 font-bold">${nsd_d ? fmt(nsd_d) : '-'}</td>
+                                <td class="p-2 text-right border-r border-slate-100 bg-indigo-50/20 text-indigo-700 font-bold">${nsd_k ? fmt(nsd_k) : '-'}</td>
+                                
+                                <td class="p-2 text-right border-r border-slate-100 bg-emerald-50/20 text-emerald-700">${lr_d ? fmt(lr_d) : '-'}</td>
+                                <td class="p-2 text-right border-r border-slate-100 bg-emerald-50/20 text-emerald-700">${lr_k ? fmt(lr_k) : '-'}</td>
+                                
+                                <td class="p-2 text-right border-r border-slate-100 bg-rose-50/20 text-rose-700">${nr_d ? fmt(nr_d) : '-'}</td>
+                                <td class="p-2 text-right bg-rose-50/20 text-rose-700">${nr_k ? fmt(nr_k) : '-'}</td>
+                            </tr>`;
+                            });
+                        }
+                        console.log("DEBUG: Finished processing rows");
+
+                        // HITUNG LABA / RUGI BERSIH
+                        // Laba = Kredit (Pendapatan) - Debit (Beban) di kolom L/R
+                        // Jika Laba: Tambah ke Debit L/R (penyeimbang), Tambah ke Kredit Neraca (Modal bertambah)
+                        // Jika Rugi: Tambah ke Kredit L/R (penyeimbang), Tambah ke Debit Neraca (Modal berkurang)
+
+                        const laba = sumLR_K - sumLR_D;
+                        const isUntung = laba >= 0;
+                        const absLaba = Math.abs(laba);
+
+                        // Baris Total Balance
+                        html += `
+                            </tbody>
+                            <tfoot class="bg-slate-50 font-bold text-[10px] sticky bottom-0 z-20 shadow-inner">
+                                <tr class="border-t-2 border-slate-300">
+                                    <td class="p-2 text-right uppercase tracking-widest sticky left-0 z-10 bg-slate-50">Total</td>
+                                    
+                                    <td class="p-2 text-right text-sky-800 bg-sky-100">${fmt(sumNS_D)}</td>
+                                    <td class="p-2 text-right text-sky-800 bg-sky-100">${fmt(sumNS_K)}</td>
+                                    
+                                    <td class="p-2 text-right text-amber-800 bg-amber-100">${fmt(sumAJP_D)}</td>
+                                    <td class="p-2 text-right text-amber-800 bg-amber-100">${fmt(sumAJP_K)}</td>
+                                    
+                                    <td class="p-2 text-right text-indigo-800 bg-indigo-100">${fmt(sumNSD_D)}</td>
+                                    <td class="p-2 text-right text-indigo-800 bg-indigo-100">${fmt(sumNSD_K)}</td>
+                                    
+                                    <td class="p-2 text-right text-emerald-800 bg-emerald-100">${fmt(sumLR_D)}</td>
+                                    <td class="p-2 text-right text-emerald-800 bg-emerald-100">${fmt(sumLR_K)}</td>
+                                    
+                                    <td class="p-2 text-right text-rose-800 bg-rose-100">${fmt(sumNR_D)}</td>
+                                    <td class="p-2 text-right text-rose-800 bg-rose-100">${fmt(sumNR_K)}</td>
+                                </tr>`;
+
+                        // Baris Laba Bersih
+                        // Jika Untung: Debit L/R, Kredit Neraca
+                        let lr_bal_d = isUntung ? absLaba : 0;
+                        let lr_bal_k = isUntung ? 0 : absLaba;
+                        let nr_bal_d = isUntung ? 0 : absLaba;
+                        let nr_bal_k = isUntung ? absLaba : 0;
+
+                        html += `
+                                <tr class="border-t border-slate-200 text-blue-700 bg-blue-50/50">
+                                    <td class="p-2 text-right uppercase tracking-widest sticky left-0 z-10 bg-blue-50 font-black italic">
+                                        ${isUntung ? 'Laba Bersih' : 'Rugi Bersih'}
+                                    </td>
+                                    <td colspan="6" class="bg-slate-50"></td> <!-- Spacer -->
+                                    <td class="p-2 text-right font-black border border-blue-200">${lr_bal_d > 0 ? fmt(lr_bal_d) : ''}</td>
+                                    <td class="p-2 text-right font-black border border-blue-200">${lr_bal_k > 0 ? fmt(lr_bal_k) : ''}</td>
+                                    <td class="p-2 text-right font-black border border-blue-200">${nr_bal_d > 0 ? fmt(nr_bal_d) : ''}</td>
+                                    <td class="p-2 text-right font-black border border-blue-200">${nr_bal_k > 0 ? fmt(nr_bal_k) : ''}</td>
+                                </tr>`;
+
+                        // Baris Grand Total (Balance Check)
+                        html += `
+                                <tr class="bg-slate-800 text-white border-t-2 border-slate-600">
+                                    <td class="p-2 text-right uppercase tracking-widest sticky left-0 z-10 bg-slate-800">Grand Total</td>
+                                    <td colspan="6" class="bg-slate-800"></td> <!-- Spacer -->
+                                    <td class="p-2 text-right text-emerald-300 font-black">${fmt(sumLR_D + lr_bal_d)}</td>
+                                    <td class="p-2 text-right text-emerald-300 font-black">${fmt(sumLR_K + lr_bal_k)}</td>
+                                    <td class="p-2 text-right text-rose-300 font-black">${fmt(sumNR_D + nr_bal_d)}</td>
+                                    <td class="p-2 text-right text-rose-300 font-black">${fmt(sumNR_K + nr_bal_k)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>`;
+                    }
+                }
+
+                html += `</div>`;
+                document.getElementById("kontenScreen").innerHTML = html;
+                document.getElementById('quickSearch').value = '';
+            } catch (e) {
+                console.error("Render Error:", e);
+                // alert("Terjadi kesalahan tampilan: " + e.message);
+                document.getElementById("kontenScreen").innerHTML = `<div class="text-red-600 p-4 border border-red-200 bg-red-50 rounded">Render Error: ${e.message}</div>`;
+            }
         }
 
         // --- HELPER RENDERING ---
@@ -1451,6 +1662,105 @@
 
                 printTable(doc, [['Keterangan', 'Nominal']], body, { 1: { halign: 'right' } }, finalY);
 
+            } else if (currentType === 'NERACA_LAJUR') {
+                const saldos = hitungSaldo();
+                let sumNS_D = 0, sumNS_K = 0;
+                let sumAJP_D = 0, sumAJP_K = 0;
+                let sumNSD_D = 0, sumNSD_K = 0;
+                let sumLR_D = 0, sumLR_K = 0;
+                let sumNR_D = 0, sumNR_K = 0;
+
+                const sortedAkun = Object.keys(saldos).sort();
+
+                sortedAkun.forEach(ak => {
+                    const v = saldos[ak];
+                    const net = v.debit - v.kredit;
+                    if (Math.abs(net) < 1) return;
+
+                    const ns_d = net > 0 ? net : 0;
+                    const ns_k = net < 0 ? Math.abs(net) : 0;
+                    sumNS_D += ns_d; sumNS_K += ns_k;
+
+                    const ajp_d = 0; const ajp_k = 0;
+                    sumAJP_D += ajp_d; sumAJP_K += ajp_k;
+
+                    const net_adj = (ns_d - ns_k) + (ajp_d - ajp_k);
+                    const nsd_d = net_adj > 0 ? net_adj : 0;
+                    const nsd_k = net_adj < 0 ? Math.abs(net_adj) : 0;
+                    sumNSD_D += nsd_d; sumNSD_K += nsd_k;
+
+                    let cat = (akunKategori[ak] || '').toLowerCase();
+                    const isLR = cat.includes('pendapatan') || cat.includes('revenue') || cat.includes('penjualan') ||
+                        cat.includes('beban') || cat.includes('biaya') || cat.includes('hpp') || cat.includes('cost') || cat.includes('expense');
+
+                    let lr_d = 0, lr_k = 0, nr_d = 0, nr_k = 0;
+                    if (isLR) { lr_d = nsd_d; lr_k = nsd_k; } else { nr_d = nsd_d; nr_k = nsd_k; }
+                    sumLR_D += lr_d; sumLR_K += lr_k;
+                    sumNR_D += nr_d; sumNR_K += nr_k;
+
+                    body.push([
+                        ak,
+                        ns_d ? fmtNum(ns_d) : '-', ns_k ? fmtNum(ns_k) : '-',
+                        ajp_d ? fmtNum(ajp_d) : '-', ajp_k ? fmtNum(ajp_k) : '-',
+                        nsd_d ? fmtNum(nsd_d) : '-', nsd_k ? fmtNum(nsd_k) : '-',
+                        lr_d ? fmtNum(lr_d) : '-', lr_k ? fmtNum(lr_k) : '-',
+                        nr_d ? fmtNum(nr_d) : '-', nr_k ? fmtNum(nr_k) : '-'
+                    ]);
+                });
+
+                // Total Row
+                body.push([
+                    { content: 'TOTAL', styles: { fontStyle: 'bold' } },
+                    { content: fmtNum(sumNS_D), styles: { fontStyle: 'bold', halign: 'right' } }, { content: fmtNum(sumNS_K), styles: { fontStyle: 'bold', halign: 'right' } },
+                    { content: fmtNum(sumAJP_D), styles: { fontStyle: 'bold', halign: 'right' } }, { content: fmtNum(sumAJP_K), styles: { fontStyle: 'bold', halign: 'right' } },
+                    { content: fmtNum(sumNSD_D), styles: { fontStyle: 'bold', halign: 'right' } }, { content: fmtNum(sumNSD_K), styles: { fontStyle: 'bold', halign: 'right' } },
+                    { content: fmtNum(sumLR_D), styles: { fontStyle: 'bold', halign: 'right' } }, { content: fmtNum(sumLR_K), styles: { fontStyle: 'bold', halign: 'right' } },
+                    { content: fmtNum(sumNR_D), styles: { fontStyle: 'bold', halign: 'right' } }, { content: fmtNum(sumNR_K), styles: { fontStyle: 'bold', halign: 'right' } },
+                ]);
+
+                // Laba / Rugi Row
+                const laba = sumLR_K - sumLR_D;
+                const isUntung = laba >= 0;
+                const absLaba = Math.abs(laba);
+
+                let lr_bal_d = isUntung ? absLaba : 0;
+                let lr_bal_k = isUntung ? 0 : absLaba;
+                let nr_bal_d = isUntung ? 0 : absLaba;
+                let nr_bal_k = isUntung ? absLaba : 0;
+
+                body.push([
+                    { content: isUntung ? 'LABA BERSIH' : 'RUGI BERSIH', styles: { fontStyle: 'bold', textColor: [0, 0, 255] } },
+                    { content: '', colSpan: 6 },
+                    { content: lr_bal_d ? fmtNum(lr_bal_d) : '', styles: { fontStyle: 'bold', halign: 'right' } },
+                    { content: lr_bal_k ? fmtNum(lr_bal_k) : '', styles: { fontStyle: 'bold', halign: 'right' } },
+                    { content: nr_bal_d ? fmtNum(nr_bal_d) : '', styles: { fontStyle: 'bold', halign: 'right' } },
+                    { content: nr_bal_k ? fmtNum(nr_bal_k) : '', styles: { fontStyle: 'bold', halign: 'right' } }
+                ]);
+
+                // HEADERS
+                doc.autoTable({
+                    startY: finalY,
+                    head: [
+                        [
+                            { content: 'Nama Akun', rowSpan: 2, styles: { valign: 'middle', halign: 'center' } },
+                            { content: 'Neraca Saldo', colSpan: 2, styles: { halign: 'center', fillColor: [50, 50, 50] } },
+                            { content: 'Penyesuaian', colSpan: 2, styles: { halign: 'center', fillColor: [50, 50, 50] } },
+                            { content: 'NS Disesuaikan', colSpan: 2, styles: { halign: 'center', fillColor: [50, 50, 50] } },
+                            { content: 'Laba Rugi', colSpan: 2, styles: { halign: 'center', fillColor: [50, 50, 50] } },
+                            { content: 'Neraca', colSpan: 2, styles: { halign: 'center', fillColor: [50, 50, 50] } }
+                        ],
+                        ['Debit', 'Kredit', 'Debit', 'Kredit', 'Debit', 'Kredit', 'Debit', 'Kredit', 'Debit', 'Kredit']
+                    ],
+                    body: body,
+                    theme: 'grid',
+                    styles: { fontSize: 6, cellPadding: 1, minCellHeight: 4, valign: 'middle' },
+                    columnStyles: {
+                        0: { cellWidth: 40 }, // Nama Akun
+                    },
+                    headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold', lineWidth: 0.1 },
+                    margin: { left: 5, right: 5 }
+                });
+
             } else {
                 // Fallback for Analisis/Arus Kas (Not implemented yet to keep it simple)
                 doc.setFontSize(10);
@@ -1483,6 +1793,7 @@
 
         function hitungSaldo() {
             const s = {};
+            if (!Array.isArray(rawData)) return s;
             rawData.forEach(r => {
                 if (!s[r.nama_akun]) s[r.nama_akun] = { debit: 0, kredit: 0 };
                 s[r.nama_akun].debit += r.debit; s[r.nama_akun].kredit += r.kredit;
