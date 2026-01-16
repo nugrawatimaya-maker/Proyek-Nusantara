@@ -170,9 +170,11 @@
                     }, 1000);
 
                 } else {
-                    setStatus("Kode Tidak Dikenal!", "text-red-500");
+                    // Use server message if available (e.g., "AKUN TERKUNCI")
+                    const msg = data && data.message ? data.message : "Kode Tidak Dikenal!";
+                    setStatus(msg, "text-red-500");
                     shakeScreen();
-                    setTimeout(clearCode, 1000);
+                    setTimeout(clearCode, 2000);
                 }
 
             } catch (err) {

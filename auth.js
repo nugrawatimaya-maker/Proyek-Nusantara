@@ -31,14 +31,37 @@
     }
   }
 
-  // --- SECURITY HEARTBEAT ---
+  // --- SECURITY HEARTBEAT & IDLE CHECK ---
   let heartbeatInterval = null;
+  let lastActivity = Date.now();
+  const IDLE_LIMIT = 60 * 60 * 1000; // 1 Jam (in ms)
+
+  function updateActivity() {
+    lastActivity = Date.now();
+  }
+
+  // Listeners untuk mendeteksi aktivitas user
+  if (typeof window !== 'undefined') {
+    ['mousemove', 'mousedown', 'keypress', 'touchmove', 'scroll'].forEach(evt => {
+      window.addEventListener(evt, updateActivity, { passive: true });
+    });
+  }
 
   async function checkSession() {
     const s = getSession();
-    if (!s || !s.user.session_token) return; // Ignore if no token yet
+    if (!s) return;
 
-    // Skip for Superadmin (Optional, but backend already handles it)
+    // 1. Cek Idle Time (Client Side)
+    const idleTime = Date.now() - lastActivity;
+    if (idleTime > IDLE_LIMIT) {
+      // Time's up!
+      alert("Waktu Habis! Anda tidak aktif selama 1 jam.\nSilakan login kembali.");
+      logout();
+      return;
+    }
+
+    // 2. Cek Validitas Token di Server (Server Side)
+    if (!s.user.session_token) return;
     if (s.user.role === 'superadmin') return;
 
     try {
@@ -48,7 +71,6 @@
       });
 
       if (data === false) {
-        // INVALID!
         alert("SESI BERAKHIR!\n\nAkun Anda telah dikunci karena terdeteksi login di perangkat lain, atau sesi telah kadaluarsa.");
         logout();
       }
@@ -64,7 +86,10 @@
   }
 
   // Auto start if logged in
-  if (getSession()) startHeartbeat();
+  if (getSession()) {
+    startHeartbeat();
+    updateActivity(); // Init time
+  }
 
   // --- UTILS ---
   async function logActivity(aktivitas, tipe = 'UMUM', icon = 'fa-info-circle') {

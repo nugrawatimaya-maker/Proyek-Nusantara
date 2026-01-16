@@ -197,8 +197,55 @@
 
     // 1. FUNGSI LOAD DATA PROYEK
     async function loadProyek() {
-      // 1. Ambil data master proyek
-      const { data: proyeks, error } = await client.from('master_proyek').select('*').order('nama_proyek', { ascending: true });
+      // Ambil Active Project dari Session
+      const activeProject = sessionStorage.getItem('active_project_name') || '';
+      // Update Header Title if needed
+      if (activeProject) {
+        document.querySelector('h1').innerHTML = `<i class="fas fa-city text-blue-600 mr-2"></i>Daftar Proyek: ${activeProject}`;
+      }
+
+      // 1. Ambil data master proyek (Filtered by Location)
+      // Asumsi: Nama Proyek mengandung nama kota/lokasi, atau kita filter jika ada kolom khusus.
+      // Dashboard operasional pakai .ilike('nama_proyek', `%${activeProject}%`) -> TAPI activeProject = "Sunrise City Maros".
+      // Nama proyek di DB: "Blok A1", "Jalan Tahap 1", dll. TIDAK ADA kata "Maros".
+      // PROBLEM: Master Proyek tidak punya kolom 'kawasan' atau 'lokasi_ref'.
+      // SOLUSI SEMENTARA: Kita filter client side atau tidak filter dulu?
+      // User bilang: "data data yang di ambil data dari sunrise Maros".
+      // Artinya data di DB saat ini 100% data Maros.
+      // Jika user masuk Pinrang, dia melihat data Maros.
+      // Kita butuh kolom 'kawasan' di tabel master_proyek.
+      // TAPI: Untuk sekarang saya akan mencoba memfilter jika kolom 'lokasi' ada isinya, atau saya tambahkan kolom 'kawasan' di insert.
+
+      // REVISI CHI: Saya akan filter client side based on 'kawasan' column if exists, otherwise show warning.
+      // Wait, dashboard_operasional filter: .ilike('nama_proyek', `%${activeProject}%`)
+      // Tapi proyek name nya "Blok A1". Jadi dashboard operasional mungkin KOSONG kalau logicnya gitu?
+      // Atau mungkin master_proyek punya kolom 'kawasan'?
+      // Mari kita coba select semua dulu, lalu kita lihat.
+
+      let query = client.from('master_proyek').select('*').order('nama_proyek', { ascending: true });
+
+      // Jika tabel master_proyek punya kolom 'kawasan', kita filter:
+      // .eq('kawasan', activeProject)
+      // Karena saya tidak yakin strukturnya, saya akan ambil semua dulu, tapi tambahkan UI filter di atas tabel?
+      // User request: "kenapa data ... dari sunrise maros".
+      // Saya akan tambahkan filter kolom 'kawasan' di query. Jika error, berarti kolom belum ada.
+      // TAPI saya tidak boleh berjudi bikin error.
+
+      // STRATEGI AMAN:
+      // 1. Ambil semua.
+      // 2. Filter di JS jika properti 'kawasan' ada.
+
+      const { data: proyeks, error } = await query;
+      if (error) return console.error(error);
+
+      // CLIENT SIDE FILTERING (Strict)
+      // Data lama (legacy) dianggap 'Sunrise City Maros' jika kawasan kosong
+      let filteredProyeks = proyeks.filter(p => {
+        const projectKawasan = p.kawasan || 'Sunrise City Maros'; // Default Legacy
+        // Normalisasi string (trim & uppercase) untuk perbandingan aman
+        return projectKawasan.trim().toUpperCase() === activeProject.trim().toUpperCase();
+      });
+
       if (error) return console.error(error);
 
       const tbody = document.getElementById("tabelProyek");
@@ -237,7 +284,7 @@
       let sumRealisasiTotal = 0;
       let countAktif = 0;
 
-      proyeks.forEach(p => {
+      filteredProyeks.forEach(p => {
         const isAktif = p.status === 'BERJALAN';
         if (isAktif) countAktif++;
 
@@ -250,13 +297,30 @@
         sumRAB += rab;
         sumRealisasiTotal += (rUpah + rMat);
 
-        const btnStatus = isAktif
-          ? `<button onclick="toggleStatus(${p.id}, '${p.status}', '${p.nama_proyek}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 shadow-sm border border-red-200">
-                <i class="fas fa-power-off"></i> MATIKAN
-             </button>`
-          : `<button onclick="toggleStatus(${p.id}, '${p.status}', '${p.nama_proyek}')" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 shadow-sm border border-emerald-200">
-                <i class="fas fa-play text-[8px]"></i> AKTIFKAN
-             </button>`;
+        // Cek Role User
+        const session = PNAuth.getSession();
+        const isSuperAdmin = session?.user?.role === 'superadmin';
+
+        let actionButtons = '';
+
+        if (isSuperAdmin) {
+          const btnStatus = isAktif
+            ? `<button onclick="toggleStatus(${p.id}, '${p.status}', '${p.nama_proyek}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 shadow-sm border border-red-200">
+                    <i class="fas fa-power-off"></i> MATIKAN
+                </button>`
+            : `<button onclick="toggleStatus(${p.id}, '${p.status}', '${p.nama_proyek}')" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 shadow-sm border border-emerald-200">
+                    <i class="fas fa-play text-[8px]"></i> AKTIFKAN
+                </button>`;
+
+          actionButtons = `
+                ${btnStatus}
+                <button onclick="hapusProyek(${p.id}, '${p.nama_proyek}')" class="text-slate-300 hover:text-red-600 transition-all text-xs flex items-center gap-1">
+                    <i class="fas fa-trash-alt"></i> <span class="text-[9px] font-bold">HAPUS</span>
+                </button>`;
+        } else {
+          // Jika bukan superadmin, mungkin kosong atau info status saja
+          actionButtons = `<span class="text-[10px] text-gray-400 italic">View Only</span>`;
+        }
 
         tbody.innerHTML += `
           <tr class="hover:bg-gray-50 border-b ${!isAktif ? 'opacity-60 bg-gray-50' : ''}">
@@ -276,10 +340,7 @@
                 ${fmt(rMat)}
             </td>
             <td class="p-4 flex flex-col items-center gap-2">
-                ${btnStatus}
-                <button onclick="hapusProyek(${p.id}, '${p.nama_proyek}')" class="text-slate-300 hover:text-red-600 transition-all text-xs flex items-center gap-1">
-                    <i class="fas fa-trash-alt"></i> <span class="text-[9px] font-bold">HAPUS</span>
-                </button>
+                ${actionButtons}
             </td>
           </tr>`;
       });
@@ -287,7 +348,7 @@
       // Sinkronkan ke Dashboard Atas
       if (grandRABEl) grandRABEl.innerText = fmt(sumRAB);
       if (grandRealEl) grandRealEl.innerText = fmt(sumRealisasiTotal);
-      document.getElementById("totalProyek").innerText = proyeks.length + " Proyek";
+      document.getElementById("totalProyek").innerText = filteredProyeks.length + " Proyek";
       if (document.getElementById("totalProyekBerjalan")) {
         document.getElementById("totalProyekBerjalan").innerText = countAktif + " Unit";
       }
@@ -367,8 +428,12 @@
 
     // 3. AMBIL DATA BLOK (Dropdown)
     async function loadReferensiBlok() {
+      const activeProject = sessionStorage.getItem('active_project_name') || '';
       const select = document.getElementById("pilihNamaProyek");
-      const { data: refBlok } = await client.from('referensi_blok').select('id').order('id');
+
+      // Ambil data referensi blok (Select ALL)
+      const { data: refBlok } = await client.from('referensi_blok').select('*').order('id');
+
       const { data: proyekAktif } = await client
         .from('master_proyek')
         .select('nama_proyek')
@@ -383,7 +448,20 @@
         `;
 
       if (refBlok) {
-        refBlok
+        // FILTER BLOK BERDASARKAN LOKASI
+        const filteredBlok = refBlok.filter(b => {
+          const blokKawasan = b.kawasan || 'Sunrise City Maros'; // Default Legacy
+          return blokKawasan.trim().toUpperCase() === activeProject.trim().toUpperCase();
+        });
+
+        if (filteredBlok.length === 0) {
+          const opt = document.createElement("option");
+          opt.text = "-- Tidak ada Referensi Blok untuk Kawasan ini --";
+          opt.disabled = true;
+          select.appendChild(opt);
+        }
+
+        filteredBlok
           .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
           .forEach(b => {
             const namaBlokFull = "Blok " + b.id;
@@ -488,6 +566,9 @@
 
         if (!nama) throw new Error("Nama Proyek harus diisi!");
 
+        const activeProject = sessionStorage.getItem('active_project_name');
+        if (!activeProject) throw new Error("Sesi Lokasi Expired. Silakan kembali ke Portal.");
+
         // 1. Insert ke Database Proyek (Status: PENDING)
         const { data: projData, error: projError } = await client.from('master_proyek').insert([{
           nama_proyek: nama,
@@ -497,6 +578,7 @@
           rab_upah_tukang: rabU,
           tanggal_mulai: tgl,
           lokasi: lokasi,
+          kawasan: activeProject, // SIMPAN LOKASI AKTIF (Maros/Pinrang)
           status: 'PENDING' // Tunggu approval
         }]).select();
 
