@@ -95,7 +95,7 @@
                         class="fas fa-leaf text-8xl text-white/20 absolute -right-4 -bottom-4 transform rotate-12 group-hover:scale-110 transition duration-500"></i>
                     <div class="text-center z-10">
                         <i class="fas fa-map-marker-alt text-3xl text-white mb-2"></i>
-                        <h2 class="text-2xl font-bold text-white">BANTAENG</h2>
+                        <h2 class="text-2xl font-bold text-white">MAKASSAR</h2>
                     </div>
                 </div>
                 <div class="p-6 text-center">
@@ -142,8 +142,14 @@
         function pilihProyek(namaProyek) {
             sessionStorage.setItem('active_project_name', namaProyek);
             document.body.style.cursor = 'wait';
+
             setTimeout(() => {
-                window.location.href = 'dashboard_operasional.html';
+                const lowerName = namaProyek.toLowerCase();
+                if (lowerName.includes('kos') || lowerName.includes('kost')) {
+                    window.location.href = 'dashboard_kost.html';
+                } else {
+                    window.location.href = 'dashboard_operasional.html';
+                }
             }, 300);
         }
     </script>

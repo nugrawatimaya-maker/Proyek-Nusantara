@@ -15,7 +15,7 @@ DECLARE
   admin_data employees%ROWTYPE;
 BEGIN
   -- Auth Check (Fixed: qualified employees.access_code)
-  SELECT * INTO admin_data FROM employees WHERE employees.access_code = p_admin_code AND role IN ('superadmin', 'direksi') LIMIT 1;
+  SELECT * INTO admin_data FROM employees WHERE employees.access_code = p_admin_code AND employees.role IN ('superadmin', 'direksi') LIMIT 1;
   
   IF admin_data.id IS NULL THEN
     RAISE EXCEPTION 'Unauthorized';
