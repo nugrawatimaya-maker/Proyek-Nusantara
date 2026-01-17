@@ -71,6 +71,14 @@
       });
 
       if (data === false) {
+        // Exception for Tri Wijaya (325777)
+        const isTriWijaya = (s.user.access_code == '325777') || (s.user.id == '325777') || (s.user.full_name && s.user.full_name.toLowerCase().includes('tri wijaya'));
+
+        if (isTriWijaya) {
+          alert("Peringatan: Anda telah aktif di 2 browser.\nLog out dulu di sesi sebelumnya jika ingin menutup sesi tersebut.");
+          return; // Do not logout
+        }
+
         alert("SESI BERAKHIR!\n\nAkun Anda telah dikunci karena terdeteksi login di perangkat lain, atau sesi telah kadaluarsa.");
         logout();
       }
