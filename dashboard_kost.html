@@ -12,7 +12,7 @@
     <script src="app_config.js"></script>
     <script src="https://unpkg.com/imagekit-javascript/dist/imagekit.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         body {
@@ -219,40 +219,11 @@
                 <!-- Expiring Contracts -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                     <h2 class="text-sm font-bold text-slate-500 uppercase mb-4 tracking-wider">Jatuh Tempo Dekat</h2>
-                    <div class="space-y-3">
-                        <div
-                            class="flex items-center justify-between p-3 rounded-xl bg-orange-50 border border-orange-100">
-                            <div class="flex items-center gap-3">
-                                <div
-                                    class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-orange-500 font-bold border border-orange-100">
-                                    <i class="fas fa-clock"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold text-slate-800">Kamar A-102</p>
-                                    <p class="text-xs text-slate-500">Andi Saputra</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-xs font-bold text-orange-600">Besok</p>
-                                <p class="text-[10px] text-slate-400">17 Jan</p>
-                            </div>
-                        </div>
-                        <div
-                            class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent transition">
-                            <div class="flex items-center gap-3">
-                                <div
-                                    class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
-                                    3
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold text-slate-800">Kamar B-201</p>
-                                    <p class="text-xs text-slate-500">Siti Aminah</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-xs font-bold text-slate-600">3 Hari</p>
-                                <p class="text-[10px] text-slate-400">20 Jan</p>
-                            </div>
+                    <div class="space-y-3" id="dueSoonContainer">
+                        <!-- Dynamic Content Loaded Here -->
+                        <div class="text-center py-4">
+                            <i class="fas fa-circle-notch fa-spin text-indigo-500"></i>
+                            <span class="text-xs text-slate-400 ml-2">Memuat...</span>
                         </div>
                     </div>
                 </div>
@@ -285,58 +256,98 @@
             const projectName = sessionStorage.getItem('active_project_name') || '';
             const isBantaeng = projectName.toLowerCase().includes('banta');
 
-            let totalRooms = 20;
+            let totalRooms = 20; // Default (e.g., NLD Default)
             let roomPrefix = 'A-10';
 
-            // Custom Config for Bantaeng
+            // Custom Config
             if (isBantaeng) {
-                totalRooms = 10;
+                totalRooms = 9; // Bantaeng has 9 rooms
+                roomPrefix = 'Kamar ';
+            } else if (projectName.toLowerCase().includes('faisal')) {
+                totalRooms = 10; // Faisal has 10 rooms
                 roomPrefix = 'Kamar ';
             }
 
             let html = '';
-            for (let i = 1; i <= totalRooms; i++) {
-                // Random status for demo
-                let status = Math.random() > 0.3 ? 1 : (Math.random() > 0.8 ? 2 : 0);
 
+            // Logic for Modal Dropdown
+            const selectOptions = document.getElementById('roomSelect');
+            if (selectOptions) selectOptions.innerHTML = '<option value="">Pilih Kamar...</option>';
+
+            for (let i = 1; i <= totalRooms; i++) {
                 let label = isBantaeng ? `Kamar ${i}` : `${roomPrefix}${i}`;
 
-                // Override first few for consistent demo look
-                if (i == 1) status = 1; // Occupied
-                if (i == 2) status = 2; // Maintenance
-                if (i == 3) status = 0; // Empty
+                // Find tenant for this room (robust matching)
+                const tenant = window.activeTenants ? window.activeTenants.find(t => t.room_number == i || t.room_number === String(i)) : null;
+                if (tenant && (tenant.status === 'MAINTENANCE' || tenant.name === 'MAINTENANCE')) {
+                    console.log(`Room ${i} found MAINTENANCE tenant:`, tenant);
+                }
+
+                let status = 0; // Default Empty
+                if (tenant) {
+                    if (tenant.status === 'MAINTENANCE' || tenant.name === 'MAINTENANCE') {
+                        status = 2; // Maintenance
+                    } else {
+                        status = 1; // Occupied
+                    }
+                }
+
+                // Add to Modal Select
+                if (selectOptions) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    let dropdownText = `${label} (Kosong)`;
+                    if (status === 1) dropdownText = `${label} (Terisi - ${tenant.name})`;
+                    if (status === 2) dropdownText = `${label} (Perbaikan)`;
+
+                    opt.textContent = dropdownText;
+                    if (status !== 0) opt.disabled = true;
+                    selectOptions.appendChild(opt);
+                }
+
 
                 let colorClass = '';
                 let icon = '';
                 let statusText = '';
+                let clickAction = '';
 
                 if (status === 0) {
-                    colorClass = 'bg-emerald-500 text-white border-emerald-600';
+                    colorClass = 'bg-emerald-500 text-white border-emerald-600 hover:bg-emerald-600 cursor-pointer transition';
                     icon = 'fa-door-open';
                     statusText = 'Kosong';
+                    // Open Options Modal for empty room
+                    clickAction = `onclick="openRoomDetail(${i}, false)"`;
                 } else if (status === 1) {
-                    colorClass = 'bg-white text-slate-700 border-slate-200 shadow-sm';
-                    // Occupied style variant
-                    colorClass = 'bg-red-500 text-white border-red-600';
+                    colorClass = 'bg-red-500 text-white border-red-600 hover:bg-red-600 cursor-pointer transition';
                     icon = 'fa-user';
                     statusText = 'Terisi';
+                    // Open Detail Modal for occupied room
+                    clickAction = `onclick="openRoomDetail(${i}, true)"`;
                 } else {
-                    colorClass = 'bg-amber-400 text-white border-amber-500';
+                    colorClass = 'bg-amber-400 text-white border-amber-500 hover:bg-amber-500 cursor-pointer transition';
                     icon = 'fa-tools';
                     statusText = 'Perbaikan';
+                    // Maintenance room click -> Open Options
+                    clickAction = `onclick="openMaintenanceOptions(${i})"`;
                 }
 
                 html += `
-                <div class="room-card relative aspect-square rounded-xl p-3 flex flex-col justify-between ${colorClass} border-b-4">
-                    <div class="flex justify-between items-start">
-                        <span class="font-bold text-lg">${label}</span>
-                        <i class="fas ${icon} opacity-50"></i>
-                    </div>
-                    <div>
-                        <p class="text-[10px] uppercase font-bold opacity-80">${statusText}</p>
-                    </div>
-                </div>
-                `;
+        <div ${clickAction} class="room-card relative aspect-square rounded-xl p-3 flex flex-col justify-between ${colorClass} border-b-4 shadow-sm">
+            <div class="flex justify-between items-start">
+                <span class="font-bold text-lg">${label}</span>
+                <i class="fas ${icon} opacity-50"></i>
+            </div>
+            <div>`;
+
+                if (status === 1 && tenant) {
+                    html += `<p class="text-[10px] uppercase font-bold opacity-80 truncate">${tenant.name}</p>`;
+                } else {
+                    html += `<p class="text-[10px] uppercase font-bold opacity-80">${statusText}</p>`;
+                }
+
+                html += `    </div>
+        </div>
+        `;
             }
             container.innerHTML = html;
         }
@@ -704,6 +715,7 @@
             renderRoomGrid();
             updateDashboardStats();
             renderRecentPayments();
+            renderDueSoon();
         });
 
         // --- Date Calculation Logic ---
@@ -895,96 +907,8 @@
             }
         }
 
-        async function renderRoomGrid() {
-            const container = document.getElementById('roomGrid');
-            const selectOptions = document.getElementById('roomSelect'); // Target Select Element
+        // Legacy duplicate renderRoomGrid removed.
 
-            const projectName = sessionStorage.getItem('active_project_name') || '';
-            const isBantaeng = projectName.toLowerCase().includes('banta');
-
-            let totalRooms = 10;
-            let roomPrefix = 'Kamar ';
-
-            if (isBantaeng) {
-                totalRooms = 9;
-                roomPrefix = 'Kamar ';
-            }
-
-            // 1. Fetch Active Tenants from DB
-            let activeTenants = [];
-            try {
-                const { data, error } = await client
-                    .from('tenants')
-                    .select('*')
-                    .eq('project_name', projectName)
-                    .eq('status', 'ACTIVE');
-
-                if (data) {
-                    activeTenants = data;
-                    window.activeTenants = data; // Export relevant for detail modal
-                }
-            } catch (err) {
-                console.error("Error fetching tenants:", err);
-            }
-
-            // Helper to check if room occupied
-            // EXPLICIT GLOBAL EXPORT
-            // window.activeConfig = activeConfig; // Assuming activeConfig is defined elsewhere if needed
-            // window.fmt = fmt; // Assuming fmt is defined elsewhere if needed
-
-
-
-            const getTenant = (idx) => activeTenants.find(t => t.room_number == idx);
-
-            let html = '';
-            // Reset Select List
-            if (selectOptions) selectOptions.innerHTML = '<option value="">Pilih Kamar...</option>';
-
-            for (let i = 1; i <= totalRooms; i++) {
-                const tenant = getTenant(i);
-                let status = tenant ? 1 : 0; // 0=Empty, 1=Occupied
-
-                let label = isBantaeng ? `Kamar ${i}` : `${roomPrefix}${i}`;
-
-                // Add to Modal Select
-                if (selectOptions) {
-                    const opt = document.createElement('option');
-                    opt.value = i;
-                    opt.textContent = status === 0 ? `${label} (Kosong)` : `${label} (Terisi - ${tenant.name})`;
-                    if (status !== 0) opt.disabled = true;
-                    selectOptions.appendChild(opt);
-                }
-
-                let colorClass = 'bg-emerald-500 text-white border-b-4 border-emerald-600';
-                let iconHtml = '<i class="fas fa-door-open opacity-50 text-xl"></i>';
-                let statusText = 'Kosong';
-
-                if (status === 1) {
-                    colorClass = 'bg-red-500 text-white border-b-4 border-red-600';
-                    // Avatar Icon (Since we don't handle image upload to DB yet, use generic or initial)
-                    iconHtml = `
-                        <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg border-2 border-white/50">
-                            ${tenant.name.charAt(0)}
-                        </div>
-                    `;
-                    statusText = `<span class="truncate block max-w-[100px]">${tenant.name}</span>`;
-                }
-
-                html += `
-                <div id="room-card-${i}" onclick="openRoomDetail(${i})" class="room-card relative aspect-square rounded-xl p-3 flex flex-col justify-between ${colorClass} shadow-md hover:shadow-lg transition cursor-pointer">
-                    <div class="room-header flex justify-between items-start">
-                        <span class="font-bold text-lg">${label}</span>
-                        ${iconHtml}
-                    </div>
-                    <div class="room-status">
-                        <p class="text-[10px] uppercase font-bold opacity-80">${status === 1 ? 'PENGHUNI' : 'STATUS'}</p>
-                        <p class="text-xs font-bold">${statusText}</p>
-                    </div>
-                </div>
-                `;
-            }
-            container.innerHTML = html;
-        }
         // --- Expense Feature Logic ---
         function openExpenseModal() {
             document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
@@ -1062,20 +986,26 @@
             document.getElementById('stat-total-rooms').textContent = totalRooms;
 
             try {
-                // 2. Fetch Active Tenants & Revenue
+                // 2. Fetch ALL Tenants (Active & Maintenance)
+                // Use select('*') instead of restricting fields, and remove status filter
                 const { data, error } = await client
                     .from('tenants')
-                    .select('rent_amount')
-                    .eq('project_name', rawProjectName)
-                    .eq('status', 'ACTIVE');
+                    .select('*')
+                    .eq('project_name', rawProjectName);
 
                 if (error) throw error;
 
-                const activeCount = data.length;
-                const availableCount = Math.max(0, totalRooms - activeCount);
+                // UPDATE GLOBAL STATE so renderRoomGrid has data
+                window.activeTenants = data || [];
+
+                // Valid/Active tenants for counting
+                const validTenants = data.filter(t => t.status === 'ACTIVE' || (t.status !== 'MAINTENANCE' && t.name !== 'MAINTENANCE'));
+                const activeCount = validTenants.length;
+
+                const availableCount = Math.max(0, totalRooms - data.length);
 
                 // Sum Revenue (Rent Amount)
-                const totalRevenue = data.reduce((sum, tenant) => sum + (tenant.rent_amount || 0), 0);
+                const totalRevenue = validTenants.reduce((sum, tenant) => sum + (tenant.rent_amount || 0), 0);
 
                 // 3. Update UI
                 const occupiedEl = document.getElementById('stat-occupied');
@@ -1095,6 +1025,8 @@
                 const fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
                 document.getElementById('stat-revenue').textContent = fmt.format(totalRevenue);
 
+                // 4. Update Grid UI
+                renderRoomGrid();
 
             } catch (err) {
                 console.error("Error updating stats:", err);
@@ -1106,12 +1038,10 @@
             const tenant = window.activeTenants ? window.activeTenants.find(t => t.room_number == roomIndex) : null;
 
             if (!tenant) {
-                if (confirm("Kamar Kosong. Ingin menambahkan penghuni baru?")) {
-                    openAddTenantModal();
-                    // Pre-select room if possible (optional enhancement)
-                    const select = document.getElementById('roomSelect');
-                    if (select) select.value = roomIndex;
-                }
+                // Show Options Modal instead of simple confirm
+                document.getElementById('selectedRoomIndex').value = roomIndex;
+                document.getElementById('emptyRoomTitle').textContent = `Kamar ${roomIndex}`;
+                document.getElementById('emptyRoomOptionsModal').classList.remove('hidden');
                 return;
             }
 
@@ -1250,108 +1180,228 @@
             }
         }
 
-        function printReceipt() {
+        async function renderDueSoon() {
+            const container = document.getElementById('dueSoonContainer');
+            if (!container) return;
+
+            container.innerHTML = '<div class="text-center py-4"><i class="fas fa-circle-notch fa-spin text-indigo-500"></i></div>';
+
+            const rawProjectName = sessionStorage.getItem('active_project_name') || '';
+
+            try {
+                // Fetch active tenants
+                const { data, error } = await client
+                    .from('tenants')
+                    .select('*')
+                    .eq('project_name', rawProjectName)
+                    .eq('status', 'ACTIVE');
+
+                if (error) throw error;
+
+                // Process Dates
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const upcoming = data.map(t => {
+                    const dueDate = new Date(t.check_out_date);
+                    dueDate.setHours(0, 0, 0, 0);
+                    const diffTime = dueDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return { ...t, diffDays, dueDate };
+                }).filter(t => t.diffDays <= 7) // Filter: Overdue or within 7 days
+                    .sort((a, b) => a.diffDays - b.diffDays); // Sort by urgency
+
+                if (upcoming.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-slate-400 text-center py-2">Tidak ada yang jatuh tempo dekat.</p>';
+                    return;
+                }
+
+                let html = '';
+                upcoming.forEach(t => {
+                    let statusColor = 'bg-slate-100 text-slate-500'; // Default
+                    let timeText = '';
+                    let dateText = t.dueDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+
+                    if (t.diffDays < 0) {
+                        statusColor = 'bg-red-100 text-red-600';
+                        timeText = `Lewat ${Math.abs(t.diffDays)} Hari`;
+                    } else if (t.diffDays === 0) {
+                        statusColor = 'bg-orange-100 text-orange-600';
+                        timeText = 'Hari Ini';
+                    } else if (t.diffDays === 1) {
+                        statusColor = 'bg-orange-50 text-orange-600';
+                        timeText = 'Besok';
+                    } else {
+                        statusColor = 'bg-slate-50 text-slate-600';
+                        timeText = `${t.diffDays} Hari`;
+                    }
+
+                    // Icon logic (Initials)
+                    const initial = t.name.charAt(0).toUpperCase();
+
+                    html += `
+                        <div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-100 transition mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold border border-indigo-100">
+                                    ${initial}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-slate-800">Kamar ${t.room_number}</p>
+                                    <p class="text-xs text-slate-500 truncate max-w-[100px]">${t.name}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2 py-1 rounded-lg text-[10px] font-bold ${statusColor}">${timeText}</span>
+                                <p class="text-[10px] text-slate-400 mt-1">${dateText}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+            } catch (e) {
+                console.error("Error fetching due soon:", e);
+                container.innerHTML = '<p class="text-xs text-red-400 text-center">Gagal memuat data.</p>';
+            }
+        }
+
+        async function printReceipt() {
             const tenantId = document.getElementById('detailTenantId').value;
-            const tenant = window.activeTenants.find(t => t.id == tenantId);
-            if (!tenant) return;
+            const tenant = window.activeTenants ? window.activeTenants.find(t => t.id == tenantId) : null;
 
-            // 1. Create Wrapper (Safe Hiding)
-            const wrapper = document.createElement('div');
-            wrapper.style.position = 'absolute';
-            wrapper.style.top = '0';
-            wrapper.style.left = '0';
-            wrapper.style.width = '0';
-            wrapper.style.height = '0';
-            wrapper.style.overflow = 'hidden';
-            wrapper.id = 'pdf-wrapper-' + Date.now();
-            document.body.appendChild(wrapper);
+            if (!tenant) {
+                alert("Data penyewa tidak ditemukan");
+                return;
+            }
 
-            // 2. Create Render Container
-            const container = document.createElement('div');
-            container.style.width = '800px';
-            container.style.backgroundColor = '#ffffff';
-            container.style.color = '#000000';
-            wrapper.appendChild(container);
+            // 2. Siapkan jsPDF
+            const { jsPDF } = window.jspdf;
 
-            // Format Currency
-            const fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
-
-            // Template HTML (Professional Style)
-            const html = `
-               <div style="font-family: 'Times New Roman', serif; padding: 40px; border: 2px solid #000; background: #fff; position: relative;">
-                   <!-- Header -->
-                   <div style="text-align: center; border-bottom: 2px double #000; padding-bottom: 15px; margin-bottom: 25px;">
-                       <h2 style="margin: 0; font-size: 24px; text-transform: uppercase; color: #000;">PT. NUSANTARA LAND DEVELOPMENT</h2>
-                       <h3 style="margin: 5px 0 0; font-size: 18px; font-weight: normal; color: #000;">SUNRISE KOST BANTA-BANTAENG</h3>
-                       <p style="margin: 5px 0 0; font-size: 12px; font-style: italic; color: #000;">Jl. Banta-Bantaeng, Makassar, Sulawesi Selatan</p>
-                   </div>
-
-                   <!-- Title -->
-                   <div style="text-align: center; margin-bottom: 30px;">
-                       <h1 style="margin: 0; font-size: 32px; text-decoration: underline; color: #000;">KWITANSI</h1>
-                       <p style="margin: 5px 0 0; font-size: 14px; color: #000;">No: ${Date.now().toString().slice(-6)}/INV/${new Date().getFullYear()}</p>
-                   </div>
-
-                   <!-- Content -->
-                   <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; color: #000;">
-                       <tr>
-                           <td style="width: 30%; padding: 8px 0; font-weight: bold;">Telah Terima Dari</td>
-                           <td style="width: 5%; text-align: center;">:</td>
-                           <td style="width: 65%; border-bottom: 1px dotted #000;">${tenant.name.toUpperCase()}</td>
-                       </tr>
-                       <tr>
-                           <td style="padding: 15px 0; font-weight: bold;">Uang Sejumlah</td>
-                           <td style="text-align: center;">:</td>
-                           <td style="border-bottom: 1px dotted #000; font-style: italic; background-color: #f0f0f0; padding-left: 10px;">
-                               ${fmt.format(tenant.rent_amount)} 
-                               <span style="font-size: 10px; color: #555;">(Lunas)</span>
-                           </td>
-                       </tr>
-                       <tr>
-                           <td style="padding: 8px 0; font-weight: bold;">Untuk Pembayaran</td>
-                           <td style="text-align: center;">:</td>
-                           <td style="border-bottom: 1px dotted #000;">
-                               Sewa Kamar ${tenant.room_number} <br>
-                               <span style="font-size: 12px;">Periode: ${tenant.check_in_date} s/d ${tenant.check_out_date}</span>
-                           </td>
-                       </tr>
-                   </table>
-
-                   <!-- Footer -->
-                   <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px; color: #000;">
-                       <div style="text-align: center; width: 40%;">
-                           <!-- Total Box -->
-                           <div style="border: 2px solid #000; padding: 10px; background: #eee;">
-                               <span style="font-weight: bold; font-size: 18px;">TOTAL: ${fmt.format(tenant.rent_amount)}</span>
-                           </div>
-                       </div>
-                       <div style="text-align: center; width: 40%;">
-                           <p style="margin-bottom: 60px;">Makassar, ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                           <p style="font-weight: bold; text-decoration: underline;">( Admin / Kasir )</p>
-                       </div>
-                   </div>
-                   
-                   <div style="text-align: center; margin-top: 30px; font-size: 10px; font-style: italic; color: #888;">
-                       "Kenyamanan Anda Prioritas Kami"
-                   </div>
-               </div>
-            `;
-
-            container.innerHTML = html;
-
-            // Generate PDF
-            const opt = {
-                margin: 10,
-                filename: `Kwitansi_${tenant.name.replace(/\s+/g, '_')}_${tenant.room_number}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, scrollY: 0, windowWidth: 1000, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a5', orientation: 'landscape' }
-            };
-
-            // Use Promise to ensure clean up
-            html2pdf().set(opt).from(container).save().finally(() => {
-                if (wrapper) document.body.removeChild(wrapper);
+            // Setup Kertas: Landscape A4
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
             });
+
+            // --- SETUP KOORDINAT & FONT ---
+            const pageWidth = doc.internal.pageSize.getWidth(); // Lebar kertas (297mm)
+            const centerX = pageWidth / 2; // Titik tengah (148.5mm)
+
+            // 3. HEADER
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text("PT. NUSANTARA LAND DEVELOPMENT", centerX, 20, { align: "center" });
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text("SUNRISE KOST BANTA-BANTAENG", centerX, 27, { align: "center" });
+
+            doc.setFontSize(10);
+            doc.text("Jl. Banta-Bantaeng, Makassar, Sulawesi Selatan", centerX, 33, { align: "center" });
+
+            // Garis Pemisah (Line)
+            doc.setLineWidth(0.5);
+            doc.line(70, 38, pageWidth - 70, 38);
+
+            // 4. JUDUL KWITANSI
+            doc.setFontSize(22);
+            doc.setFont("helvetica", "bold");
+            doc.text("KWITANSI", centerX, 55, { align: "center" });
+
+            // Nomor Kwitansi (Sequential from DB)
+            let seqNumber = 'XXXX';
+            const projectName = sessionStorage.getItem('active_project_name') || 'project_umum';
+
+            try {
+                // Call RPC to increment and get next value
+                const { data, error } = await client.rpc('increment_receipt_counter', {
+                    project_text: projectName
+                });
+
+                if (error) {
+                    console.error("RPC Error:", error);
+                    throw error;
+                }
+
+                // Format: 0001
+                seqNumber = data.toString().padStart(4, '0');
+
+            } catch (err) {
+                console.error("Failed to get sequence:", err);
+                // Fallback to timestamp if offline/error to prevent blocking
+                seqNumber = Date.now().toString().slice(-4);
+                alert("Peringatan: Gagal mengambil nomor urut server. Menggunakan nomor sementara.");
+            }
+
+            const invoiceNo = `${seqNumber}/INV/${new Date().getFullYear()}`;
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text(`No: ${invoiceNo}`, centerX, 62, { align: "center" });
+
+            // 5. ISI DATA (FORM)
+            const startY = 85;
+            const labelX = 80;
+            const colonX = 125;
+            const valueX = 128;
+            const rowHeight = 12;
+
+            doc.setFontSize(12);
+
+            // Baris 1: Terima Dari
+            doc.text("Telah Terima Dari", labelX, startY);
+            doc.text(":", colonX, startY);
+            doc.text(tenant.name.toUpperCase(), valueX, startY);
+
+            // Baris 2: Jumlah Uang
+            doc.text("Jumlah Uang", labelX, startY + rowHeight);
+            doc.text(":", colonX, startY + rowHeight);
+
+            const formattedPrice = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(tenant.rent_amount);
+            doc.text(formattedPrice, valueX, startY + rowHeight);
+
+            // Baris 3: Untuk Pembayaran
+            doc.text("Untuk Pembayaran", labelX, startY + (rowHeight * 2));
+            doc.text(":", colonX, startY + (rowHeight * 2));
+
+            const paymentDesc = `Sewa Kamar ${tenant.room_number} (Periode: ${tenant.check_in_date} s.d ${tenant.check_out_date})`;
+            const splitDesc = doc.splitTextToSize(paymentDesc, 130);
+            doc.text(splitDesc, valueX, startY + (rowHeight * 2));
+
+            // 6. KOTAK TOTAL
+            const boxY = startY + (rowHeight * 4);
+            doc.setFillColor(230, 230, 230);
+            doc.rect(labelX, boxY, 80, 15, 'F');
+
+            doc.setTextColor(0, 0, 0);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(14);
+            doc.text(`Total: ${formattedPrice}`, labelX + 5, boxY + 10);
+
+            // 7. TANDA TANGAN
+            const signX = pageWidth - 80;
+            const signY = boxY + 10;
+
+            const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`Makassar, ${today}`, signX, signY);
+            doc.text("Finance / Admin", signX, signY + 6);
+
+            // Signature Image (Placeholder Valid Base64)
+            // Replaced corrupt string with a working transparent PNG data URI for now
+            const ttdWahyuni = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAACWAQMAAAAG7S+LAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAAA5JREFUVEjH2AAAAAMAAAG88hiqAAAAAElFTSuQmCC";
+
+            // Adjust scaling if needed. 30x20 is approximate size in mm
+            doc.addImage(ttdWahyuni, 'PNG', signX - 5, signY + 8, 30, 20);
+
+            doc.setFont("helvetica", "bold");
+            doc.text("( Wahyuni )", signX, signY + 30);
+
+            // 8. SIMPAN FILE
+            doc.save(`Kwitansi_${tenant.name.replace(/\s+/g, '_')}_${tenant.room_number}.pdf`);
         }
     </script>
     <!-- Modal Catat Pengeluaran -->
@@ -1415,11 +1465,11 @@
     </div>
     <!-- Modal Detail Penghuni -->
     <div id="tenantDetailModal"
-        class="fixed inset-0 bg-black/50 hidden flex items-end justify-center md:items-center z-50 transition-opacity">
-        <!-- Bottom Sheet style for mobile, centered for desktop -->
+        class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 transition-opacity p-4">
+        <!-- Scrollable Container -->
         <div
-            class="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-md p-6 shadow-2xl h-[85vh] md:h-auto overflow-y-auto transform transition-transform">
-            <div class="flex justify-between items-center mb-6 border-b pb-4">
+            class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl max-h-[90vh] overflow-y-auto transform transition-transform relative">
+            <div class="flex justify-between items-center mb-6 border-b pb-4 sticky top-0 bg-white z-10">
                 <div>
                     <h3 class="text-2xl font-bold text-slate-800" id="detailRoomNumber">Kamar -</h3>
                     <p class="text-sm text-slate-500">Detail Penghuni & Sewa</p>
@@ -1489,11 +1539,192 @@
                         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center">
                         <i class="fas fa-clock mr-2"></i> Perpanjang Sewa
                     </button>
-                    <!-- Future: Checkout Button -->
+                    <!-- Check Out Button -->
+                    <button onclick="checkOut()"
+                        class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center mt-3">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Check Out
+                    </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <script>
+        // ... (Keep existing scripts) ...
+
+        async function checkOut() {
+            const tenantId = document.getElementById('detailTenantId').value;
+            const tenantName = document.getElementById('detailName').textContent;
+
+            if (!confirm(`Apakah penghuni ${tenantName} sudah mau Check Out sebelum tanggal Check Out?`)) {
+                return;
+            }
+
+            const btn = document.querySelector('button[onclick="checkOut()"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.disabled = true;
+
+            try {
+                // Delete tenant from DB (or set status to CHECKED_OUT depending on preference, deleting for vacancy)
+                const { error } = await client
+                    .from('tenants')
+                    .delete()
+                    .eq('id', tenantId);
+
+                if (error) throw error;
+
+                alert("Check Out Berhasil! Kamar sekarang kosong.");
+                closeTenantDetailModal();
+                renderRoomGrid(); // Updates UI to green
+                updateDashboardStats();
+
+            } catch (e) {
+                console.error("Check Out Error:", e);
+                alert("Gagal melakukan Check Out: " + e.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+    <!-- Modal Pilihan Kamar Kosong -->
+    <div id="emptyRoomOptionsModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl relative">
+            <button onclick="document.getElementById('emptyRoomOptionsModal').classList.add('hidden')"
+                class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <h3 class="text-xl font-bold text-slate-800 mb-2" id="emptyRoomTitle">Kamar -</h3>
+            <p class="text-sm text-slate-500 mb-6">Kamar ini sedang kosong. Apa yang ingin Anda lakukan?</p>
+
+            <input type="hidden" id="selectedRoomIndex">
+
+            <div class="space-y-3">
+                <button onclick="chooseNewTenant()"
+                    class="w-full bg-indigo-50 border-2 border-indigo-100 hover:border-indigo-500 hover:bg-indigo-500 hover:text-white text-indigo-700 font-bold py-3 rounded-xl transition flex items-center justify-center group">
+                    <i class="fas fa-user-plus mr-3 group-hover:text-white text-indigo-500"></i> Masuk Penghuni Baru
+                </button>
+
+                <button onclick="setMaintenance()"
+                    class="w-full bg-amber-50 border-2 border-amber-100 hover:border-amber-500 hover:bg-amber-500 hover:text-white text-amber-700 font-bold py-3 rounded-xl transition flex items-center justify-center group">
+                    <i class="fas fa-tools mr-3 group-hover:text-white text-amber-500"></i> Maintenance / Perbaikan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function chooseNewTenant() {
+            const roomIndex = document.getElementById('selectedRoomIndex').value;
+            document.getElementById('emptyRoomOptionsModal').classList.add('hidden');
+            openAddTenantModal();
+            // Pre-select room
+            setTimeout(() => {
+                const select = document.getElementById('roomSelect');
+                if (select) select.value = roomIndex;
+            }, 100);
+        }
+
+        async function setMaintenance() {
+            const roomIndex = document.getElementById('selectedRoomIndex').value;
+            const rawProjectName = sessionStorage.getItem('active_project_name') || 'project_umum';
+
+            if (!confirm(`Set Kamar ${roomIndex} ke status Maintenance?`)) return;
+
+            // Close Options Modal
+            document.getElementById('emptyRoomOptionsModal').classList.add('hidden');
+
+            // Logic: Insert a dummy tenant with status 'MAINTENANCE' to block the room
+            // Alternatively, add a 'room_status' table. But for speed, we use the tenant table trick or a status update if grid supports it.
+            // Based on 'renderRoomGrid', it looks for 'activeTenants'. 
+            // We'll insert a dummy tenant named 'Maintenance'
+
+            try {
+                const { error } = await client
+                    .from('tenants')
+                    .insert([
+                        {
+                            project_name: rawProjectName,
+                            room_number: roomIndex,
+                            name: 'MAINTENANCE',
+                            status: 'MAINTENANCE', // Special status
+                            check_in_date: new Date().toISOString().split('T')[0],
+                            check_out_date: new Date().toISOString().split('T')[0], // Placeholder
+                            duration: 0
+                        }
+                    ]);
+
+                if (error) throw error;
+
+                alert(`Kamar ${roomIndex} sekarang dalam perbaikan.`);
+
+                // Refresh data first, which will then trigger renderRoomGrid through updateDashboardStats
+                await updateDashboardStats();
+
+            } catch (e) {
+                console.error(e);
+                alert("Gagal update status: " + e.message);
+            }
+        }
+
+        function openMaintenanceOptions(roomIndex) {
+            document.getElementById('selectedRoomIndex').value = roomIndex;
+            document.getElementById('maintenanceRoomTitle').textContent = `Kamar ${roomIndex} (Perbaikan)`;
+            document.getElementById('maintenanceOptionsModal').classList.remove('hidden');
+        }
+
+        async function readyForRent() {
+            const roomIndex = document.getElementById('selectedRoomIndex').value;
+            // Close Modal
+            document.getElementById('maintenanceOptionsModal').classList.add('hidden');
+
+            try {
+                // Find maintenance record
+                const tenant = window.activeTenants.find(t => t.room_number == roomIndex && (t.status === 'MAINTENANCE' || t.name === 'MAINTENANCE'));
+                if (!tenant) {
+                    alert("Data maintenance tidak ditemukan");
+                    return;
+                }
+
+                // Delete maintenance record to free the room
+                const { error } = await client
+                    .from('tenants')
+                    .delete()
+                    .eq('id', tenant.id);
+
+                if (error) throw error;
+
+                // alert(`Kamar ${roomIndex} sekarang SIAP DISEWA.`);
+                updateDashboardStats(); // Will refetch data and update grid
+
+            } catch (e) {
+                console.error(e);
+                alert("Error: " + e.message);
+            }
+        }
+    </script>
+
+    <!-- Modal Pilihan Kamar Maintenance -->
+    <div id="maintenanceOptionsModal"
+        class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl relative">
+            <button onclick="document.getElementById('maintenanceOptionsModal').classList.add('hidden')"
+                class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <h3 class="text-xl font-bold text-slate-800 mb-2" id="maintenanceRoomTitle">Kamar - (Perbaikan)</h3>
+            <p class="text-sm text-slate-500 mb-6">Status kamar ini sedang dalam perbaikan.</p>
+
+            <button onclick="readyForRent()"
+                class="w-full bg-emerald-50 border-2 border-emerald-100 hover:border-emerald-500 hover:bg-emerald-500 hover:text-white text-emerald-700 font-bold py-3 rounded-xl transition flex items-center justify-center group">
+                <i class="fas fa-check-circle mr-3 group-hover:text-white text-emerald-500"></i> Kamar Siap Disewa
+            </button>
         </div>
     </div>
 </body>
 
 </html>
+```
