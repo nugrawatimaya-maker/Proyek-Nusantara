@@ -168,6 +168,7 @@
         else if (r === 'marketing') window.location.href = 'dashboard_marketing.html';
         else if (r === 'hr') window.location.href = 'dashboard_hr.html';
         else if (r === 'operasional') window.location.href = 'dashboard_operasional.html';
+        else if (r === 'kos-kosan') window.location.href = 'portal_proyek.html';
         else if (r === 'superadmin') window.location.href = 'admin_karyawan.html';
         else window.location.href = "login.html";
 

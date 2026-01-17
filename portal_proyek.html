@@ -45,7 +45,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            <div onclick="pilihProyek('Sunrise City Maros')"
+            <div id="card-maros" onclick="pilihProyek('Sunrise City Maros')"
                 class="project-card group bg-white/95 backdrop-blur-md rounded-3xl p-2 cursor-pointer border-2 border-transparent hover:border-blue-500">
                 <div
                     class="h-40 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl flex items-center justify-center relative overflow-hidden">
@@ -66,7 +66,7 @@
                 </div>
             </div>
 
-            <div onclick="pilihProyek('Sunrise City Pinrang')"
+            <div id="card-pinrang" onclick="pilihProyek('Sunrise City Pinrang')"
                 class="project-card group bg-white/95 backdrop-blur-md rounded-3xl p-2 cursor-pointer border-2 border-transparent hover:border-orange-500">
                 <div
                     class="h-40 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center relative overflow-hidden">
@@ -87,7 +87,7 @@
                 </div>
             </div>
 
-            <div onclick="pilihProyek('Kos Sunrise Banta-Bantaeng')"
+            <div id="card-bantaeng" onclick="pilihProyek('Kos Sunrise Banta-Bantaeng')"
                 class="project-card group bg-white/95 backdrop-blur-md rounded-3xl p-2 cursor-pointer border-2 border-transparent hover:border-emerald-500">
                 <div
                     class="h-40 bg-gradient-to-br from-emerald-500 to-green-700 rounded-2xl flex items-center justify-center relative overflow-hidden">
@@ -108,7 +108,7 @@
                 </div>
             </div>
 
-            <div onclick="pilihProyek('Kost Faisal')"
+            <div id="card-faisal" onclick="pilihProyek('Kost Faisal')"
                 class="project-card group bg-white/95 backdrop-blur-md rounded-3xl p-2 cursor-pointer border-2 border-transparent hover:border-purple-500">
                 <div
                     class="h-40 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl flex items-center justify-center relative overflow-hidden">
@@ -132,13 +132,42 @@
         </div>
 
         <div class="mt-12 text-center">
-            <a href="login_internal.html" class="text-slate-400 text-sm hover:text-white transition"><i
+            <a href="login.html" onclick="localStorage.removeItem('pn_session_v2');"
+                class="text-slate-400 text-sm hover:text-white transition cursor-pointer"><i
                     class="fas fa-sign-out-alt mr-1"></i> Logout / Ganti Akun</a>
         </div>
 
     </div>
 
+    <script src="auth.js"></script>
     <script>
+        // Init Check
+        document.addEventListener('DOMContentLoaded', () => {
+            // Manual Check for simple portal filtering
+            // Note: auth.js is included above if file exists, if not we check storage directly
+            const STORAGE_KEY = "pn_session_v2";
+            const raw = localStorage.getItem(STORAGE_KEY);
+            let role = null;
+
+            if (raw) {
+                try {
+                    const session = JSON.parse(raw);
+                    if (session && session.user) {
+                        role = session.user.role;
+                    }
+                } catch (e) { }
+            }
+
+            // FILTER LOGIC
+            // Jika Role = 'kos-kosan', sembunyikan Maros & Pinrang
+            if (role === 'kos-kosan') {
+                const cardMaros = document.getElementById('card-maros');
+                const cardPinrang = document.getElementById('card-pinrang');
+                if (cardMaros) cardMaros.style.display = 'none';
+                if (cardPinrang) cardPinrang.style.display = 'none';
+            }
+        });
+
         function pilihProyek(namaProyek) {
             sessionStorage.setItem('active_project_name', namaProyek);
             document.body.style.cursor = 'wait';
