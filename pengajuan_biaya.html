@@ -3,7 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Pengajuan Biaya (Expense Request)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#f97316">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Pengajuan Biaya (Expense)</title>
     <!-- Dependencies -->
     <script src="supabase.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,59 +30,145 @@
         .hidden-field {
             display: none;
         }
+
+        /* Mobile Optimizations */
+        body {
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 80px;
+        }
+
+        /* Space for bottom nav */
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 16px;
+            z-index: 40;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #94a3b8;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .nav-item.active {
+            color: #f97316;
+        }
+
+        .nav-item i {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        /* Hide Scrollbar for clean look */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 640px) {
+            .desktop-only {
+                display: none;
+            }
+
+            .mobile-header {
+                position: sticky;
+                top: 0;
+                z-index: 30;
+                background: #fff5eb;
+                padding-top: env(safe-area-inset-top, 10px);
+            }
+        }
     </style>
 </head>
 
-<body class="bg-orange-50 font-sans text-slate-800 p-6">
+<body class="bg-gray-50 font-sans text-slate-800">
 
-    <div class="max-w-6xl mx-auto mb-6 flex justify-between items-center">
-        <div>
-            <div class="flex items-center gap-3">
-                <div class="bg-orange-600 text-white w-10 h-10 flex items-center justify-center rounded-lg shadow">
-                    <i class="fas fa-file-invoice-dollar text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-800">Pengajuan Biaya</h1>
-                    <p class="text-sm text-slate-500">Permintaan Dana / Kasbon (Advance)</p>
-                </div>
+    <!-- Mobile Header (App Bar) -->
+    <div class="mobile-header shadow-sm border-b border-orange-100 p-4 flex justify-between items-center bg-orange-50">
+        <div class="flex items-center gap-3">
+            <div
+                class="bg-orange-500 text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg shadow-orange-200">
+                <i class="fas fa-file-invoice-dollar text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-slate-800 leading-tight">Pengajuan Biaya</h1>
+                <p class="text-[10px] text-orange-600 font-bold uppercase tracking-wider">NLD Corp Finance</p>
             </div>
         </div>
-        <div class="flex gap-2">
-            <button onclick="bukaModal()"
-                class="bg-orange-600 text-white px-4 py-2 rounded shadow font-bold hover:bg-orange-700 transition">
-                <i class="fas fa-plus mr-1"></i> Buat Pengajuan
-            </button>
-            <a href="index.html"
-                class="bg-white border border-slate-300 text-slate-600 px-4 py-2 rounded shadow hover:bg-slate-50 font-bold transition">
-                <i class="fas fa-home"></i> Home
-            </a>
+        <div class="text-right">
+            <div class="text-[10px] text-slate-400 font-bold">User</div>
+            <div class="text-xs font-bold text-slate-700" id="userBadgeMobile">...</div>
         </div>
     </div>
 
-    <!-- MAIN CONTENT -->
-    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="p-4 border-b bg-orange-50 flex justify-between items-center">
-            <h3 class="font-bold text-slate-700">Daftar Pengajuan Saya</h3>
-            <div class="text-xs text-slate-500 font-bold" id="userBadge">Memuat user...</div>
+    <!-- MAIN CONTENT CONTAINER -->
+    <div class="p-4 max-w-lg mx-auto">
+
+        <!-- Action Card -->
+        <div
+            class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-xl shadow-orange-200 mb-6 relative overflow-hidden">
+            <i class="fas fa-coins absolute -right-4 -bottom-4 text-8xl text-white/10 rotate-12"></i>
+            <h2 class="text-xl font-bold mb-1">Butuh Dana Operasional?</h2>
+            <p class="text-white/80 text-xs mb-4 max-w-[70%]">Ajukan permintaan dana atau realisasi pengeluaran dengan
+                mudah.</p>
+            <button onclick="bukaModal()"
+                class="bg-white text-orange-600 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm active:scale-95 transition flex items-center gap-2">
+                <i class="fas fa-plus-circle"></i> Buat Pengajuan Baru
+            </button>
         </div>
-        <table class="w-full text-left text-sm">
-            <thead class="bg-slate-100 text-slate-600 uppercase font-bold text-xs">
-                <tr>
-                    <th class="p-4">Tanggal & Ref</th>
-                    <th class="p-4">Tipe & Keperluan</th>
-                    <th class="p-4 text-right">Estimasi (Rp)</th>
-                    <th class="p-4 text-right">Realisasi (Rp)</th>
-                    <th class="p-4 text-center">Status</th>
-                    <th class="p-4 text-center">Aksi</th>
-                </tr>
-            </thead>
-            <tbody id="listPengajuan" class="divide-y divide-slate-100 text-slate-700">
-                <tr>
-                    <td colspan="6" class="p-8 text-center text-slate-400">Sedang memuat data...</td>
-                </tr>
-            </tbody>
-        </table>
+
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-slate-700 text-sm">Riwayat Pengajuan</h3>
+            <button onclick="loadPengajuan()" class="text-xs text-orange-500 font-bold"><i class="fas fa-sync-alt"></i>
+                Refresh</button>
+        </div>
+
+        <!-- LIST CARD CONTAINER (Mobile Friendly) -->
+        <div id="listPengajuanMobile" class="space-y-3 pb-20">
+            <!-- Card Items injected here -->
+            <div class="text-center py-10 text-slate-400 text-xs text-center italic">Memuat data...</div>
+        </div>
+
     </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav desktop-only-hidden">
+        <a href="index.html" class="nav-item">
+            <i class="fas fa-home"></i> Home
+        </a>
+        <a href="#" onclick="bukaModal()" class="nav-item active">
+            <div
+                class="bg-orange-500 text-white w-10 h-10 -mt-8 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+                <i class="fas fa-plus text-lg mx-0 mb-0 text-white"></i>
+            </div>
+            <span class="mt-1">Buat Baru</span>
+        </a>
+        <a href="javascript:void(0)" onclick="loadPengajuan()" class="nav-item">
+            <i class="fas fa-history"></i> Riwayat
+        </a>
+    </div>
+
 
     <!-- MODAL PENGAJUAN BARU -->
     <div id="modalForm" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
@@ -476,7 +566,8 @@
                     return;
                 }
                 currentUser = session.user;
-                document.getElementById('userBadge').innerText = `${currentUser.full_name} (${currentUser.role})`;
+                const badgeEl = document.getElementById('userBadgeMobile');
+                if (badgeEl) badgeEl.innerText = `${currentUser.full_name} (${currentUser.role})`;
 
                 // Map Division
                 let userDiv = "Umum";
@@ -866,7 +957,7 @@
             totalEl.innerText = (window.fmt) ? window.fmt(total) : total;
         }
 
-        // --- 4. LOAD DATA (FIXED: CLIENT SIDE FILTER) ---
+        // --- 4. LOAD DATA (FIXED: CLIENT SIDE FILTER + MOBILE CARDS) ---
         async function loadPengajuan() {
             if (!window.client) return;
 
@@ -878,79 +969,88 @@
                 .ilike('keterangan', `%[REQ:${currentUser.id}]%`)
                 .order('tanggal', { ascending: false });
 
-            const tbody = document.getElementById("listPengajuan");
-            if (tbody) tbody.innerHTML = "";
+            const listContainer = document.getElementById("listPengajuanMobile");
+            if (listContainer) listContainer.innerHTML = "";
             else return;
 
             if (error) { console.error(error); return; }
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 italic">Belum ada riwayat pengajuan Anda.</td></tr>`;
+                listContainer.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs italic">Belum ada riwayat pengajuan Anda.</div>`;
                 return;
             }
 
-            // Data already filtered by server
             const myData = data;
 
             myData.forEach(item => {
                 let statusBadge = "";
-                let actionBtn = "-";
+                let actionBtn = "";
 
                 if (item.jenis_transaksi === 'PENGAJUAN') {
-                    statusBadge = `<span class="bg-orange-100 text-orange-600 px-2 py-1 rounded-full text-xs font-bold">PENDING</span>`;
-                    actionBtn = `<button class="text-xs text-red-500 underline" onclick="alert('Simulasi Batal')">Batal</button>`;
+                    statusBadge = `<span class="text-orange-500 font-bold">PENDING</span>`;
+                    actionBtn = `<button class="text-xs text-red-400 border border-red-200 px-3 py-1.5 rounded-full hover:bg-red-50" onclick="alert('Fitur Batal Pengajuan (Simulasi)')">Batal</button>`;
                 } else if (item.jenis_transaksi === 'ADVANCE_CAIR') {
-                    statusBadge = `<span class="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs font-bold animate-pulse">UANG CAIR</span>`;
-                    actionBtn = `<button onclick="bukaModalReal(${item.id}, ${item.jumlah}, '${escapeHtml(item.keterangan)}')" class="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-700 shadow">Realisasi</button>`;
+                    statusBadge = `<span class="text-green-600 font-bold animate-pulse">UANG CAIR</span>`;
+                    actionBtn = `<button onclick="bukaModalReal(${item.id}, ${item.jumlah}, '${escapeHtml(item.keterangan)}')" class="bg-green-600 text-white px-4 py-1.5 rounded-full text-xs font-bold hover:bg-green-700 shadow-md transform active:scale-95 transition">Realisasi</button>`;
                 } else if (item.jenis_transaksi === 'REALIZED') {
-                    statusBadge = `<span class="bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-xs font-bold">SELESAI</span>`;
-                    actionBtn = `<span class="text-green-600 text-xs"><i class="fas fa-check"></i></span>`;
+                    statusBadge = `<span class="text-slate-400 font-bold">SELESAI</span>`;
+                    actionBtn = `<span class="text-green-600 text-sm font-bold"><i class="fas fa-check-circle mr-1"></i> Selesai</span>`;
                 } else if (item.jenis_transaksi === 'REJECTED') {
-                    statusBadge = `<span class="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-bold">DITOLAK</span>`;
-                    actionBtn = `<span class="text-red-400 text-xs"><i class="fas fa-times-circle"></i></span>`;
+                    statusBadge = `<span class="text-red-600 font-bold">DITOLAK</span>`;
+                    actionBtn = `<span class="text-red-400 text-xs font-bold">Closed</span>`;
                 }
 
-                let realisasiDisplay = "-";
+                let realisasiDisplay = "";
                 if (item.jenis_transaksi === 'REALIZED') {
                     const match = item.keterangan.match(/\[REAL:(\d+)\]/);
-                    if (match) realisasiDisplay = transformFmt(Number(match[1]));
+                    if (match) {
+                        const val = Number(match[1]);
+                        realisasiDisplay = `<div class="text-xs text-green-600 mt-1">Real: ${(window.fmt) ? window.fmt(val) : val}</div>`;
+                    }
                 }
 
                 let typeDisplay = "UMUM";
                 let descClean = item.keterangan;
-
-                // Clean tags from display
-                // remove [REQ:...]
                 descClean = descClean.replace(/\[REQ:.*?\]/g, '').trim();
 
                 if (item.keterangan.startsWith('[')) {
-                    // Try to parse [TYPE] [DIV] DESC
                     const parts = item.keterangan.split('] ');
                     if (parts.length > 1) {
                         typeDisplay = parts[0].replace('[', '');
                         descClean = item.keterangan.substring(item.keterangan.indexOf('] ') + 2);
-                        // clean again just in case
                         descClean = descClean.replace(/\[REQ:.*?\]/g, '').trim();
                     }
                 }
 
-                function transformFmt(n) { return (window.fmt) ? window.fmt(n) : n; }
+                // Remove [REAL:...] tag from clean desc for nice display
+                descClean = descClean.split('[REAL:')[0];
 
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 border-b">
-                        <td class="p-4">
-                            <div class="font-bold text-xs text-orange-600">REQ-#${item.id}</div>
-                            <div class="text-xs text-slate-500">${new Date(item.tanggal).toLocaleDateString('id-ID')}</div>
-                        </td>
-                        <td class="p-4">
-                            <span class="text-[10px] font-bold bg-slate-200 px-1 rounded text-slate-600">${typeDisplay}</span>
-                            <div class="text-sm mt-1 max-w-xs break-words">${descClean.split('[REAL')[0]}</div>
-                        </td>
-                        <td class="p-4 text-right font-mono">${transformFmt(item.jumlah)}</td>
-                        <td class="p-4 text-right font-mono font-bold text-slate-700">${realisasiDisplay}</td>
-                        <td class="p-4 text-center">${statusBadge}</td>
-                        <td class="p-4 text-center">${actionBtn}</td>
-                    </tr>
-                `;
+                function transformFmt(n) { return (window.fmt) ? window.fmt(n) : n.toLocaleString('id-ID'); }
+                const dateFmt = new Date(item.tanggal).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+
+                // CARD RENDER
+                const card = `
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative hover:shadow-md transition">
+                   <div class="flex justify-between items-start mb-2">
+                       <div class="flex flex-col">
+                           <span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded w-max uppercase tracking-wider mb-1">${typeDisplay}</span>
+                           <span class="text-[10px] text-slate-400">${dateFmt}</span>
+                       </div>
+                       <div class="text-right">
+                           <div class="font-bold text-slate-800 text-sm font-mono">${transformFmt(item.jumlah)}</div>
+                           <div class="text-[10px] mt-0.5">${statusBadge}</div>
+                       </div>
+                   </div>
+                   
+                   <h4 class="font-bold text-slate-700 text-sm mb-3 text-sm leading-snug">${descClean}</h4>
+                   ${realisasiDisplay}
+                   
+                   <div class="flex justify-between items-center border-t border-slate-50 pt-3 mt-1">
+                       <div class="text-[10px] text-slate-300 font-mono">ID: #${item.id}</div>
+                       <div>${actionBtn}</div> 
+                   </div>
+                </div>`;
+
+                listContainer.innerHTML += card;
             });
         }
 
