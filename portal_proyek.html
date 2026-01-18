@@ -166,6 +166,14 @@
                 if (cardMaros) cardMaros.style.display = 'none';
                 if (cardPinrang) cardPinrang.style.display = 'none';
             }
+
+            // Jika Role = 'operasional', sembunyikan Bantaeng & Faisal (Kost)
+            if (role === 'operasional') {
+                const cardBantaeng = document.getElementById('card-bantaeng');
+                const cardFaisal = document.getElementById('card-faisal');
+                if (cardBantaeng) cardBantaeng.style.display = 'none';
+                if (cardFaisal) cardFaisal.style.display = 'none';
+            }
         });
 
         function pilihProyek(namaProyek) {

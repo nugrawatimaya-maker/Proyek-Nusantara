@@ -42,6 +42,16 @@
             display: flex !important;
             align-items: center !important;
         }
+
+        /* Hide scrollbar for horizontal scroll visuals */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -134,7 +144,9 @@
             </div>
         </div>
 
-        <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-12">
+        <!-- Action Buttons: Horizontal Scroll on Mobile -->
+        <div
+            class="max-w-7xl mx-auto flex overflow-x-auto gap-4 mb-6 md:grid md:grid-cols-4 lg:grid-cols-7 pb-4 md:pb-0 snap-x">
 
             <button onclick="bukaModalPencarian()"
                 class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-indigo-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
@@ -560,6 +572,7 @@
                     try {
                         const inputEl = document.querySelector("#modalPencarian #cariInput") || document.getElementById("cariInput");
                         const tbody = document.getElementById("bodyStok");
+                        const mobileGrid = document.getElementById("mobileGrid"); // NEW
                         const emptyState = document.getElementById("stateKosong");
                         const rowCounter = document.getElementById("rowCounter");
 
@@ -580,6 +593,7 @@
 
                         if (keyword.length === 0) {
                             tbody.innerHTML = "";
+                            if (mobileGrid) mobileGrid.innerHTML = ""; // Clear mobile grid
                             emptyState.classList.remove("hidden");
                             emptyState.innerHTML = `<div class="bg-gray-50 p-6 rounded-full mb-4 text-gray-300 text-5xl"><i class="fas fa-search"></i></div><p class="text-gray-500 font-bold text-lg">Ketik nama material...</p>`;
                             rowCounter.innerText = "Menunggu input...";
@@ -597,6 +611,7 @@
                         filtered = filtered.slice(0, MAX_ITEMS);
 
                         tbody.innerHTML = "";
+                        if (mobileGrid) mobileGrid.innerHTML = ""; // Clear mobile grid
 
                         if (filtered.length === 0) {
                             emptyState.classList.remove("hidden");
@@ -607,6 +622,7 @@
 
                         emptyState.classList.add("hidden");
 
+                        // 1. RENDER DESKTOP TABLE
                         const rowsHTML = filtered.map((item, index) => {
                             const stok = Number(item.total_stok || 0);
                             const nama = item.nama_barang || "Tanpa Nama";
@@ -622,20 +638,78 @@
                                 stokClass = "text-orange-600 font-bold";
                             }
 
+                            const safeNama = escHtml(nama);
+                            const safeId = escJs(item.id);
+                            const safeSatuan = escJs(satuan);
+
                             return `
                                 <tr class="hover:bg-blue-50 transition border-b border-gray-50 last:border-0">
                                     <td class="p-4 text-center text-gray-400 text-xs">${index + 1}</td>
-                                    <td class="p-4"><div class="font-bold text-gray-800">${escHtml(nama)}</div><div class="text-[10px] text-gray-400">ID: ${item.id}</div></td>
-                                    <td class="p-4 text-center text-xs font-bold text-gray-500 bg-gray-50/30">${escJs(satuan)}</td>
+                                    <td class="p-4"><div class="font-bold text-gray-800">${safeNama}</div><div class="text-[10px] text-gray-400">ID: ${item.id}</div></td>
+                                    <td class="p-4 text-center text-xs font-bold text-gray-500 bg-gray-50/30">${safeSatuan}</td>
                                     <td class="p-4 text-right ${stokClass} text-sm">${stok}</td>
                                     <td class="p-4 text-center">${statusBadge}</td>
                                     <td class="p-4 text-center">
-                                        <button onclick="bukaKartuStok('${escJs(item.id)}', '${escHtml(nama)}', '${escJs(satuan)}')" class="bg-white border border-gray-200 text-blue-600 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg shadow-sm transition-all text-xs font-bold flex items-center gap-1 mx-auto"><i class="fas fa-history"></i> Detail</button>
+                                        <button onclick="bukaKartuStok('${safeId}', '${safeNama}', '${safeSatuan}')" class="bg-white border border-gray-200 text-blue-600 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg shadow-sm transition-all text-xs font-bold flex items-center gap-1 mx-auto"><i class="fas fa-history"></i> Detail</button>
                                     </td>
                                 </tr>`;
                         }).join('');
 
                         tbody.innerHTML = rowsHTML;
+
+                        // 2. RENDER MOBILE CARDS
+                        if (mobileGrid) {
+                            const cardsHTML = filtered.map((item) => {
+                                const stok = Number(item.total_stok || 0);
+                                const nama = item.nama_barang || "Tanpa Nama";
+                                const satuan = item.satuan || "Unit";
+
+                                let statusColor = "bg-green-100 text-green-800 border-green-200";
+                                let iconStatus = "fa-check-circle";
+                                let statusText = "AMAN";
+
+                                if (stok <= 0) {
+                                    statusColor = "bg-red-100 text-red-800 border-red-200";
+                                    iconStatus = "fa-exclamation-circle";
+                                    statusText = "HABIS";
+                                } else if (stok < 10) {
+                                    statusColor = "bg-orange-100 text-orange-800 border-orange-200";
+                                    iconStatus = "fa-exclamation-triangle";
+                                    statusText = "KRITIS";
+                                }
+
+                                const safeNama = escHtml(nama);
+                                const safeId = escJs(item.id);
+                                const safeSatuan = escJs(satuan);
+
+                                return `
+                                <div class="bg-white rounded-xl shadow-sm p-4 border border-gray-100 flex flex-col gap-3 relative overflow-hidden">
+                                    <div class="absolute top-0 right-0 px-3 py-1 rounded-bl-xl text-[10px] font-bold ${statusColor}">
+                                        ${statusText}
+                                    </div>
+                                    
+                                    <div class="flex items-start justify-between mt-2">
+                                        <div>
+                                            <h3 class="font-bold text-gray-800 leading-tight">${safeNama}</h3>
+                                            <p class="text-[10px] text-gray-400 mt-1">ID: ${item.id}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                                        <div class="text-xs text-gray-500 font-bold uppercase">Sisa Stok</div>
+                                        <div class="text-xl font-black text-gray-800">${stok} <span class="text-xs font-medium text-gray-400">${safeSatuan}</span></div>
+                                    </div>
+                                    
+                                    <button onclick="bukaKartuStok('${safeId}', '${safeNama}', '${safeSatuan}')" 
+                                        class="w-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white py-2 rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-2">
+                                        <i class="fas fa-history"></i> Lihat Kartu Stok
+                                    </button>
+                                </div>
+                                `;
+                            }).join('');
+                            mobileGrid.innerHTML = cardsHTML;
+                        }
+
                         rowCounter.innerText = `Menampilkan ${filtered.length} dari ${totalMatch} Item`;
                     } catch (e) {
                         console.error("Filter Error:", e);
@@ -1751,6 +1825,45 @@
                     </div>
                 </div>
             </div>
+            <!-- BOTTOM NAVIGATION (MOBILE) -->
+            <div
+                class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] py-2 px-6 md:hidden z-50 flex justify-between items-center text-[10px] font-bold text-gray-400">
+
+                <a href="dashboard_operasional.html"
+                    class="flex flex-col items-center gap-1 hover:text-blue-600 transition">
+                    <i class="fas fa-th-large text-xl"></i>
+                    <span>Home</span>
+                </a>
+
+                <button onclick="bukaModalPencarian()"
+                    class="flex flex-col items-center gap-1 hover:text-blue-600 transition">
+                    <i class="fas fa-search text-xl"></i>
+                    <span>Cari</span>
+                </button>
+
+                <!-- CENTER BUTTON (SCAN/ADD) -->
+                <div class="relative -top-6">
+                    <button onclick="document.getElementById('modalTambahItem').classList.remove('hidden')"
+                        class="w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg border-4 border-gray-50 transform hover:scale-110 transition active:scale-95">
+                        <i class="fas fa-plus text-xl"></i>
+                    </button>
+                </div>
+
+                <button onclick="initData()" class="flex flex-col items-center gap-1 hover:text-blue-600 transition">
+                    <i class="fas fa-sync-alt text-xl"></i>
+                    <span>Refresh</span>
+                </button>
+
+                <a href="inventory_grn.html" class="flex flex-col items-center gap-1 hover:text-blue-600 transition">
+                    <i class="fas fa-truck-loading text-xl"></i>
+                    <span>Terima</span>
+                </a>
+            </div>
+
+            <script>
+                // Init Select2 for Opname safely
+                // ...
+            </script>
 </body>
 
 </html>

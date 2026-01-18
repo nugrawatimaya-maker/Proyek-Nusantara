@@ -231,7 +231,7 @@
       try {
         const { data, error } = await client
           .from('master_proyek')
-          .select('nama_proyek')
+          .select('nama_proyek, kawasan') // Fetch kawasan
           .eq('status', 'BERJALAN')
           .order('nama_proyek', { ascending: true });
 
@@ -243,7 +243,13 @@
         elProyek.appendChild(optGudang);
 
         if (data) {
-          data.forEach(p => {
+          // Filter by Active Project (Kawasan)
+          const validProjects = data.filter(p => {
+            const pKawasan = p.kawasan || 'Sunrise City Maros'; // Default legacy
+            return pKawasan.trim().toUpperCase() === activeProject.trim().toUpperCase();
+          });
+
+          validProjects.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p.nama_proyek;
             opt.text = p.nama_proyek;

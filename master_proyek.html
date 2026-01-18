@@ -436,10 +436,16 @@
 
       const { data: proyekAktif } = await client
         .from('master_proyek')
-        .select('nama_proyek')
+        .select('nama_proyek, kawasan') // Add kawasan
         .eq('status', 'BERJALAN');
 
-      const activeSet = new Set(proyekAktif?.map(p => p.nama_proyek.toUpperCase().trim()) || []);
+      // Filter based on current context to prevent cross-project collisions
+      const relevantActive = proyekAktif?.filter(p => {
+        const pKawasan = p.kawasan || 'Sunrise City Maros'; // Default legacy to Maros
+        return pKawasan.trim().toUpperCase() === activeProject.trim().toUpperCase();
+      }) || [];
+
+      const activeSet = new Set(relevantActive.map(p => p.nama_proyek.toUpperCase().trim()));
 
       select.innerHTML = `
           <option value="" selected disabled>-- Pilih Blok / Proyek --</option>

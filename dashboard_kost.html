@@ -256,17 +256,13 @@
             const projectName = sessionStorage.getItem('active_project_name') || '';
             const isBantaeng = projectName.toLowerCase().includes('banta');
 
-            let totalRooms = 20; // Default (e.g., NLD Default)
-            let roomPrefix = 'A-10';
+            // Dynamic Config via Window State (set by updateDashboardStats)
+            let totalRooms = window.currentProjectTotalRooms || (isBantaeng ? 9 : 10);
+            let roomPrefix = 'Kamar ';
 
-            // Custom Config
-            if (isBantaeng) {
-                totalRooms = 9; // Bantaeng has 9 rooms
-                roomPrefix = 'Kamar ';
-            } else if (projectName.toLowerCase().includes('faisal')) {
-                totalRooms = 10; // Faisal has 10 rooms
-                roomPrefix = 'Kamar ';
-            }
+            // Legacy fallbacks just in case
+            if (isBantaeng && !window.currentProjectTotalRooms) totalRooms = 9;
+            if (projectName.toLowerCase().includes('faisal') && !window.currentProjectTotalRooms) totalRooms = 10;
 
             let html = '';
 
@@ -887,16 +883,31 @@
                             payment_proof_url: proofUrl,
                             ktp_photo_url: ktpUrl
                         }
-                    ]);
+                    ])
+                    .select();
 
                 if (error) throw error;
+
+                // 3b. Insert Payment Transaction
+                if (data && data.length > 0) {
+                    const newTenant = data[0];
+                    await client.from('payment_transactions').insert({
+                        tenant_id: newTenant.id,
+                        project_name: rawProjectName,
+                        room_number: roomIndex,
+                        tenant_name: name,
+                        amount: rentAmount || 0,
+                        description: `Pembayaran Awal Sewa (Check-In)`,
+                        category: 'RENT',
+                        proof_url: proofUrl
+                    });
+                }
 
                 alert("Data Penghuni Berhasil Disimpan ke Database!");
                 closeAddTenantModal();
 
                 // Refresh Grid
-                renderRoomGrid();
-                updateDashboardStats();
+                updateDashboardStats(); // This handles grid rendering too
 
             } catch (err) {
                 console.error('Error saving tenant:', err);
@@ -981,13 +992,29 @@
             const rawProjectName = sessionStorage.getItem('active_project_name') || '';
             const isBantaeng = rawProjectName.toLowerCase().includes('banta');
 
-            // 1. Determine Total Rooms
-            const totalRooms = isBantaeng ? 9 : 10;
+            // 1. Determine Total Rooms (Dynamic from DB)
+            let totalRooms = isBantaeng ? 9 : 10; // Default fallback
+
+            try {
+                const { data: projData } = await client
+                    .from('projects')
+                    .select('total_rooms')
+                    .eq('name', rawProjectName)
+                    .single();
+
+                if (projData) {
+                    totalRooms = projData.total_rooms;
+                }
+            } catch (e) {
+                console.warn("Failed to fetch dynamic room count, using default:", e);
+            }
+
+            // Set Global for Grid Render reuse
+            window.currentProjectTotalRooms = totalRooms;
             document.getElementById('stat-total-rooms').textContent = totalRooms;
 
             try {
-                // 2. Fetch ALL Tenants (Active & Maintenance)
-                // Use select('*') instead of restricting fields, and remove status filter
+                // 2. Fetch ALL Tenants (Active & Maintenance & Checked Out)
                 const { data, error } = await client
                     .from('tenants')
                     .select('*')
@@ -995,16 +1022,24 @@
 
                 if (error) throw error;
 
-                // UPDATE GLOBAL STATE so renderRoomGrid has data
+                // UPDATE GLOBAL STATE
                 window.activeTenants = data || [];
 
-                // Valid/Active tenants for counting
-                const validTenants = data.filter(t => t.status === 'ACTIVE' || (t.status !== 'MAINTENANCE' && t.name !== 'MAINTENANCE'));
+                // Filter for Statistics: Only ACTIVE and relevant Maintenance
+                // Exclude CHECKED_OUT
+                const validTenants = data.filter(t => t.status === 'ACTIVE');
                 const activeCount = validTenants.length;
 
-                const availableCount = Math.max(0, totalRooms - data.length);
+                // Calculate available based on simple occupancy
+                // Maintenance rooms are technically "Occupied" from availability perspective? 
+                // Usually Maintenance = Not Available. 
+                // Let's count maintenance as occupied/unavailable.
+                const maintenanceCount = data.filter(t => t.status === 'MAINTENANCE').length;
+                const realOccupied = activeCount + maintenanceCount;
 
-                // Sum Revenue (Rent Amount)
+                const availableCount = Math.max(0, totalRooms - realOccupied);
+
+                // Sum Revenue (Rent Amount) from valid tenants
                 const totalRevenue = validTenants.reduce((sum, tenant) => sum + (tenant.rent_amount || 0), 0);
 
                 // 3. Update UI
@@ -1111,6 +1146,22 @@
 
                 if (error) throw error;
 
+                // Record Payment Transaction for Extension
+                // Ideally, ask for amount. Assuming same rent amount for now or default.
+                // Fetch tenant rent first for accuracy
+                const tenant = window.activeTenants.find(t => t.id == tenantId);
+                if (tenant) {
+                    await client.from('payment_transactions').insert({
+                        tenant_id: tenant.id,
+                        project_name: sessionStorage.getItem('active_project_name'),
+                        room_number: tenant.room_number,
+                        tenant_name: tenant.name,
+                        amount: tenant.rent_amount || 0,
+                        description: `Perpanjangan Sewa (${days} Hari)`,
+                        category: 'RENT'
+                    });
+                }
+
                 alert(`Sewa diperpanjang sampai ${newCheckoutStr}`);
                 closeTenantDetailModal();
                 renderRoomGrid(); // Refresh Grid
@@ -1134,14 +1185,13 @@
             const tableBody = document.getElementById('paymentTable');
 
             try {
-                // Fetch active tenants
+                // Fetch Transactions
                 const { data, error } = await client
-                    .from('tenants')
+                    .from('payment_transactions')
                     .select('*')
                     .eq('project_name', rawProjectName)
-                    .eq('status', 'ACTIVE') // Assuming 'Pembayaran Terakhir' shows active tenants recent activity
-                    .order('check_in_date', { ascending: false })
-                    .limit(5);
+                    .order('payment_date', { ascending: false })
+                    .limit(7);
 
                 if (error) throw error;
 
@@ -1153,20 +1203,19 @@
                 let html = '';
                 const fmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
 
-                data.forEach(tenant => {
-                    // Format Date (Check In Date as proxy for Payment Date)
-                    const dateObj = new Date(tenant.check_in_date);
+                data.forEach(trx => {
+                    // Format Date
+                    const dateObj = new Date(trx.payment_date);
                     const dateStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
-                    const isBantaeng = rawProjectName.toLowerCase().includes('banta');
-                    const displayRoom = `Kamar ${tenant.room_number}`;
+                    const displayRoom = `Kamar ${trx.room_number || '-'}`;
 
                     html += `
                         <tr class="hover:bg-slate-50 transition">
                             <td class="px-4 py-3">${dateStr}</td>
-                            <td class="px-4 py-3 font-medium text-slate-800">${tenant.name}</td>
+                            <td class="px-4 py-3 font-medium text-slate-800">${trx.tenant_name || 'Tanpa Nama'}</td>
                             <td class="px-4 py-3 text-slate-500">${displayRoom}</td>
-                            <td class="px-4 py-3 font-bold text-slate-700">${fmt.format(tenant.rent_amount)}</td>
+                            <td class="px-4 py-3 font-bold text-slate-700">${fmt.format(trx.amount)}</td>
                             <td class="px-4 py-3"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold">LUNAS</span></td>
                         </tr>
                     `;
@@ -1566,10 +1615,10 @@
             btn.disabled = true;
 
             try {
-                // Delete tenant from DB (or set status to CHECKED_OUT depending on preference, deleting for vacancy)
+                // Soft Delete: Update status to CHECKED_OUT
                 const { error } = await client
                     .from('tenants')
-                    .delete()
+                    .update({ status: 'CHECKED_OUT' })
                     .eq('id', tenantId);
 
                 if (error) throw error;
