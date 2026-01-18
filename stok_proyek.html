@@ -71,6 +71,17 @@
             if (session) {
                 document.getElementById('nav-user-name').innerText = session.user.full_name;
                 document.getElementById('nav-user-role').innerText = session.user.role;
+
+                // Hide Audit & Opname for non-finance/superadmin
+                const allowedRoles = ['finance', 'superadmin'];
+                const userRole = session.user.role;
+
+                if (!allowedRoles.includes(userRole)) {
+                    const btnAudit = document.getElementById('btnAudit');
+                    const btnOpname = document.getElementById('btnOpname');
+                    if (btnAudit) btnAudit.classList.add('hidden');
+                    if (btnOpname) btnOpname.classList.add('hidden');
+                }
             }
             document.getElementById('projectTitle').innerText = activeProject;
         });
@@ -192,7 +203,7 @@
                 <span class="text-[10px] font-black text-orange-800 uppercase tracking-wide">Catat Pemakaian</span>
             </button>
 
-            <button onclick="proteksiFitur('AUDIT')"
+            <button id="btnAudit" onclick="proteksiFitur('AUDIT')"
                 class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-red-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
                 <div
                     class="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
@@ -212,7 +223,7 @@
                     class="text-[10px] font-bold text-gray-500 uppercase tracking-wide group-hover:text-cyan-700">Riwayat</span>
             </button>
 
-            <button onclick="proteksiFitur('OPNAME')"
+            <button id="btnOpname" onclick="proteksiFitur('OPNAME')"
                 class="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg border border-gray-100 hover:border-purple-300 group transition-all duration-300 flex flex-col items-center justify-center gap-3">
                 <div
                     class="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">

@@ -11,6 +11,8 @@
     <!-- Dependencies -->
     <script src="supabase.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/imagekit-javascript/dist/imagekit.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- App Config & Auth -->
     <script src="app_config.js"></script>
@@ -554,6 +556,45 @@
         let currentUser = null;
         let activeAdvanceAmount = 0;
 
+        // --- ImageKit Helper ---
+        async function uploadToImageKit(file) {
+            if (!file) return null;
+            const publicKey = "public_ZzBxgXWQzaOlUvj+11M6G39Si4s=";
+            const privateKey = "private_d1MgRwtWJzF4hasu3e0ZhaC+e3Q=";
+
+            // 1. Generate Auth
+            const token = "token-" + Math.random().toString(36).substring(7) + "-" + Date.now();
+            const expire = parseInt(Date.now() / 1000) + 1800; // 30 mins
+            const signature = CryptoJS.HmacSHA1(token + expire, privateKey).toString();
+
+            // 2. Prepare Form Data
+            const fileName = "EXP_" + Date.now() + "_" + Math.floor(Math.random() * 1000) + "." + file.name.split('.').pop();
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("fileName", fileName);
+            formData.append("publicKey", publicKey);
+            formData.append("signature", signature);
+            formData.append("expire", expire);
+            formData.append("token", token);
+            formData.append("folder", "/finance_expense"); // Common folder
+            formData.append("useUniqueFileName", "false");
+
+            // 3. Send Request
+            const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                console.error("IK Error:", err);
+                throw new Error(err.message || JSON.stringify(err));
+            }
+
+            const data = await response.json();
+            return data.url;
+        }
+
         let reimbursementItems = [];
         let generalItems = []; // NEW: Untuk Biaya Umum
 
@@ -657,12 +698,13 @@
             if (e.key === 'Enter') addItem();
         }
 
-        function addItem() {
+        async function addItem() {
             try {
                 const nameEl = document.getElementById('itemName');
                 const dateEl = document.getElementById('itemDate');
                 const amtEl = document.getElementById('itemAmount');
                 const proofEl = document.getElementById('itemProof');
+                const btnAdd = document.querySelector('button[onclick="addItem()"]');
 
                 if (!nameEl || !dateEl || !amtEl) {
                     alert("Error: Input elements not found!");
@@ -672,7 +714,7 @@
                 const name = nameEl.value.trim();
                 let dateVal = dateEl.value;
                 const amt = Number(amtEl.value);
-                const hasProof = proofEl && proofEl.value ? true : false;
+                const file = proofEl && proofEl.files ? proofEl.files[0] : null;
 
                 // 1. Validation & Auto-fill
                 if (!dateVal) {
@@ -684,21 +726,46 @@
                 if (!name) { alert("Mohon isi Jenis Biaya (misal: Bensin, Parkir)"); nameEl.focus(); return; }
                 if (!amt || amt <= 0) { alert("Mohon isi Nominal Biaya"); amtEl.focus(); return; }
 
-                // 2. Add to Array
+                // 2. Upload Logic
+                let proofUrl = null;
+                if (file) {
+                    if (btnAdd) {
+                        btnAdd.disabled = true;
+                        btnAdd.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                    }
+                    try {
+                        proofUrl = await uploadToImageKit(file);
+                    } catch (err) {
+                        alert("Gagal upload gambar: " + err.message);
+                        if (btnAdd) {
+                            btnAdd.disabled = false;
+                            btnAdd.innerHTML = '<i class="fas fa-plus"></i> Add';
+                        }
+                        return;
+                    }
+                }
+
+                // 3. Add to Array
                 reimbursementItems.push({
                     name: name,
                     date: dateVal,
                     amount: amt,
-                    hasProof: hasProof
+                    hasProof: !!proofUrl,
+                    proofUrl: proofUrl // Store URL
                 });
 
-                // 3. Reset Fields (Keep Date)
+                // 4. Reset Fields (Keep Date)
                 nameEl.value = "";
                 amtEl.value = "";
                 if (proofEl) proofEl.value = "";
                 nameEl.focus();
 
-                // 4. Render
+                if (btnAdd) {
+                    btnAdd.disabled = false;
+                    btnAdd.innerHTML = '<i class="fas fa-plus"></i> Add';
+                }
+
+                // 5. Render
                 renderReimItems();
 
             } catch (e) {
@@ -844,21 +911,50 @@
             if (e.key === 'Enter') addPettyItem();
         }
 
-        function addPettyItem() {
+        async function addPettyItem() {
             const nameEl = document.getElementById('pettyItemName');
             const amtEl = document.getElementById('pettyItemAmount');
+            const proofEl = document.getElementById('pettyItemProof');
+            const btnAdd = document.getElementById('btnAddPetty');
 
             const name = nameEl.value.trim();
             const amt = Number(amtEl.value);
+            const file = proofEl && proofEl.files ? proofEl.files[0] : null;
 
             if (!name) { alert("Isi deskripsi item!"); nameEl.focus(); return; }
             if (!amt || amt <= 0) { alert("Isi nominal!"); amtEl.focus(); return; }
 
-            pettyItems.push({ name: name, amount: amt });
+            // Upload Logic
+            let proofUrl = null;
+            if (file) {
+                if (btnAdd) {
+                    btnAdd.disabled = true;
+                    btnAdd.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Upload...';
+                }
+                try {
+                    proofUrl = await uploadToImageKit(file);
+                } catch (err) {
+                    alert("Gagal upload gambar: " + err.message);
+                    if (btnAdd) {
+                        btnAdd.disabled = false;
+                        btnAdd.innerHTML = '<i class="fas fa-plus-circle"></i> TAMBAH';
+                    }
+                    return;
+                }
+            }
+
+            pettyItems.push({ name: name, amount: amt, proofUrl: proofUrl });
 
             nameEl.value = "";
             amtEl.value = "";
+            if (proofEl) proofEl.value = "";
             nameEl.focus();
+
+            if (btnAdd) {
+                btnAdd.disabled = false;
+                btnAdd.innerHTML = '<i class="fas fa-plus-circle"></i> TAMBAH';
+            }
+
             renderPettyItems();
         }
 
@@ -1077,7 +1173,8 @@
                 // Format: [DATE] ITEM (AMT) [Ada Nota]
                 const itemDesc = reimbursementItems.map(i => {
                     const fmtAmt = (window.fmt) ? window.fmt(i.amount) : i.amount;
-                    return `[${i.date}] ${i.name} (${fmtAmt})${i.hasProof ? ' [Ada Nota]' : ''}`;
+                    const proof = i.proofUrl ? ` [LINK: ${i.proofUrl}]` : '';
+                    return `[${i.date}] ${i.name} (${fmtAmt})${proof}`;
                 }).join(', ');
 
                 desc = `Rincian: ${itemDesc}`;
@@ -1133,9 +1230,21 @@
                     extraInfo = " | [Topup Petty]";
 
                 } else if (type === 'DINAS' || type === 'EVENT') {
-                    const file = document.getElementById('planDoc').value;
+                    const fileEl = document.getElementById('planDoc');
+                    const file = fileEl && fileEl.files ? fileEl.files[0] : null;
+
                     if (!file) validationError = "Wajib upload Rencana Kerja/TOR!";
-                    extraInfo = " | [Ada Rencana Kerja]";
+                    else {
+                        try {
+                            // Upload Doc for Dinas
+                            // Note: We do it here (blocking) or we could have done it on change. Blocking is easier for now.
+                            if (document.getElementById("btnSubmitGlobal")) document.getElementById("btnSubmitGlobal").innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading Doc...';
+                            const docUrl = await uploadToImageKit(file);
+                            extraInfo = ` | [Ada Rencana Kerja] [DOC: ${docUrl}]`;
+                        } catch (e) {
+                            validationError = "Upload Gagal: " + e.message;
+                        }
+                    }
                 } else if (type === 'CASBON') {
                     extraInfo = " | [Pinjaman Karyawan]";
                 }
@@ -1236,22 +1345,32 @@
         async function simpanRealisasi() {
             const id = document.getElementById('realId').value;
             const actual = Number(document.getElementById('realAmount').value);
-            const file = document.getElementById('realProof').value; // In prod, upload to storage
+            const proofEl = document.getElementById('realProof');
+            const file = proofEl && proofEl.files ? proofEl.files[0] : null;
 
             if (actual <= 0) return alert("Nominal tidak valid!");
             if (!file) return alert("Wajib upload bukti!");
 
-            const descLabel = document.getElementById('displayDesc').innerText;
-            const { error } = await window.client.from('transaksi').update({
-                jenis_transaksi: 'REALIZED',
-                keterangan: `${descLabel} [REAL:${actual}]`
-            }).eq('id', id);
+            const btn = document.querySelector('button[onclick="simpanRealisasi()"]');
+            if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...'; btn.disabled = true; }
 
-            if (error) alert(error.message);
-            else {
+            try {
+                const proofUrl = await uploadToImageKit(file);
+                const descLabel = document.getElementById('displayDesc').innerText;
+                const { error } = await window.client.from('transaksi').update({
+                    jenis_transaksi: 'REALIZED',
+                    keterangan: `${descLabel} [REAL:${actual}] [BUKTI: ${proofUrl}]`
+                }).eq('id', id);
+
+                if (error) throw error;
+
                 alert("Realisasi Disimpan!");
                 tutupModalReal();
                 loadPengajuan();
+            } catch (e) {
+                alert("Gagal: " + e.message);
+            } finally {
+                if (btn) { btn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> SIMPAN REALISASI'; btn.disabled = false; }
             }
         }
         function hitungSelisih() {

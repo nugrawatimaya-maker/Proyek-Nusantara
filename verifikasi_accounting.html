@@ -442,7 +442,7 @@
         // 1. Fetch Transaksi (Pengajuan Biaya -> APPROVED, Kas Keluar -> APPROVED_BY_DIREKSI, Kas Masuk -> DRAFT_MASUK)
         const p1 = client.from('transaksi')
           .select('*')
-          .in('jenis_transaksi', ['APPROVED', 'APPROVED_BY_DIREKSI', 'DRAFT_MASUK'])
+          .in('jenis_transaksi', ['APPROVED', 'APPROVED_BY_DIREKSI', 'DRAFT_MASUK', 'TRANSFERED'])
           .order('tanggal', { ascending: false });
 
         // 2. Fetch Transaksi Upah
@@ -468,8 +468,6 @@
             if (match) desc = match[2];
           }
 
-          // income indicator: draft masuk usually has bank_sumber (debit) and akun (credit)
-
           if (t.jenis_transaksi === 'DRAFT_MASUK') {
             incomeData.push(t);
           } else {
@@ -480,8 +478,16 @@
               // Helper to identify source
               isKasKeluar: (t.akun && t.bank_sumber)
             };
-            if (t.jenis_transaksi === 'APPROVED' || t.jenis_transaksi === 'APPROVED_BY_DIREKSI') queueData.push(item);
-            // else if (t.jenis_transaksi === 'APPROVED_BY_DIREKSI') verifData.push(item); // Moved to Queue
+
+            // LOGIC SPLIT:
+            // 1. Queue: APPROVED (from System) or APPROVED_BY_DIREKSI (from Director)
+            if (t.jenis_transaksi === 'APPROVED' || t.jenis_transaksi === 'APPROVED_BY_DIREKSI') {
+              queueData.push(item);
+            }
+            // 2. Verify: TRANSFERED (Marked as Paid, waiting for Journal)
+            else if (t.jenis_transaksi === 'TRANSFERED') {
+              verifData.push(item);
+            }
           }
         });
 
@@ -492,8 +498,12 @@
             desc: `[Upah] ${u.nama_pekerjaan} (${u.kavling})`, amount: u.nilai_bayar,
             rawStatus: u.status
           };
+          // Upah Logic: Same split if we want, or keep simple
+          // For now, Upah 'APPROVED' goes to Queue. 
+          // If we want 2-step for Upah too, we need 'TRANSFERED' status there. 
+          // Let's keep Upah 1-step for now to avoid breaking it, OR simulate 2-step?
+          // Existing logic was 1-step (LUNAS). Let's keep it 1-step for Upah unless requested.
           if (u.status === 'APPROVED' || u.status === 'APPROVED_BY_DIREKSI') queueData.push(item);
-          // else if (u.status === 'APPROVED_BY_DIREKSI') verifData.push(item); // Moved to Queue
         });
 
         // Sort
@@ -886,9 +896,22 @@
               .eq('id', id);
             if (errUp) throw new Error("Gagal update status: " + errUp.message);
           } else {
-            // PAY MODE (Just Status LUNAS)
-            const { error: errUp } = await client.from('transaksi').update({ jenis_transaksi: 'LUNAS' }).eq('id', id);
+            // PAY MODE (Step 1: Mark as TRANSFERED + Save Source Bank)
+            // Prompt for Source Bank
+            let sourceBank = prompt("Masukkan Akun Sumber Dana (Contoh: KAS BESAR, BANK BCA):", "KAS BESAR");
+            if (!sourceBank) return; // Cancelled
+
+            const { error: errUp } = await client.from('transaksi')
+              .update({
+                jenis_transaksi: 'TRANSFERED',
+                bank_sumber: sourceBank
+              })
+              .eq('id', id);
+
             if (errUp) throw new Error("Gagal update status: " + errUp.message);
+
+            alert("✅ Pembayaran Tercatat! Silakan lanjut ke Validasi Jurnal di tab 'Verifikasi Kas Keluar'.");
+            // Auto switch tab to guide user? Maybe just reload.
           }
 
         } else if (type === 'UPAH') {

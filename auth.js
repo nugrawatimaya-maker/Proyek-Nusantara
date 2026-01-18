@@ -79,7 +79,7 @@
           return; // Do not logout
         }
 
-        alert("SESI BERAKHIR!\n\nAkun Anda telah dikunci karena terdeteksi login di perangkat lain, atau sesi telah kadaluarsa.");
+        alert("SESI ANDA TELAH DIGANTIKAN!\n\nAkun Anda baru saja login di perangkat lain.\nSesi di perangkat ini otomatis diakhiri.");
         logout();
       }
     } catch (e) {
@@ -89,8 +89,8 @@
 
   function startHeartbeat() {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
-    // Cek setiap 30 detik
-    heartbeatInterval = setInterval(checkSession, 30000);
+    // Cek setiap 60 detik (1 menit) - Reduced load
+    heartbeatInterval = setInterval(checkSession, 60000);
   }
 
   // Auto start if logged in

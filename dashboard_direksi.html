@@ -376,14 +376,28 @@
                     const requesterName = item.requester || 'Anonim';
                     const requesterInitial = requesterName.charAt(0).toUpperCase();
 
-                    // Logic Lampiran PO
+                    // Logic Lampiran
                     let lampiranHtml = '<span class="text-gray-300">-</span>';
-                    // Note: source_table inserted by purchase_order_entry.html is 'purchase_order', not 'purchase_order_request'
+
                     if (item.source_table === 'purchase_order' || item.source_table === 'purchase_order_request') {
                         lampiranHtml = `
                             <button onclick="viewPODetails('${item.source_id}', '${item.title}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 transition-colors text-xs font-semibold group-link">
-                                <i class="fas fa-eye"></i> Detail
+                                <i class="fas fa-eye"></i> PO Detail
                             </button>`;
+                    } else if (item.source_table === 'transaksi' && item.description) {
+                        // Check for Tags: [DOC:...], [BUKTI:...], or Rincian:
+                        const hasDoc = item.description.includes('[DOC:');
+                        const hasBukti = item.description.includes('[BUKTI:');
+                        const hasRincian = item.description.includes('Rincian:');
+
+                        if (hasDoc || hasBukti || hasRincian) {
+                            // Pass encoded description to avoid quote issues
+                            const safeDesc = encodeURIComponent(item.description);
+                            lampiranHtml = `
+                            <button onclick="viewExpenseDetails('${safeDesc}', '${item.title}', ${item.amount})" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 transition-colors text-xs font-semibold group-link">
+                                <i class="fas fa-file-invoice"></i> Rincian & Nota
+                            </button>`;
+                        }
                     }
 
                     // Unique ROW ID for deletion
@@ -526,7 +540,140 @@
         }
 
 
-        // --- NEW: View Detail Function (Placeholder until we implement full detail view) ---
+        // --- NEW: View Expense Detail (Parses Description String) ---
+        function viewExpenseDetails(encodedDesc, title, amount) {
+            const desc = decodeURIComponent(encodedDesc);
+            const modal = document.getElementById('detailModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+
+            modal.classList.remove('hidden');
+            modalTitle.innerHTML = `<i class="fas fa-file-invoice-dollar text-orange-600 mr-2"></i> ${title}`;
+
+            // 1. Extract Global Docs/Proofs
+            // Tags: [DOC: url], [BUKTI: url]
+            let globalDocs = [];
+            const docMatch = desc.match(/\[DOC:\s*(https?:\/\/[^\]]+)\]/);
+            if (docMatch) globalDocs.push({ type: 'Dokumen Rencana', url: docMatch[1] });
+
+            const buktiMatch = desc.match(/\[BUKTI:\s*(https?:\/\/[^\]]+)\]/);
+            if (buktiMatch) globalDocs.push({ type: 'Bukti Realisasi', url: buktiMatch[1] });
+
+            // 2. Extract Items from "Rincian:"
+            // Format: Rincian: [DATE] ITEM (AMT) [LINK: url], [DATE] ...
+            let itemsHtml = '';
+
+            if (desc.includes('Rincian:')) {
+                const rincianRaw = desc.split('Rincian:')[1].split('|')[0].trim(); // Take part after Rincian:, stop before next pipe if any
+                // Split by comma, but be careful if comma is in text. 
+                // The generator uses ", [" to separate usually? Or just comma.
+                // Let's assume split by ", [" or just simple split if no brackets.
+                // Actually the generator uses `.join(', ')`. 
+                // We might need a smarter regex or split.
+                // Let's try splitting by `], [` which is a stronger signal, or just split by `, [` 
+                // Regex: /,\s*(?=\[)/ handles ", [" nicely
+
+                const parts = rincianRaw.split(/,\s*(?=\[)/);
+
+                if (parts.length > 0) {
+                    itemsHtml = `
+                     <div class="mt-4 border rounded-lg overflow-hidden">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100 text-gray-600 border-b">
+                                <tr>
+                                    <th class="px-3 py-2 text-left">Tanggal</th>
+                                    <th class="px-3 py-2 text-left">Deskripsi</th>
+                                    <th class="px-3 py-2 text-right">Nominal</th>
+                                    <th class="px-3 py-2 text-center">Bukti</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                     `;
+
+                    parts.forEach(p => {
+                        // Parse: [2023-01-01] Beli Bensin (50000) [LINK: url]
+                        let date = '-';
+                        let name = p;
+                        let amt = '-';
+                        let link = null;
+
+                        // Extract Date
+                        const dateM = p.match(/^\[(.*?)\]/);
+                        if (dateM) {
+                            date = dateM[1];
+                            name = name.replace(dateM[0], '').trim();
+                        }
+
+                        // Extract Link
+                        const linkM = name.match(/\[LINK:\s*(https?:\/\/[^\]]+)\]/);
+                        if (linkM) {
+                            link = linkM[1];
+                            name = name.replace(linkM[0], '').trim();
+                        }
+
+                        // Extract Amount (Last parens)
+                        const amtM = name.match(/\(([^)]+)\)$/);
+                        if (amtM) {
+                            amt = amtM[1];
+                            name = name.replace(amtM[0], '').trim();
+                        }
+
+                        const btnLink = link
+                            ? `<a href="${link}" target="_blank" class="text-blue-600 hover:text-blue-800 underline text-xs"><i class="fas fa-external-link-alt"></i> Lihat</a>`
+                            : '<span class="text-gray-300">-</span>';
+
+                        itemsHtml += `
+                            <tr>
+                                <td class="px-3 py-2 text-xs font-mono text-gray-500">${date}</td>
+                                <td class="px-3 py-2 font-medium text-gray-700">${name}</td>
+                                <td class="px-3 py-2 text-right font-mono">${amt}</td>
+                                <td class="px-3 py-2 text-center">${btnLink}</td>
+                            </tr>
+                        `;
+                    });
+
+                    itemsHtml += `</tbody></table></div>`;
+                }
+            }
+
+            // 3. Build Global Docs HTML
+            let docsHtml = '';
+            if (globalDocs.length > 0) {
+                docsHtml = `<div class="flex gap-2 mb-4 flex-wrap">`;
+                globalDocs.forEach(d => {
+                    docsHtml += `
+                        <a href="${d.url}" target="_blank" class="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg border border-blue-100 hover:bg-blue-100 transition">
+                            <i class="fas fa-paperclip"></i>
+                            <div class="flex flex-col text-left">
+                                <span class="text-[10px] uppercase font-bold text-blue-400">${d.type}</span>
+                                <span class="text-xs font-bold leading-none">Buka File</span>
+                            </div>
+                        </a>
+                    `;
+                });
+                docsHtml += `</div>`;
+            }
+
+            const totalFmt = typeof fmt !== 'undefined' ? fmt(amount) : amount;
+
+            modalContent.innerHTML = `
+                <div class="space-y-4">
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 flex justify-between items-center">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Total Pengajuan</span>
+                        <span class="text-lg font-bold text-gray-900 font-mono">${totalFmt}</span>
+                    </div>
+                    
+                    ${docsHtml}
+                    
+                    <div class="text-sm text-gray-600 bg-white p-3 border rounded border-gray-100 italic">
+                        "${desc.replace(/\[.*?\]/g, '').replace('Rincian:', '').trim()}"
+                    </div>
+
+                    ${itemsHtml}
+                </div>
+            `;
+        }
+
         // --- NEW: View Detail Function with MODAL (Fixed Item Name) ---
         async function viewPODetails(sourceId, title) {
             const modal = document.getElementById('detailModal');

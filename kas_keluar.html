@@ -705,7 +705,7 @@
                     // LINK / UPDATE EXISTING
                     const { error } = await client.from('transaksi')
                         .update({
-                            jenis_transaksi: 'APPROVED_BY_DIREKSI', // Move to Verification Queue
+                            jenis_transaksi: 'TRANSFERED', // Move to Verification Queue
                             bank_sumber: akunK,     // Update Source Bank
                             akun: akunB,            // Update Expense Account (Optional, usually kept from req, but Fin might override)
                             keterangan: (itemsToLink.keterangan + " " + ket).substring(0, 255), // Append info
@@ -723,7 +723,7 @@
                     // INSERT NEW
                     const { error } = await client.from('transaksi').insert([{
                         tanggal: tgl,
-                        jenis_transaksi: 'APPROVED_BY_DIREKSI', // Bypass Approval -> Ready for Payment
+                        jenis_transaksi: 'TRANSFERED', // Bypass Approval -> Ready for Payment
                         akun: akunB,
                         bank_sumber: akunK,
                         jumlah: jml,
