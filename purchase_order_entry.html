@@ -7,6 +7,7 @@
 
     <script src="supabase.js"></script>
     <script src="app_config.js"></script>
+    <script src="auth.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -237,8 +238,14 @@
         let listPending = [];
         let selectedIds = [];
 
-        // --- INIT ---
+        // --- AUTH & INIT ---
         async function init() {
+            // 1. Cek Auth (Hanya Direksi, Superadmin, Finance)
+            if (typeof requireAuth === 'function') {
+                const user = await requireAuth(['direksi', 'superadmin', 'finance']);
+                if (!user) return; // Halt if unauthorized
+            }
+
             await loadVendors();
             await loadPendingRequests();
 
@@ -257,27 +264,22 @@
 
             // Load Stats & Default View (Hari Ini atau All)
             loadSummaryStats();
-            cariRiwayat('TODAY'); // Default tampilkan hari ini agar fokus
+            cariRiwayat('TODAY');
         }
 
         // --- NEW: SUMMARY STATS ---
         async function loadSummaryStats() {
             try {
-                // 1. Waiting Approval
                 const { count: countWaiting } = await client.from('purchase_order').select('id', { count: 'exact', head: true }).eq('status', 'WAITING APPROVAL');
                 document.getElementById('count-waiting').innerText = countWaiting || 0;
 
-                // 2. Approved (Belum GRN) - Asumsi Approved = Belum GRN
                 const { count: countApproved } = await client.from('purchase_order').select('id', { count: 'exact', head: true }).eq('status', 'APPROVED');
                 document.getElementById('count-approved').innerText = countApproved || 0;
 
-                // 3. Today
                 const todayStr = new Date().toISOString().split('T')[0];
-                // Note: Filter created_at >= today 00:00
                 const { count: countToday } = await client.from('purchase_order').select('id', { count: 'exact', head: true }).gte('created_at', todayStr + 'T00:00:00');
                 document.getElementById('count-today').innerText = countToday || 0;
 
-                // 4. Total All
                 const { count: countTotal } = await client.from('purchase_order').select('id', { count: 'exact', head: true });
                 document.getElementById('count-total').innerText = countTotal || 0;
 
@@ -286,7 +288,7 @@
             }
         }
 
-        // --- NEW: CARI RIWAYAT (Replaces missing function) ---
+        // --- NEW: CARI RIWAYAT ---
         async function cariRiwayat(filterType = 'CUSTOM') {
             const tbody = document.getElementById("tabelRiwayat");
             tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center"><i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i><div class="mt-2 text-gray-500">Memuat data...</div></td></tr>`;
@@ -294,7 +296,6 @@
             try {
                 let query = client.from('purchase_order').select('*').order('created_at', { ascending: false });
 
-                // Apply Filters
                 if (filterType === 'WAITING') {
                     query = query.eq('status', 'WAITING APPROVAL');
                 } else if (filterType === 'APPROVED') {
@@ -306,14 +307,9 @@
                     const m = document.getElementById("filterMulai").value;
                     const a = document.getElementById("filterAkhir").value;
                     if (m && a) {
-                        // Tambahkan waktu agar mencakup seluruh hari akhir
                         query = query.gte('created_at', m + 'T00:00:00').lte('created_at', a + 'T23:59:59');
                     }
-                }
-                // 'ALL' resets filter (just fetch latest limits maybe? or all)
-
-                // Limit to 50 for performance if ALL
-                if (filterType === 'ALL') {
+                } else if (filterType === 'ALL') {
                     query = query.limit(50);
                 }
 
@@ -325,30 +321,17 @@
                     return;
                 }
 
-                // Group items by PO Number if necessary? 
-                // Table design seems to show 1 row per PO based on "Jml Item" column in HTML
-                // But data structure is 1 row per item.
-                // WE NEED TO GROUP BY 'nomor_po'.
-
                 const groupedPO = {};
                 data.forEach(item => {
                     if (!groupedPO[item.nomor_po]) {
-                        groupedPO[item.nomor_po] = {
-                            ...item,
-                            items: [],
-                            total_items: 0,
-                            grand_total: 0
-                        };
+                        groupedPO[item.nomor_po] = { ...item, total_items: 0, grand_total: 0 };
                     }
-                    groupedPO[item.nomor_po].items.push(item);
                     groupedPO[item.nomor_po].total_items += 1;
-                    // Assuming 'total_harga' is per item row
                     groupedPO[item.nomor_po].grand_total += (Number(item.total_harga) || 0);
                 });
 
                 const listPO = Object.values(groupedPO);
 
-                // Render
                 tbody.innerHTML = listPO.map(po => {
                     const statusColor = po.status === 'APPROVED' ? 'bg-blue-100 text-blue-700' :
                         po.status === 'WAITING APPROVAL' ? 'bg-orange-100 text-orange-700' :
@@ -356,30 +339,27 @@
 
                     const statusLabel = po.status === 'WAITING APPROVAL' ? 'MENUNGGU DIREKSI' : po.status;
 
+                    // Show Print button mostly for Approved POs, but maybe allow draft preview? 
+                    // User requirement: "list PO yang bisa di cetak" implies approved.
+                    // We'll show it for all, but maybe add a warning if not approved.
+
                     return `
-                    <tr class="hover:bg-gray-50 border-b transition">
-                        <td class="p-4">
-                            <div class="font-bold text-gray-800">${po.nomor_po}</div>
-                            <div class="text-xs text-gray-500">${new Date(po.created_at).toLocaleDateString('id-ID')}</div>
-                        </td>
-                        <td class="p-4 text-gray-700 font-medium">${po.nama_vendor}</td>
-                        <td class="p-4 text-center">
-                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">${po.total_items} Item</span>
-                        </td>
-                        <td class="p-4 text-right font-mono font-bold text-gray-800">
-                            ${fmt(po.grand_total)}
-                        </td>
-                        <td class="p-4 text-center">
-                            <span class="${statusColor} px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">${statusLabel}</span>
-                        </td>
-                        <td class="p-4 text-center">
-                            <button onclick="fetchDetailAndPrint('${po.nomor_po}', event)" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded shadow text-xs font-bold transition flex items-center justify-center gap-1 mx-auto">
-                                <i class="fas fa-print"></i> Cetak PO
-                            </button>
-                            <button onclick="hapusPO('${po.nomor_po}')" class="text-red-400 hover:text-red-600 mt-2 text-[10px] underline">Hapus</button>
-                        </td>
-                    </tr>
-                    `;
+                <tr class="hover:bg-gray-50 border-b transition">
+                    <td class="p-4">
+                        <div class="font-bold text-gray-800">${po.nomor_po}</div>
+                        <div class="text-xs text-gray-500">${new Date(po.created_at).toLocaleDateString('id-ID')}</div>
+                    </td>
+                    <td class="p-4 text-gray-700 font-medium">${po.nama_vendor}</td>
+                    <td class="p-4 text-center"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">${po.total_items} Item</span></td>
+                    <td class="p-4 text-right font-mono font-bold text-gray-800">${fmt(po.grand_total)}</td>
+                    <td class="p-4 text-center"><span class="${statusColor} px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">${statusLabel}</span></td>
+                    <td class="p-4 text-center">
+                        <button onclick="fetchDetailAndPrint('${po.nomor_po}', event)" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded shadow text-xs font-bold transition flex items-center justify-center gap-1 mx-auto mb-2">
+                            <i class="fas fa-print"></i> Cetak PO
+                        </button>
+                        <button onclick="hapusPO('${po.nomor_po}')" class="text-red-400 hover:text-red-600 text-[10px] underline">Hapus</button>
+                    </td>
+                </tr>`;
                 }).join('');
 
             } catch (err) {
@@ -388,15 +368,12 @@
             }
         }
 
-        // 1. LOAD DATA
         async function loadVendors() {
-            const { data, error } = await client.from('master_vendor').select('*').order('nama_vendor');
+            const { data } = await client.from('master_vendor').select('*').order('nama_vendor');
             if (data) listVendor = data;
-            if (error) {
-                console.error("Gagal memuat vendor:", error);
-            }
         }
 
+        // --- REVISED: Load Requests with Project Marker ---
         async function loadPendingRequests() {
             const { data } = await client.from('inventory_req').select('*').eq('status', 'PENDING').order('created_at');
             listPending = data || [];
@@ -408,62 +385,89 @@
                 return;
             }
 
-            // Cek Stok Gudang Sesuai Lokasi
+            // 1. Ambil Data Stok (Existing)
             const itemNames = listPending.map(item => item.nama_barang);
-            // Fetch nama_proyek juga untuk pencocokan lokasi
-            const { data: stockData } = await client.from('master_stok')
-                .select('nama_barang, total_stok, nama_proyek')
-                .in('nama_barang', itemNames);
+            const { data: stockData } = await client.from('master_stok').select('nama_barang, total_stok, nama_proyek').in('nama_barang', itemNames);
 
             const stockMap = {};
             if (stockData) {
                 stockData.forEach(s => {
-                    // Map: Barang -> { ProyekA: 10, ProyekB: 50... }
                     if (!stockMap[s.nama_barang]) stockMap[s.nama_barang] = {};
-
                     const pKey = s.nama_proyek || 'Gudang Pusat';
                     stockMap[s.nama_barang][pKey] = (stockMap[s.nama_barang][pKey] || 0) + (Number(s.total_stok) || 0);
                 });
             }
 
-            listPending = listPending.map(item => {
-                // Get stock specific to the requested project location
-                const reqProyek = item.nama_proyek || 'Gudang Pusat';
-                const stockAtLocation = stockMap[item.nama_barang]?.[reqProyek] || 0;
-
-                return {
-                    ...item,
-                    stok_total: stockAtLocation
-                };
+            // 2. Ambil Data Kawasan (New Logic for Badge)
+            const uniqueProyekNames = new Set();
+            listPending.forEach(item => {
+                if (item.nama_proyek) {
+                    const first = item.nama_proyek.split(',')[0].trim();
+                    uniqueProyekNames.add(first);
+                }
             });
+            const arrProyek = Array.from(uniqueProyekNames);
+
+            const kawasanMap = {};
+            if (arrProyek.length > 0) {
+                const { data: projData } = await client.from('master_proyek')
+                    .select('nama_proyek, kawasan')
+                    .in('nama_proyek', arrProyek);
+
+                if (projData) {
+                    projData.forEach(p => {
+                        kawasanMap[p.nama_proyek] = p.kawasan || '';
+                    });
+                }
+            }
 
             listPending.forEach(item => {
-                const sisa = item.stok_total || 0;
+                const reqProyek = item.nama_proyek || 'Gudang Pusat';
+                const sisa = stockMap[item.nama_barang]?.[reqProyek] || 0;
                 const stokBadge = sisa === 0
                     ? `<span class="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200">Stok: 0</span>`
                     : `<span class="text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded border border-green-200 font-bold">Stok: ${sisa}</span>`;
 
-                const proyekNama = item.nama_proyek || '<span class="text-gray-400 italic text-[10px]">Tidak Ada</span>';
+                // DETEKSI KAWASAN UNTUK WARNA
+                const firstProjName = reqProyek.split(',')[0].trim();
+                const realKawasan = kawasanMap[firstProjName] || '';
+                const combinedCheck = (reqProyek + ' ' + realKawasan).toLowerCase();
+
+                let badgeClass = "bg-gray-100 text-gray-700 border-gray-200";
+                let kawasanLabel = "";
+
+                if (combinedCheck.includes("pinrang")) {
+                    badgeClass = "bg-green-100 text-green-800 border-green-200";
+                    kawasanLabel = `<div class="text-[9px] text-green-600 font-bold uppercase mt-1">📍 PINRANG</div>`;
+                } else if (combinedCheck.includes("maros")) {
+                    badgeClass = "bg-blue-100 text-blue-800 border-blue-200";
+                    kawasanLabel = `<div class="text-[9px] text-blue-600 font-bold uppercase mt-1">📍 MAROS</div>`;
+                }
+
+                const proyekBadge = `<span class="text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-wide ${badgeClass}">${reqProyek}</span>`;
 
                 tbody.innerHTML += `
-          <tr class="hover:bg-yellow-50 border-b transition">
-            <td class="p-4 text-center"><input type="checkbox" class="chk-item" value="${item.id}" onchange="cekCentang()"></td>
-            <td class="p-4 text-xs">${new Date(item.created_at).toLocaleDateString('id-ID')}</td>
-            <td class="p-4 text-xs font-bold text-blue-700 bg-blue-50/50 px-2 py-1 rounded inline-block mt-2">${proyekNama}</td>
-            <td class="p-4 font-bold text-gray-800">${item.nama_barang}</td>
-            <td class="p-4">${item.jumlah}</td>
-            <td class="p-4 text-gray-500 text-sm">${item.satuan}</td>
-            <td class="p-4">${stokBadge}</td>
-            <td class="p-4 text-right">
-                <button onclick="rejectRequestItem(${item.id}, '${item.nama_barang}')" class="text-red-500 hover:text-red-700 p-2" title="Tolak permintaan ini">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </td>
-          </tr>`;
+            <tr class="hover:bg-yellow-50 border-b transition">
+                <td class="p-4 text-center"><input type="checkbox" class="chk-item" value="${item.id}" onchange="cekCentang()"></td>
+                <td class="p-4 text-xs">${new Date(item.created_at).toLocaleDateString('id-ID')}</td>
+                <td class="p-4">
+                    ${proyekBadge}
+                    ${kawasanLabel}
+                    <div class="text-[10px] text-gray-400 mt-0.5">${item.divisi || '-'}</div>
+                </td>
+                <td class="p-4 font-bold text-gray-800">${item.nama_barang}</td>
+                <td class="p-4">${item.jumlah}</td>
+                <td class="p-4 text-gray-500 text-sm">${item.satuan}</td>
+                <td class="p-4">${stokBadge}</td>
+                <td class="p-4 text-right">
+                    <button onclick="rejectRequestItem(${item.id}, '${item.nama_barang}')" class="text-red-500 hover:text-red-700 p-2" title="Tolak">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>`;
             });
         }
 
-        // 2. LOGIKA PILIH BATCH
         function toggleAll(source) {
             document.querySelectorAll('.chk-item').forEach(chk => { if (chk !== source) chk.checked = source.checked; });
             cekCentang();
@@ -476,9 +480,7 @@
             if (selectedIds.length > 0) btn.classList.remove("hidden"); else btn.classList.add("hidden");
         }
 
-        // 3. SETUP BATCH (MODAL)
         function siapkanBatch() {
-            // Isi Dropdown Vendor
             const selVendor = document.getElementById("batchVendor");
             selVendor.innerHTML = '<option value="">-- Pilih Vendor Database --</option>';
             listVendor.forEach(v => {
@@ -491,23 +493,22 @@
 
             selectedItems.forEach((item, idx) => {
                 tbody.innerHTML += `
-        <tr class="hover:bg-gray-50">
-            <td class="p-3">
-                <div class="font-bold text-gray-700">${item.nama_barang}</div>
-                <input type="hidden" id="bid-${idx}" value="${item.id}">
-                <input type="hidden" id="b-barangid-${idx}" value="${item.barang_id || ''}">
-                <input type="hidden" id="bnama-${idx}" value="${item.nama_barang}">
-                <input type="hidden" id="bqty-${idx}" value="${item.jumlah}">
-                <input type="hidden" id="bsat-${idx}" value="${item.satuan}">
-                <input type="hidden" id="bstaff-${idx}" value="${item.pengorder}">
-            </td>
-            <td class="p-3 text-center text-sm font-bold bg-gray-50">${item.jumlah} ${item.satuan}</td>
-            <td class="p-3">
-                <input type="number" id="bharga-${idx}" class="w-full border p-2 rounded text-right focus:border-blue-500 outline-none" placeholder="0" onkeyup="hitungTotalBatch()">
-            </td>
-            <td class="p-3 text-right font-bold text-gray-700" id="bsub-${idx}">Rp 0</td>
-        </tr>
-            `;
+            <tr class="hover:bg-gray-50">
+                <td class="p-3">
+                    <div class="font-bold text-gray-700">${item.nama_barang}</div>
+                    <input type="hidden" id="bid-${idx}" value="${item.id}">
+                    <input type="hidden" id="b-barangid-${idx}" value="${item.barang_id || ''}">
+                    <input type="hidden" id="bnama-${idx}" value="${item.nama_barang}">
+                    <input type="hidden" id="bqty-${idx}" value="${item.jumlah}">
+                    <input type="hidden" id="bsat-${idx}" value="${item.satuan}">
+                    <input type="hidden" id="bstaff-${idx}" value="${item.pengorder}">
+                </td>
+                <td class="p-3 text-center text-sm font-bold bg-gray-50">${item.jumlah} ${item.satuan}</td>
+                <td class="p-3">
+                    <input type="number" id="bharga-${idx}" class="w-full border p-2 rounded text-right focus:border-blue-500 outline-none" placeholder="0" onkeyup="hitungTotalBatch()">
+                </td>
+                <td class="p-3 text-right font-bold text-gray-700" id="bsub-${idx}">Rp 0</td>
+            </tr>`;
             });
             document.getElementById("modalBatch").classList.remove("hidden");
             document.getElementById("batchGrandTotal").innerText = "Rp 0";
@@ -515,18 +516,16 @@
 
         function updateButtonUI(totalAmount) {
             const btn = document.getElementById('main-submit-btn');
-            if (!btn) return; // Guard clause if button not found
+            if (!btn) return;
             const btnText = btn.querySelector('span');
             const btnIcon = btn.querySelector('i');
 
             if (totalAmount > 1000000) {
-                // PERUBAHAN KE MODE DIREKTUR
                 btnText.innerText = "Ajukan Ke Direktur";
                 btnIcon.className = "fas fa-paper-plane";
                 btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                 btn.classList.add('bg-orange-600', 'hover:bg-orange-700');
             } else {
-                // KEMBALI KE MODE REGULER
                 btnText.innerText = "Simpan & Terbitkan PO";
                 btnIcon.className = "fas fa-check-circle";
                 btn.classList.remove('bg-orange-600', 'hover:bg-orange-700');
@@ -544,8 +543,6 @@
                 document.getElementById(`bsub-${i}`).innerText = fmt(sub);
             }
             document.getElementById("batchGrandTotal").innerText = fmt(grandTotal);
-
-            // Panggil fungsi untuk update UI Tombol berdasarkan grand total
             updateButtonUI(grandTotal);
         }
 
@@ -573,7 +570,6 @@
                 alert("⚠️ Harap pilih Vendor dan Tanggal Jatuh Tempo!");
                 return null;
             }
-
             if (selectedIds.length === 0) {
                 alert("⚠️ Tidak ada item yang dipilih.");
                 return null;
@@ -597,7 +593,9 @@
                 items.push({
                     req_id: parseInt(document.getElementById(`bid-${i}`).value),
                     qty: qty,
-                    harga: harga
+                    harga: harga,
+                    nama_barang: namaBarang,
+                    satuan: document.getElementById(`bsat-${i}`).value
                 });
                 total += (qty * harga);
             }
@@ -607,7 +605,6 @@
         async function handleFinalSubmit() {
             const totalAmount = calculateGrandTotal();
             const isApprovalNeeded = totalAmount > 1000000;
-
             const message = isApprovalNeeded
                 ? "Total PO melebihi 1 Juta. PO akan disimpan dengan status 'Menunggu Persetujuan' dan diajukan ke Direksi. Lanjutkan?"
                 : "Anda akan membuat Purchase Order baru yang langsung disetujui. Lanjutkan?";
@@ -628,36 +625,24 @@
                 }
 
                 const { vendor, jatuhTempo, items, total } = formData;
-                const staffName = document.getElementById('bstaff-0')?.value || 'Finance Staff'; // Ambil dari item pertama
+                const staffName = document.getElementById('bstaff-0')?.value || 'Finance Staff';
 
-                // 1. Generate Nomor PO Unik (Sequential)
                 const now = new Date();
                 const year = now.getFullYear();
                 const month = (now.getMonth() + 1).toString().padStart(2, '0');
                 const prefix = `PO/NLD/${year}/${month}/`;
 
-                // Cek nomor PO terakhir bulan ini
-                const { data: lastPO } = await client
-                    .from('purchase_order')
-                    .select('nomor_po')
-                    .like('nomor_po', `${prefix}%`)
-                    .order('created_at', { ascending: false })
-                    .limit(1);
+                const { data: lastPO } = await client.from('purchase_order').select('nomor_po').like('nomor_po', `${prefix}%`).order('created_at', { ascending: false }).limit(1);
 
                 let sequence = 1;
                 if (lastPO && lastPO.length > 0) {
-                    const lastNo = lastPO[0].nomor_po; // Ex: PO/NLD/2025/01/0002
-                    const parts = lastNo.split('/');
-                    const lastSeq = parseInt(parts[4]); // Ambil bagian angka
-                    if (!isNaN(lastSeq)) {
-                        sequence = lastSeq + 1;
-                    }
+                    const parts = lastPO[0].nomor_po.split('/');
+                    const lastSeq = parseInt(parts[4]);
+                    if (!isNaN(lastSeq)) sequence = lastSeq + 1;
                 }
-
                 const noPO = `${prefix}${String(sequence).padStart(4, '0')}`;
-
-                // 2. Siapkan data untuk tabel purchase_order
                 const poStatus = isApprovalNeeded ? 'WAITING APPROVAL' : 'APPROVED';
+
                 const poRecords = items.map(item => ({
                     nomor_po: noPO,
                     nama_vendor: vendor,
@@ -669,76 +654,152 @@
                     dibuat_oleh: staffName
                 }));
 
-                // 3. Simpan ke tabel purchase_order, dan ambil kembali data yang disimpan (terutama ID)
-                const { data: savedPO, error: poError } = await client
-                    .from('purchase_order')
-                    .insert(poRecords)
-                    .select('id');
-
+                const { data: savedPO, error: poError } = await client.from('purchase_order').insert(poRecords).select('id');
                 if (poError) throw poError;
-                if (!savedPO || savedPO.length === 0) throw new Error("Gagal menyimpan PO ke database.");
 
-                // 4. Update status inventory_req menjadi 'PROCESSED'
                 const processedReqIds = items.map(item => item.req_id);
                 await client.from('inventory_req').update({ status: 'PROCESSED' }).in('id', processedReqIds);
 
-                // 5. Jika butuh approval, kirim notifikasi ke Direksi
                 if (isApprovalNeeded) {
-                    // Ambil ID dari salah satu record yang disimpan sebagai referensi
                     const representativePoId = savedPO[0].id;
-
-                    const { error: queueError } = await client
-                        .from('approval_queue')
-                        .insert([{
-                            source_table: 'purchase_order',
-                            source_id: representativePoId, // ID ini mewakili keseluruhan PO dengan nomor_po yang sama
-                            title: `Persetujuan PO: ${noPO}`,
-                            description: `Vendor: ${vendor} | Total: ${fmt(total)}`,
-                            amount: total,
-                            requester: staffName,
-                            status: 'PENDING'
-                        }]);
-
-                    if (queueError) {
-                        // Coba rollback atau beri pesan error spesifik
-                        throw new Error(`PO disimpan tapi gagal masuk antrian direksi: ${queueError.message}`);
-                    }
-
-                    alert("✅ PO berhasil dibuat & telah diajukan ke Direktur untuk persetujuan.");
+                    await client.from('approval_queue').insert([{
+                        source_table: 'purchase_order',
+                        source_id: representativePoId,
+                        title: `Persetujuan PO: ${noPO}`,
+                        description: `Vendor: ${vendor} | Total: ${fmt(total)}`,
+                        amount: total,
+                        requester: staffName,
+                        status: 'PENDING'
+                    }]);
+                    alert("✅ PO berhasil dibuat & diajukan ke Direktur.");
                 } else {
-                    alert("✅ PO berhasil dibuat dan langsung disetujui.");
+                    alert("✅ PO berhasil dibuat dan disetujui.");
                 }
-
                 location.reload();
 
             } catch (err) {
                 alert("❌ Terjadi kesalahan: " + err.message);
-                console.error("Detail kegagalan:", err);
+                console.error(err);
                 btn.disabled = false;
                 btn.innerHTML = btnOriginalText;
             }
         }
 
         async function rejectRequestItem(id, namaBarang) {
-            if (!confirm(`Anda yakin ingin MENOLAK permintaan untuk item "${namaBarang}"? Tindakan ini tidak bisa dibatalkan.`)) {
-                return;
+            if (!confirm(`Tolak permintaan "${namaBarang}"?`)) return;
+            const { error } = await client.from('inventory_req').update({ status: 'REJECTED' }).eq('id', id);
+            if (error) alert("Gagal menolak: " + error.message);
+            else {
+                alert("Permintaan ditolak.");
+                loadPendingRequests();
             }
+        }
+
+        // --- NEW: Hapus PO (Revert Status) ---
+        async function hapusPO(nomorPo) {
+            if (!confirm(`⚠️ PERHATIAN!\n\nAnda akan menghapus PO Nomor: ${nomorPo}\n\nTindakan ini akan:\n1. Menghapus data PO dari arsip.\n2. Mengembalikan status permintaan barang ke 'PENDING' (bisa diproses ulang).\n\nLanjutkan?`)) return;
 
             try {
-                const { error } = await client
-                    .from('inventory_req')
-                    .update({ status: 'REJECTED' })
-                    .eq('id', id);
+                // 1. Get PO items to find req_ids
+                const { data: poItems, error: errGet } = await client.from('purchase_order').select('req_id').eq('nomor_po', nomorPo);
+                if (errGet) throw errGet;
 
-                if (error) {
-                    throw error;
+                if (!poItems || poItems.length === 0) {
+                    alert("Data PO tidak ditemukan/sudah terhapus.");
+                    return;
                 }
 
-                alert(`Permintaan untuk "${namaBarang}" telah ditolak.`);
-                loadPendingRequests(); // Muat ulang daftar permintaan
-            } catch (err) {
-                alert(`Gagal menolak permintaan: ${err.message}`);
-                console.error("Gagal menolak:", err);
+                const reqIds = poItems.map(p => p.req_id).filter(id => id);
+
+                // 2. Delete PO Records
+                const { error: errDel } = await client.from('purchase_order').delete().eq('nomor_po', nomorPo);
+                if (errDel) throw errDel;
+
+                // 3. Revert Inventory Req Status
+                if (reqIds.length > 0) {
+                    const { error: errUp } = await client.from('inventory_req').update({ status: 'PENDING' }).in('id', reqIds);
+                    if (errUp) throw errUp;
+                }
+
+                alert("✅ PO berhasil dihapus dan permintaan dikembalikan ke antrian.");
+                loadSummaryStats();
+                cariRiwayat('ALL'); // Refresh list
+                loadPendingRequests(); // Refresh queue
+
+            } catch (e) {
+                console.error(e);
+                alert("Gagal menghapus PO: " + e.message);
+            }
+        }
+
+        // --- NEW: Print PO ---
+        async function fetchDetailAndPrint(nomorPo, event) {
+            if (event) event.preventDefault();
+            const btn = event.currentTarget;
+            const oldHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+            btn.disabled = true;
+
+            try {
+                const { data: poData, error } = await client.from('purchase_order')
+                    .select(`
+                    *,
+                    inventory_req (nama_barang, satuan)
+                `)
+                    .eq('nomor_po', nomorPo);
+
+                if (error) throw error;
+                if (!poData || poData.length === 0) throw new Error("Data PO kosong.");
+
+                // Construct Data for PDF
+                const firstItem = poData[0];
+                const vendorName = firstItem.nama_vendor;
+                // Fetch Vendor Details for Address
+                let vendorAlamat = "Alamat tidak tersedia";
+                const { data: vData } = await client.from('master_vendor').select('alamat').eq('nama_vendor', vendorName).single();
+                if (vData) vendorAlamat = vData.alamat;
+
+                // Calculate Terms using Jatuh Tempo if available, else standard
+                // Simple logic: Jatuh Tempo - Created At days
+                const tglBuat = new Date(firstItem.created_at);
+                const tglTempo = new Date(firstItem.jatuh_tempo);
+                const diffTime = Math.abs(tglTempo - tglBuat);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                const items = poData.map(p => ({
+                    nama: p.inventory_req?.nama_barang || "Item Terhapus",
+                    qty: Math.round(p.total_harga / p.harga_satuan), // Back calculate qty if needed or assume consistency
+                    satuan: p.inventory_req?.satuan || 'Pcs',
+                    harga: p.harga_satuan,
+                    total: p.total_harga
+                }));
+
+                // Fix Qty logic: inventory_req might assume qty is in po record implied?
+                // Actually our insert logic uses total_harga / harga_satuan = qty basically.
+                // Let's rely on math since 'qty' column isn't explicitly in purchase_order schema based on insert above.
+                // Wait, looking at insert: "qty" is NOT inserted into purchase_order directly?
+                // Insert fields: nomor_po, nama_vendor, jatuh_tempo, req_id, harga_satuan, total_harga, status, dibuat_oleh.
+                // Correct. So we derive qty = total / harga.
+
+                const grandTotal = items.reduce((acc, curr) => acc + curr.total, 0);
+
+                const pdfData = {
+                    noPO: nomorPo,
+                    tgl: firstItem.created_at,
+                    tempo: diffDays,
+                    vendor: vendorName,
+                    vendorAlamat: vendorAlamat,
+                    items: items,
+                    grandTotal: grandTotal
+                };
+
+                generatePOPdf(pdfData);
+
+            } catch (e) {
+                alert("Gagal mencetak: " + e.message);
+            } finally {
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
             }
         }
 
