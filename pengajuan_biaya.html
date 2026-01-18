@@ -979,11 +979,22 @@
                     total += item.amount;
                     const fmtAmt = (window.fmt) ? window.fmt(item.amount) : item.amount.toLocaleString();
 
+                    // Icon Logic: Green if URL exists, Gray if not
+                    const proofIcon = item.proofUrl
+                        ? `<i class="fas fa-file-image text-green-500 text-lg" title="Bukti Terupload"></i>`
+                        : `<i class="fas fa-camera text-gray-300 text-lg" title="Belum ada bukti"></i>`;
+
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-gray-50 border-b border-gray-50";
                     tr.innerHTML = `
-                        <td class="p-2 text-slate-700">${item.name}</td>
-                        <td class="p-2 text-right font-mono text-slate-600">${fmtAmt}</td>
+                        <td class="p-2 text-slate-700 w-1/2">
+                            <div class="font-bold text-xs">${item.name}</div>
+                            <div class="text-[10px] text-slate-400">Nota: ${item.proofUrl ? 'OK' : '-'}</div>
+                        </td>
+                        <td class="p-2 text-center w-10 vertical-middle">
+                            ${proofIcon}
+                        </td>
+                        <td class="p-2 text-right font-mono text-slate-600 text-xs">${fmtAmt}</td>
                         <td class="p-2 text-center w-8">
                             <button onclick="removePettyItem(${index})" class="text-gray-300 hover:text-red-500"><i class="fas fa-times"></i></button>
                         </td>
@@ -1124,9 +1135,19 @@
                 const dateFmt = new Date(item.tanggal).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
 
                 // CARD RENDER
+                // FIX: Added overflow-hidden to card, break-words to title, and Delete Button
+                const btnDelete = (item.jenis_transaksi === 'PENGAJUAN' || item.jenis_transaksi === 'REJECTED') ?
+                    `<button onclick="deletePengajuan(${item.id})" class="text-xs text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-full absolute top-2 right-2 transition" title="Hapus"><i class="fas fa-trash-alt"></i></button>`
+                    : '';
+
+                // Adjust Status Badge Position (since Delete button takes top right)
+                // We'll move Status Badge to be below amount or inline.
+                // Actually, let's keep status badge but give padding-right if delete exists.
+
                 const card = `
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative hover:shadow-md transition">
-                   <div class="flex justify-between items-start mb-2">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative hover:shadow-md transition overflow-hidden">
+                   ${btnDelete}
+                   <div class="flex justify-between items-start mb-2 ${btnDelete ? 'mr-6' : ''}">
                        <div class="flex flex-col">
                            <span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded w-max uppercase tracking-wider mb-1">${typeDisplay}</span>
                            <span class="text-[10px] text-slate-400">${dateFmt}</span>
@@ -1137,7 +1158,7 @@
                        </div>
                    </div>
                    
-                   <h4 class="font-bold text-slate-700 text-sm mb-3 text-sm leading-snug">${descClean}</h4>
+                   <h4 class="font-bold text-slate-700 text-sm mb-3 text-sm leading-snug break-words w-full" style="word-break: break-word;">${descClean}</h4>
                    ${realisasiDisplay}
                    
                    <div class="flex justify-between items-center border-t border-slate-50 pt-3 mt-1">
@@ -1148,6 +1169,25 @@
 
                 listContainer.innerHTML += card;
             });
+        }
+
+        async function deletePengajuan(id) {
+            if (!confirm("Yakin ingin menghapus pengajuan ini?")) return;
+
+            if (!window.client) return;
+
+            // Soft Delete using 'DELETED' status
+            const { error } = await window.client.from('transaksi')
+                .update({ jenis_transaksi: 'DELETED' })
+                .eq('id', id);
+
+            if (error) {
+                alert("Gagal menghapus: " + error.message);
+                console.error(error);
+            } else {
+                alert("Data berhasil dihapus.");
+                loadPengajuan();
+            }
         }
 
         // --- 5. SUBMIT REQUEST ---
@@ -1396,6 +1436,97 @@
 
         function bukaModal() { document.getElementById('modalForm').classList.remove('hidden'); }
         function tutupModal() { document.getElementById('modalForm').classList.add('hidden'); }
+        // --- 6. SERVER-SIDE DRAFT SYSTEM (PETTY CASH) ---
+        async function saveDraftPetty() {
+            try {
+                if (!currentUser) return;
+                const prevBal = document.getElementById('pcPrevBalance').value;
+                const reqAmount = document.getElementById('reqAmount').value;
+                const reqDesc = document.getElementById('reqDesc').value;
+
+                const draftContent = {
+                    items: pettyItems,
+                    prevBalance: prevBal,
+                    reqAmount: reqAmount,
+                    reqDesc: reqDesc,
+                    savedAt: new Date().getTime()
+                };
+
+                const { error } = await window.client.from('draft_pengajuan').upsert({
+                    user_id: currentUser.id,
+                    draft_type: 'PETTY',
+                    content: draftContent,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id, draft_type' });
+
+                if (error) throw error;
+
+                // Also save to local as backup/fast load
+                localStorage.setItem('petty_draft_' + currentUser.id, JSON.stringify(draftContent));
+                alert("☁️ Draft Petty Cash berhasil disimpan ke Server! Bisa dibuka di HP lain.");
+            } catch (e) {
+                console.error(e);
+                alert("Gagal simpan ke server (disimpan lokal saja): " + e.message);
+                // Fallback local
+                /* Same local logic */
+            }
+        }
+
+        async function loadDraftPetty() {
+            try {
+                if (!currentUser) return;
+
+                // Try Local First (Faster)
+                const rawLocal = localStorage.getItem('petty_draft_' + currentUser.id);
+                if (rawLocal) {
+                    const draft = JSON.parse(rawLocal);
+                    applyDraft(draft);
+                }
+
+                // Then Sync from Server (Authoritative)
+                const { data, error } = await window.client
+                    .from('draft_pengajuan')
+                    .select('content')
+                    .eq('user_id', currentUser.id)
+                    .eq('draft_type', 'PETTY')
+                    .single();
+
+                if (data && data.content) {
+                    const serverDraft = data.content;
+                    // Optional: Compare timestamps? For now just overwrite if exists
+                    applyDraft(serverDraft);
+                    // Update Local
+                    localStorage.setItem('petty_draft_' + currentUser.id, JSON.stringify(serverDraft));
+                    console.log("Draft synced from server");
+                }
+            } catch (e) {
+                console.error("Draft load error:", e);
+            }
+        }
+
+        function applyDraft(draft) {
+            if (draft.items) pettyItems = draft.items;
+            if (draft.prevBalance) document.getElementById('pcPrevBalance').value = draft.prevBalance;
+            if (draft.reqAmount) document.getElementById('reqAmount').value = draft.reqAmount;
+            if (draft.reqDesc) document.getElementById('reqDesc').value = draft.reqDesc;
+            renderPettyItems();
+        }
+
+        async function clearDraftPetty() {
+            if (!confirm("Hapus draft tersimpan (Server & Lokal)?")) return;
+            if (currentUser) {
+                localStorage.removeItem('petty_draft_' + currentUser.id);
+                await window.client.from('draft_pengajuan').delete().match({ user_id: currentUser.id, draft_type: 'PETTY' });
+            }
+            pettyItems = [];
+            document.getElementById('pcPrevBalance').value = "";
+            document.getElementById('reqAmount').value = "";
+            document.getElementById('reqDesc').value = "";
+            renderPettyItems();
+            alert("Draft dihapus.");
+        }
+
+
         function escapeHtml(text) { return text.replace(/'/g, "\\'"); }
     </script>
 </body>
