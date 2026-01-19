@@ -12,9 +12,9 @@ CORS(app)
 
 # Use existing EasyOCR logic (Local Intelligence)
 # This removes dependency on Google API entirely
-print("🚀 Loading Local OCR Engine (EasyOCR)... This may take a moment first time...")
+print("[INFO] Loading Local OCR Engine (EasyOCR)... This may take a moment first time...")
 reader = easyocr.Reader(['id'], gpu=False) 
-print("✅ Local OCR Engine Loaded!")
+print("[OK] Local OCR Engine Loaded!")
 
 def preprocess_image(image_bytes):
     # Convert upload to OpenCV format

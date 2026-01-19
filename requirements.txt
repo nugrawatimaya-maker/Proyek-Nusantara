@@ -6,6 +6,7 @@ flask
 flask-cors
 python-dotenv
 Pillow
+opencv-python-headless
 easyocr
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch
