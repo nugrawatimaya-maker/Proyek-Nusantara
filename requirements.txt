@@ -2,3 +2,8 @@ streamlit
 pandas
 pdfplumber
 supabase
+google-generativeai
+flask
+flask-cors
+python-dotenv
+Pillow

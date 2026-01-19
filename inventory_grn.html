@@ -469,75 +469,31 @@
                 console.log("Nota Uploaded:", fileUrl);
                 // --------------------------------------
 
-                // --- SEQUENTIAL PROCESSING (SAFER) ---
-                // Menggunakan loop for..of agar jika satu gagal, sisanya berhenti & tidak partial parallel race
+                // --- ATOMIC PROCESSING VIA RPC (SECURE) ---
                 for (const row of Array.from(rowsInCard)) {
                     const poId = row.id.split('-')[1];
                     const qty = Number(row.getAttribute("data-final-qty"));
-                    const harga = Number(row.getAttribute("data-final-price"));
+                    const price = Number(row.getAttribute("data-final-price"));
 
-                    // 1. RE-VERIFY PO STATUS (Concurrency Check)
-                    const { data: poCek, error: errCek } = await client.from('purchase_order').select('status, barang_id, inventory_req(nama_barang)').eq('id', poId).single();
-                    if (errCek) throw new Error("Gagal cek status PO: " + errCek.message);
-                    if (poCek.status !== 'APPROVED') {
-                        console.warn(`Skipping PO ${poId} because status is ${poCek.status}`);
-                        continue; // Skip item ini jika sudah diproses
-                    }
-
-                    // 2. RESOLVE BARANG ID
-                    let bId = poCek.barang_id;
-                    if (!bId) {
-                        const namaBarang = poCek.inventory_req?.nama_barang;
-                        if (namaBarang) {
-                            const { data: stokCek } = await client.from('master_stok').select('id').eq('nama_proyek', activeProject).eq('nama_barang', namaBarang).single();
-                            if (stokCek) {
-                                bId = stokCek.id;
-                                await client.from('purchase_order').update({ barang_id: bId }).eq('id', poId);
-                            }
-                        }
-                    }
-                    if (!bId) throw new Error(`CRITICAL: PO (ID: ${poId}) tidak memiliki 'barang_id'.`);
-
-                    // 3. GET CURRENT STOCK
-                    const { data: stokItem, error: errStok } = await client.from('master_stok').select('total_stok').eq('id', bId).single();
-                    if (errStok || !stokItem) throw new Error(`Data Master Stok (ID: ${bId}) tidak ditemukan.`);
-
-                    const stokLama = stokItem.total_stok || 0;
-
-                    // 4. UPDATE MASTER STOK
-                    const { error: errUpd } = await client.from('master_stok').update({
-                        total_stok: stokLama + qty,
-                        harga_estimasi: harga,
-                        harga_updated_source: isTestMode ? 'TEST_RUN' : 'GRN_BATCH',
-                        harga_updated_ref: nomorPO
-                    }).eq('id', bId);
-
-                    if (errUpd) throw new Error("Gagal update master_stok: " + errUpd.message);
-
-                    // 5. INSERT HISTORY
-                    const { error: errHist } = await client.from('stok_history').insert([{
-                        barang_id: bId,
-                        jenis_transaksi: 'TERIMA GRN',
-                        jumlah: qty,
-                        keterangan: `${activeProject}: ${nomorPO} | Nota: ${fileName}`
-                    }]);
-                    if (errHist) throw new Error("Gagal catat history: " + errHist.message);
-
-                    // 6. UPDATE PO STATUS
-                    const { error: errFinal } = await client.from('purchase_order').update({
-                        status: 'DITERIMA',
-                        harga_satuan: harga,
-                        file_nota: fileName,
-                        keterangan: `Nota: ${fileName} | ${fileUrl}`
-                    }).eq('id', poId);
-                    if (errFinal) throw new Error("Gagal update status PO: " + errFinal.message);
-
-                    rollbackLog.push({
-                        poId: poId,
-                        barangId: bId,
-                        qtyAdded: qty,
-                        fileName: fileName
+                    // Panggil fungsi Server-Side (RPC) untuk mencegah race condition / partial update
+                    const { data: rpcData, error: rpcError } = await client.rpc('process_grn_item', {
+                        p_po_id: Number(poId),
+                        p_qty: qty,
+                        p_price: price,
+                        p_nota_file: fileName,
+                        p_nota_url: fileUrl,
+                        p_history_desc: `${activeProject}: ${nomorPO}`
                     });
+
+                    if (rpcError) throw new Error(`RPC Failed for PO ${poId}: ` + rpcError.message);
+
+                    if (!rpcData.success) {
+                        // Jika return success=false dari function (Logic Error)
+                        throw new Error(`Gagal memproses PO ${poId}: ${rpcData.message}`);
+                    }
+
+                    // Logging untuk feedback user (Optional)
+                    console.log(`PO ${poId} Success:`, rpcData.message);
                 }
 
                 if (isTestMode) {

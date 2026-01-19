@@ -234,8 +234,7 @@
 
     <script src="app_config.js"></script>
     <script src="auth.js"></script>
-    <!-- Tesseract CDN -->
-    <script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+    <!-- OCR via Python Server -->
 
     <script>
         // Init Auth & Page
@@ -358,41 +357,6 @@
             document.getElementById('addTenantModal').classList.add('hidden');
         }
 
-        // Image Preprocessing to handle KTP Batik Background
-        function preprocessImage(imageFile, callback) {
-            const reader = new FileReader();
-            reader.onload = function (event) {
-                const img = new Image();
-                img.onload = function () {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-
-                    ctx.drawImage(img, 0, 0);
-                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const data = imgData.data;
-
-                    // Grayscale & Binarization (Thresholding)
-                    for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
-                        let gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-                        let val = gray > 140 ? 255 : 0;
-                        data[i] = val;
-                        data[i + 1] = val;
-                        data[i + 2] = val;
-                    }
-
-                    ctx.putImageData(imgData, 0, 0);
-                    callback(canvas.toDataURL('image/png'));
-                }
-                img.src = event.target.result;
-            }
-            reader.readAsDataURL(imageFile);
-        }
-
         async function scanKTP() {
             const fileInput = document.getElementById('ktpFile');
             const file = fileInput.files[0];
@@ -404,167 +368,54 @@
             const btn = document.getElementById('btnScan');
             const originalText = btn.innerHTML;
 
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim ke Gemini AI...';
             btn.disabled = true;
 
+            const formData = new FormData();
+            formData.append('image', file);
+
             try {
-                // Image Preprocessing & Client-Side OCR
-                preprocessImage(file, async (processedImageBase64) => {
-
-                    btn.innerHTML = '<i class="fas fa-magic fa-spin"></i> Reading Text...';
-
-                    // 2. Run Tesseract (PSM 6)
-                    const { data: { text } } = await Tesseract.recognize(
-                        processedImageBase64,
-                        'ind',
-                        {
-                            logger: m => {
-                                if (m.status === 'recognizing text') {
-                                    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${(m.progress * 100).toFixed(0)}%`;
-                                }
-                            }
-                        }
-                    );
-
-                    console.log("OCR Result (Raw):", text);
-
-                    // 3. Robust Parsing
-                    const lines = text.split('\n');
-
-                    let foundNik = '';
-                    let foundName = '';
-                    let foundTtl = '';
-                    let foundAddress = '';
-                    let foundReligion = '';
-                    let foundMarital = '';
-                    let foundJob = '';
-                    let foundCity = '';
-
-                    const cleanForNumber = (str) => str.replace(/O/g, '0').replace(/o/g, '0').replace(/b/g, '6').replace(/l/g, '1').replace(/I/g, '1').replace(/\?/g, '7').replace(/[^0-9]/g, '');
-                    const cleanLabel = (text) => text.replace(/[:.]/g, '').trim();
-
-                    for (let i = 0; i < lines.length; i++) {
-                        let line = lines[i].trim().toUpperCase();
-                        let nextLine = lines[i + 1] ? lines[i + 1].trim().toUpperCase() : '';
-
-                        // 0. City (Header)
-                        if (!foundCity && i < 5) {
-                            if (line.includes('KOTA') || line.includes('KABUPATEN')) {
-                                foundCity = line.replace('PROVINSI', '').replace('JAWA', '').replace('SULAWESI', '').replace('SELATAN', '').replace('BARAT', '').replace('TIMUR', '').replace('TENGAH', '').replace(/[0-9]/g, '').trim();
-                            }
-                        }
-
-                        // 1. NIK
-                        if (!foundNik) {
-                            if (line.includes('NIK')) { // Keyword based
-                                let potential = cleanForNumber(line);
-                                if (potential.length >= 15) foundNik = potential.substring(0, 16);
-                            } else { // Pattern based
-                                let potential = cleanForNumber(line);
-                                if (potential.length >= 16 && potential.length <= 18) foundNik = potential.substring(0, 16);
-                            }
-                        }
-
-                        // 2. Name
-                        if (!foundName && (line.includes('NAMA') || line.includes(':'))) {
-                            let val = line.replace('NAMA', '').replace(':', '').replace('.', '').trim();
-                            // If empty, check next line
-                            if (val.length < 3 && nextLine.length > 3) val = nextLine;
-
-                            // Cleanup invalid detected name (common ocr noise)
-                            if (val.length > 2 && !val.includes('NIK') && !val.includes('KOTA') && !val.includes('LAHIR')) {
-                                foundName = val.replace(/[^A-Z .,]/g, '');
-                            }
-                        }
-
-                        // 3. TTL (Tempat/Tgl Lahir) - Keyword fuzzy: LAHIR, L4HIR, THIR
-                        if (!foundTtl && /LAHIR|L.HIR|TEMPAT|TGL/i.test(line)) {
-                            let val = line.replace(/TEMPAT/g, '').replace(/TGL/g, '').replace(/LAHIR/g, '').replace(/[:/]/g, '').trim();
-                            if (val.length < 3 && nextLine.length > 5) val = nextLine;
-                            foundTtl = val;
-                        }
-
-                        // 4. Address (Alamat)
-                        if (!foundAddress && line.includes('ALAMAT')) {
-                            let val = line.replace('ALAMAT', '').replace(':', '').trim();
-                            // Address usually spans lines
-                            if (val.length < 3 && nextLine.length > 3) val = nextLine; // Take next line if current empty
-
-                            // Look ahead for RT/RW or Desa/Kel rows to append
-                            let fullAddr = val;
-                            if (lines[i + 1] && !lines[i + 1].includes('ALAMAT')) {
-                                if (lines[i + 1].includes('RT') || lines[i + 1].includes('RW') || lines[i + 1].includes('JALAN') || lines[i + 1].includes('NO')) {
-                                    fullAddr += ', ' + lines[i + 1].trim();
-                                }
-                            }
-                            if (lines[i + 2] && (lines[i + 2].includes('KEL') || lines[i + 2].includes('DESA') || lines[i + 2].includes('KECAMATAN'))) {
-                                fullAddr += ', ' + lines[i + 2].trim();
-                            }
-                            foundAddress = fullAddr;
-                        }
-
-                        // 5. Agama (Value Direction)
-                        if (!foundReligion) {
-                            // Search values directly because label "AGAMA" might be misread
-                            if (line.includes('ISLAM')) foundReligion = 'ISLAM';
-                            else if (line.includes('KRISTEN')) foundReligion = 'KRISTEN';
-                            else if (line.includes('KATOLIK')) foundReligion = 'KATOLIK';
-                            else if (line.includes('HINDU')) foundReligion = 'HINDU';
-                            else if (line.includes('BUDDHA')) foundReligion = 'BUDDHA';
-
-                            // If not found yet, check label
-                            else if (line.includes('AGAMA')) {
-                                let val = line.replace('AGAMA', '').replace(':', '').trim();
-                                if (val.length > 3) foundReligion = val;
-                                else if (nextLine.length > 3) foundReligion = nextLine.split(' ')[0];
-                            }
-                        }
-
-                        // 6. Status Perkawinan
-                        if (!foundMarital) {
-                            if (line.includes('KAWIN') && !line.includes('BELUM')) foundMarital = 'KAWIN';
-                            else if (line.includes('BELUM KAWIN')) foundMarital = 'BELUM KAWIN';
-                            else if (line.includes('CERAI')) foundMarital = 'CERAI';
-
-                            else if (line.includes('PERKAWINAN')) {
-                                let val = line.replace('STATUS', '').replace('PERKAWINAN', '').replace(':', '').trim();
-                                if (val.length > 3) foundMarital = val;
-                            }
-                        }
-
-                        // 7. Pekerjaan
-                        if (!foundJob && /PEKERJAAN|PEKEAJAAN/i.test(line)) {
-                            let val = line.replace(/PEKERJAAN/g, '').replace(/PEKEAJAAN/g, '').replace(':', '').trim();
-                            if (val.length < 3 && nextLine.length > 3) val = nextLine;
-                            foundJob = val;
-                        }
-                    }
-
-                    if (foundNik || foundName) {
-                        document.getElementById('tenantNik').value = foundNik || '';
-                        document.getElementById('tenantName').value = foundName || '';
-
-                        // Map Marital Status to Dropdown Values
-                        let normalizedMarital = 'Belum Kawin'; // Default
-                        if (foundMarital) {
-                            const m = foundMarital.toUpperCase();
-                            if (m.includes('BELUM')) normalizedMarital = 'Belum Kawin';
-                            else if (m === 'KAWIN' || m.includes('KAWIN')) normalizedMarital = 'Kawin';
-                        }
-                        document.getElementById('tenantMarital').value = normalizedMarital;
-
-                        alert("Scan selesai! Data telah diisi otomatis. Silakan verifikasi.");
-                    } else {
-                        alert("OCR gagal mendeteksi data utama. Kualitas gambar mungkin kurang jelas.");
-                    }
-
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
+                // Call Python Server (Gemini)
+                const response = await fetch('http://localhost:5000/ocr-gemini', {
+                    method: 'POST',
+                    body: formData
                 });
+
+                if (!response.ok) throw new Error('Gagal menghubungi Server OCR');
+                
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const d = result.data;
+                    console.log("Gemini Data:", d);
+
+                    // Auto Fill
+                    if(d.nik) document.getElementById('tenantNik').value = d.nik;
+                    if(d.nama) document.getElementById('tenantName').value = d.nama;
+                    
+                    // Marital Normalization
+                    let marital = 'Belum Kawin';
+                    if(d.status_perkawinan) {
+                        const status = d.status_perkawinan.toUpperCase();
+                        if(status.includes('KAWIN') && !status.includes('BELUM')) marital = 'Kawin';
+                    }
+                    document.getElementById('tenantMarital').value = marital;
+
+                    // Address / City could be used in future or description
+                    let fullAddr = d.alamat || '';
+                    if(d.kota_kabupaten) fullAddr += `, ${d.kota_kabupaten}`;
+                    console.log("Full Address:", fullAddr); 
+                    // Jika ada field alamat bisa diisi, saat ini belum ada di form kecuali tenantPhone/Duration
+
+                    alert("✅ Scan Berhasil! Data KTP telah diekstrak oleh Gemini AI.");
+                } else {
+                    alert("Gagal mengekstrak data. Coba foto yang lebih jelas.");
+                }
 
             } catch (e) {
                 console.error(e);
-                alert("Error: " + e.message);
+                alert("Error: Pastikan Server Python (ocr_gemini_server.py) sudah berjalan! \n" + e.message);
+            } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }
@@ -599,9 +450,9 @@
 
                     <button onclick="scanKTP()" id="btnScan"
                         class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg text-sm transition shadow-md">
-                        <i class="fas fa-camera"></i> Scan KTP Auto-Fill
+                        <i class="fas fa-magic"></i> Scan KTP Auto-Fill (AI)
                     </button>
-                    <p class="text-[10px] text-slate-400 mt-2">Powered by Tesseract.js (Client-side)</p>
+                    <p class="text-[10px] text-slate-400 mt-2">Powered by Google Gemini AI (Backend)</p>
                 </div>
 
                 <hr class="border-slate-100">
