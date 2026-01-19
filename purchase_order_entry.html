@@ -373,7 +373,7 @@
             if (data) listVendor = data;
         }
 
-        // --- REVISED: Load Requests with Project Marker ---
+        // --- REVISED: Load Requests with Project Marker & Auto-Price ---
         async function loadPendingRequests() {
             const { data } = await client.from('inventory_req').select('*').eq('status', 'PENDING').order('created_at');
             listPending = data || [];
@@ -385,20 +385,31 @@
                 return;
             }
 
-            // 1. Ambil Data Stok (Existing)
+            // 1. Ambil Data Stok & Harga Estimasi (History GRN)
             const itemNames = listPending.map(item => item.nama_barang);
-            const { data: stockData } = await client.from('master_stok').select('nama_barang, total_stok, nama_proyek').in('nama_barang', itemNames);
+            // Fetch harga_estimasi also
+            const { data: stockData } = await client.from('master_stok')
+                .select('nama_barang, total_stok, nama_proyek, harga_estimasi')
+                .in('nama_barang', itemNames);
 
             const stockMap = {};
+            const priceMap = {}; // New Map for Price
+
             if (stockData) {
                 stockData.forEach(s => {
+                    // STOCK MAP
                     if (!stockMap[s.nama_barang]) stockMap[s.nama_barang] = {};
                     const pKey = s.nama_proyek || 'Gudang Pusat';
                     stockMap[s.nama_barang][pKey] = (stockMap[s.nama_barang][pKey] || 0) + (Number(s.total_stok) || 0);
+
+                    // PRICE MAP (Key: Barang + Proyek)
+                    // Priority: If specific project has price, use it.
+                    const uniqueKey = `${s.nama_barang}_${pKey}`;
+                    priceMap[uniqueKey] = s.harga_estimasi || 0;
                 });
             }
 
-            // 2. Ambil Data Kawasan (New Logic for Badge)
+            // 2. Ambil Data Kawasan (Existing Logic)
             const uniqueProyekNames = new Set();
             listPending.forEach(item => {
                 if (item.nama_proyek) {
@@ -407,23 +418,35 @@
                 }
             });
             const arrProyek = Array.from(uniqueProyekNames);
-
             const kawasanMap = {};
             if (arrProyek.length > 0) {
-                const { data: projData } = await client.from('master_proyek')
-                    .select('nama_proyek, kawasan')
-                    .in('nama_proyek', arrProyek);
-
+                const { data: projData } = await client.from('master_proyek').select('nama_proyek, kawasan').in('nama_proyek', arrProyek);
                 if (projData) {
-                    projData.forEach(p => {
-                        kawasanMap[p.nama_proyek] = p.kawasan || '';
-                    });
+                    projData.forEach(p => { kawasanMap[p.nama_proyek] = p.kawasan || ''; });
                 }
             }
 
             listPending.forEach(item => {
                 const reqProyek = item.nama_proyek || 'Gudang Pusat';
                 const sisa = stockMap[item.nama_barang]?.[reqProyek] || 0;
+
+                // ATTACH PRICE TO ITEM OBJECT (For batch modal use)
+                const uniqueKey = `${item.nama_barang}_${reqProyek}`;
+                // Fallback: Try generic 'Gudang Pusat' price if specific project not found? 
+                // Better strict for now, or maybe check GLOBAL price if not found.
+                // Let's check specific first.
+                let estPrice = priceMap[uniqueKey];
+
+                // If 0 or undefined, maybe try to find ANY price for this item?
+                // (Optional enhancement: pick the latest price from ANY project if specific is 0)
+                if (!estPrice && stockData) {
+                    const anyStock = stockData.find(s => s.nama_barang === item.nama_barang && s.harga_estimasi > 0);
+                    if (anyStock) estPrice = anyStock.harga_estimasi;
+                }
+
+                item.latestPrice = estPrice || 0;
+
+
                 const stokBadge = sisa === 0
                     ? `<span class="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded border border-red-200">Stok: 0</span>`
                     : `<span class="text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded border border-green-200 font-bold">Stok: ${sisa}</span>`;
@@ -455,7 +478,10 @@
                     ${kawasanLabel}
                     <div class="text-[10px] text-gray-400 mt-0.5">${item.divisi || '-'}</div>
                 </td>
-                <td class="p-4 font-bold text-gray-800">${item.nama_barang}</td>
+                <td class="p-4 font-bold text-gray-800">
+                    ${item.nama_barang}
+                    ${item.latestPrice > 0 ? `<div class="text-[10px] text-blue-500 font-normal mt-1"><i class="fas fa-history"></i> Last: Rp ${item.latestPrice.toLocaleString()}</div>` : ''}
+                </td>
                 <td class="p-4">${item.jumlah}</td>
                 <td class="p-4 text-gray-500 text-sm">${item.satuan}</td>
                 <td class="p-4">${stokBadge}</td>
@@ -492,6 +518,8 @@
             const selectedItems = listPending.filter(item => selectedIds.includes(String(item.id)));
 
             selectedItems.forEach((item, idx) => {
+                const estPrice = item.latestPrice || 0;
+
                 tbody.innerHTML += `
             <tr class="hover:bg-gray-50">
                 <td class="p-3">
@@ -505,13 +533,16 @@
                 </td>
                 <td class="p-3 text-center text-sm font-bold bg-gray-50">${item.jumlah} ${item.satuan}</td>
                 <td class="p-3">
-                    <input type="number" id="bharga-${idx}" class="w-full border p-2 rounded text-right focus:border-blue-500 outline-none" placeholder="0" onkeyup="hitungTotalBatch()">
+                    <input type="number" id="bharga-${idx}" value="${estPrice > 0 ? estPrice : ''}" class="w-full border p-2 rounded text-right focus:border-blue-500 outline-none font-bold text-gray-700" placeholder="0" onkeyup="hitungTotalBatch()">
+                    ${estPrice > 0 ? `<div class="text-[10px] text-gray-400 text-right mt-1">History: ${fmt(estPrice)}</div>` : ''}
                 </td>
                 <td class="p-3 text-right font-bold text-gray-700" id="bsub-${idx}">Rp 0</td>
             </tr>`;
             });
             document.getElementById("modalBatch").classList.remove("hidden");
-            document.getElementById("batchGrandTotal").innerText = "Rp 0";
+
+            // Auto Calculate Initial Total if prices exist
+            hitungTotalBatch();
         }
 
         function updateButtonUI(totalAmount) {

@@ -2,8 +2,13 @@ streamlit
 pandas
 pdfplumber
 supabase
-google-generativeai
 flask
 flask-cors
 python-dotenv
 Pillow
+easyocr
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+torchaudio
+numpy==1.26.4
