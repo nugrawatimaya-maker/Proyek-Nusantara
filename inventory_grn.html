@@ -486,6 +486,17 @@
                     const qty = Number(row.getAttribute("data-final-qty"));
                     const price = Number(row.getAttribute("data-final-price"));
 
+                    // PATCH: Fix "Barang ID Null" for migrated data
+                    // If frontend successfully resolved an ID (fallback), we MUST save it to DB first
+                    // because the RPC relies on purchase_order.barang_id being valid.
+                    const resolvedBarangId = row.getAttribute("data-barang-id");
+                    if (resolvedBarangId && resolvedBarangId !== 'null' && resolvedBarangId !== 'undefined') {
+                        // Silent update to fix data consistency before processing
+                        await client.from('purchase_order')
+                            .update({ barang_id: Number(resolvedBarangId) })
+                            .eq('id', poId);
+                    }
+
                     // Panggil fungsi Server-Side (RPC) untuk mencegah race condition / partial update
                     const { data: rpcData, error: rpcError } = await client.rpc('process_grn_item', {
                         p_po_id: Number(poId),
