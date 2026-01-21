@@ -198,7 +198,7 @@
     // 1. FUNGSI LOAD DATA PROYEK
     async function loadProyek() {
       // Ambil Active Project dari Session
-      const activeProject = sessionStorage.getItem('active_project_name') || '';
+      const activeProject = sessionStorage.getItem('active_project_name') || 'Sunrise City Maros';
       // Update Header Title if needed
       if (activeProject) {
         document.querySelector('h1').innerHTML = `<i class="fas fa-city text-blue-600 mr-2"></i>Daftar Proyek: ${activeProject}`;

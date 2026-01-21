@@ -81,14 +81,22 @@
                     .from('purchase_order')
                     .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
                     .eq('status', 'APPROVED')
-                    .ilike('nama_proyek', activeProject) // CHANGED: .eq to .ilike
+                    .ilike('nama_proyek', activeProject)
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
-                container.innerHTML = "";
 
+                // --- NEW FILTER: Exclude POs that are already in Debt View (Already Received) ---
+                // This handles the "Hidden GRN" case where status is still APPROVED but Debt exists.
+                const { data: debtData } = await client.from('ap_monitoring_vw').select('nomor_po');
+                const debtSet = new Set((debtData || []).map(d => d.nomor_po));
 
-                if (!data || data.length === 0) {
+                // Filter out POs that are already debts
+                const cleanData = (data || []).filter(item => !debtSet.has(item.nomor_po));
+
+                // container.innerHTML = ""; // Moved down
+
+                if (cleanData.length === 0) {
                     container.innerHTML = `
                     <div class="text-center p-10 bg-white rounded-xl shadow border border-green-100">
                         <i class="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
@@ -103,7 +111,9 @@
                     return;
                 }
 
-                const groupedPO = data.reduce((acc, item) => {
+                container.innerHTML = ""; // Clear loading only if we have data to show
+
+                const groupedPO = cleanData.reduce((acc, item) => {
                     const noPO = item.nomor_po || 'Tanpa Nomor';
                     if (!acc[noPO]) acc[noPO] = [];
                     acc[noPO].push(item);

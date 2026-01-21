@@ -301,6 +301,19 @@
 
                 <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
 
+                    <!-- Filter Tanggal -->
+                    <div
+                        class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Tgl:</span>
+                        <input type="date" id="filterStartDate" onchange="applyFilters()"
+                            class="text-xs font-bold text-slate-600 outline-none bg-transparent w-24 hover:text-indigo-600 transition"
+                            title="Dari Tanggal">
+                        <span class="text-slate-300 font-bold">-</span>
+                        <input type="date" id="filterEndDate" onchange="applyFilters()"
+                            class="text-xs font-bold text-slate-600 outline-none bg-transparent w-24 hover:text-indigo-600 transition"
+                            title="Sampai Tanggal">
+                    </div>
+
                     <button onclick="downloadPDF()"
                         class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-sm flex items-center gap-2">
                         <i class="fas fa-file-pdf"></i> PDF
@@ -767,6 +780,8 @@
             const statusFilter = document.getElementById('filterStatus').value;
             const bayarFilter = document.getElementById('filterBayar').value;
             const sortType = document.getElementById('sortBy').value;
+            const startDateVal = document.getElementById('filterStartDate').value;
+            const endDateVal = document.getElementById('filterEndDate').value;
 
             // 1. Filtering
             filteredData = rawData.filter(item => {
@@ -777,7 +792,33 @@
                 const matchStatus = statusFilter === 'ALL' || item._status === statusFilter;
                 const matchBayar = bayarFilter === 'ALL' || item._bayar === bayarFilter;
 
-                return matchKey && matchStatus && matchBayar;
+                // Date Filter (Sekarang berdasarkan Tanggal GRN / updated_at supaya sinkron dengan Stok)
+                let matchDate = true;
+                if (startDateVal || endDateVal) {
+                    // Gunakan updated_at (GRN Date) jika ada, jika tidak fallback ke tanggal_po
+                    const dateRef = item.updated_at || item.tanggal_po;
+
+                    if (!dateRef) {
+                        // If no date, exclude if filter is active
+                        matchDate = false;
+                    } else {
+                        const itemDate = new Date(dateRef);
+                        itemDate.setHours(0, 0, 0, 0);
+
+                        if (startDateVal) {
+                            const start = new Date(startDateVal);
+                            start.setHours(0, 0, 0, 0);
+                            if (itemDate < start) matchDate = false;
+                        }
+                        if (endDateVal && matchDate) {
+                            const end = new Date(endDateVal);
+                            end.setHours(0, 0, 0, 0);
+                            if (itemDate > end) matchDate = false;
+                        }
+                    }
+                }
+
+                return matchKey && matchStatus && matchBayar && matchDate;
             });
 
             // 2. Sorting
