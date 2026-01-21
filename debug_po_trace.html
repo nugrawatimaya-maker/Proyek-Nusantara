@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Trace PO Debug</title>
+    <script src="supabase.js"></script>
+    <script src="app_config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow space-y-4">
+        <h1 class="text-2xl font-bold mb-4 text-purple-800">Trace PO: PO/NLD/2026/01/9739</h1>
+
+        <div id="results" class="space-y-4 text-sm">Running trace...</div>
+    </div>
+
+    <script>
+        const client = window.client;
+
+        async function tracePO() {
+            const out = document.getElementById('results');
+            const targetPO = 'PO/NLD/2026/01/9739';
+
+            let html = '';
+
+            // 1. Get PO Details
+            const { data: po, error: errPO } = await client
+                .from('purchase_order')
+                .select('*')
+                .eq('nomor_po', targetPO)
+                .single();
+
+            if (errPO) {
+                out.innerHTML = `<div class="p-4 bg-red-100 text-red-700 font-bold">Error finding PO: ${errPO.message}</div>`;
+                return;
+            }
+
+            html += `
+                <div class="bg-gray-50 p-4 rounded border">
+                    <h2 class="font-bold text-lg mb-2">PO Details</h2>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>ID: <strong>${po.id}</strong></div>
+                        <div>Status: <strong class="${po.status === 'DITERIMA' ? 'text-green-600' : 'text-red-600'}">${po.status}</strong></div>
+                        <div>Tanggal: <strong>${po.tanggal}</strong></div>
+                        <div>Created At: <strong>${po.created_at}</strong></div>
+                        <div>Project: <strong>${po.nama_proyek}</strong></div>
+                        <div>GRN File: <strong>${po.file_nota || '-'}</strong></div>
+                    </div>
+                </div>
+            `;
+
+            // 2. Check Stock History linked to this PO or Date
+            // Usually history 'keterangan' contains PO number or simply we search by date/item
+            const startOfDay = '2026-01-19T00:00:00';
+            const endOfDay = '2026-01-19T23:59:59';
+
+            const { data: history, error: errHist } = await client
+                .from('stok_history')
+                .select('*')
+                .gte('created_at', startOfDay)
+                .lte('created_at', endOfDay);
+
+            html += `
+                <div class="bg-blue-50 p-4 rounded border mt-4">
+                    <h2 class="font-bold text-lg mb-2">Stock History on 19 Jan (All Items)</h2>
+            `;
+
+            if (errHist) {
+                html += `<div class="text-red-600">Error: ${errHist.message}</div>`;
+            } else if (history.length === 0) {
+                html += `<div class="text-red-600 font-bold">No stock movement recorded on Jan 19th.</div>`;
+            } else {
+                html += `<table class="w-full text-xs"><thead><tr><th>Time</th><th>Type</th><th>Qty</th><th>Ket</th></tr></thead><tbody>`;
+                history.forEach(h => {
+                    html += `<tr>
+                        <td>${new Date(h.created_at).toLocaleTimeString()}</td>
+                        <td>${h.jenis_transaksi}</td>
+                        <td>${h.jumlah}</td>
+                        <td>${h.keterangan}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+            }
+            html += `</div>`;
+
+            out.innerHTML = html;
+        }
+
+        if (window.client) tracePO();
+    </script>
+</body>
+
+</html>

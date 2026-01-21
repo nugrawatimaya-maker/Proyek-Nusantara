@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Cleanup Project Names</title>
+    <script src="supabase.js"></script>
+    <script src="app_config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
+        <h1 class="text-2xl font-bold mb-4 text-purple-800">Project Name Sanitizer</h1>
+        <p class="mb-4">Detects and removes trailing/leading spaces from Project Names in 'master_stok' and
+            'purchase_order'.</p>
+        <button onclick="runCleanup()"
+            class="bg-purple-600 text-white px-4 py-2 rounded font-bold hover:bg-purple-700">Scan & Fix</button>
+        <div id="log" class="mt-4 p-4 bg-gray-900 text-green-400 font-mono text-xs rounded h-60 overflow-auto"></div>
+    </div>
+
+    <script>
+        const client = window.client;
+        function log(msg) {
+            const el = document.getElementById('log');
+            el.innerHTML += `<div>> ${msg}</div>`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        async function runCleanup() {
+            if (!client) return log("Client missing");
+
+            // 1. Scan Master Stok
+            log("Scanning Master Stok...");
+            const { data: stoks, error: err1 } = await client.from('master_stok').select('*');
+            if (err1) return log("Error: " + err1.message);
+
+            let fixedStok = 0;
+            for (const item of stoks) {
+                const name = item.nama_proyek || '';
+                const trimmed = name.trim();
+
+                if (name !== trimmed) {
+                    log(`Fixing Stock ID ${item.id}: '${name}' -> '${trimmed}'`);
+                    const { error } = await client.from('master_stok').update({ nama_proyek: trimmed }).eq('id', item.id);
+                    if (error) log(`Failed to fix ID ${item.id}: ${error.message}`);
+                    else fixedStok++;
+                }
+            }
+            log(`Master Stok: Fixed ${fixedStok} items.`);
+
+            // 2. Scan Purchase Order
+            log("Scanning Purchase Order...");
+            const { data: pos, error: err2 } = await client.from('purchase_order').select('*');
+            if (err2) return log("Error: " + err2.message);
+
+            let fixedPO = 0;
+            for (const item of pos) {
+                const name = item.nama_proyek || '';
+                const trimmed = name.trim();
+
+                if (name !== trimmed) {
+                    log(`Fixing PO ID ${item.id}: '${name}' -> '${trimmed}'`);
+                    const { error } = await client.from('purchase_order').update({ nama_proyek: trimmed }).eq('id', item.id);
+                    if (error) log(`Failed to fix PO ID ${item.id}: ${error.message}`);
+                    else fixedPO++;
+                }
+            }
+            log(`Purchase Order: Fixed ${fixedPO} items.`);
+            log("DONE.");
+        }
+    </script>
+</body>
+
+</html>

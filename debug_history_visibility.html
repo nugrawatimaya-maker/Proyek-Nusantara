@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Debug History Visibility</title>
+    <script src="supabase.js"></script>
+    <script src="app_config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow space-y-4">
+        <h1 class="text-2xl font-bold mb-4 text-blue-800">Debug History Visibility</h1>
+
+        <div class="grid grid-cols-2 gap-4">
+            <input type="date" id="start" value="2026-01-01" class="border p-2">
+            <input type="date" id="end" value="2026-01-21" class="border p-2">
+        </div>
+        <button onclick="runDebug()"
+            class="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700 w-full">Run Query</button>
+
+        <div id="stats" class="grid grid-cols-2 gap-4 text-center"></div>
+
+        <h3 class="font-bold">Raw Data (First 20 items):</h3>
+        <pre id="output" class="bg-gray-900 text-green-400 p-4 rounded text-xs overflow-auto h-96"></pre>
+    </div>
+
+    <script>
+        const client = window.client;
+
+        async function runDebug() {
+            const start = document.getElementById('start').value;
+            const end = document.getElementById('end').value;
+            const out = document.getElementById('output');
+            const stats = document.getElementById('stats');
+
+            out.innerText = "Querying...";
+
+            // Replicate the exact query from stok_proyek.html
+            const { data, error } = await client.from('stok_history')
+                .select('*')
+                .gte('created_at', `${start}T00:00:00`)
+                .lte('created_at', `${end}T23:59:59`)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                out.innerText = "Error: " + error.message;
+                return;
+            }
+
+            // Analyze
+            const total = data.length;
+            const terima = data.filter(i => i.jenis_transaksi === 'TERIMA GRN' || Number(i.jumlah) > 0);
+            const keluar = data.filter(i => Number(i.jumlah) < 0);
+            const itemsOfInterest = data.filter(i => String(i.barang_id) === '118'); // Besi 10 Full ID
+
+            stats.innerHTML = `
+                <div class="bg-blue-100 p-2 rounded">Total Rows: <strong>${total}</strong></div>
+                <div class="bg-green-100 p-2 rounded">Masuk (>0): <strong>${terima.length}</strong></div>
+                <div class="bg-red-100 p-2 rounded">Keluar (<0): <strong>${keluar.length}</strong></div>
+                <div class="bg-yellow-100 p-2 rounded">Besi 10 Full (ID 118): <strong>${itemsOfInterest.length}</strong></div>
+            `;
+
+            let log = "=== ITEMS FOR ID 118 (Besi 10 Full) ===\n";
+            itemsOfInterest.forEach(i => {
+                log += `${i.created_at} | ${i.jenis_transaksi} | Qty: ${i.jumlah} | Ket: ${i.keterangan}\n`;
+            });
+
+            log += "\n=== ALL RAW DATA (Top 20) ===\n";
+            log += JSON.stringify(data.slice(0, 20), null, 2);
+
+            out.innerText = log;
+        }
+    </script>
+</body>
+
+</html>

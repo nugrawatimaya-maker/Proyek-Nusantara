@@ -81,7 +81,7 @@
                     .from('purchase_order')
                     .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
                     .eq('status', 'APPROVED')
-                    .eq('nama_proyek', activeProject)
+                    .ilike('nama_proyek', activeProject) // CHANGED: .eq to .ilike
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
@@ -486,15 +486,45 @@
                         p_history_desc: `${activeProject}: ${nomorPO}`
                     });
 
-                    if (rpcError) throw new Error(`RPC Failed for PO ${poId}: ` + rpcError.message);
+                    // ERROR HANDLING / FALLBACK: Jika RPC gagal (misal function tidak ada), lakukan manual
+                    if (rpcError) {
+                        console.warn("RPC Failed, attempting manual fallback:", rpcError);
 
-                    if (!rpcData.success) {
+                        // 1. Update Master Stok
+                        const { error: stockErr } = await client.rpc('increment_stock', { x_id: Number(bId), x_qty: qty });
+                        // Jika increment_stock jg gak ada, coba direct update (unsafe race condition but better than fail)
+                        if (stockErr) {
+                            const { data: currStok } = await client.from('master_stok').select('total_stok').eq('id', bId).single();
+                            const newStok = (currStok?.total_stok || 0) + qty;
+                            await client.from('master_stok').update({ total_stok: newStok, harga_estimasi: price }).eq('id', bId);
+                        }
+
+                        // 2. Insert History
+                        await client.from('stok_history').insert({
+                            barang_id: bId,
+                            jenis_transaksi: 'TERIMA GRN',
+                            jumlah: qty,
+                            keterangan: `${activeProject}: ${nomorPO} (Manual Fallback)`,
+                            created_at: new Date()
+                        });
+
+                        // 3. Update PO Status
+                        const { error: poErr } = await client.from('purchase_order').update({
+                            status: 'DITERIMA',
+                            harga_satuan: price,
+                            file_nota: fileName,
+                            keterangan: fileUrl
+                        }).eq('id', poId);
+
+                        if (poErr) throw new Error("Manual Fallback Failed: " + poErr.message);
+
+                    } else if (!rpcData.success) {
                         // Jika return success=false dari function (Logic Error)
                         throw new Error(`Gagal memproses PO ${poId}: ${rpcData.message}`);
                     }
 
                     // Logging untuk feedback user (Optional)
-                    console.log(`PO ${poId} Success:`, rpcData.message);
+                    console.log(`PO ${poId} Processed.`);
                 }
 
                 if (isTestMode) {

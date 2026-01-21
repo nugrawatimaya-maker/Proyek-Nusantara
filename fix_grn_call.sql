@@ -62,7 +62,8 @@ BEGIN
     UPDATE master_stok
     SET total_stok = v_stok_baru,
         harga_estimasi = p_price, -- Update harga terbaru
-        harga_updated_ref = v_po.nomor_po
+        harga_updated_ref = v_po.nomor_po,
+        nama_proyek = COALESCE(nama_proyek, v_po.nama_proyek) -- AUTO FIX: Jika stok belum punya proyek, set jadi proyek PO
     WHERE id = v_barang_id;
 
     -- 5. Insert History

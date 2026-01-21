@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Debug Item History</title>
+    <script src="supabase.js"></script>
+    <script src="app_config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-8">
+    <div class="max-w-7xl mx-auto space-y-8">
+
+        <div class="bg-white p-6 rounded shadow">
+            <h1 class="text-2xl font-bold mb-4 text-pink-800">Deep Dive: Besi 10 Full & Canal C</h1>
+            <button onclick="debugItems()"
+                class="bg-pink-600 text-white px-4 py-2 rounded font-bold hover:bg-pink-700">Scan Specific
+                Items</button>
+        </div>
+
+        <div id="results" class="space-y-6"></div>
+
+    </div>
+
+    <script>
+        const client = window.client;
+
+        async function debugItems() {
+            if (!client) return;
+            const container = document.getElementById('results');
+            container.innerHTML = 'Scanning...';
+
+            // Items to check
+            const targetNames = ['Besi 10 Full', 'Canal C'];
+
+            let html = '';
+
+            for (const name of targetNames) {
+                // 1. Get Master Data
+                const { data: items } = await client
+                    .from('master_stok')
+                    .select('*')
+                    .ilike('nama_barang', `%${name}%`);
+
+                if (!items || items.length === 0) {
+                    html += `<div class="bg-white p-4 rounded shadow mb-4"><h2 class="font-bold text-red-600">Item ${name} not found in Master Stok</h2></div>`;
+                    continue;
+                }
+
+                for (const item of items) {
+                    html += `
+                    <div class="bg-white p-6 rounded shadow border-l-4 border-blue-500">
+                        <h2 class="text-xl font-bold">${item.nama_barang} (ID: ${item.id})</h2>
+                        <div class="grid grid-cols-3 gap-4 mb-4 text-sm">
+                            <div class="bg-gray-50 p-2 rounded">Current Stock: <span class="font-bold text-2xl ${item.total_stok < 0 ? 'text-red-600' : 'text-blue-600'}">${item.total_stok}</span></div>
+                             <div class="bg-gray-50 p-2 rounded">Project: <strong>${item.nama_proyek}</strong></div>
+                             <div class="bg-gray-50 p-2 rounded">Satuan: ${item.satuan}</div>
+                        </div>
+
+                        <h3 class="font-bold border-b pb-1 mb-2">Transaction History</h3>
+                        <div class="overflow-auto max-h-64">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="p-2 border">Date</th>
+                                        <th class="p-2 border">Type</th>
+                                        <th class="p-2 border">Qty</th>
+                                        <th class="p-2 border">Calc_Running</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    // 2. Get History
+                    const { data: history } = await client
+                        .from('stok_history')
+                        .select('*')
+                        .eq('barang_id', item.id)
+                        .order('created_at', { ascending: true }); // Oldest first to calc ballance
+
+                    let running = 0;
+                    if (history && history.length > 0) {
+                        history.forEach(h => {
+                            const qty = Number(h.jumlah);
+                            // Logic: TERIMA GRN adds, PEMAKAIAN subtracts?
+                            // Usually 'jumlah' in DB is already signed? 
+                            // Let's check 'jenis_transaksi' logic in app usually.
+                            // But wait, fix_grn_call.sql inserts POSITIVE qty.
+                            // pemakaian usually inserts NEGATIVE?
+
+                            running += qty;
+
+                            html += `
+                                <tr class="border-b hover:bg-gray-50">
+                                    <td class="p-2">${new Date(h.created_at).toLocaleString()}</td>
+                                    <td class="p-2 font-bold">${h.jenis_transaksi}</td>
+                                    <td class="p-2 font-mono ${qty > 0 ? 'text-green-600' : 'text-red-600'}">${qty > 0 ? '+' + qty : qty}</td>
+                                    <td class="p-2 font-mono font-bold">${running}</td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        html += '<tr><td colspan="4" class="p-4 text-center">No History Found</td></tr>';
+                    }
+
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-2 text-right text-xs text-gray-400">
+                             Calculated History Total: <strong>${running}</strong> | Actual Master Stock: <strong>${item.total_stok}</strong>
+                             ${running !== item.total_stok ? '<span class="text-red-600 font-bold ml-2">MISMATCH!</span>' : '<span class="text-green-600 font-bold ml-2">MATCH</span>'}
+                        </div>
+                    </div>`;
+                }
+            }
+
+            container.innerHTML = html;
+        }
+
+        if (window.client) debugItems();
+    </script>
+</body>
+
+</html>

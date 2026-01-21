@@ -280,14 +280,14 @@
             let fullText = "";
 
             for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i); const textContent = await
-                    page.getTextContent(); // Sort items by Y (lines) then X (columns) to reconstruct rows // Note: PDF coordinates:
-                (0, 0) is bottom - left usually.Higher Y is top. // We group by approximate Y. const
-                    items = textContent.items.map(item => ({
-                        str: item.str,
-                        y: Math.round(item.transform[5]), // Round to group same line
-                        x: Math.round(item.transform[4])
-                    }));
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+
+                const items = textContent.items.map(item => ({
+                    str: item.str,
+                    y: Math.round(item.transform[5]), // Round to group same line
+                    x: Math.round(item.transform[4])
+                }));
 
                 // Sort by Y descending (Top to Bottom), then X ascending (Left to Right)
                 items.sort((a, b) => (b.y - a.y) || (a.x - b.x));
@@ -378,23 +378,43 @@
                 // Filter sysTrans with same Amount
                 const candidates = sysTrans.filter(s =>
                     !s.matched &&
-                    Math.abs(s.amount - mut.amount) < 1 // Tolerance 1 rupiah ); if (candidates.length> 0) {
-            // Finds closest date?
-            // Simplified: Take first one or Date match check
-            const best = candidates[0]; // TODO: Add Date check
+                    Math.abs(s.amount - mut.amount) < 1 // Tolerance 1 rupiah 
+                );
+                // Finds closest date?
+                // Simplified: Take first one or Date match check
+                const best = candidates[0]; // TODO: Add Date check
 
                 if (best && best.el) {
                     best.el.checked = true;
                     best.matched = true;
                     // Highlight
                     best.el.closest('tr').classList.add('bg-green-100');
-                    matchCount++;
                 }
-            }
             });
 
-        if (matchCount > 0) hitungSelisih();
+            if (matchCount > 0) hitungSelisih();
+        }
+
+        function switchTab(tab) {
+            const tabMan = document.getElementById('tabManual');
+            const tabRob = document.getElementById('tabRobot');
+            const viewMan = document.getElementById('viewManual');
+            const viewRob = document.getElementById('viewRobot');
+
+            if (tab === 'MANUAL') {
+                viewMan.classList.remove('hidden');
+                viewRob.classList.add('hidden');
+
+                tabMan.className = "px-4 py-2 text-sm font-bold text-sky-700 border-b-2 border-sky-600 focus:outline-none transition-colors";
+                tabRob.className = "px-4 py-2 text-sm font-bold text-gray-400 hover:text-sky-600 focus:outline-none transition-colors";
+            } else {
+                viewMan.classList.add('hidden');
+                viewRob.classList.remove('hidden');
+
+                tabRob.className = "px-4 py-2 text-sm font-bold text-sky-600 border-b-2 border-sky-600 focus:outline-none transition-colors";
+                tabMan.className = "px-4 py-2 text-sm font-bold text-gray-400 hover:text-sky-600 focus:outline-none transition-colors";
             }
+        }
 
 
         // --- INIT ---
@@ -409,13 +429,31 @@
 
         async function init() {
             // Load All Akun for Dropdowns
-            const { data } = await window.client.from('master_akun').select('nama_akun, kategori').order('nama_akun');
+            // Fix: Filter only Kas & Bank directly from query if possible, or filter in JS
+            const { data, error } = await window.client
+                .from('master_akun')
+                .select('nama_akun, kategori')
+                .ilike('kategori', '%Kas%') // Try to filter by category containing 'Kas' or 'Bank' if your COA supports it
+                .order('nama_akun');
+
+            if (error) {
+                console.error("Error loading accounts:", error);
+                return;
+            }
+
             allAkun = data || [];
 
             const sel = document.getElementById("pilihBank");
+            sel.innerHTML = '<option value="">-- Pilih Bank --</option>'; // Reset
+
             if (allAkun) {
                 allAkun.forEach(a => {
-                    if (a.nama_akun.toLowerCase().includes('bank')) {
+                    // Filter logic: Check if name contains 'Bank' OR category is Kas/Bank
+                    // Adjust this logic based on your actual COA structure
+                    const isBank = a.nama_akun.toLowerCase().includes('bank') ||
+                        (a.kategori && a.kategori.toLowerCase().includes('bank'));
+
+                    if (isBank) {
                         sel.innerHTML += `<option value="${a.nama_akun}">${a.nama_akun}</option>`;
                     }
                 });

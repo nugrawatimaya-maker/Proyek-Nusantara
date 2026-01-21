@@ -1,20 +1,150 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tabel Marketing - Sunrise City Maros</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="supabase.js"></script>
+  <script src="app_config.js"></script>
   <style>
-    body { background:#f1f5f9; }
-    .card { border-radius:16px; box-shadow:0 20px 45px rgba(15,23,42,0.12); }
-    .badge { font-size:0.65rem; letter-spacing:0.05em; }
-    table { border-collapse:collapse; width:100%; }
-    th,td { padding:0.75rem 0.5rem; }
-    th { background:#e2e8f0; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.08em; }
+    body {
+      background: #f1f5f9;
+    }
+
+    .card {
+      border-radius: 16px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+    }
+
+    .badge {
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      padding: 0.75rem 0.5rem;
+    }
+
+    th {
+      background: #e2e8f0;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* Timeline Styles */
+    .timeline-step {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .t-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #e2e8f0;
+      border: 2px solid white;
+      box-shadow: 0 0 0 1px #cbd5e1;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .t-line {
+      flex: 1;
+      height: 2px;
+      background-color: #e2e8f0;
+      min-width: 15px;
+    }
+
+    .t-active .t-dot {
+      transform: scale(1.3);
+      border-color: white;
+      box-shadow: 0 0 0 2px currentColor;
+    }
+
+    .t-done .t-dot {
+      background-color: currentColor;
+      box-shadow: none;
+      border: none;
+    }
+
+    .t-done .t-line {
+      background-color: currentColor;
+    }
+
+    .tooltip-container {
+      position: relative;
+    }
+
+    .tooltip-container:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 4px 8px;
+      font-size: 10px;
+      border-radius: 4px;
+      white-space: nowrap;
+      pointer-events: none;
+      margin-bottom: 5px;
+      z-index: 10;
+    }
+
+    /* Modal Styles */
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(2px);
+    }
+
+    dialog[open] {
+      animation: scaleIn 0.3s ease-out;
+    }
+
+    @keyframes scaleIn {
+      from {
+        transform: scale(0.95);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .shimmer::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%);
+      transform: skewX(-20deg) translateX(-150%);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      100% {
+        transform: skewX(-20deg) translateX(150%);
+      }
+    }
   </style>
 </head>
+
 <body class="min-h-screen flex flex-col">
   <header class="bg-gradient-to-r from-blue-800 to-sky-600 text-white">
     <div class="max-w-6xl mx-auto px-4 py-5 flex items-center justify-between">
@@ -23,85 +153,495 @@
         <p class="text-xs uppercase tracking-wide text-blue-100/80">Data mutasi 3 hari terakhir</p>
       </div>
       <div class="flex gap-2">
-        <button onclick="window.location.href='dashboard_marketing.html'" class="px-4 py-2 rounded-full bg-white text-blue-700 font-semibold shadow">Back to Gallery</button>
-        <button onclick="window.location.href='sunrise_city_maros.html'" class="px-4 py-2 rounded-full bg-blue-200 text-blue-800 font-semibold shadow flex items-center gap-2"><i class="fas fa-map"></i> Siteplan</button>
+        <button onclick="window.location.href='dashboard_marketing.html'"
+          class="px-4 py-2 rounded-full bg-white text-blue-700 font-semibold shadow">Back to Gallery</button>
+        <button onclick="window.location.href='sunrise_city_maros.html'"
+          class="px-4 py-2 rounded-full bg-blue-200 text-blue-800 font-semibold shadow flex items-center gap-2"><i
+            class="fas fa-map"></i> Siteplan</button>
       </div>
     </div>
   </header>
 
   <main class="flex-grow max-w-6xl mx-auto px-4 py-8 space-y-6">
+    <!-- SEARCH & FILTER CONTROLS -->
+    <div
+      class="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+      <div class="relative w-full md:w-auto">
+        <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+        <input type="text" id="searchInput" placeholder="Cari Blok / Marketing..."
+          class="pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 w-full md:w-72 transition shadow-sm">
+      </div>
+
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <select id="statusFilter"
+          class="px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-500 bg-slate-50 hover:bg-white shadow-sm cursor-pointer transition w-full md:w-auto text-slate-600 font-medium">
+          <option value="all">Semua Status</option>
+          <option value="open-booking">Dipasarkan</option>
+          <option value="booking-unit">Booking</option>
+          <option value="sold-out">Sold Out</option>
+          <option value="not-planning">Belum Dipasarkan</option>
+        </select>
+
+        <button onclick="reloadData()"
+          class="w-10 h-10 flex flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 transition shadow-sm border border-blue-100"
+          title="Refresh Data">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+      </div>
+    </div>
+
     <section class="card bg-white p-5 space-y-4">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
         <div>
-          <h2 class="text-lg font-bold text-slate-800">Progres Marketing</h2>
-          <p class="text-sm text-slate-500">Menampilkan update blok beserta status normalisasi</p>
-        </div>
-        <div class="flex gap-2">
-          <span class="badge px-3 py-1 bg-slate-100 text-slate-600 rounded-full">Not Planning</span>
-          <span class="badge px-3 py-1 bg-green-100 text-green-700 rounded-full">Open Booking</span>
-          <span class="badge px-3 py-1 bg-orange-100 text-orange-700 rounded-full">Booking Unit</span>
-          <span class="badge px-3 py-1 bg-red-100 text-red-700 rounded-full">Sold Out</span>
+          <h2 class="text-lg font-bold text-slate-800">Monitoring & Progress</h2>
+          <p class="text-sm text-slate-500">Pantau status berkas dan fisik bangunan</p>
         </div>
       </div>
-      <div class="overflow-auto">
+
+      <!-- MAIN TABLE VIEW -->
+      <div id="viewMain" class="overflow-auto transition-opacity duration-300">
         <table class="border border-slate-200 bg-white rounded-xl">
           <thead>
             <tr class="text-[11px] tracking-widest text-slate-500">
               <th class="rounded-tl-xl">Blok</th>
               <th>Status</th>
               <th>Marketing</th>
-              <th>Last Update</th>
-              <th>Est. Next Step</th>
+              <th class="w-1/4">Timeline Berkas</th>
+              <th class="w-1/4">Progress Bangunan</th>
+              <th>Durasi di Tahap Ini</th>
               <th class="rounded-tr-xl">Note</th>
             </tr>
           </thead>
-          <tbody id="marketingRows">
-            <tr>
-              <td colspan="6" class="text-center text-slate-400 py-8">Memuat data...</td>
-            </tr>
+          <tbody id="tableRows">
+            <!-- JS Injected -->
           </tbody>
         </table>
       </div>
     </section>
   </main>
 
-  <script>
-    const DATA = [
-      { blok: 'C1', status: 'booking-unit', marketing: 'R. Andri', updated: '12 Feb 2024 09:45', note: 'Berkas Bank 1/2', next: 'Berkas' },
-      { blok: 'A5', status: 'open-booking', marketing: 'S. Wulan', updated: '11 Feb 2024 15:20', note: 'Naik 40%', next: 'Booking' },
-      { blok: 'B8', status: 'not-planning', marketing: 'T. Putri', updated: '10 Feb 2024 08:02', note: 'Baru input harga', next: 'Open Booking' },
-      { blok: 'D14', status: 'sold-out', marketing: 'F. Dian', updated: '09 Feb 2024 12:10', note: 'DP Masuk', next: 'Serah Terima' }
-    ];
+  <!-- DETAIL MODAL -->
+  <dialog id="detailModal"
+    class="p-0 rounded-2xl shadow-2xl w-full max-w-lg bg-white overflow-hidden backdrop:bg-slate-900/50">
+    <form method="dialog" class="absolute right-4 top-4 z-10">
+      <button
+        class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition focus:outline-none">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </form>
 
+    <div class="bg-gradient-to-br from-slate-50 to-white border-b border-slate-100 p-6">
+      <div class="flex items-center gap-4">
+        <div
+          class="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-600/20 ring-4 ring-blue-50"
+          id="modalUnitId">A1</div>
+        <div>
+          <h3 class="font-bold text-slate-800 text-lg">Detail Unit & Progress</h3>
+          <p class="text-sm font-medium text-slate-500 flex items-center gap-2 mt-1">
+            Status: <span id="modalStatus"
+              class="px-2 py-0.5 bg-slate-100 rounded text-slate-600 text-xs">Booking</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6 space-y-8 overflow-y-auto max-h-[70vh]">
+
+      <!-- Timeline Large -->
+      <div class="space-y-3">
+        <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-route text-slate-300"></i> Timeline Berkas
+        </label>
+        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100 shadow-inner">
+          <div id="modalTimeline" class="flex justify-between items-center px-1">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Construction Detail -->
+      <div class="space-y-3">
+        <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-person-digging text-slate-300"></i> Detail Konstruksi
+        </label>
+        <div class="bg-indigo-50/50 rounded-2xl p-4 border border-indigo-100">
+          <div class="flex justify-between items-end mb-2">
+            <span class="text-sm font-bold text-slate-700" id="modalStage">Persiapan</span>
+            <span class="text-2xl font-black text-indigo-600" id="modalProgress">0%</span>
+          </div>
+          <div class="h-4 w-full bg-white rounded-full overflow-hidden shadow-inner border border-indigo-100">
+            <div id="modalProgressBar" class="h-full bg-indigo-500 transition-all duration-1000 relative"
+              style="width: 0%">
+              <div class="absolute inset-0 bg-white/30 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Info Grid -->
+      <div class="grid grid-cols-2 gap-x-8 gap-y-6 relative">
+        <div class="absolute left-1/2 top-0 bottom-0 w-px bg-slate-100 -translate-x-1/2 hidden md:block"></div>
+
+        <div class="space-y-1">
+          <label class="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+            <i class="fa-regular fa-user text-slate-300"></i> Customer
+          </label>
+          <p class="font-semibold text-slate-800 text-base" id="modalCustomer">-</p>
+        </div>
+        <div class="space-y-1 pl-0 md:pl-4">
+          <label class="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+            <i class="fa-solid fa-user-tie text-slate-300"></i> Marketing
+          </label>
+          <p class="font-medium text-slate-800 text-base" id="modalMarketing">-</p>
+        </div>
+        <div class="space-y-1">
+          <label class="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+            <i class="fa-regular fa-credit-card text-slate-300"></i> Pembayaran
+          </label>
+          <p class="font-medium text-slate-800 text-base" id="modalPlan">-</p>
+        </div>
+        <div class="space-y-1 pl-0 md:pl-4">
+          <label class="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+            <i class="fa-regular fa-clock text-slate-300"></i> Update
+          </label>
+          <p class="font-mono text-xs text-slate-500 bg-slate-100 inline-block px-2 py-1 rounded" id="modalUpdate">-</p>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="space-y-2 pt-2">
+        <label class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2 block">
+          <i class="fa-regular fa-comment-dots mr-1"></i> Catatan Progress Terbaru
+        </label>
+        <div class="bg-amber-50/50 border border-amber-100 rounded-xl p-4 relative">
+          <i class="fa-solid fa-quote-left absolute top-3 left-3 text-amber-200 text-xl opacity-50"></i>
+          <p class="text-sm text-slate-600 italic leading-relaxed pl-6 relative z-10" id="modalNote">Tidak ada catatan.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </dialog>
+
+  <script>
+    // --- KONFIGURASI STATUS & TIMELINE ---
     const LABEL = {
-      'not-planning': 'Not Planning / Belum Dijual',
-      'open-booking': 'Open Booking',
-      'booking-unit': 'Booking Unit (Berkas Proses)',
+      'not-planning': 'Belum Dipasarkan',
+      'open-booking': 'Dipasarkan',
+      'booking-unit': 'Booking Masuk',
       'sold-out': 'Sold Out'
     };
 
     const COLORS = {
-      'not-planning': 'text-slate-700 bg-slate-100',
-      'open-booking': 'text-green-700 bg-green-100',
-      'booking-unit': 'text-orange-700 bg-orange-100',
-      'sold-out': 'text-red-700 bg-red-100'
+      'not-planning': 'text-slate-500 bg-slate-100 ring-1 ring-slate-200',
+      'open-booking': 'text-yellow-700 bg-yellow-50 ring-1 ring-yellow-200',
+      'booking-unit': 'text-sky-700 bg-sky-50 ring-1 ring-sky-200',
+      'sold-out': 'text-red-700 bg-red-50 ring-1 ring-red-200'
     };
 
-    const tbody = document.getElementById('marketingRows');
-    tbody.innerHTML = '';
-    DATA.forEach(row => {
-      const badge = COLORS[row.status] || 'text-slate-700 bg-slate-100';
-      tbody.innerHTML += `
-        <tr class="border-t border-slate-100 hover:bg-slate-50/70 transition">
-          <td class="font-semibold text-slate-800">${row.blok}</td>
-          <td><span class="px-3 py-1 rounded-full text-[12px] font-semibold ${badge}">${LABEL[row.status]}</span></td>
-          <td>${row.marketing}</td>
-          <td>${row.updated}</td>
-          <td>${row.next}</td>
-          <td>${row.note}</td>
-        </tr>
-      `;
+    const TIMELINE_STEPS = [
+      { key: 'open-booking', label: 'Market', color: 'text-yellow-500 bg-yellow-500', desc: 'Unit dipasarkan ke publik' },
+      { key: 'booking-unit', label: 'Booking', color: 'text-sky-500 bg-sky-500', desc: 'Menunggu kelengkapan berkas' },
+      { key: 'pemberkasan', label: 'Berkas', color: 'text-indigo-500 bg-indigo-500', desc: 'Proses verifikasi bank/developer' },
+      { key: 'sold-out', label: 'Sold', color: 'text-red-500 bg-red-500', desc: 'Akad kredit / Lunas' }
+    ];
+
+    let allData = [];
+
+    // --- MAIN FUNCTION ---
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Listeners
+      document.getElementById('searchInput').addEventListener('input', applyFilters);
+      document.getElementById('statusFilter').addEventListener('change', applyFilters);
+
+      await reloadData();
     });
+
+    async function reloadData() {
+      const tbody = document.getElementById('tableRows');
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center py-12"><i class="fas fa-circle-notch fa-spin text-blue-500 text-2xl mb-2 block"></i><span class="text-slate-400 text-sm">Menghubungkan ke database...</span></td></tr>`;
+
+      if (!window.client) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red-500 font-bold py-8">Gagal memuat konfigurasi.</td></tr>`;
+        return;
+      }
+
+      try {
+        const { data, error } = await window.client
+          .from('unit_status')
+          .select('*')
+          .order('updated_at', { ascending: false });
+
+        if (error) throw error;
+
+        allData = data || [];
+        applyFilters();
+
+        // Visual feedback on refresh button
+        const btn = document.querySelector('button[onclick="reloadData()"] i');
+        btn.classList.add('fa-spin');
+        setTimeout(() => btn.classList.remove('fa-spin'), 500);
+
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red-500 py-8">Error: ${err.message}</td></tr>`;
+      }
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const filter = document.getElementById('statusFilter').value;
+
+      const filtered = allData.filter(row => {
+        const st = normalize(row.status);
+        if (filter !== 'all' && st !== filter) return false;
+
+        const txt = (row.unit_id + ' ' + (row.marketing_name || '') + ' ' + (row.customer_name || '')).toLowerCase();
+        return txt.includes(search);
+      });
+
+      renderTable(filtered);
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('tableRows');
+      tbody.innerHTML = '';
+
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-slate-400 italic py-12 bg-slate-50/50 rounded-lg">Tidak ada data yang cocok.</td></tr>`;
+        return;
+      }
+
+      const normalize = (s) => {
+        s = (s || '').toLowerCase().trim();
+        if (s.includes('planning') || s.includes('belum')) return 'not-planning';
+        if (s.includes('open') || s.includes('ready')) return 'open-booking';
+        if (s.includes('booking') || s.includes('proses')) return 'booking-unit';
+        if (s.includes('sold') || s.includes('serah')) return 'sold-out';
+        return 'not-planning';
+      };
+
+      const fmtDate = (d) => {
+        if (!d) return '-';
+        return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      };
+
+      rows.forEach(row => {
+        const rawSt = row.status;
+        const st = normalize(rawSt);
+
+        const badgeClass = COLORS[st] || COLORS['not-planning'];
+        const label = LABEL[st] || st;
+        const marketing = row.marketing_name || row.sold_marketing_name || '-';
+        const updated = fmtDate(row.updated_at);
+        const note = row.notes || '-';
+
+        // Calculate Total Days (Duration from created_at or booking_date)
+        // Fallback to updated_at if created_at is missing, but intended is "since start"
+        const startDate = row.booking_date ? new Date(row.booking_date) : (row.created_at ? new Date(row.created_at) : new Date(row.updated_at));
+        const totalDays = Math.floor((new Date() - startDate) / (1000 * 60 * 60 * 24));
+        const durationText = totalDays > 0 ? `${totalDays} Hari` : 'Baru';
+
+        // Traffic Light Logic (Duration In Stage)
+        const daysSinceUpdate = row.updated_at ? Math.floor((new Date() - new Date(row.updated_at)) / (1000 * 60 * 60 * 24)) : 0;
+        let trafficClass = 'bg-green-50 text-green-700 border border-green-200';
+        let trafficDot = 'bg-green-500';
+
+        if (daysSinceUpdate > 7) {
+          trafficClass = 'bg-red-50 text-red-700 border border-red-200';
+          trafficDot = 'bg-red-500';
+        } else if (daysSinceUpdate > 3) {
+          trafficClass = 'bg-amber-50 text-amber-700 border border-amber-200';
+          trafficDot = 'bg-amber-500';
+        }
+
+        // Progress Calculation
+        const progress = row.progress || 0;
+        let stage = 'Persiapan';
+        let gradColor = 'from-slate-400 to-slate-500';
+
+        if (progress > 0 && progress <= 20) { stage = 'Pondasi'; gradColor = 'from-amber-400 to-amber-600'; }
+        else if (progress <= 50) { stage = 'Dinding & Struktur'; gradColor = 'from-blue-400 to-blue-600'; }
+        else if (progress <= 80) { stage = 'Atap & Plesteran'; gradColor = 'from-indigo-400 to-indigo-600'; }
+        else if (progress < 100) { stage = 'Finishing'; gradColor = 'from-teal-400 to-teal-600'; }
+        else { stage = 'Selesai'; gradColor = 'from-green-400 to-green-600'; }
+
+        const tr = document.createElement('tr');
+        tr.className = "border-t border-slate-100 hover:bg-blue-50/40 transition cursor-pointer group relative";
+        tr.onclick = () => openModal(row);
+
+        tr.innerHTML = `
+          <td class="font-bold text-slate-800 pl-4 py-4 group-hover:text-blue-600 transition-colors">${row.unit_id}</td>
+          <td class="py-4"><span class="px-2.5 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider shadow-sm ${badgeClass}">${label}</span></td>
+          <td class="text-sm text-slate-600 py-4 font-medium">${marketing}</td>
+          <td class="px-2 py-4">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shadow-sm border border-slate-200">
+                    <i class="fa-regular fa-clock text-xs"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-xs font-bold text-slate-700">${durationText}</span>
+                    <span class="text-[10px] text-slate-400 italic">Durasi Proses</span>
+                </div>
+            </div>
+          </td>
+          <td class="px-2 py-4">
+               <div class="flex items-center justify-between mb-1">
+                   <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">${stage}</span>
+                   <span class="text-xs font-bold text-slate-700">${progress}%</span>
+               </div>
+               <div class="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200">
+                    <div class="h-full bg-gradient-to-r ${gradColor} transition-all duration-1000 relative shimmer" style="width: ${progress}%"></div>
+               </div>
+          </td>
+          <td class="px-2 py-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${trafficClass} shadow-sm">
+                <div class="w-2 h-2 rounded-full ${trafficDot} animate-pulse shadow-sm"></div>
+                <span class="font-bold text-xs">${daysSinceUpdate} Hari</span>
+            </div>
+             <div class="text-[9px] text-slate-400 mt-1 pl-1">Sejak ${updated}</div>
+          </td>
+          <td class="text-xs text-slate-500 italic max-w-[200px] truncate pr-4 py-4 opacity-70 group-hover:opacity-100 transition-opacity" title="${note}">${note}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- UTILS ---
+    function normalize(s) {
+      s = (s || '').toLowerCase().trim();
+      if (s.includes('planning') || s.includes('belum')) return 'not-planning';
+      if (s.includes('open') || s.includes('ready')) return 'open-booking';
+      if (s.includes('booking') || s.includes('proses')) return 'booking-unit';
+      if (s.includes('sold') || s.includes('serah')) return 'sold-out';
+      return 'not-planning';
+    }
+
+    function buildTimeline(currentStatus, daysAgo) {
+      let activeIndex = -1;
+      if (currentStatus === 'open-booking') activeIndex = 0;
+      else if (currentStatus === 'booking-unit') activeIndex = 2;
+      else if (currentStatus === 'sold-out') activeIndex = 3;
+
+      let html = '<div class="flex flex-col w-full max-w-[200px]">';
+
+      // Dots Container
+      html += '<div class="flex items-center w-full mb-1">';
+      TIMELINE_STEPS.forEach((step, idx) => {
+        let stateClass = '';
+        let colorClass = 'text-slate-300';
+
+        if (idx < activeIndex) {
+          stateClass = 't-done';
+          colorClass = step.color;
+        } else if (idx === activeIndex) {
+          stateClass = 't-active';
+          colorClass = step.color;
+        }
+
+        if (idx > 0) {
+          html += `<div class="t-line ${idx <= activeIndex ? stateClass : ''}" style="${idx <= activeIndex ? `background-color: var(--tw-color); color: inherit; opacity: 0.6; height:3px;` : ''}"></div>`;
+        }
+
+        html += `<div class="tooltip-container ${stateClass} ${colorClass}" data-tip="${step.label}"><div class="t-dot"></div></div>`;
+      });
+      html += '</div>';
+
+      // Current Step Description
+      let currentStep = TIMELINE_STEPS.find((s, i) => {
+        if (activeIndex === 2 && i === 2) return true; // Berkas
+        if (activeIndex === 3 && i === 3) return true; // Sold
+        if (activeIndex === 0 && i === 0) return true; // Market
+        return false;
+      }) || TIMELINE_STEPS[0];
+
+      if (currentStatus === 'booking-unit') currentStep = TIMELINE_STEPS[2]; // Explicit Berkas
+      else if (currentStatus === 'not-planning') currentStep = { desc: 'Belum dimulai' };
+
+      html += `<span class="text-[10px] text-slate-500 italic truncate">${currentStep.desc || ''}</span>`;
+      html += '</div>';
+
+      return html;
+    }
+
+    // --- MODAL ---
+    function openModal(row) {
+      const dialog = document.getElementById('detailModal');
+      const st = normalize(row.status);
+
+      // Populate Data
+      document.getElementById('modalUnitId').textContent = row.unit_id;
+      document.getElementById('modalStatus').textContent = LABEL[st];
+      document.getElementById('modalStatus').className = `px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${COLORS[st]}`;
+
+      document.getElementById('modalCustomer').textContent = row.customer_name || '-';
+      document.getElementById('modalMarketing').textContent = row.marketing_name || row.sold_marketing_name || '-';
+      document.getElementById('modalPlan').textContent = row.purchase_plan || '-';
+
+      const dateStr = row.updated_at ? new Date(row.updated_at).toLocaleString('id-ID') : '-';
+      document.getElementById('modalUpdate').textContent = dateStr;
+      document.getElementById('modalNote').textContent = row.notes || 'Tidak ada catatan progress.';
+
+      // Progress Detail
+      const progress = row.progress || 0;
+      let stage = 'Persiapan';
+      if (progress > 0 && progress <= 20) stage = 'Pondasi';
+      else if (progress <= 50) stage = 'Dinding & Struktur';
+      else if (progress <= 80) stage = 'Atap & Plesteran';
+      else if (progress < 100) stage = 'Finishing';
+      else stage = 'Selesai';
+
+      document.getElementById('modalStage').textContent = stage;
+      document.getElementById('modalProgress').textContent = progress + '%';
+      document.getElementById('modalProgressBar').style.width = progress + '%';
+
+      // Render Large Timeline
+      document.getElementById('modalTimeline').innerHTML = buildTimelineLarge(st);
+
+      dialog.showModal();
+    }
+
+    function buildTimelineLarge(currentStatus) {
+      let activeIndex = -1;
+      if (currentStatus === 'open-booking') activeIndex = 0;
+      else if (currentStatus === 'booking-unit') activeIndex = 2;
+      else if (currentStatus === 'sold-out') activeIndex = 3;
+
+      let html = '';
+      TIMELINE_STEPS.forEach((step, idx) => {
+        let isActive = idx === activeIndex;
+        let isDone = idx < activeIndex;
+
+        // Dynamic Color Handling from class strings (e.g., 'text-red-500 bg-red-500')
+        // Extract color name like 'red' or 'sky'
+        const colorName = step.color.match(/bg-(\w+)-500/)?.[1] || 'slate';
+
+        let circleClass = isDone ? `bg-${colorName}-500 text-white shadow` :
+          isActive ? `bg-${colorName}-600 ring-4 ring-${colorName}-100 text-white shadow-lg scale-110` :
+            `bg-slate-100 text-slate-300 inner-shadow`;
+
+        if (idx > 0) {
+          const connColor = (isDone || isActive) ? colorName : 'slate-200';
+
+          let bgLine = (idx <= activeIndex) ? `bg-${colorName}-500` : `bg-slate-200`;
+
+          html += `<div class="h-1.5 flex-1 mx-2 rounded-full ${bgLine} transition-all duration-500"></div>`;
+        }
+
+        html += `
+                <div class="flex flex-col items-center gap-2 relative group cursor-default">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${circleClass} z-10">
+                        ${isDone ? '<i class="fa-solid fa-check"></i>' : (idx + 1)}
+                    </div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest ${isActive ? 'text-slate-800 translate-y-0' : 'text-slate-400'} transition-all absolute top-12 whitespace-nowrap">
+                        ${step.label}
+                    </span>
+                </div>
+             `;
+      });
+      return html;
+    }
   </script>
 </body>
+
 </html>
