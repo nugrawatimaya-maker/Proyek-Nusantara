@@ -28,15 +28,41 @@
             </div>
 
             <div class="flex gap-2 mt-3 md:mt-0">
-                <button onclick="loadOpenPO()"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2 transition">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
+                <div class="bg-gray-200 rounded-lg p-1 flex">
+                    <button id="btn-mode-pending" onclick="switchMode('pending')"
+                        class="bg-green-600 text-white px-6 py-2 rounded-l-lg font-bold shadow-inner transition">
+                        <i class="fas fa-clock mr-2"></i> Pending
+                    </button>
+                    <button id="btn-mode-history" onclick="switchMode('history')"
+                        class="bg-gray-200 text-gray-500 px-6 py-2 rounded-r-lg font-bold hover:bg-gray-300 transition">
+                        <i class="fas fa-history mr-2"></i> Riwayat
+                    </button>
+                </div>
+
                 <a href="dashboard_operasional.html"
-                    class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2 transition">
-                    <i class="fas fa-arrow-left"></i> Dashboard
+                    class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded shadow text-sm font-bold flex items-center gap-2 transition ml-2">
+                    <i class="fas fa-arrow-left"></i>
                 </a>
             </div>
+        </div>
+
+        <!-- DATE FILTER BAR (History Mode Only) -->
+        <div id="historyFilterBar"
+            class="hidden bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end animate-fade-in-down mb-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">Dari Tanggal</label>
+                <input type="date" id="filterStartDate"
+                    class="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">Sampai Tanggal</label>
+                <input type="date" id="filterEndDate"
+                    class="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <button onclick="loadOpenPO()"
+                class="bg-blue-600 text-white px-4 py-1 rounded text-sm font-bold hover:bg-blue-700 h-[30px] self-end shadow transition transform hover:scale-105">
+                <i class="fas fa-filter mr-1"></i> Terapkan
+            </button>
         </div>
 
         <div id="summaryAlert" class="hidden"></div>
@@ -67,32 +93,111 @@
         }
 
 
+        let currentMode = 'pending';
+
+        async function switchMode(mode) {
+            currentMode = mode;
+            const btnPending = document.getElementById('btn-mode-pending');
+            const btnHistory = document.getElementById('btn-mode-history');
+
+            if (mode === 'pending') {
+                btnPending.className = "bg-green-600 text-white px-6 py-2 rounded-l-lg font-bold shadow-inner transition";
+                btnHistory.className = "bg-gray-200 text-gray-500 px-6 py-2 rounded-r-lg font-bold hover:bg-gray-300 transition";
+                document.getElementById('historyFilterBar').classList.add('hidden');
+            } else {
+                btnPending.className = "bg-gray-200 text-gray-500 px-6 py-2 rounded-l-lg font-bold hover:bg-gray-300 transition";
+                btnHistory.className = "bg-blue-600 text-white px-6 py-2 rounded-r-lg font-bold shadow-inner transition";
+                document.getElementById('historyFilterBar').classList.remove('hidden');
+
+                // Auto-fill dates if empty (Default: Start of Current Month to Today)
+                const startInput = document.getElementById('filterStartDate');
+                const endInput = document.getElementById('filterEndDate');
+
+                if (!startInput.value) {
+                    const now = new Date();
+                    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                    startInput.value = firstDay.toISOString().split('T')[0];
+                    endInput.value = now.toISOString().split('T')[0];
+                }
+            }
+
+            await loadOpenPO();
+        }
+
         async function loadOpenPO() {
             const container = document.getElementById("containerPO");
             const badge = document.getElementById("statusBadge");
             const alertBox = document.getElementById("summaryAlert");
 
             try {
-                container.innerHTML = `<div class="text-center p-10 bg-white rounded shadow animate-pulse"><p class="text-gray-500 font-bold">🔄 Mengambil data PO...</p></div>`;
+                container.innerHTML = `<div class="text-center p-10 bg-white rounded shadow animate-pulse"><p class="text-gray-500 font-bold">🔄 Mengambil data (${currentMode === 'pending' ? 'Pending' : 'Riwayat'})...</p></div>`;
                 badge.classList.add("hidden");
                 alertBox.classList.add("hidden");
 
-                const { data, error } = await client
-                    .from('purchase_order')
-                    .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
-                    .eq('status', 'APPROVED')
-                    .ilike('nama_proyek', activeProject)
-                    .order('created_at', { ascending: false });
+                let data, error;
+
+                if (currentMode === 'pending') {
+                    const res = await client
+                        .from('purchase_order')
+                        .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
+                        .eq('status', 'APPROVED')
+                        .ilike('nama_proyek', activeProject)
+                        .order('created_at', { ascending: false });
+                    data = res.data; error = res.error;
+                } else {
+                    // --- MODE HISTORY ---
+                    const startDate = document.getElementById('filterStartDate').value;
+                    const endDate = document.getElementById('filterEndDate').value;
+
+                    let query = client
+                        .from('purchase_order')
+                        .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
+                        .in('status', ['APPROVED', 'DITERIMA', 'SELESAI', 'LUNAS'])
+                        .ilike('nama_proyek', activeProject)
+                        .order('created_at', { ascending: false });
+
+                    // Apply Date Filter if valid
+                    if (startDate) query = query.gte('created_at', startDate + 'T00:00:00');
+                    if (endDate) query = query.lte('created_at', endDate + 'T23:59:59');
+
+                    // Limit is safety net, but User relies on Date Range now
+                    query = query.limit(500);
+
+                    const res = await query;
+                    data = res.data; error = res.error;
+                }
 
                 if (error) throw error;
 
-                // --- NEW FILTER: Exclude POs that are already in Debt View (Already Received) ---
-                // This handles the "Hidden GRN" case where status is still APPROVED but Debt exists.
-                const { data: debtData } = await client.from('ap_monitoring_vw').select('nomor_po');
-                const debtSet = new Set((debtData || []).map(d => d.nomor_po));
+                // --- SHARED FILTERING LOGIC ---
+                // We need to know which POs are already "Done" (In Debt View)
+                // Also fetch 'file_nota' from view to ensure we have the link
+                const { data: debtData } = await client.from('ap_monitoring_vw').select('nomor_po, file_nota').limit(1000); // Explicit High Limit
 
-                // Filter out POs that are already debts
-                const cleanData = (data || []).filter(item => !debtSet.has(item.nomor_po));
+                // Create a Map instead of Set to store metadata (Nota)
+                const debtMap = new Map();
+                (debtData || []).forEach(d => {
+                    debtMap.set(d.nomor_po, d.file_nota);
+                });
+
+                let cleanData = [];
+                if (currentMode === 'pending') {
+                    // Pending Mode: Exclude items that are already Debts
+                    cleanData = (data || []).filter(item => !debtMap.has(item.nomor_po));
+                } else {
+                    // History Mode: Include items that ARE Debts OR explicitly Done
+                    cleanData = (data || []).filter(item => {
+                        const isDoneStatus = ['DITERIMA', 'SELESAI', 'LUNAS'].includes(item.status);
+                        const isHiddenDone = item.status === 'APPROVED' && debtMap.has(item.nomor_po);
+
+                        // Inject Nota from View if missing in PO
+                        if (debtMap.has(item.nomor_po)) {
+                            item._injected_nota = debtMap.get(item.nomor_po);
+                        }
+
+                        return isDoneStatus || isHiddenDone;
+                    });
+                }
 
                 // container.innerHTML = ""; // Moved down
 
@@ -113,154 +218,237 @@
 
                 container.innerHTML = ""; // Clear loading only if we have data to show
 
-                const groupedPO = cleanData.reduce((acc, item) => {
-                    const noPO = item.nomor_po || 'Tanpa Nomor';
-                    if (!acc[noPO]) acc[noPO] = [];
-                    acc[noPO].push(item);
-                    return acc;
-                }, {});
+                // --- RENDER BASED ON MODE ---
+                if (currentMode === 'pending') {
+                    // --- RENDER PENDING VIEW (Existing Logic) ---
+                    // Grouping
+                    const groupedPO = cleanData.reduce((acc, item) => {
+                        const noPO = item.nomor_po || 'Tanpa Nomor';
+                        if (!acc[noPO]) acc[noPO] = [];
+                        acc[noPO].push(item);
+                        return acc;
+                    }, {});
 
-                const totalPO = Object.keys(groupedPO).length;
-                const totalItem = data.length;
+                    const totalPO = Object.keys(groupedPO).length;
+                    const totalItem = data.length;
 
-                badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600 border border-red-200 shadow-sm animate-pulse";
-                badge.innerHTML = `⚠️ ${totalPO} PO Menunggu`;
-                badge.classList.remove("hidden");
+                    badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600 border border-red-200 shadow-sm animate-pulse";
+                    badge.innerHTML = `⚠️ ${totalPO} PO Menunggu`;
+                    badge.classList.remove("hidden");
 
-                alertBox.innerHTML = `
-                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r shadow-sm flex items-center justify-between">
-                    <div class="flex items-center">
-                        <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mr-4"></i>
-                        <div>
-                            <p class="font-bold text-yellow-800">Perhatian: Barang Masuk Pending</p>
-                            <p class="text-sm text-yellow-700">Terdapat <span class="font-bold">${totalPO} Nomor PO</span> dengan total <span class="font-bold">${totalItem} jenis barang</span> yang harus segera diproses (GRN).</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-                alertBox.classList.remove("hidden");
-
-                // --- NEW: FETCH MASTER STOK MAP UNTUK FALLBACK ID NULL ---
-                const { data: allStok } = await client.from('master_stok').select('id, nama_barang').eq('nama_proyek', activeProject);
-                const stokMap = {};
-                if (allStok) {
-                    allStok.forEach(s => {
-                        stokMap[s.nama_barang] = s.id;
-                    });
-                }
-
-                Object.keys(groupedPO).forEach(nomorPO => {
-                    const items = groupedPO[nomorPO];
-                    const sanitizedNomorPO = nomorPO.replace(/[^a-zA-Z0-9_-]/g, "_") || "po-group";
-                    const escapedNomorPO = nomorPO.replace(/'/g, "\\'");
-                    const tanggalPO = new Date(items[0].created_at).toLocaleDateString('id-ID');
-
-                    let groupHTML = `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden mb-8" id="card-${sanitizedNomorPO}">
-                    <div class="bg-gray-100 px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div>
-                            <div class="flex items-center gap-3">
-                                <h2 class="text-xl font-bold text-gray-800">
-                                    <i class="fas fa-file-invoice mr-2 text-blue-600"></i>${nomorPO}
-                                </h2>
-                                
-                                <button onclick="batalSatuPO('${escapedNomorPO}')" class="bg-red-100 hover:bg-red-200 text-red-700 border border-red-300 px-3 py-1 rounded text-xs font-bold transition" title="Tolak / Hapus PO ini dari antrian">
-                                    <i class="fas fa-ban mr-1"></i> Batalkan
-                                </button>
-                            </div>
-                            <p class="text-xs text-gray-500 font-bold mt-1">${tanggalPO}</p>
-                        </div>
-                        
-                        <div class="flex flex-col items-end w-full md:w-auto">
-                            <label class="text-[10px] font-bold uppercase text-gray-500 mb-1">Upload Nota Fisik (1 File per PO)</label>
-                            <input type="file" id="nota-${sanitizedNomorPO}" class="text-xs border border-gray-300 rounded cursor-pointer file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-blue-600 file:text-white w-full">
-                        </div>
-                    </div>
-                    
-                    <div class="divide-y divide-gray-100 p-2">
-                `;
-
-                    items.forEach(po => {
-                        const req = po.inventory_req;
-                        let bId = po.barang_id;
-                        const safeName = (req?.nama_barang || 'Material').replace(/'/g, "\\'");
-
-                        // FALLBACK: JIKA ID NULL, CARI DI MAP
-                        if (!bId && req?.nama_barang && stokMap[req.nama_barang]) {
-                            bId = stokMap[req.nama_barang];
-                        }
-
-                        groupHTML += `
-                        <div id="row-${po.id}" data-po="${escapedNomorPO}" data-group-id="${sanitizedNomorPO}" data-barang-id="${bId}" class="p-4 transition duration-200 rounded-lg border border-transparent hover:bg-gray-50 item-row">
-                            <div class="flex flex-col md:flex-row gap-4 items-center">
-                                <div class="md:w-1/3 w-full">
-                                    <h3 class="font-bold text-gray-800">${req?.nama_barang || 'Material'}</h3>
-                                    <div class="text-xs text-gray-500 mt-1 flex gap-2">
-                                        <span class="bg-gray-200 px-2 py-0.5 rounded">ID: ${bId || '<span class="text-red-500">NULL</span>'}</span>
-                                        <span class="text-blue-600 font-bold">Order: ${req?.jumlah || 0} ${req?.satuan || ''}</span>
-                                    </div>
-                                    <input type="hidden" id="estimasi-${po.id}" value="${po.harga_satuan}">
-                                </div>
-
-                                <div class="md:w-1/6 w-full">
-                                    <label class="block text-[10px] font-bold text-gray-400">Fisik</label>
-                                    <input type="number" id="qty-${po.id}" value="${req?.jumlah || 0}" class="w-full border p-2 rounded text-center font-bold bg-gray-50 focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-
-                                <div class="md:w-1/4 w-full relative">
-                                    <label class="block text-[10px] font-bold text-gray-400">Harga Nota (Satuan)</label>
-                                    <span class="absolute left-3 top-8 text-gray-400 text-xs">Rp</span>
-                                    <input type="number" id="harga-${po.id}" value="${po.harga_satuan}" class="w-full border p-2 pl-8 rounded font-semibold focus:ring-blue-500 focus:border-blue-500" oninput="recalculateSystemTotal('${sanitizedNomorPO}')">
-                                </div>
-
-                                <div class="md:w-1/6 w-full text-right">
-                                    <button id="btn-check-${po.id}" onclick="verifikasiItem(${po.id}, '${safeName}', '${sanitizedNomorPO}')" 
-                                            class="w-full bg-white border-2 border-gray-300 text-gray-500 hover:border-green-500 hover:text-green-600 font-bold py-2 rounded-lg transition group">
-                                        <i class="fas fa-check group-hover:scale-110 transition"></i> OK
-                                    </button>
+                    alertBox.innerHTML = `
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r shadow-sm flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mr-4"></i>
+                                <div>
+                                    <p class="font-bold text-yellow-800">Perhatian: Barang Masuk Pending</p>
+                                    <p class="text-sm text-yellow-700">Terdapat <span class="font-bold">${totalPO} Nomor PO</span> dengan total <span class="font-bold">${totalItem} jenis barang</span> yang harus segera diproses (GRN).</p>
                                 </div>
                             </div>
                         </div>
                     `;
-                    });
+                    alertBox.classList.remove("hidden");
 
-                    groupHTML += `
-                    </div>
-                    
-                    <div class="bg-blue-50 p-6 border-t border-blue-100">
-                        <div class="flex flex-col md:flex-row gap-6 justify-end items-center">
-                            
-                            <div class="text-right">
-                                <p class="text-xs text-gray-500 uppercase font-bold">Total Hitungan Sistem</p>
-                                <p class="text-xl font-bold text-gray-700" id="display-total-sistem-${sanitizedNomorPO}">Rp 0</p>
-                                <input type="hidden" id="raw-total-sistem-${sanitizedNomorPO}" value="0">
-                            </div>
+                    // --- NEW: FETCH MASTER STOK MAP UNTUK FALLBACK ID NULL ---
+                    const { data: allStok } = await client.from('master_stok').select('id, nama_barang').eq('nama_proyek', activeProject);
+                    const stokMap = {};
+                    if (allStok) {
+                        allStok.forEach(s => {
+                            stokMap[s.nama_barang] = s.id;
+                        });
+                    }
 
-                            <div class="hidden md:block text-gray-300 font-light text-3xl">/</div>
+                    Object.keys(groupedPO).forEach(nomorPO => {
+                        const items = groupedPO[nomorPO];
+                        const sanitizedNomorPO = nomorPO.replace(/[^a-zA-Z0-9_-]/g, "_") || "po-group";
+                        const escapedNomorPO = nomorPO.replace(/'/g, "\\'");
+                        const tanggalPO = new Date(items[0].created_at).toLocaleDateString('id-ID');
 
-                            <div class="w-full md:w-64">
-                                <label class="block text-xs font-bold text-blue-800 uppercase mb-1">Grand Total di Nota Fisik</label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-2.5 text-gray-500 font-bold">Rp</span>
-                                    <input type="number" id="input-total-nota-${sanitizedNomorPO}" 
-                                           oninput="cekKesesuaian('${sanitizedNomorPO}')"
-                                           placeholder="Ketik Total di Nota..." 
-                                           class="w-full border-2 border-blue-200 p-2 pl-10 rounded-lg font-bold text-lg focus:ring-blue-500 focus:border-blue-500 text-blue-900">
+                        let groupHTML = `
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden mb-8" id="card-${sanitizedNomorPO}">
+                            <div class="bg-gray-100 px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div>
+                                    <div class="flex items-center gap-3">
+                                        <h2 class="text-xl font-bold text-gray-800">
+                                            <i class="fas fa-file-invoice mr-2 text-blue-600"></i>${nomorPO}
+                                        </h2>
+                                        
+                                        <button onclick="batalSatuPO('${escapedNomorPO}')" class="bg-red-100 hover:bg-red-200 text-red-700 border border-red-300 px-3 py-1 rounded text-xs font-bold transition" title="Tolak / Hapus PO ini dari antrian">
+                                            <i class="fas fa-ban mr-1"></i> Batalkan
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-500 font-bold mt-1">${tanggalPO}</p>
                                 </div>
-                                <p id="msg-selisih-${sanitizedNomorPO}" class="text-xs font-bold mt-1 text-right text-gray-400">Silakan input total nota</p>
+                                
+                                <div class="flex flex-col items-end w-full md:w-auto">
+                                    <label class="text-[10px] font-bold uppercase text-gray-500 mb-1">Upload Nota Fisik (1 File per PO)</label>
+                                    <input type="file" id="nota-${sanitizedNomorPO}" class="text-xs border border-gray-300 rounded cursor-pointer file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-blue-600 file:text-white w-full">
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                            
+                            <div class="divide-y divide-gray-100 p-2">
+                        `;
 
-                    <div class="bg-gray-50 p-4 border-t border-gray-200 text-right">
-                        <button id="btn-final-${sanitizedNomorPO}" onclick="finalUpdate(event, '${sanitizedNomorPO}', '${escapedNomorPO}')" class="bg-gray-400 text-white cursor-not-allowed font-bold py-3 px-8 rounded-lg shadow-lg flex items-center justify-center gap-2 ml-auto w-full md:w-auto" disabled>
-                            <i class="fas fa-lock"></i> Selesaikan (Isi Total Dulu)
-                        </button>
-                    </div>
-                </div>`;
+                        items.forEach(po => {
+                            const req = po.inventory_req;
+                            let bId = po.barang_id;
+                            const safeName = (req?.nama_barang || 'Material').replace(/'/g, "\\'");
 
-                    container.innerHTML += groupHTML;
-                });
+                            // FALLBACK: JIKA ID NULL, CARI DI MAP
+                            if (!bId && req?.nama_barang && stokMap[req.nama_barang]) {
+                                bId = stokMap[req.nama_barang];
+                            }
+
+                            groupHTML += `
+                            <div id="row-${po.id}" data-po="${escapedNomorPO}" data-group-id="${sanitizedNomorPO}" data-barang-id="${bId}" class="p-4 transition duration-200 rounded-lg border border-transparent hover:bg-gray-50 item-row">
+                                <div class="flex flex-col md:flex-row gap-4 items-center">
+                                    <div class="md:w-1/3 w-full">
+                                        <h3 class="font-bold text-gray-800">${req?.nama_barang || 'Material'}</h3>
+                                        <div class="text-xs text-gray-500 mt-1 flex gap-2">
+                                            <span class="bg-gray-200 px-2 py-0.5 rounded">ID: ${bId || '<span class="text-red-500">NULL</span>'}</span>
+                                            <span class="text-blue-600 font-bold">Order: ${req?.jumlah || 0} ${req?.satuan || ''}</span>
+                                        </div>
+                                        <input type="hidden" id="estimasi-${po.id}" value="${po.harga_satuan}">
+                                    </div>
+
+                                    <div class="md:w-1/6 w-full">
+                                        <label class="block text-[10px] font-bold text-gray-400">Fisik</label>
+                                        <input type="number" id="qty-${po.id}" value="${req?.jumlah || 0}" class="w-full border p-2 rounded text-center font-bold bg-gray-50 focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+
+                                    <div class="md:w-1/4 w-full relative">
+                                        <label class="block text-[10px] font-bold text-gray-400">Harga Nota (Satuan)</label>
+                                        <span class="absolute left-3 top-8 text-gray-400 text-xs">Rp</span>
+                                        <input type="number" id="harga-${po.id}" value="${po.harga_satuan}" class="w-full border p-2 pl-8 rounded font-semibold focus:ring-blue-500 focus:border-blue-500" oninput="recalculateSystemTotal('${sanitizedNomorPO}')">
+                                    </div>
+
+                                    <div class="md:w-1/6 w-full text-right">
+                                        <button id="btn-check-${po.id}" onclick="verifikasiItem(${po.id}, '${safeName}', '${sanitizedNomorPO}')" 
+                                                class="w-full bg-white border-2 border-gray-300 text-gray-500 hover:border-green-500 hover:text-green-600 font-bold py-2 rounded-lg transition group">
+                                            <i class="fas fa-check group-hover:scale-110 transition"></i> OK
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        });
+
+                        groupHTML += `
+                            </div>
+                            
+                            <div class="bg-blue-50 p-6 border-t border-blue-100">
+                                <div class="flex flex-col md:flex-row gap-6 justify-end items-center">
+                                    
+                                    <div class="text-right">
+                                        <p class="text-xs text-gray-500 uppercase font-bold">Total Hitungan Sistem</p>
+                                        <p class="text-xl font-bold text-gray-700" id="display-total-sistem-${sanitizedNomorPO}">Rp 0</p>
+                                        <input type="hidden" id="raw-total-sistem-${sanitizedNomorPO}" value="0">
+                                    </div>
+
+                                    <div class="hidden md:block text-gray-300 font-light text-3xl">/</div>
+
+                                    <div class="w-full md:w-64">
+                                        <label class="block text-xs font-bold text-blue-800 uppercase mb-1">Grand Total di Nota Fisik</label>
+                                        <div class="relative">
+                                            <span class="absolute left-3 top-2.5 text-gray-500 font-bold">Rp</span>
+                                            <input type="number" id="input-total-nota-${sanitizedNomorPO}" 
+                                                oninput="cekKesesuaian('${sanitizedNomorPO}')"
+                                                placeholder="Ketik Total di Nota..." 
+                                                class="w-full border-2 border-blue-200 p-2 pl-10 rounded-lg font-bold text-lg focus:ring-blue-500 focus:border-blue-500 text-blue-900">
+                                        </div>
+                                        <p id="msg-selisih-${sanitizedNomorPO}" class="text-xs font-bold mt-1 text-right text-gray-400">Silakan input total nota</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 p-4 border-t border-gray-200 text-right">
+                                <button id="btn-final-${sanitizedNomorPO}" onclick="finalUpdate(event, '${sanitizedNomorPO}', '${escapedNomorPO}')" class="bg-gray-400 text-white cursor-not-allowed font-bold py-3 px-8 rounded-lg shadow-lg flex items-center justify-center gap-2 ml-auto w-full md:w-auto" disabled>
+                                    <i class="fas fa-lock"></i> Selesaikan (Isi Total Dulu)
+                                </button>
+                            </div>
+                        </div>`;
+
+                        container.innerHTML += groupHTML;
+                    });
+                } else {
+                    // --- RENDER HISTORY VIEW (New Read-Only Logic) ---
+                    const groupedPO = data.reduce((acc, item) => {
+                        const noPO = item.nomor_po || 'Tanpa Nomor';
+                        if (!acc[noPO]) acc[noPO] = [];
+                        acc[noPO].push(item);
+                        return acc;
+                    }, {});
+
+                    Object.keys(groupedPO).forEach(nomorPO => {
+                        const items = groupedPO[nomorPO];
+                        const cleanID = nomorPO.replace(/[^a-zA-Z0-9_-]/g, "_");
+                        const tanggal = new Date(items[0].updated_at || items[0].created_at).toLocaleDateString('id-ID');
+                        // PRIORITIZE INJECTED NOTA FROM DEBT VIEW
+                        const fileNota = items[0]._injected_nota || items[0].keterangan || items[0].file_nota;
+
+                        // --- FALLBACK LINK LOGIC ---
+                        const env = (typeof CURRENT_ENV !== 'undefined') ? CURRENT_ENV : 'PROD';
+                        const config = (typeof CONFIG !== 'undefined') ? CONFIG[env] : { URL: 'https://nbpxmramqufvxiikxbve.supabase.co' };
+                        const backupLinkPdf = `${config.URL}/storage/v1/object/public/nota%20grn/GRN_${cleanID}.pdf`;
+                        const backupLinkJpg = `${config.URL}/storage/v1/object/public/nota%20grn/GRN_${cleanID}.jpg`;
+
+                        let notaButtonHtml = '';
+                        // Condition: Link Exists and is valid (length > 5)
+                        if (fileNota && fileNota.length > 5) {
+                            notaButtonHtml = `<a href="${fileNota}" target="_blank" class="bg-blue-100 text-blue-600 px-3 py-1 rounded text-xs font-bold hover:bg-blue-200 transaction flex items-center gap-2"><i class="fas fa-receipt"></i> Lihat Nota</a>`;
+                        } else {
+                            // SHOW BACKUP LINKS + UPLOAD BUTTON
+                            notaButtonHtml = `
+                                <div class="flex gap-2 items-center">
+                                    <div class="flex gap-1 items-center bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                                        <span class="text-gray-300 text-[10px] italic">Backup:</span>
+                                        <a href="${backupLinkPdf}" target="_blank" class="text-xs text-gray-500 hover:text-blue-600 font-bold" title="Coba PDF">PDF</a>
+                                        <span class="text-gray-300">|</span>
+                                        <a href="${backupLinkJpg}" target="_blank" class="text-xs text-gray-500 hover:text-blue-600 font-bold" title="Coba JPG">JPG</a>
+                                    </div>
+                                    
+                                    <!-- RE-UPLOAD BUTTON -->
+                                    <button onclick="triggerReupload('${cleanID}')" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded text-xs font-bold hover:bg-indigo-200 transition flex items-center gap-1" title="Upload Ulang Nota (Susulan)">
+                                        <i class="fas fa-cloud-upload-alt"></i> Upload
+                                    </button>
+                                    <input type="file" id="reupload-${cleanID}" class="hidden" accept="image/*,application/pdf" onchange="handleReupload(this, '${nomorPO}')">
+                                </div>`;
+                        }
+
+                        let html = `
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6 opacity-90 hover:opacity-100 transition">
+                            <div class="bg-gray-50 px-6 py-3 border-b border-gray-200 flex justify-between items-center">
+                                <div>
+                                    <h2 class="text-lg font-bold text-gray-700"><i class="fas fa-check-circle text-green-500 mr-2"></i>${nomorPO}</h2>
+                                    <p class="text-xs text-gray-500 font-mono">Diterima: ${tanggal}</p>
+                                </div>
+                                <div>
+                                    ${notaButtonHtml}
+                                </div>
+                            </div>
+                            <div class="p-4 bg-white">
+                        `;
+
+                        items.forEach(item => {
+                            const req = item.inventory_req;
+                            html += `
+                                <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                                    <div>
+                                        <p class="font-bold text-gray-800 text-sm">${req?.nama_barang || 'Material'}</p>
+                                        <p class="text-[10px] text-gray-400">ID: ${item.barang_id || '-'}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-bold text-blue-600 text-sm">${req?.jumlah} ${req?.satuan}</p>
+                                        <p class="text-xs text-gray-500">Rp ${(item.harga_satuan || 0).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        html += `</div></div>`;
+                        container.innerHTML += html;
+                    });
+                }
 
             } catch (err) {
                 console.error(err);
@@ -589,12 +777,66 @@
                     .eq('nomor_po', nomorPO);
 
                 if (error) throw error;
-                alert(`✅ PO ${nomorPO} berhasil dibatalkan.`);
-                loadOpenPO();
+                alert("✅ STATUS PO BERHASIL DIBATALKAN.");
+                loadOpenPO(); // Refresh
 
             } catch (e) {
                 console.error(e);
-                alert("❌ Gagal membatalkan: " + e.message);
+                alert("❌ Gagal membatalkan PO: " + e.message);
+            }
+        }
+
+        // --- NEW: RE-UPLOAD NOTA FEATURE ---
+        function triggerReupload(cleanID) {
+            const fileInput = document.getElementById(`reupload-${cleanID}`);
+            if (fileInput) fileInput.click();
+        }
+
+        async function handleReupload(input, nomorPO) {
+            if (!input.files || input.files.length === 0) return;
+
+            const file = input.files[0];
+            const fileExt = file.name.split('.').pop();
+
+            if (!confirm(`Konfirmasi Upload Ulang Nota?\n\nFile: ${file.name}\nSize: ${(file.size / 1024).toFixed(1)} KB\n\nFile ini akan menggantikan data nota sebelumnya (jika ada).`)) {
+                input.value = ''; // Reset
+                return;
+            }
+
+            // Show Loading State (Basic)
+            const parentDiv = input.closest('div');
+            const originalHTML = parentDiv.innerHTML;
+            parentDiv.innerHTML = `<span class="text-xs text-indigo-600 font-bold"><i class="fas fa-spinner fa-spin"></i> Uploading...</span>`;
+
+            try {
+                // 1. Upload to ImageKit
+                // Gunakan folder yang sama dengan logic finalUpdate
+                const safeProjectName = activeProject.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+                const folderName = `/${safeProjectName}/nota_grn`;
+                const fileName = `GRN_${nomorPO.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.${fileExt}`;
+
+                const fileUrl = await uploadToImageKit(file, fileName, folderName);
+                console.log("Re-upload Success:", fileUrl);
+
+                // 2. Update Database (Purchase Order)
+                // Kita update: file_nota (nama file), keterangan (URL lengkap)
+                const { error } = await client
+                    .from('purchase_order')
+                    .update({
+                        file_nota: fileName,
+                        keterangan: fileUrl
+                    })
+                    .eq('nomor_po', nomorPO);
+
+                if (error) throw error;
+
+                alert("✅ Upload Berhasil! Nota telah diperbarui.\nHalaman akan direfresh.");
+                window.location.reload();
+
+            } catch (e) {
+                console.error("Re-upload Error:", e);
+                alert("❌ Gagal Upload: " + e.message);
+                parentDiv.innerHTML = originalHTML; // Restore Button
             }
         }
 
