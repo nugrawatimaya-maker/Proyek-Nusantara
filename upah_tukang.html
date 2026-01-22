@@ -126,6 +126,11 @@
                     class="fas fa-gavel mr-2"></i>2. Asistensi Rapat</button>
             <button onclick="setTab('lunas')" class="tab-btn" id="tabLunas"><i class="fas fa-history mr-2"></i>3.
                 History Lunas</button>
+            <button onclick="debugConsole()"
+                class="ml-auto bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 text-xs font-bold rounded"
+                style="margin-right: 10px;">
+                <i class="fas fa-bug"></i> DEBUG
+            </button>
         </div>
 
         <div id="budgetPanel" class="hidden bg-white border-b border-slate-200 p-4 shadow-sm mb-1">
@@ -201,6 +206,32 @@
         let GLOBAL_MASTER_DATA = [];
         let itemMeta = {};
 
+        async function debugConsole() {
+            if (!activeProyek) return alert("Pilih proyek dulu!");
+
+            console.clear();
+            const { data: peng } = await client.from('pengajuan_upah').select('*').eq('kavling', activeProyek);
+            const { data: trans } = await client.from('transaksi_upah').select('*').eq('kavling', activeProyek);
+            const { data: master } = await client.from('master_pekerjaan').select('*').eq('is_active', true);
+
+            console.log("=== DEBUG INFO ===");
+            console.log("ACTIVE PROYEK:", activeProyek);
+            console.log("\n=== PENGAJUAN_UPAH ===");
+            console.table(peng);
+            console.log("\n=== TRANSAKSI_UPAH ===");
+            console.table(trans);
+            console.log("\n=== MASTER_PEKERJAAN (Sample First 10) ===");
+            console.table(master?.slice(0, 10));
+            console.log("\n=== MAP COMPARISON ===");
+            const transMap = new Map();
+            if (trans) trans.forEach(t => {
+                const clean = (t.nama_pekerjaan || '').split(' (')[0].trim().toLowerCase();
+                transMap.set(clean, t.status);
+            });
+            console.log("Trans Map (normalized):", transMap);
+            alert("✓ Debug info printed to console. Buka F12 → Console tab");
+        }
+
         async function loadMasterData() {
             const { data, error } = await client
                 .from('master_pekerjaan')
@@ -241,7 +272,8 @@
             itemMeta = {};
             GLOBAL_MASTER_DATA.forEach(g => {
                 g.items.forEach(i => {
-                    itemMeta[i.n] = { grup: g.id, bobot: i.b };
+                    const normalizedName = i.n.trim().toLowerCase();
+                    itemMeta[normalizedName] = { grup: g.id, bobot: i.b };
                 });
             });
 
@@ -347,12 +379,33 @@
         }
 
         function setApprove(idx) {
-            decisionMap[idx] = 'APPROVE';
+            const btn = document.getElementById(`btn-app-${idx}`);
             const row = document.getElementById(`row-${idx}`);
-            if (row) row.className = "border-b row-approved";
-            document.getElementById(`btn-app-${idx}`).className = "bg-green-600 text-white px-2 py-1 rounded text-[10px] font-black shadow";
             const rejectBtn = document.getElementById(`btn-rej-${idx}`);
-            if (rejectBtn) rejectBtn.className = "hidden";
+
+            if (decisionMap[idx] === 'APPROVE') {
+                // BATALKAN (Toggle OFF)
+                decisionMap[idx] = 'PENDING';
+                if (row) row.className = "border-b";
+
+                // Reset Button Style
+                btn.className = "border-2 border-green-600 text-green-600 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-green-600 hover:text-white transition-all uppercase tracking-wider";
+                btn.innerHTML = '<i class="fas fa-check mr-1"></i> VALID';
+
+                // Munculkan tombol Reject
+                if (rejectBtn) rejectBtn.className = "border-2 border-red-600 text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-600 hover:text-white transition-all uppercase tracking-wider";
+            } else {
+                // SETUJUI (Toggle ON)
+                decisionMap[idx] = 'APPROVE';
+                if (row) row.className = "border-b row-approved";
+
+                // Active Button Style
+                btn.className = "bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black shadow hover:bg-green-700 transition-all uppercase tracking-wider";
+                btn.innerHTML = '<i class="fas fa-undo mr-1"></i> BATAL';
+
+                // Sembunyikan tombol Reject
+                if (rejectBtn) rejectBtn.className = "hidden";
+            }
             updateSummary();
         }
 
@@ -545,33 +598,62 @@
                 return;
             }
 
-            thead.innerHTML = `<tr><th class="th-excel w-12 text-center">No</th><th class="th-excel text-left">Uraian Pekerjaan</th><th class="th-excel w-16 text-center">Bobot</th><th class="th-excel w-32 text-right">Nilai</th><th class="th-excel w-32 text-center">Aksi</th></tr>`;
-
             const { data: peng } = await client.from('pengajuan_upah').select('*').eq('kavling', activeProyek);
-            const { data: trans } = await client.from('transaksi_upah').select('nama_pekerjaan, status').eq('kavling', activeProyek);
+            const { data: trans } = await client.from('transaksi_upah').select('*').eq('kavling', activeProyek);
 
             let sMap = {};
 
-            if (peng) {
-                peng.forEach(p => {
-                    const cleanName = p.nama_pekerjaan.split(' (')[0];
-                    if (p.status === 'DIAJUKAN') {
-                        sMap[cleanName] = 'DIAJUKAN';
-                    } else if (p.status === 'TERSEDIA' && p.nama_pekerjaan.toUpperCase().includes('TOLAK')) {
-                        if (!sMap[cleanName]) {
-                            sMap[cleanName] = 'REJECTED';
-                        }
+            // PRIORITAS 1: Dari transaksi_upah (status final) - ini adalah sumber kebenaran
+            if (trans) {
+                trans.forEach(t => {
+                    // Bersihkan nama: ambil bagian sebelum parenthesis, trim, lowercase
+                    const baseName = (t.nama_pekerjaan || '').split(' (')[0].trim();
+                    const cleanName = baseName.toLowerCase();
+
+                    console.log(`[TRANS] "${t.nama_pekerjaan}" → base: "${baseName}" → clean: "${cleanName}" → status: ${t.status}`);
+
+                    if (cleanName && t.status) {
+                        sMap[cleanName] = t.status;
+                        console.log(`✓ Set sMap["${cleanName}"] = "${t.status}"`);
                     }
                 });
             }
 
-            if (trans) {
-                trans.forEach(t => {
-                    const cleanName = t.nama_pekerjaan.split(' (')[0];
-                    // Check status dari transaksi (LUNAS / PENDING_DIREKSI / REJECTED)
-                    sMap[cleanName] = t.status || 'LUNAS';
+            // PRIORITAS 2: Dari pengajuan_upah (hanya jika belum ada di sMap)
+            if (peng) {
+                peng.forEach(p => {
+                    const baseName = (p.nama_pekerjaan || '').split(' (')[0].trim();
+                    const cleanName = baseName.toLowerCase();
+
+                    console.log(`[PENG] "${p.nama_pekerjaan}" → clean: "${cleanName}" → status: ${p.status}`);
+
+                    if (!cleanName) return;
+
+                    // Skip jika sudah ada di transaksi
+                    if (sMap[cleanName]) {
+                        console.log(`  → Skip (sudah di sMap dengan status "${sMap[cleanName]}")`);
+                        return;
+                    }
+
+                    if (p.status === 'DIAJUKAN') {
+                        sMap[cleanName] = 'DIAJUKAN';
+                        console.log(`✓ Set sMap["${cleanName}"] = "DIAJUKAN"`);
+                    } else if (p.status === 'REJECTED' || p.nama_pekerjaan.toUpperCase().includes('REJECTED')) {
+                        sMap[cleanName] = 'REJECTED';
+                        console.log(`✓ Set sMap["${cleanName}"] = "REJECTED"`);
+                    }
                 });
             }
+
+            console.log("=== Final sMap ===", sMap);
+            console.log("=== Master Items ===", GLOBAL_MASTER_DATA.map(g => ({
+                tahap: g.id,
+                items: g.items.map(i => ({
+                    original: i.n,
+                    normalized: i.n.trim().toLowerCase(),
+                    inMap: sMap[i.n.trim().toLowerCase()] || 'TIDAK ADA'
+                }))
+            })));
 
             if (!GLOBAL_MASTER_DATA.length) {
                 tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center font-bold">Memuat daftar pekerjaan…</td></tr>`;
@@ -586,20 +668,37 @@
                 isFirstStage = false;
                 tbody.innerHTML += `<tr class="row-blok-header text-[10px]"><td colspan="5" class="p-2 px-4 uppercase tracking-widest">${headerTitle}</td></tr>`;
                 g.items.forEach(i => {
-                    const st = sMap[i.n];
+                    const normalizedName = i.n.trim().toLowerCase();
+                    const st = sMap[normalizedName];
+
+                    console.log(`Display: "${i.n}" (norm: "${normalizedName}") → status: "${st}" (length: ${st?.length}, type: ${typeof st})`);
+                    if (st) {
+                        console.log(`  st === 'APPROVED_BY_DIREKTSI'? ${st === 'APPROVED_BY_DIREKTSI'}`);
+                        console.log(`  st.includes('APPROVED')? ${st.includes('APPROVED')}`);
+                        console.log(`  st.trim()? "${st.trim()}"`);
+                        // Check for whitespace
+                        console.log(`  First char code: ${st.charCodeAt(0)}, Last char code: ${st.charCodeAt(st.length - 1)}`);
+                    }
+                    // Trim dan normalize status untuk comparison
+                    const normalizedStatus = (st || '').trim().toUpperCase();
+
                     let btn = "";
                     let rowClass = "border-b hover:bg-slate-50";
 
-                    if (st === 'LUNAS') {
+                    if (normalizedStatus === 'LUNAS' || normalizedStatus.includes('APPROVED')) {
+                        console.log(`✅ MATCH! Setting LUNAS badge for "${normalizedName}" (status: "${st}")`);
                         btn = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-check-circle"></i> LUNAS</span>`;
                         rowClass = "border-b bg-green-50/50";
-                    } else if (st === 'PENDING_DIREKSI') {
+                    } else if (normalizedStatus.includes('PENDING')) {
+                        console.log(`⏳ MATCH! Setting TUNGGU DIREKSI badge for "${normalizedName}"`);
                         btn = `<span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-user-tie"></i> TUNGGU DIREKSI</span>`;
                         rowClass = "border-b bg-purple-50/50";
-                    } else if (st === 'DIAJUKAN') {
+                    } else if (normalizedStatus === 'DIAJUKAN') {
+                        console.log(`⏳ MATCH! Setting MENUNGGU badge for "${normalizedName}"`);
                         btn = `<span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black tracking-wide"><i class="fas fa-hourglass-half"></i> MENUNGGU</span>`;
                         rowClass = "border-b bg-amber-50/50";
                     } else {
+                        console.log(`❌ NO MATCH for "${normalizedName}" - normalizedStatus is "${normalizedStatus}"`);
                         let label = "AJUKAN";
                         let btnColor = "bg-blue-600 hover:bg-blue-700";
                         let extraInfo = "";
@@ -786,8 +885,9 @@
         }
 
         async function ajukanItem(n, v, b, t) {
-            const cleanName = n.split(' (')[0];
-            const isFinishing = cleanName.toLowerCase().includes("finishing") || cleanName.toLowerCase().includes("cat");
+            const cleanName = (n || "").split(' (')[0].trim();
+            const normalizedName = cleanName.toLowerCase();
+            const isFinishing = normalizedName.includes("finishing") || normalizedName.includes("cat");
             const nilaiRetensi = 1000000;
 
             // 1. CEK DOBEL
@@ -862,11 +962,17 @@
                 meta.bobot = 'Vol';
                 displayVol = item.volume_pekerjaan ? `<span class="bg-gray-100 px-1 rounded text-[9px] ml-1">Vol: ${item.volume_pekerjaan}</span>` : '';
             } else {
-                const cleanName = (item.nama_pekerjaan || "").trim();
+                const cleanName = (item.nama_pekerjaan || "").split(' (')[0].trim().toLowerCase();
                 let found = itemMeta[cleanName];
                 if (!found) {
-                    const key = Object.keys(itemMeta).find(k => k.trim().toLowerCase() === cleanName.toLowerCase());
-                    if (key) found = itemMeta[key];
+                    // Fallback untuk backward compatibility
+                    const originalName = item.nama_pekerjaan || "";
+                    for (const [key, value] of Object.entries(itemMeta)) {
+                        if (key === originalName.toLowerCase() || key === cleanName) {
+                            found = value;
+                            break;
+                        }
+                    }
                 }
                 if (found) {
                     meta.grup = `T-${found.grup}`;
@@ -887,6 +993,7 @@
             let query = client.from('transaksi_upah')
                 .select('*')
                 .in('kavling', p)
+                .or('status.eq.LUNAS,status.eq.APPROVED_BY_DIREKSI')
                 .order('tanggal_bayar', { ascending: true });
 
             if (tglMulai) query = query.gte('tanggal_bayar', tglMulai);
