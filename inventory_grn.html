@@ -488,13 +488,18 @@
 
                     // PATCH: Fix "Barang ID Null" for migrated data
                     // If frontend successfully resolved an ID (fallback), we MUST save it to DB first
-                    // because the RPC relies on purchase_order.barang_id being valid.
                     const resolvedBarangId = row.getAttribute("data-barang-id");
+
                     if (resolvedBarangId && resolvedBarangId !== 'null' && resolvedBarangId !== 'undefined') {
                         // Silent update to fix data consistency before processing
                         await client.from('purchase_order')
                             .update({ barang_id: Number(resolvedBarangId) })
                             .eq('id', poId);
+                    } else {
+                        // HALT: Jika masih tidak ketemu ID-nya, jangan paksa RPC karena pasti error.
+                        // Cari nama barang untuk info error user
+                        const debugName = row.querySelector('h3')?.innerText || 'Unknown Item';
+                        throw new Error(`Data Barang '${debugName}' tidak dikenali di Master Stok (ID Null). Mohon hubungi Admin untuk mapping manual.`);
                     }
 
                     // Panggil fungsi Server-Side (RPC) untuk mencegah race condition / partial update
