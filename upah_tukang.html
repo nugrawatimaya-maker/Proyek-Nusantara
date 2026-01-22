@@ -205,6 +205,19 @@
     <script>
         let GLOBAL_MASTER_DATA = [];
         let itemMeta = {};
+        const DRAFT_KEY = 'asistensi_draft_decisions'; // Key untuk LocalStorage
+
+        function getSavedDrafts() {
+            try { return JSON.parse(localStorage.getItem(DRAFT_KEY)) || {}; }
+            catch { return {}; }
+        }
+
+        function saveDraft(id, status) {
+            const drafts = getSavedDrafts();
+            if (status) drafts[id] = status;
+            else delete drafts[id];
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+        }
 
         async function debugConsole() {
             if (!activeProyek) return alert("Pilih proyek dulu!");
@@ -350,11 +363,28 @@
                 tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center font-bold italic animate-bounce">TIDAK ADA TAGIHAN MASUK...</td></tr>`;
                 return;
             }
+            const savedDrafts = getSavedDrafts(); // Ambil data tersimpan
             let curK = ""; inboxData.forEach((item, idx) => {
-                decisionMap[idx] = 'PENDING';
+                // Restore logic: Cek apakah ID item ini ada di savedDrafts
+                const savedStatus = savedDrafts[item.id];
+                decisionMap[idx] = savedStatus || 'PENDING';
+
+                // Tentukan style tombol berdasarkan status tersimpan
+                let btnClass = "border-2 border-green-600 text-green-600 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-green-600 hover:text-white transition-all uppercase tracking-wider";
+                let btnHtml = '<i class="fas fa-check mr-1"></i> VALID';
+                let rowClass = "border-b";
+                let rejectClass = "border-2 border-red-600 text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-600 hover:text-white transition-all uppercase tracking-wider";
+
+                if (decisionMap[idx] === 'APPROVE') {
+                    btnClass = "bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black shadow hover:bg-green-700 transition-all uppercase tracking-wider";
+                    btnHtml = '<i class="fas fa-undo mr-1"></i> BATAL';
+                    rowClass = "border-b row-approved";
+                    rejectClass = "hidden";
+                }
+
                 if (item.kavling !== curK) { curK = item.kavling; tbody.innerHTML += `<tr class="bg-slate-800 text-white font-black uppercase text-[10px]"><td colspan="6" class="p-2 px-4 italic">KAVLING: ${curK}</td></tr>`; }
                 tbody.innerHTML += `
-                <tr class="border-b" id="row-${idx}">
+                <tr class="${rowClass}" id="row-${idx}">
                     <td class="td-excel text-center font-bold text-slate-400 text-xs">${item.kavling}</td>
                     <td class="td-excel font-bold text-slate-700">${item.nama_pekerjaan}</td>
                     <td class="td-excel text-center font-bold">${item.bobot}%</td>
@@ -363,12 +393,12 @@
                     <td class="td-excel text-center px-4">
                         <div class="flex justify-center gap-2">
                             <button onclick="setApprove(${idx})" id="btn-app-${idx}" 
-                                class="border-2 border-green-600 text-green-600 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-green-600 hover:text-white transition-all uppercase tracking-wider">
-                                <i class="fas fa-check mr-1"></i> VALID
+                                class="${btnClass}">
+                                ${btnHtml}
                             </button>
 
                             <button onclick="rejectItemImmediate(${item.id}, ${idx})" id="btn-rej-${idx}" 
-                                class="border-2 border-red-600 text-red-600 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-red-600 hover:text-white transition-all uppercase tracking-wider">
+                                class="${rejectClass}">
                                 <i class="fas fa-times mr-1"></i> TOLAK
                             </button>
                         </div>
@@ -383,9 +413,13 @@
             const row = document.getElementById(`row-${idx}`);
             const rejectBtn = document.getElementById(`btn-rej-${idx}`);
 
+            const item = inboxData[idx];
+
             if (decisionMap[idx] === 'APPROVE') {
                 // BATALKAN (Toggle OFF)
                 decisionMap[idx] = 'PENDING';
+                saveDraft(item.id, null); // Hapus dari draft
+
                 if (row) row.className = "border-b";
 
                 // Reset Button Style
@@ -397,6 +431,8 @@
             } else {
                 // SETUJUI (Toggle ON)
                 decisionMap[idx] = 'APPROVE';
+                saveDraft(item.id, 'APPROVE'); // Simpan ke draft
+
                 if (row) row.className = "border-b row-approved";
 
                 // Active Button Style
@@ -427,7 +463,11 @@
 
                 const row = document.getElementById(`row-${idx}`);
                 if (row) row.remove();
+
+                // Remove from map AND localStorage
                 delete decisionMap[idx];
+                saveDraft(item.id, null);
+
                 alert("✅ Item berhasil ditolak & dikembalikan ke Mandor.");
                 updateSummary();
             } catch (err) {
@@ -517,6 +557,12 @@
                 if (errDel) throw errDel;
 
                 generateBAFinal(listBayar, []);
+
+                // BERSIHKAN DRAFTS UNTUK ITEM YANG SUDAH DIPROSES
+                const drafts = getSavedDrafts();
+                idsHapus.forEach(id => delete drafts[id]);
+                localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+
                 alert("✅ PROSES BERHASIL! Data dikirim untuk Approval Direksi.");
                 renderPembayaranGlobal();
             } catch (e) {
