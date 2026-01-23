@@ -485,15 +485,21 @@
         // --- JURUS PDF CANGGIH: SATU KOTAK PER BLOK ---
         function downloadPDFDaftarAsistensi() {
             if (inboxData.length === 0) return alert("Antrean kosong!");
+
+            // FILTER: Hanya ambil yang statusnya APPROVE (yang sudah divalidasi)
+            const validItems = inboxData.filter((item, idx) => decisionMap[idx] === 'APPROVE');
+
+            if (validItems.length === 0) return alert("Belum ada item yang divalidasi (VALID). Silakan tandai item disetujui terlebih dahulu.");
+
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
 
             doc.setFontSize(14); doc.setFont("helvetica", "bold");
             doc.text("PT. NUSANTARA LAND DEVELOPMENT", 105, 15, { align: "center" });
-            doc.setFontSize(10); doc.text("DAFTAR PENGAJUAN UPAH TUKANG (PRE-MEETING ASISTENSI)", 105, 20, { align: "center" });
+            doc.setFontSize(10); doc.text("DAFTAR PENGAJUAN UPAH TUKANG (PRE-MEETING TAHAP VALIDASI)", 105, 20, { align: "center" });
             doc.line(14, 25, 196, 25);
 
             // KELOMPOKKAN PER BLOK UNTUK PDF
-            const grouped = {}; inboxData.forEach(item => { if (!grouped[item.kavling]) grouped[item.kavling] = []; grouped[item.kavling].push(item); });
+            const grouped = {}; validItems.forEach(item => { if (!grouped[item.kavling]) grouped[item.kavling] = []; grouped[item.kavling].push(item); });
 
             let currentY = 32; let grandTotal = 0;
             Object.keys(grouped).forEach(kav => {
