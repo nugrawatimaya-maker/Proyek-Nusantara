@@ -254,7 +254,9 @@
                     const stokMap = {};
                     if (allStok) {
                         allStok.forEach(s => {
-                            stokMap[s.nama_barang] = s.id;
+                            if (s.nama_barang) {
+                                stokMap[s.nama_barang.trim().toLowerCase()] = s.id;
+                            }
                         });
                     }
 
@@ -294,9 +296,12 @@
                             let bId = po.barang_id;
                             const safeName = (req?.nama_barang || 'Material').replace(/'/g, "\\'");
 
-                            // FALLBACK: JIKA ID NULL, CARI DI MAP
-                            if (!bId && req?.nama_barang && stokMap[req.nama_barang]) {
-                                bId = stokMap[req.nama_barang];
+                            // FALLBACK: JIKA ID NULL, CARI DI MAP (CASE INSENSITIVE)
+                            if (!bId && req?.nama_barang) {
+                                const normName = req.nama_barang.trim().toLowerCase();
+                                if (stokMap[normName]) {
+                                    bId = stokMap[normName];
+                                }
                             }
 
                             groupHTML += `
@@ -685,9 +690,8 @@
                             .eq('id', poId);
                     } else {
                         // HALT: Jika masih tidak ketemu ID-nya, jangan paksa RPC karena pasti error.
-                        // Cari nama barang untuk info error user
                         const debugName = row.querySelector('h3')?.innerText || 'Unknown Item';
-                        throw new Error(`Data Barang '${debugName}' tidak dikenali di Master Stok (ID Null). Mohon hubungi Admin untuk mapping manual.`);
+                        throw new Error(`Data Barang '${debugName}' tidak ditemukan di Master Stok (ID Null) dan gagal dicocokkan otomatis. \n\nSolusi:\n1. Cek menu Master Stok.\n2. Pastikan nama barang '${debugName}' ada (Ejaan harus mirip).\n3. Hubungi IT jika nama sudah sama tapi error.`);
                     }
 
                     // Panggil fungsi Server-Side (RPC) untuk mencegah race condition / partial update

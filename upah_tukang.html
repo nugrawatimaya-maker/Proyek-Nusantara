@@ -1093,6 +1093,15 @@
                      `;
                 }
 
+                let voidBtn = '';
+                if (isSuperAdmin) {
+                    voidBtn = `
+                    <button onclick="voidData(${item.id}, '${item.kavling}', '${safeName}', ${item.nilai_bayar}, '${btnGrup}', '${btnBobot}')"
+                        class="text-slate-300 hover:text-red-500 transition-colors" title="Batalkan / Void">
+                        <i class="fas fa-undo"></i>
+                    </button>`;
+                }
+
                 tbody.innerHTML += `
             <tr class="border-b hover:bg-purple-50 transition">
                 <td class="td-excel font-bold text-xs text-center">${item.kavling}</td>
@@ -1106,10 +1115,7 @@
                 <td class="td-excel text-center text-xs text-slate-500">${meta.bobot}</td>
                 <td class="td-excel text-right font-black text-emerald-700 text-xs">${fmt(item.nilai_bayar)}</td>
                 <td class="td-excel text-center">
-                    <button onclick="voidData(${item.id}, '${item.kavling}', '${safeName}', ${item.nilai_bayar}, '${btnGrup}', '${btnBobot}')"
-                        class="text-slate-300 hover:text-red-500 transition-colors" title="Batalkan / Void">
-                        <i class="fas fa-undo"></i>
-                    </button>
+                    ${voidBtn}
                 </td>
             </tr>`;
             });
@@ -1198,6 +1204,11 @@
         }
 
         async function voidData(id, kav, n, v, t, b) {
+            const session = PNAuth.getSession();
+            if (!session || session.user.role !== 'superadmin') {
+                return alert("⛔ AKSES DITOLAK!\nHanya Super Admin yang bisa melakukan Void Transaksi.");
+            }
+
             const al = prompt("ALASAN VOID:"); if (!al) return;
             if (confirm(`Batalkan pembayaran?`)) {
                 await client.from('pengajuan_upah').insert([{ kavling: kav, tahap: t, nama_pekerjaan: `${n} (VOID: ${al})`, bobot: b, nilai: v, status: 'DIAJUKAN', tanggal_ajukan: new Date() }]);
@@ -1207,6 +1218,11 @@
         }
 
         async function editTanggal(id, oldDate, name) {
+            const session = PNAuth.getSession();
+            if (!session || session.user.role !== 'superadmin') {
+                return alert("⛔ AKSES DITOLAK!\nHanya Super Admin yang bisa mengubah tanggal.");
+            }
+
             const newDate = prompt(`Ubah Tanggal Bayar untuk:\n${name}\n\nFormat: YYYY-MM-DD`, oldDate);
 
             if (!newDate || newDate === oldDate) return;

@@ -6,7 +6,8 @@ key = os.environ.get("SUPABASE_KEY")
 
 if not url:
     # Fallback to reading from app_config.js if env vars are missing (simplified extraction)
-    with open("app_config.js", "r") as f:
+    config_path = os.path.join(os.path.dirname(__file__), "..", "app_config.js")
+    with open(config_path, "r") as f:
         content = f.read()
         import re
         url_match = re.search(r"URL:\s*['\"](.*?)['\"]", content)
