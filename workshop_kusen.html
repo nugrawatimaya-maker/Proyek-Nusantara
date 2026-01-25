@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Workshop Kusen - CV. Sunrise</title>
+
+    <script src="supabase.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+        }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .menu-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: #cbd5e1;
+        }
+    </style>
+</head>
+
+<body class="text-slate-800">
+    <header class="glass-header fixed top-0 w-full z-50 px-6 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <a href="cv_sunrise.html"
+                class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-200 transition">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="text-lg font-bold text-slate-800">Workshop Kusen</h1>
+                <p class="text-xs text-slate-500">CV. Sunrise Kontraktor</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <div
+                class="w-10 h-10 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center text-white shadow-lg">
+                <i class="fas fa-warehouse"></i>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-24 pb-12 px-4 md:px-8 max-w-5xl mx-auto">
+        <!-- STATS BAR -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">SPK Aktif</p>
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-black text-slate-700">8</h3>
+                    <i class="fas fa-file-contract text-slate-400 bg-slate-50 p-2 rounded-lg"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Sedang Produksi</p>
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-black text-amber-600">42</h3>
+                    <i class="fas fa-hammer text-amber-500 bg-amber-50 p-2 rounded-lg"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Siap Kirim</p>
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-black text-emerald-600">15</h3>
+                    <i class="fas fa-box-open text-emerald-500 bg-emerald-50 p-2 rounded-lg"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Tukang Kayu</p>
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-black text-indigo-600">12</h3>
+                    <i class="fas fa-users text-indigo-500 bg-indigo-50 p-2 rounded-lg"></i>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Manajemen Workshop</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+            <!-- 1. Input SPK -->
+            <div onclick="alert('Fitur Input SPK Segera Hadir')"
+                class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 group">
+                <div
+                    class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas fa-file-signature"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors">Input SPK
+                        Baru</h2>
+                    <p class="text-xs text-slate-400 mt-1">Input pesanan baru & detail ukuran.</p>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-slate-300"></i>
+            </div>
+
+            <!-- 2. Monitoring Produksi -->
+            <div onclick="alert('Fitur Monitoring Produksi Segera Hadir')"
+                class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 group">
+                <div
+                    class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas fa-hammer"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 group-hover:text-amber-600 transition-colors">Monitoring
+                        Produksi</h2>
+                    <p class="text-xs text-slate-400 mt-1">Update status pengerjaan.</p>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-slate-300"></i>
+            </div>
+
+            <!-- 3. Inventory Material -->
+            <div onclick="alert('Fitur Inventory Workshop Segera Hadir')"
+                class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 group">
+                <div
+                    class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas fa-cubes"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">
+                        Inventory Material</h2>
+                    <p class="text-xs text-slate-400 mt-1">Stok Kayu, Plywood, Kaca & Cat.</p>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-slate-300"></i>
+            </div>
+
+            <!-- 4. Jadwal Pengiriman -->
+            <div onclick="alert('Fitur Jadwal Kirim Segera Hadir')"
+                class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 group">
+                <div
+                    class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas fa-truck-loading"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 group-hover:text-purple-600 transition-colors">Jadwal
+                        Pengiriman</h2>
+                    <p class="text-xs text-slate-400 mt-1">Kalender pengiriman & surat jalan.</p>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-slate-300"></i>
+            </div>
+
+            <!-- 5. Upah Borongan -->
+            <div onclick="alert('Fitur Upah Borongan Segera Hadir')"
+                class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 group">
+                <div
+                    class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 group-hover:text-rose-600 transition-colors">Upah
+                        Borongan</h2>
+                    <p class="text-xs text-slate-400 mt-1">Hitung upah per item selesai.</p>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-slate-300"></i>
+            </div>
+
+            <!-- 6. Laporan Harian -->
+            <div onclick="alert('Fitur Laporan Harian Segera Hadir')"
+                class="menu-card bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-5 group">
+                <div
+                    class="w-12 h-12 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 group-hover:text-slate-600 transition-colors">Laporan
+                        Harian</h2>
+                    <p class="text-xs text-slate-400 mt-1">Log aktivitas harian workshop.</p>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-slate-300"></i>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>

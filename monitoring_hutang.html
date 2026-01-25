@@ -289,63 +289,75 @@
                 </div>
             </div>
             <div
-                class="glass-panel p-4 flex flex-col md:flex-row gap-4 justify-between items-center sticky top-24 z-40 shadow-sm">
-                <div class="flex items-center gap-2 w-full md:w-auto">
-                    <div class="relative w-full md:w-64">
-                        <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
-                        <input type="text" id="searchInput" onkeyup="applyFilters()"
-                            placeholder="Cari No. PO, Vendor, atau Proyek..."
-                            class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition">
+                class="glass-panel p-3 sticky top-24 z-40 shadow-sm space-y-3 md:space-y-0 md:flex md:items-center md:gap-4 md:justify-between">
+
+                <!-- SMART FILTER SYSTEM -->
+                <div
+                    class="flex-1 flex flex-col md:flex-row gap-2 md:items-center bg-slate-50 p-2 rounded-xl border border-slate-200">
+
+                    <!-- 1. Kategori Filter -->
+                    <div class="relative min-w-[180px]">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-filter text-indigo-500"></i>
+                        </div>
+                        <select id="smartFilterCategory" onchange="renderFilterInputs()"
+                            class="pl-10 pr-4 py-2 w-full bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer hover:bg-slate-50 transition">
+                            <option value="SEARCH">🔍 Cari Text (PO/Vendor)</option>
+                            <option value="STATUS_PAY">💳 Status Pembayaran</option>
+                            <option value="DUE_DATE">📅 Jatuh Tempo</option>
+                            <option value="PO_DATE">📄 Tanggal PO</option>
+                            <option value="STATUS_TIME">🚨 Status Waktu (Overdue)</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                        </div>
                     </div>
-                </div>
 
-                <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-
-                    <!-- Filter Tanggal -->
-                    <div
-                        class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase">Tgl:</span>
-                        <input type="date" id="filterStartDate" onchange="applyFilters()"
-                            class="text-xs font-bold text-slate-600 outline-none bg-transparent w-24 hover:text-indigo-600 transition"
-                            title="Dari Tanggal">
-                        <span class="text-slate-300 font-bold">-</span>
-                        <input type="date" id="filterEndDate" onchange="applyFilters()"
-                            class="text-xs font-bold text-slate-600 outline-none bg-transparent w-24 hover:text-indigo-600 transition"
-                            title="Sampai Tanggal">
+                    <!-- 2. Dynamic Inputs Container -->
+                    <div id="dynamicFilterInputs" class="flex-1 flex items-center gap-2 w-full">
+                        <!-- Default: Search Text -->
+                        <div class="relative w-full">
+                            <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                            <input type="text" id="inpSearch" onkeyup="if(event.key === 'Enter') applySmartFilter()"
+                                placeholder="Ketik No. PO, Nama Vendor, atau Proyek..."
+                                class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
                     </div>
 
-                    <button onclick="downloadPDF()"
-                        class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-sm flex items-center gap-2">
-                        <i class="fas fa-file-pdf"></i> PDF
+                    <!-- 3. Tombol Terapkan -->
+                    <button onclick="applySmartFilter()"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg shadow-sm transition transform hover:scale-105"
+                        title="Terapkan Filter">
+                        <i class="fas fa-search"></i>
                     </button>
 
-                    <select id="filterBayar" onchange="applyFilters()"
-                        class="bg-white border border-slate-200 text-xs font-bold text-slate-600 py-2 px-3 rounded-lg outline-none focus:border-indigo-500">
-                        <option value="BELUM_LUNAS">⭕ Belum Lunas</option>
-                        <option value="LUNAS">✅ Sudah Lunas</option>
-                        <option value="ALL">📂 Semua Data</option>
-                    </select>
+                    <!-- Reset -->
+                    <button onclick="resetFilters()" class="text-slate-400 hover:text-red-500 p-2 transition"
+                        title="Reset Filter">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                </div>
 
-                    <select id="filterStatus" onchange="applyFilters()"
-                        class="bg-white border border-slate-200 text-xs font-bold text-slate-600 py-2 px-3 rounded-lg outline-none focus:border-indigo-500">
-                        <option value="ALL">Semua Status</option>
-                        <option value="OVERDUE">🔴 Terlambat (Overdue)</option>
-                        <option value="WARNING">🟠 Segera (Warning)</option>
-                        <option value="SAFE">🟢 Aman (Safe)</option>
-                    </select>
+                <!-- ACTIONS & SORT -->
+                <div class="flex items-center gap-2 justify-end">
 
-                    <select id="sortBy" onchange="applyFilters()"
-                        class="bg-white border border-slate-200 text-xs font-bold text-slate-600 py-2 px-3 rounded-lg outline-none focus:border-indigo-500">
-                        <option value="date_asc">📅 Jatuh Tempo (Terdekat)</option>
-                        <option value="date_desc">📅 Jatuh Tempo (Terlama)</option>
+                    <select id="sortBy" onchange="applySmartFilter()"
+                        class="bg-white border border-slate-200 text-xs font-bold text-slate-600 py-2 px-3 rounded-lg outline-none focus:border-indigo-500 w-32 md:w-auto">
+                        <option value="date_asc">📅 Tempo (Terdekat)</option>
+                        <option value="date_desc">📅 Tempo (Terlama)</option>
                         <option value="amount_desc">💰 Nilai (Terbesar)</option>
                         <option value="amount_asc">💰 Nilai (Terkecil)</option>
                     </select>
 
+                    <button onclick="downloadPDF()"
+                        class="bg-rose-100 hover:bg-rose-200 text-rose-600 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                        <i class="fas fa-file-pdf"></i>
+                    </button>
+
                     <div class="flex bg-slate-100 p-1 rounded-lg">
                         <button onclick="switchView('list')" id="btnViewList"
                             class="px-3 py-1.5 rounded text-xs font-bold transition bg-white text-indigo-600 shadow-sm">
-                            <i class="fas fa-list mr-1"></i> Detail
+                            <i class="fas fa-list"></i>
                         </button>
                         <button onclick="switchView('group')" id="btnViewGroup"
                             class="px-3 py-1.5 rounded text-xs font-bold transition text-slate-500 hover:text-slate-800">
@@ -929,50 +941,116 @@
 
 
 
-        function applyFilters() {
-            const keyword = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('filterStatus').value;
-            const bayarFilter = document.getElementById('filterBayar').value;
+        // --- SMART FILTER SYSTEM ---
+
+        const smartFilterConfig = {
+            'SEARCH': {
+                placeholder: 'Ketik No. PO, Nama Vendor, atau Proyek...',
+                html: `<div class="relative w-full">
+                        <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                        <input type="text" id="inpSearch" onkeyup="if(event.key === 'Enter') applySmartFilter()" 
+                            placeholder="Ketik No. PO, Nama Vendor, atau Proyek..." 
+                            class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                       </div>`
+            },
+            'STATUS_PAY': {
+                html: `<select id="inpStatusPay" onchange="applySmartFilter()" class="w-full py-2 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="ALL">📂 Semua Status Bayar</option>
+                        <option value="BELUM_LUNAS">⭕ Belum Lunas</option>
+                        <option value="LUNAS">✅ Sudah Lunas</option>
+                       </select>`
+            },
+            'DUE_DATE': {
+                html: `<div class="flex items-center gap-2 w-full">
+                        <input type="date" id="inpStartDate" class="w-1/2 py-2 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                        <span class="font-bold text-slate-400">-</span>
+                        <input type="date" id="inpEndDate" class="w-1/2 py-2 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                       </div>`
+            },
+            'PO_DATE': {
+                html: `<div class="flex items-center gap-2 w-full">
+                        <input type="date" id="inpStartDate" class="w-1/2 py-2 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                        <span class="font-bold text-slate-400">-</span>
+                        <input type="date" id="inpEndDate" class="w-1/2 py-2 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                       </div>`
+            },
+            'STATUS_TIME': {
+                html: `<select id="inpStatusTime" onchange="applySmartFilter()" class="w-full py-2 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="ALL">📂 Semua Status Waktu</option>
+                        <option value="OVERDUE">🔴 Terlambat (Overdue)</option>
+                        <option value="WARNING">🟠 Segera Jatuh Tempo (Warning)</option>
+                        <option value="SAFE">🟢 Aman (Safe)</option>
+                       </select>`
+            }
+        };
+
+        function renderFilterInputs() {
+            const cat = document.getElementById('smartFilterCategory').value;
+            const container = document.getElementById('dynamicFilterInputs');
+            const config = smartFilterConfig[cat];
+
+            if (config) {
+                container.innerHTML = config.html;
+                // Animate entry
+                container.classList.remove('animate-fade-in-down');
+                void container.offsetWidth; // trigger reflow
+                container.classList.add('animate-fade-in-down');
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('smartFilterCategory').value = 'SEARCH';
+            renderFilterInputs();
+            applySmartFilter();
+        }
+
+        function applySmartFilter() {
+            const cat = document.getElementById('smartFilterCategory').value;
             const sortType = document.getElementById('sortBy').value;
-            const startDateVal = document.getElementById('filterStartDate').value;
-            const endDateVal = document.getElementById('filterEndDate').value;
 
-            // 1. Filtering
+            // 1. Filtering Logic
             filteredData = rawData.filter(item => {
-                const matchKey = (item.nomor_po || '').toLowerCase().includes(keyword) ||
-                    (item.nama_vendor || '').toLowerCase().includes(keyword) ||
-                    (item.nama_proyek || '').toLowerCase().includes(keyword);
+                let match = true;
 
-                const matchStatus = statusFilter === 'ALL' || item._status === statusFilter;
-                const matchBayar = bayarFilter === 'ALL' || item._bayar === bayarFilter;
+                if (cat === 'SEARCH') {
+                    const keyword = (document.getElementById('inpSearch')?.value || '').toLowerCase();
+                    match = (item.nomor_po || '').toLowerCase().includes(keyword) ||
+                        (item.nama_vendor || '').toLowerCase().includes(keyword) ||
+                        (item.nama_proyek || '').toLowerCase().includes(keyword);
+                }
+                else if (cat === 'STATUS_PAY') {
+                    const val = document.getElementById('inpStatusPay').value;
+                    if (val !== 'ALL') match = (item._bayar === val);
+                }
+                else if (cat === 'STATUS_TIME') {
+                    const val = document.getElementById('inpStatusTime').value;
+                    if (val !== 'ALL') match = (item._status === val);
+                }
+                else if (cat === 'DUE_DATE' || cat === 'PO_DATE') {
+                    const startRaw = document.getElementById('inpStartDate').value;
+                    const endRaw = document.getElementById('inpEndDate').value;
 
-                // Date Filter (Sekarang berdasarkan Tanggal GRN / updated_at supaya sinkron dengan Stok)
-                let matchDate = true;
-                if (startDateVal || endDateVal) {
-                    // Gunakan updated_at (GRN Date) jika ada, jika tidak fallback ke tanggal_po
-                    const dateRef = item.updated_at || item.tanggal_po;
+                    if (startRaw || endRaw) {
+                        // DUE_DATE -> jatuh_tempo, PO_DATE -> tanggal_po
+                        const dateRef = cat === 'DUE_DATE' ? item.jatuh_tempo : item.tanggal_po;
+                        if (!dateRef) {
+                            match = false;
+                        } else {
+                            const d = new Date(dateRef); d.setHours(0, 0, 0, 0);
 
-                    if (!dateRef) {
-                        // If no date, exclude if filter is active
-                        matchDate = false;
-                    } else {
-                        const itemDate = new Date(dateRef);
-                        itemDate.setHours(0, 0, 0, 0);
-
-                        if (startDateVal) {
-                            const start = new Date(startDateVal);
-                            start.setHours(0, 0, 0, 0);
-                            if (itemDate < start) matchDate = false;
-                        }
-                        if (endDateVal && matchDate) {
-                            const end = new Date(endDateVal);
-                            end.setHours(0, 0, 0, 0);
-                            if (itemDate > end) matchDate = false;
+                            if (startRaw) {
+                                const s = new Date(startRaw); s.setHours(0, 0, 0, 0);
+                                if (d < s) match = false;
+                            }
+                            if (endRaw) {
+                                const e = new Date(endRaw); e.setHours(0, 0, 0, 0);
+                                if (d > e) match = false;
+                            }
                         }
                     }
                 }
 
-                return matchKey && matchStatus && matchBayar && matchDate;
+                return match;
             });
 
             // 2. Sorting
@@ -984,17 +1062,10 @@
                 return 0;
             });
 
-            // 1B. Calculate Stats (Based on Search Keyword ONLY, ignoring status filters)
-            // This ensures "Total Lunas" and "Belum" are always visible for the selected vendor/project
-            const statsBase = rawData.filter(item => {
-                return (item.nomor_po || '').toLowerCase().includes(keyword) ||
-                    (item.nama_vendor || '').toLowerCase().includes(keyword) ||
-                    (item.nama_proyek || '').toLowerCase().includes(keyword);
-            });
-
-            const totalBeli = statsBase.reduce((sum, item) => sum + (item.total_tagihan || 0), 0);
-            const totalLunas = statsBase.filter(i => i._bayar === 'LUNAS').reduce((sum, item) => sum + (item.total_tagihan || 0), 0);
-            const totalHutang = statsBase.filter(i => i._bayar !== 'LUNAS').reduce((sum, item) => sum + (item.total_tagihan || 0), 0);
+            // 3. Stats Calculation (Always reflects current VIEWED data)
+            const totalBeli = filteredData.reduce((sum, item) => sum + (item.total_tagihan || 0), 0);
+            const totalLunas = filteredData.filter(i => i._bayar === 'LUNAS').reduce((sum, item) => sum + (item.total_tagihan || 0), 0);
+            const totalHutang = filteredData.filter(i => i._bayar !== 'LUNAS').reduce((sum, item) => sum + (item.total_tagihan || 0), 0);
 
             document.getElementById('statTotalBeli').innerText = fmt(totalBeli);
             document.getElementById('statTotalLunas').innerText = fmt(totalLunas);
@@ -1004,6 +1075,11 @@
             renderCharts();
             renderTable();
         }
+
+        // Legacy support alias if needed, or simply replaced.
+        const applyFilters = applySmartFilter;
+
+
 
         // --- RENDERING ---
 
