@@ -698,14 +698,22 @@
                     else if (diffDays <= 30) { status = 'SAFE'; bucket = '8 - 30 Hari'; }
                     else if (diffDays <= 60) { status = 'SAFE'; bucket = '31 - 60 Hari'; }
 
-                    // --- FALLBACK RECOVERY: Extract file_nota from keterangan if missing ---
+                    // --- FALLBACK RECOVERY & CLEANING ---
                     let recoveredFile = item.file_nota;
+
+                    // 1. Clean if it contains legacy prefix "Nota:" (Common in old data)
+                    if (recoveredFile && typeof recoveredFile === 'string' && recoveredFile.includes('Nota:')) {
+                        try {
+                            const parts = recoveredFile.split('|')[0];
+                            recoveredFile = parts.replace('Nota:', '').trim();
+                        } catch (e) { }
+                    }
+
+                    // 2. If still empty, try to fetch from keteangan
                     if (!recoveredFile && item.keterangan && item.keterangan.includes('Nota:')) {
                         try {
-                            // Format: "Nota: FILENAME.jpg | URL"
-                            const parts = item.keterangan.split('|')[0]; // "Nota: FILENAME.jpg "
+                            const parts = item.keterangan.split('|')[0];
                             recoveredFile = parts.replace('Nota:', '').trim();
-                            // console.log(`Recovered file for PO ${item.nomor_po}: ${recoveredFile}`);
                         } catch (e) {
                             console.warn("Failed to recover file from keterangan", e);
                         }
@@ -732,24 +740,170 @@
             if (btn) btn.classList.remove('fa-spin');
         }
 
+        // --- PAYMENT LOGIC ---
+        let currentPayPO = null;
+        let currentPayAmount = 0;
+
         async function markInvoicePaid(poNumber) {
-            if (!confirm(`Tandai PO ${poNumber} sebagai LUNAS?\n\nData yang lunas akan hilang dari daftar hutang aktif.`)) return;
+            // Find data locally first to get amount
+            const item = filteredData.find(d => d.nomor_po === poNumber);
+            if (!item) return alert("Data tidak ditemukan.");
+
+            currentPayPO = poNumber;
+            currentPayAmount = item.total_tagihan || 0;
+
+            // UI Setup
+            document.getElementById('paySubtitle').innerText = `Pembayaran Tagihan: ${poNumber}`;
+            document.getElementById('payAmount').innerText = fmt(currentPayAmount);
+            document.getElementById('modalBayar').classList.remove('hidden');
+
+            // Generate Accounts if empty
+            const selInfo = document.getElementById('payAccount');
+            if (selInfo.options.length <= 1) {
+                await loadBankAccounts();
+            }
+        }
+
+        function tutupModalBayar() {
+            document.getElementById('modalBayar').classList.add('hidden');
+            document.getElementById('payRef').value = '';
+            document.getElementById('payMethod').value = 'BANK';
+            togglePayInput();
+        }
+
+        function togglePayInput() {
+            const method = document.getElementById('payMethod').value;
+            const secBank = document.getElementById('secBank');
+            const secCek = document.getElementById('secCek');
+
+            if (method === 'BANK' || method === 'CASH') {
+                secBank.classList.remove('hidden');
+                secCek.classList.add('hidden');
+            } else {
+                secBank.classList.add('hidden');
+                secCek.classList.remove('hidden');
+            }
+        }
+
+        async function loadBankAccounts() {
+            const select = document.getElementById('payAccount');
+            select.innerHTML = '<option value="">Memuat data...</option>';
 
             try {
-                // Asumsi table purchase_orders, kolom status_po
-                const { error } = await client
+                // FETCH COA: Aset Lancar (Bank & Kas)
+                const { data: akunData, error } = await client
+                    .from('master_akun')
+                    .select('kode_akun, nama_akun')
+                    .eq('kategori', 'Aset Lancar')
+                    .order('kode_akun', { ascending: true });
+
+                select.innerHTML = '<option value="">-- Pilih Akun Bank / Kas --</option>';
+
+                if (!error && akunData && akunData.length > 0) {
+                    akunData.forEach(acc => {
+                        const opt = document.createElement('option');
+                        opt.value = acc.nama_akun;
+                        opt.innerText = `${acc.kode_akun} - ${acc.nama_akun}`;
+                        select.appendChild(opt);
+                    });
+                } else {
+                    // Fallback
+                    const generics = ['Bank BCA', 'Bank Mandiri', 'Bank BNI', 'Kas Besar', 'Kas Kecil'];
+                    generics.forEach(g => {
+                        const opt = document.createElement('option');
+                        opt.value = g;
+                        opt.innerText = g;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) {
+                console.error("Load Bank Error:", e);
+                select.innerHTML = '<option value="MANUAL">Input Manual di Keterangan</option>';
+            }
+        }
+
+        async function prosesBayar() {
+            if (!currentPayPO) return;
+
+            const method = document.getElementById('payMethod').value;
+            let detailBayar = '';
+            let isCek = false;
+            let bankSumber = '';
+            let refNomor = '';
+
+            if (method === 'BANK' || method === 'CASH') {
+                const acc = document.getElementById('payAccount').value;
+                if (!acc) return alert("Pilih Akun Sumber Dana terlebih dahulu!");
+                detailBayar = `${method}: ${acc}`;
+                bankSumber = acc;
+            } else {
+                isCek = true;
+                const ref = document.getElementById('payRef').value;
+                if (!ref) return alert("Isi Nomor Register Cek/BG!");
+                detailBayar = `${method}: ${ref}`;
+                refNomor = ref;
+                bankSumber = 'Cek/BG (Pending)';
+            }
+
+            if (!confirm(`Konfirmasi Pembayaran?\n\nPO: ${currentPayPO}\nMetode: ${detailBayar}\nNominal: ${fmt(currentPayAmount)}\n\nLanjutkan?`)) return;
+
+            const btn = document.getElementById('btnProsesBayar');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+            btn.disabled = true;
+
+            try {
+                // 1. UPDATE Status PO ke LUNAS
+                const { error: errUpdate } = await client
                     .from('purchase_order')
-                    .update({ status_po: 'LUNAS' })
-                    .eq('nomor_po', poNumber);
+                    .update({
+                        status_po: 'LUNAS',
+                        updated_at: new Date(),
+                        keterangan: `LUNAS (${new Date().toLocaleDateString('id-ID')}). ${detailBayar}`
+                    })
+                    .eq('nomor_po', currentPayPO);
 
-                if (error) throw error;
+                if (errUpdate) throw errUpdate;
 
-                alert("✅ Berhasil! Status PO diperbarui menjadi LUNAS.");
-                refreshData(); // Refresh list
+                // 2. INSERT KE TABLE TRANSAKSI
+                // Fetch Vendor Name
+                const currentItem = filteredData.find(d => d.nomor_po === currentPayPO);
+                const vendorName = currentItem ? currentItem.nama_vendor : 'Vendor';
+
+                let ketTrans = `Pembayaran PO ${currentPayPO} - ${vendorName}`;
+
+                // Logic Formatting for Monitoring Cek
+                if (isCek) {
+                    ketTrans = `${vendorName} (Ref: ${refNomor})`; // Format required by monitoring_cek.html
+                }
+
+                const payloadTrans = {
+                    tanggal: new Date(),
+                    keterangan: ketTrans,
+                    jumlah: currentPayAmount,
+                    jenis_transaksi: 'KELUAR',
+                    bank_sumber: bankSumber,
+                    kode_akun: '2-1100', // Hutang Usaha / Generic
+                    no_bukti: currentPayPO
+                };
+
+                const { error: errTrans } = await client.from('transaksi').insert([payloadTrans]);
+                if (errTrans) {
+                    console.warn("Gagal insert transaksi:", errTrans);
+                    alert("⚠️ PO Lunas, tapi gagal catat di Cashflow/Cek.\nError: " + errTrans.message);
+                } else {
+                    alert("✅ Pembayaran Berhasil Disimpan & Dicatat di Pembukuan!");
+                }
+
+                tutupModalBayar();
+                refreshData();
 
             } catch (err) {
-                console.error("Error update status:", err);
-                alert("Gagal update status: " + err.message);
+                console.error("Payment Error:", err);
+                alert("Gagal memproses pembayaran: " + err.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
 
@@ -1245,7 +1399,20 @@
             btnDown.classList.remove('hidden');
             btnDown.href = '#';
 
-            const publicUrl = client.storage.from('nota grn').getPublicUrl(filePath).data.publicUrl;
+            let publicUrl = '';
+            // CHECK IF IT IS ALREADY A FULL URL (ImageKit / External)
+            if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+                publicUrl = filePath;
+            } else {
+                // FALLBACK: Legacy Supabase Storage
+                // Assuming 'nota grn' bucket for backward compatibility. 
+                // Note: PO files might be in a different bucket ('purchase_orders'?), 
+                // but currently the code forced 'nota grn' for everything. 
+                // Ideally we should distinguish, but let's fix the Nota display first.
+                publicUrl = client.storage.from('nota grn').getPublicUrl(filePath).data.publicUrl;
+            }
+
+            console.log("Resolved URL:", publicUrl);
             btnDown.href = publicUrl;
 
             const ext = filePath.split('.').pop().toLowerCase();
@@ -1317,6 +1484,70 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL PEMBAYARAN -->
+    <div id="modalBayar"
+        class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-enter">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+                <div>
+                    <h3 class="font-bold text-lg text-slate-800">Konfirmasi Pembayaran</h3>
+                    <p class="text-xs text-slate-500" id="paySubtitle">PO: -</p>
+                </div>
+                <button onclick="tutupModalBayar()"
+                    class="text-slate-400 hover:text-red-500 font-bold text-xl">&times;</button>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Pilihan Metode -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Metode Pembayaran</label>
+                    <select id="payMethod" onchange="togglePayInput()"
+                        class="w-full border border-slate-300 rounded-lg px-3 py-2 font-bold focus:ring-2 focus:ring-green-500 outline-none text-slate-700">
+                        <option value="BANK">🏦 Transfer Bank</option>
+                        <option value="CEK">📜 Cek / Giro (BG)</option>
+                        <option value="CASH">💵 Tunai / Kas Kecil</option>
+                    </select>
+                </div>
+
+                <!-- Section: Akun Bank (Untuk Transfer) -->
+                <div id="secBank" class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase">Pilih Akun Bank</label>
+                    <div class="relative">
+                        <i class="fas fa-credit-card absolute left-3 top-3 text-slate-400 text-xs"></i>
+                        <select id="payAccount"
+                            class="w-full border border-slate-300 rounded-lg pl-9 pr-3 py-2 font-bold focus:ring-2 focus:ring-green-500 outline-none text-slate-700 appearance-none bg-white">
+                            <option value="">Mengambil data akun...</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-3 top-3 text-slate-400 text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Section: Input Manual (Untuk Cek/BG) -->
+                <div id="secCek" class="space-y-2 hidden">
+                    <label class="block text-xs font-bold text-slate-500 uppercase">Nomor Register Cek / BG</label>
+                    <div class="relative">
+                        <i class="fas fa-money-check absolute left-3 top-3 text-slate-400 text-xs"></i>
+                        <input type="text" id="payRef" placeholder="Contoh: BG-12345678"
+                            class="w-full border border-slate-300 rounded-lg pl-9 pr-3 py-2 font-bold focus:ring-2 focus:ring-green-500 outline-none">
+                    </div>
+                    <p class="text-[10px] text-orange-500 italic">*Pastikan nomor Cek/BG sudah benar.</p>
+                </div>
+
+                <!-- Info Nominal -->
+                <div class="bg-slate-50 p-3 rounded-lg flex justify-between items-center border border-slate-200 mt-2">
+                    <span class="text-xs font-bold text-slate-500">Total Bayar:</span>
+                    <span class="text-lg font-black text-slate-800" id="payAmount">Rp 0</span>
+                </div>
+
+                <div class="pt-2">
+                    <button onclick="prosesBayar()" id="btnProsesBayar"
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-green-200 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-check-circle"></i> PROSES PEMBAYARAN
+                    </button>
+                </div>
+            </div>
+        </div>
 </body>
 
 </html>

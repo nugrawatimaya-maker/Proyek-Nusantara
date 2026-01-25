@@ -98,6 +98,11 @@
                         title="Cari berdasarkan tanggal">
                         <i class="fas fa-search"></i>
                     </button>
+                    <button onclick="downloadPDFReport()"
+                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-bold transition flex items-center gap-1"
+                        title="Download Laporan PDF">
+                        <i class="fas fa-file-pdf"></i> Cetak Laporan
+                    </button>
                 </div>
             </div>
 
@@ -830,6 +835,108 @@
                 alert("Gagal mencetak: " + e.message);
             } finally {
                 btn.innerHTML = oldHtml;
+                btn.disabled = false;
+            }
+        }
+
+        // --- NEW: Generate PDF Report for Archive ---
+        async function downloadPDFReport() {
+            // 1. Get Filters
+            // Logic mimics cariRiwayat('CUSTOM') or whatever last state was ideally, 
+            // but user clicked button next to date, so we prioritize Date Filter.
+            const m = document.getElementById("filterMulai").value;
+            const a = document.getElementById("filterAkhir").value;
+
+            if (!m || !a) {
+                return alert("Harap pilih periode tanggal (Mulai s/d Akhir) terlebih dahulu untuk mencetak laporan.");
+            }
+
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+            btn.disabled = true;
+
+            try {
+                // 2. Fetch Data (Full range, no limit ideally, or high limit)
+                let query = client.from('purchase_order')
+                    .select('*')
+                    .gte('created_at', m + 'T00:00:00')
+                    .lte('created_at', a + 'T23:59:59')
+                    .order('created_at', { ascending: false });
+
+                const { data, error } = await query;
+                if (error) throw error;
+                if (!data || data.length === 0) throw new Error("Tidak ada data pada periode ini.");
+
+                // 3. Grouping Data (Similar to cariRiwayat)
+                const groupedPO = {};
+                data.forEach(item => {
+                    if (!groupedPO[item.nomor_po]) {
+                        groupedPO[item.nomor_po] = { ...item, total_items: 0, grand_total: 0 };
+                    }
+                    groupedPO[item.nomor_po].total_items += 1;
+                    groupedPO[item.nomor_po].grand_total += (Number(item.total_harga) || 0);
+                });
+                const listPO = Object.values(groupedPO);
+
+                // 4. Generate PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for better table view
+
+                // Header
+                doc.setFontSize(14);
+                doc.setFont("helvetica", "bold");
+                doc.text("LAPORAN ARSIP PURCHASE ORDER (PO)", 14, 15);
+
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Periode: ${new Date(m).toLocaleDateString('id-ID')} s/d ${new Date(a).toLocaleDateString('id-ID')}`, 14, 22);
+                doc.text(`Dicetak Oleh: ${'Admin'} pada ${new Date().toLocaleString('id-ID')}`, 14, 27);
+
+                // Summary Data
+                const totalTrx = listPO.length;
+                const totalNominal = listPO.reduce((sum, item) => sum + item.grand_total, 0);
+
+                doc.text(`Total Transaksi: ${totalTrx} PO`, 200, 22);
+                doc.text(`Total Nominal: ${fmt(totalNominal)}`, 200, 27);
+
+                // Table
+                const tableBody = listPO.map((po, index) => [
+                    index + 1,
+                    po.nomor_po,
+                    new Date(po.created_at).toLocaleDateString('id-ID'),
+                    po.nama_vendor || '-',
+                    `${po.total_items} Item`,
+                    po.status,
+                    fmt(po.grand_total)
+                ]);
+
+                doc.autoTable({
+                    startY: 35,
+                    head: [['No', 'Nomor PO', 'Tanggal', 'Vendor', 'Jml Item', 'Status', 'Grand Total']],
+                    body: tableBody,
+                    theme: 'grid',
+                    headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+                    columnStyles: {
+                        0: { cellWidth: 10, halign: 'center' },
+                        6: { halign: 'right', fontStyle: 'bold' }
+                    },
+                    styles: { fontSize: 9 }
+                });
+
+                // Footer / End
+                const finalY = doc.lastAutoTable.finalY + 10;
+                doc.setFontSize(8);
+                doc.text("PT. Nusantara Land Development - System Generated Report", 14, finalY);
+
+                // Save
+                doc.save(`Laporan_PO_${m}_sd_${a}.pdf`);
+
+            } catch (err) {
+                console.error(err);
+                alert("Gagal membuat laporan: " + err.message);
+            } finally {
+                btn.innerHTML = originalText;
                 btn.disabled = false;
             }
         }

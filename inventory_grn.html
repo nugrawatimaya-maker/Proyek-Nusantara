@@ -46,9 +46,9 @@
             </div>
         </div>
 
-        <!-- DATE FILTER BAR (History Mode Only) -->
+        <!-- DATE FILTER BAR (Universal) -->
         <div id="historyFilterBar"
-            class="hidden bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end animate-fade-in-down mb-4">
+            class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end animate-fade-in-down mb-4">
             <div>
                 <label class="block text-xs font-bold text-gray-500 mb-1">Dari Tanggal</label>
                 <input type="date" id="filterStartDate"
@@ -103,22 +103,23 @@
             if (mode === 'pending') {
                 btnPending.className = "bg-green-600 text-white px-6 py-2 rounded-l-lg font-bold shadow-inner transition";
                 btnHistory.className = "bg-gray-200 text-gray-500 px-6 py-2 rounded-r-lg font-bold hover:bg-gray-300 transition";
-                document.getElementById('historyFilterBar').classList.add('hidden');
             } else {
                 btnPending.className = "bg-gray-200 text-gray-500 px-6 py-2 rounded-l-lg font-bold hover:bg-gray-300 transition";
                 btnHistory.className = "bg-blue-600 text-white px-6 py-2 rounded-r-lg font-bold shadow-inner transition";
-                document.getElementById('historyFilterBar').classList.remove('hidden');
+            }
 
-                // Auto-fill dates if empty (Default: Start of Current Month to Today)
-                const startInput = document.getElementById('filterStartDate');
-                const endInput = document.getElementById('filterEndDate');
+            // Show Filter Bar ALWAYS (Universal)
+            document.getElementById('historyFilterBar').classList.remove('hidden');
 
-                if (!startInput.value) {
-                    const now = new Date();
-                    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-                    startInput.value = firstDay.toISOString().split('T')[0];
-                    endInput.value = now.toISOString().split('T')[0];
-                }
+            // Auto-fill dates if empty (Default: Start of Current Month to Today)
+            const startInput = document.getElementById('filterStartDate');
+            const endInput = document.getElementById('filterEndDate');
+
+            if (!startInput.value) {
+                const now = new Date();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                startInput.value = firstDay.toISOString().split('T')[0];
+                endInput.value = now.toISOString().split('T')[0];
             }
 
             await loadOpenPO();
@@ -136,13 +137,24 @@
 
                 let data, error;
 
+                // Get Date Filters
+                const startDate = document.getElementById('filterStartDate').value;
+                const endDate = document.getElementById('filterEndDate').value;
+
                 if (currentMode === 'pending') {
-                    const res = await client
+                    // --- MODE PENDING ---
+                    let query = client
                         .from('purchase_order')
                         .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
                         .eq('status', 'APPROVED')
                         .ilike('nama_proyek', activeProject)
                         .order('created_at', { ascending: false });
+
+                    // Apply Date Filter if set
+                    if (startDate) query = query.gte('created_at', startDate + 'T00:00:00');
+                    if (endDate) query = query.lte('created_at', endDate + 'T23:59:59');
+
+                    const res = await query;
                     data = res.data; error = res.error;
                 } else {
                     // --- MODE HISTORY ---
@@ -420,12 +432,24 @@
                                 </div>`;
                         }
 
+                        // CALCULATE TOTAL
+                        const totalNota = items.reduce((sum, item) => {
+                            const qty = item.inventory_req?.jumlah || 0;
+                            const price = item.harga_satuan || 0;
+                            return sum + (qty * price);
+                        }, 0);
+
                         let html = `
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6 opacity-90 hover:opacity-100 transition">
-                            <div class="bg-gray-50 px-6 py-3 border-b border-gray-200 flex justify-between items-center">
+                            <div class="bg-gray-50 px-6 py-3 border-b border-gray-200 flex flex-col md:flex-row justify-between items-center gap-2">
                                 <div>
                                     <h2 class="text-lg font-bold text-gray-700"><i class="fas fa-check-circle text-green-500 mr-2"></i>${nomorPO}</h2>
                                     <p class="text-xs text-gray-500 font-mono">Diterima: ${tanggal}</p>
+                                    <p class="text-xs text-gray-600 font-bold mt-1"><i class="fas fa-building mr-1"></i>${items[0].nama_vendor || '-'}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs text-gray-400 font-bold uppercase">Total Nota</p>
+                                    <p class="text-lg font-bold text-blue-700">Rp ${totalNota.toLocaleString('id-ID')}</p>
                                 </div>
                                 <div>
                                     ${notaButtonHtml}
@@ -436,15 +460,21 @@
 
                         items.forEach(item => {
                             const req = item.inventory_req;
+                            const subtotal = (req?.jumlah || 0) * (item.harga_satuan || 0);
+
                             html += `
-                                <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                                <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2 rounded">
                                     <div>
                                         <p class="font-bold text-gray-800 text-sm">${req?.nama_barang || 'Material'}</p>
                                         <p class="text-[10px] text-gray-400">ID: ${item.barang_id || '-'}</p>
                                     </div>
                                     <div class="text-right">
-                                        <p class="font-bold text-blue-600 text-sm">${req?.jumlah} ${req?.satuan}</p>
-                                        <p class="text-xs text-gray-500">Rp ${(item.harga_satuan || 0).toLocaleString()}</p>
+                                        <div class="flex items-center justify-end gap-2">
+                                            <span class="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded">${req?.jumlah} ${req?.satuan}</span>
+                                            <span class="text-xs text-gray-400">x</span>
+                                            <span class="text-xs font-bold text-gray-600">Rp ${(item.harga_satuan || 0).toLocaleString()}</span>
+                                        </div>
+                                        <p class="text-sm font-bold text-blue-600 mt-1">Rp ${subtotal.toLocaleString()}</p>
                                     </div>
                                 </div>
                             `;
