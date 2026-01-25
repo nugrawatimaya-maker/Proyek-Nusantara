@@ -10,6 +10,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- PDF Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 
 <body class="bg-gray-50 font-sans text-gray-800 p-6">
@@ -62,6 +65,10 @@
             <button onclick="loadOpenPO()"
                 class="bg-blue-600 text-white px-4 py-1 rounded text-sm font-bold hover:bg-blue-700 h-[30px] self-end shadow transition transform hover:scale-105">
                 <i class="fas fa-filter mr-1"></i> Terapkan
+            </button>
+            <button onclick="downloadGRNReport()"
+                class="bg-red-600 text-white px-4 py-1 rounded text-sm font-bold hover:bg-red-700 h-[30px] self-end shadow transition transform hover:scale-105 flex items-center gap-1">
+                <i class="fas fa-file-pdf"></i> Cetak PDF
             </button>
         </div>
 
@@ -817,6 +824,116 @@
             } catch (e) {
                 console.error(e);
                 alert("❌ Gagal membatalkan PO: " + e.message);
+            }
+        }
+
+        // --- NEW: Generate PDF Report for GRN ---
+        async function downloadGRNReport() {
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+            btn.disabled = true;
+
+            try {
+                // 1. Determine Fetch Logic (Same as loadOpenPO but without UI rendering)
+                let query = client
+                    .from('purchase_order')
+                    .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
+                    .ilike('nama_proyek', activeProject)
+                    .order('created_at', { ascending: false });
+
+                if (currentMode === 'pending') {
+                    query = query.eq('status', 'APPROVED');
+                } else {
+                    query = query.in('status', ['APPROVED', 'DITERIMA', 'SELESAI', 'LUNAS']);
+                }
+
+                // Apply Filters
+                const startDate = document.getElementById('filterStartDate').value;
+                const endDate = document.getElementById('filterEndDate').value;
+                if (startDate) query = query.gte('created_at', startDate + 'T00:00:00');
+                if (endDate) query = query.lte('created_at', endDate + 'T23:59:59');
+
+                const { data, error } = await query;
+                if (error) throw error;
+                if (!data || data.length === 0) throw new Error("Tidak ada data untuk dicetak.");
+
+                // 2. Filter Logic (Debt Check)
+                const { data: debtData } = await client.from('ap_monitoring_vw').select('nomor_po').limit(2000);
+                const debtSet = new Set((debtData || []).map(d => d.nomor_po));
+
+                let finalData = [];
+                if (currentMode === 'pending') {
+                    finalData = data.filter(item => !debtSet.has(item.nomor_po));
+                } else {
+                    finalData = data.filter(item => {
+                        const isDone = ['DITERIMA', 'SELESAI', 'LUNAS'].includes(item.status);
+                        const isHiddenDone = item.status === 'APPROVED' && debtSet.has(item.nomor_po);
+                        return isDone || isHiddenDone;
+                    });
+                }
+
+                if (finalData.length === 0) throw new Error("Data setelah filter kosong.");
+
+                // 3. Generate PDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('l', 'mm', 'a4');
+
+                // Title
+                doc.setFontSize(16);
+                doc.setFont("helvetica", "bold");
+                const modeLabel = currentMode === 'pending' ? 'PENDING (Belum GRN)' : 'RIWAYAT (Sudah GRN)';
+                doc.text(`LAPORAN PENERIMAAN BARANG (GRN) - ${modeLabel}`, 14, 15);
+
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Proyek: ${activeProject}`, 14, 22);
+                doc.text(`Periode: ${startDate || 'Awal'} s/d ${endDate || 'Hari Ini'}`, 14, 27);
+                doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 200, 27);
+
+                // Table Data
+                // Group by PO to count items? Or flat list? 
+                // Let's do Flat List of POs with Item Summary
+                const grouped = finalData.reduce((acc, item) => {
+                    const no = item.nomor_po;
+                    if (!acc[no]) acc[no] = { ...item, count: 0, total_val: 0 };
+                    acc[no].count++;
+                    acc[no].total_val += (item.total_harga || 0);
+                    return acc;
+                }, {});
+                const listPO = Object.values(grouped);
+
+                const tableBody = listPO.map((po, i) => [
+                    i + 1,
+                    po.nomor_po,
+                    new Date(po.created_at).toLocaleDateString('id-ID'),
+                    po.nama_vendor || '-',
+                    `${po.count} Item`,
+                    fmt(po.total_val),
+                    currentMode === 'pending' ? 'Menunggu GRN' : 'Sudah Diterima'
+                ]);
+
+                doc.autoTable({
+                    startY: 35,
+                    head: [['No', 'Nomor PO', 'Tanggal', 'Vendor', 'Jml Item', 'Total Nilai', 'Status']],
+                    body: tableBody,
+                    theme: 'grid',
+                    headStyles: { fillColor: currentMode === 'pending' ? [22, 160, 133] : [41, 128, 185] },
+                    columnStyles: {
+                        0: { cellWidth: 10, halign: 'center' },
+                        5: { halign: 'right' }
+                    },
+                    styles: { fontSize: 9 }
+                });
+
+                doc.save(`Laporan_GRN_${currentMode}_${new Date().toISOString().split('T')[0]}.pdf`);
+
+            } catch (e) {
+                alert("Gagal mencetak PDF: " + e.message);
+                console.error(e);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
 
