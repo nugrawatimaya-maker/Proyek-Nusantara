@@ -262,15 +262,26 @@
 
             try {
                 // Fetch Active/Booked Tenants
-                const { data: tenants, error } = await client
+                const { data, error } = await client
                     .from('tenants')
                     .select('room_number, status, name')
                     .eq('project_name', PROJECT_NAME)
                     .in('status', ['ACTIVE', 'MAINTENANCE', 'BOOKED']);
 
-                if (error) throw error;
+                if (error) {
+                    console.error("Supabase Error:", error);
+                    throw error;
+                }
+
+                const tenants = data || []; // Safety check
+                console.log(`Loaded ${tenants.length} tenants for ${PROJECT_NAME} (Total Rooms: ${TOTAL_ROOMS})`);
 
                 grid.innerHTML = '';
+
+                if (tenants.length === 0 && TOTAL_ROOMS === 0) {
+                    grid.innerHTML = '<p class="col-span-full text-center text-slate-500">Belum ada konfigurasi kamar untuk proyek ini.</p>';
+                    return;
+                }
 
                 for (let i = 1; i <= TOTAL_ROOMS; i++) {
                     const tenant = tenants.find(t => t.room_number == i);
