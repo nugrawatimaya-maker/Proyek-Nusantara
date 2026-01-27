@@ -7,60 +7,143 @@
     <title>Booking Kamar - Proyek Nusantara</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <script src="supabase.js"></script>
     <script src="app_config.js"></script>
 
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            font-family: 'Poppins', sans-serif;
+            background: #fff7ed;
         }
 
-        .room-card {
-            transition: all 0.2s;
+        /* Orange-50 */
+
+        /* 3D Icon/Card Style */
+        .card-3d {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            cursor: pointer;
         }
 
-        .room-card:active {
+        /* Orange Theme for Available */
+        .card-available {
+            background: linear-gradient(135deg, #fff 0%, #fff7ed 100%);
+            border: 2px solid #fdba74;
+            /* Orange-300 */
+            box-shadow:
+                0 10px 15px -3px rgba(249, 115, 22, 0.1),
+                0 4px 6px -2px rgba(249, 115, 22, 0.05),
+                inset 0 -4px 0 rgba(249, 115, 22, 0.1);
+            /* 3D bottom lip */
+        }
+
+        .card-available:hover {
+            transform: translateY(-5px);
+            border-color: #f97316;
+            /* Orange-500 */
+            box-shadow:
+                0 20px 25px -5px rgba(249, 115, 22, 0.2),
+                0 10px 10px -5px rgba(249, 115, 22, 0.1),
+                inset 0 -4px 0 rgba(249, 115, 22, 0.2);
+        }
+
+        /* Door Animation Class */
+        .door-open-effect .door-icon {
+            transform-origin: left center;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .card-available:hover .door-icon {
+            transform: perspective(600px) rotateY(-45deg);
+            /* Open Door */
+        }
+
+        .card-available:active {
             transform: scale(0.95);
+        }
+
+        /* Occupied Style (Soft Grey/Red) */
+        .card-occupied {
+            background: #f1f5f9;
+            border: 2px solid #e2e8f0;
+            opacity: 0.8;
+            filter: grayscale(1);
+        }
+
+        /* New Floating Icon Wrapper */
+        .icon-floating {
+            background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+            /* Orange Gradient */
+            box-shadow: 0 8px 15px rgba(249, 115, 22, 0.3);
+            border-radius: 20px;
+            transform: rotate(-5deg);
+            transition: all 0.3s;
+        }
+
+        .card-available:hover .icon-floating {
+            transform: rotate(0deg) scale(1.1);
+        }
+
+        /* Occupied Icon Wrapper */
+        .card-occupied .icon-floating {
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+            box-shadow: none;
+        }
+
+        /* Header Gradient */
+        .header-bg {
+            background: linear-gradient(120deg, #ea580c 0%, #f97316 50%, #fb923c 100%);
         }
     </style>
 </head>
 
-<body class="text-slate-800 pb-20">
+<body class="text-slate-800 pb-24 bg-orange-50 relative min-h-screen">
+
+    <!-- Header Background -->
+    <div class="fixed top-0 left-0 w-full h-72 header-bg rounded-b-[3rem] shadow-xl z-0"></div>
+    <div class="fixed top-20 right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl z-0"></div>
+    <div class="fixed top-10 left-10 w-24 h-24 bg-orange-300/20 rounded-full blur-xl z-0"></div>
 
     <!-- Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-40">
-        <div class="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
-            <div>
-                <h1 class="text-lg font-bold text-indigo-900" id="headerTitle">Kos Sunrise</h1>
-                <p class="text-xs text-slate-500">Cek Ketersediaan & Pesan</p>
+    <header class="relative z-10 mb-6 pt-8">
+        <div class="max-w-md mx-auto px-6 text-center text-white">
+            <div
+                class="inline-flex items-center justify-center w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl mb-4 border border-white/30 shadow-lg animate-bounce-slow">
+                <i class="fas fa-building text-2xl"></i>
             </div>
-            <a href="login.html" class="text-xs font-medium text-indigo-600 hover:underline">Login Admin</a>
+            <h1 class="text-3xl font-extrabold tracking-tight drop-shadow-md font-heading" id="headerTitle">Kos Sunrise
+            </h1>
+            <p class="text-orange-100 text-sm font-medium mt-2">Nyaman, Aman, Strategis</p>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-md mx-auto px-4 py-6">
+    <main class="max-w-xl mx-auto px-6 relative z-10">
 
-        <!-- Legend -->
-        <div class="flex gap-4 mb-6 justify-center text-xs font-medium">
-            <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
-                <span>Kosong (Bisa Dipesan)</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                <span>Terisi</span>
-            </div>
+        <!-- Legend (Simplified) -->
+        <div class="flex justify-center gap-4 mb-8">
+            <span
+                class="bg-white/90 backdrop-blur px-4 py-1.5 rounded-full text-xs font-bold text-orange-600 shadow-sm border border-orange-100 flex items-center gap-2">
+                <i class="fas fa-circle text-[8px]"></i> Kosong
+            </span>
+            <span
+                class="bg-white/50 backdrop-blur px-4 py-1.5 rounded-full text-xs font-bold text-slate-500 flex items-center gap-2">
+                <i class="fas fa-circle text-[8px]"></i> Terisi
+            </span>
         </div>
 
         <!-- Room Grid -->
-        <div id="roomGrid" class="grid grid-cols-2 gap-4">
+        <div id="roomGrid"
+            class="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-10">
             <!-- Loading -->
-            <div class="col-span-2 text-center py-10 text-slate-400">
-                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                <p>Memuat data kamar...</p>
+            <div class="col-span-full text-center py-20">
+                <div
+                    class="inline-block w-10 h-10 border-4 border-white/40 border-t-white rounded-full animate-spin mb-3">
+                </div>
+                <p class="text-white/80 text-sm font-medium">Memuat ketersediaan...</p>
             </div>
         </div>
 
@@ -80,49 +163,71 @@
             </div>
 
             <div class="space-y-4">
-                <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 flex justify-between items-center">
+                <div class="bg-orange-50 p-3 rounded-lg border border-orange-100 flex justify-between items-center">
                     <span class="text-sm text-slate-600">Booking Kamar:</span>
-                    <span class="text-xl font-bold text-indigo-700" id="modalRoomNum">-</span>
+                    <span class="text-xl font-bold text-orange-600" id="modalRoomNum">-</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">NIK (Nomor Induk
+                        Kependudukan)</label>
+                    <input type="text" id="bookNik" placeholder="16 digit NIK" maxlength="16"
+                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition font-mono">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Lengkap</label>
                     <input type="text" id="bookName" placeholder="Nama sesuai KTP"
-                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status Perkawinan</label>
+                    <select id="bookMarital"
+                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition">
+                        <option value="Belum Kawin">Belum Kawin</option>
+                        <option value="Kawin">Kawin</option>
+                    </select>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nomor WhatsApp</label>
                     <input type="tel" id="bookPhone" placeholder="08..."
-                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tanggal Masuk</label>
+                        <input type="date" id="bookDate"
+                            class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Durasi</label>
+                        <div class="relative">
+                            <input type="number" id="bookDuration" min="1" value="30"
+                                class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition pr-12">
+                            <span class="absolute right-4 top-3 text-slate-400 text-sm font-bold">Hari</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Rencana Masuk</label>
-                    <input type="date" id="bookDate"
-                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Durasi Sewa</label>
-                    <select id="bookDuration"
-                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500">
-                        <option value="1">1 Bulan</option>
-                        <option value="3">3 Bulan</option>
-                        <option value="6">6 Bulan</option>
-                        <option value="12">1 Tahun</option>
-                    </select>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tanggal Keluar
+                        (Otomatis)</label>
+                    <input type="date" id="bookOutDate" readonly
+                        class="w-full p-3 bg-slate-100 border border-slate-300 rounded-xl text-slate-500 cursor-not-allowed">
                 </div>
 
                 <div class="pt-2">
                     <button onclick="submitBooking()"
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex justify-center items-center">
+                        class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95">
                         Pesan Sekarang
                     </button>
-                    <p class="text-[10px] text-center text-slate-400 mt-2">
-                        Dengan memesan, Anda setuju untuk dihubungi via WhatsApp untuk konfirmasi pembayaran.
-                    </p>
                 </div>
+                <p class="text-[10px] text-center text-slate-400 mt-2">
+                    Dengan memesan, Anda setuju untuk dihubungi via WhatsApp untuk konfirmasi pembayaran.
+                </p>
             </div>
         </div>
     </div>
@@ -132,9 +237,12 @@
         // client is already initialized in app_config.js as window.client
 
         // Config - Dynamic Project from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const PROJECT_NAME = urlParams.get('project') || "Kos Sunrise Banta-Bantaeng";
-        const TOTAL_ROOMS = 20; // Default or fetch dynamically if possible
+        const bookingPageParams = new URLSearchParams(window.location.search);
+        const PROJECT_NAME = bookingPageParams.get('project') || "Kos Sunrise Banta-Bantaeng";
+
+        let TOTAL_ROOMS = 20; // Default
+        if (PROJECT_NAME.toLowerCase().includes('banta')) TOTAL_ROOMS = 9;
+        if (PROJECT_NAME.toLowerCase().includes('faisal')) TOTAL_ROOMS = 10;
 
         // Update Header Title
         const headerTitle = document.getElementById('headerTitle');
@@ -168,33 +276,45 @@
                     const tenant = tenants.find(t => t.room_number == i);
                     const isOccupied = !!tenant;
 
-                    // Style
-                    let bgClass = isOccupied ? 'bg-red-500 border-red-600 text-white' : 'bg-emerald-500 border-emerald-600 text-white shadow-emerald-200';
-                    let statusText = isOccupied ? (tenant.status === 'BOOKED' ? 'Booked' : 'Terisi') : 'KOSONG';
-                    let icon = isOccupied ? 'fa-user-lock' : 'fa-door-open';
+                    // Logic Status
+                    let statusClass = isOccupied ? 'card-occupied pointer-events-none grayscale' : 'card-available cursor-pointer door-open-effect';
+                    let statusText = isOccupied ? 'Terisi' : 'Kosong';
+                    let statusColor = isOccupied ? 'text-slate-400' : 'text-orange-600';
+                    let iconColor = isOccupied ? 'text-slate-100' : 'text-white';
+                    // Use door-open icon for available to sync with animation
+                    let icon = isOccupied ? 'fa-user' : 'fa-door-closed';
 
-                    // Card
+                    if (tenant && tenant.status === 'BOOKED') {
+                        statusText = 'Booked';
+                        statusColor = 'text-amber-500';
+                        icon = 'fa-clock';
+                        // Keep occupied style
+                    }
+
+                    // Card HTML
                     const div = document.createElement('div');
-                    div.className = `room-card relative p-4 rounded-2xl shadow-lg border-b-4 flex flex-col items-center justify-center aspect-[4/3] ${bgClass}`;
+                    // Reduced padding (p-4 -> p-2) for smaller cards
+                    div.className = `card-3d relative p-2 rounded-2xl flex flex-col items-center justify-center aspect-square ${statusClass}`;
 
                     if (!isOccupied) {
                         div.onclick = () => openBookingModal(i);
-                        // Add ripple/pulse effect for available rooms
-                        div.className += ' cursor-pointer hover:-translate-y-1 hover:shadow-xl';
-                    } else {
-                        div.className += ' opacity-90 cursor-not-allowed';
-                        // Special styling if BOOKED?
-                        if (tenant.status === 'BOOKED') {
-                            div.className = div.className.replace('bg-red-500', 'bg-amber-500').replace('border-red-600', 'border-amber-600');
-                            statusText = 'Booked';
-                        }
                     }
 
                     div.innerHTML = `
-                        <span class="text-3xl font-black opacity-30 absolute top-2 right-3 italic">#${i}</span>
-                        <i class="fas ${icon} text-2xl mb-2 opacity-90"></i>
-                        <h3 class="font-bold text-lg tracking-wide">${statusText}</h3>
-                        ${!isOccupied ? '<span class="text-[10px] uppercase font-bold bg-white/20 px-2 py-0.5 rounded mt-1">Pesan</span>' : ''}
+                        <!-- Badge Number -->
+                        <div class="absolute top-2 right-2 bg-white/60 px-1.5 py-0.5 rounded-md text-[8px] font-bold text-slate-400 border border-white/40">
+                            #${i}
+                        </div>
+
+                        <!-- Floating Icon Wrapper -->
+                        <div class="icon-floating w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center mb-2 text-lg sm:text-xl shadow-md border border-white/20">
+                            <i class="fas ${icon} ${iconColor} drop-shadow-md door-icon"></i>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="text-center w-full">
+                            <h3 class="font-bold text-[10px] sm:text-xs ${statusColor} tracking-wide uppercase leading-tight">${statusText}</h3>
+                        </div>
                     `;
 
                     grid.appendChild(div);
@@ -206,9 +326,36 @@
             }
         }
 
+        // --- Date Logic ---
+        function updateBookingEndDate() {
+            const startDateStr = document.getElementById('bookDate').value;
+            const durationStr = document.getElementById('bookDuration').value;
+
+            if (startDateStr && durationStr) {
+                const startDate = new Date(startDateStr);
+                const duration = parseInt(durationStr, 10);
+
+                if (!isNaN(startDate.getTime()) && !isNaN(duration)) {
+                    startDate.setDate(startDate.getDate() + duration);
+
+                    const year = startDate.getFullYear();
+                    const month = String(startDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(startDate.getDate()).padStart(2, '0');
+
+                    document.getElementById('bookOutDate').value = `${year}-${month}-${day}`;
+                }
+            }
+        }
+
         function openBookingModal(roomNum) {
             document.getElementById('modalRoomNum').textContent = `Kamar ${roomNum}`;
             document.getElementById('bookingModal').classList.remove('hidden');
+
+            // Set Default Date (Today)
+            if (!document.getElementById('bookDate').value) {
+                document.getElementById('bookDate').value = new Date().toISOString().split('T')[0];
+            }
+            updateBookingEndDate();
         }
 
         function closeBookingModal() {
@@ -217,13 +364,16 @@
 
         async function submitBooking() {
             const roomNum = document.getElementById('modalRoomNum').textContent.replace('Kamar ', '');
+            const nik = document.getElementById('bookNik').value;
             const name = document.getElementById('bookName').value;
+            const marital = document.getElementById('bookMarital').value;
             const phone = document.getElementById('bookPhone').value;
             const checkInDate = document.getElementById('bookDate').value;
             const duration = document.getElementById('bookDuration').value;
+            const checkOutDate = document.getElementById('bookOutDate').value;
 
-            if (!name || !phone || !checkInDate) {
-                alert("Mohon lengkapi data pemesanan.");
+            if (!nik || !name || !phone || !checkInDate) {
+                alert("Mohon lengkapi semua data!");
                 return;
             }
 
@@ -234,18 +384,21 @@
 
             try {
                 // Insert Tenant with status 'BOOKED'
+                // Matches structure from dashboard_kost.html
                 const { error } = await client
                     .from('tenants')
                     .insert({
                         project_name: PROJECT_NAME,
                         room_number: roomNum,
+                        nik: nik,
                         name: name,
+                        marital_status: marital,
                         phone: phone,
                         check_in_date: checkInDate,
-                        duration_months: duration,
+                        check_out_date: checkOutDate,
+                        duration: duration,
                         status: 'BOOKED',
-                        // Optional: Add a note or default rent amount?
-                        rent_amount: 0 // Will be set by Admin later
+                        rent_amount: 0 // Will be set by Admin
                     });
 
                 if (error) throw error;
@@ -266,6 +419,17 @@
         // Close modal on click outside
         document.getElementById('bookingModal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('bookingModal')) closeBookingModal();
+        });
+
+        // Event Listeners for Date Calc
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateInput = document.getElementById('bookDate');
+            const durInput = document.getElementById('bookDuration');
+
+            if (dateInput && durInput) {
+                dateInput.addEventListener('change', updateBookingEndDate);
+                durInput.addEventListener('input', updateBookingEndDate);
+            }
         });
     </script>
 </body>
