@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Kamar - Proyek Nusantara</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="supabase.js"></script>
+    <script src="app_config.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .room-card {
+            transition: all 0.2s;
+        }
+
+        .room-card:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+
+<body class="text-slate-800 pb-20">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-lg font-bold text-indigo-900" id="headerTitle">Kos Sunrise</h1>
+                <p class="text-xs text-slate-500">Cek Ketersediaan & Pesan</p>
+            </div>
+            <a href="login.html" class="text-xs font-medium text-indigo-600 hover:underline">Login Admin</a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-md mx-auto px-4 py-6">
+
+        <!-- Legend -->
+        <div class="flex gap-4 mb-6 justify-center text-xs font-medium">
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span>Kosong (Bisa Dipesan)</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                <span>Terisi</span>
+            </div>
+        </div>
+
+        <!-- Room Grid -->
+        <div id="roomGrid" class="grid grid-cols-2 gap-4">
+            <!-- Loading -->
+            <div class="col-span-2 text-center py-10 text-slate-400">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>Memuat data kamar...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Booking Modal -->
+    <div id="bookingModal"
+        class="fixed inset-0 bg-black/60 hidden flex items-end sm:items-center justify-center z-50 transition-opacity">
+        <div
+            class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl animate-[slideUp_0.3s_ease-out]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800">Form Pemesanan</h3>
+                <button onclick="closeBookingModal()"
+                    class="text-slate-400 hover:text-red-500 bg-slate-100 p-2 rounded-full w-8 h-8 flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100 flex justify-between items-center">
+                    <span class="text-sm text-slate-600">Booking Kamar:</span>
+                    <span class="text-xl font-bold text-indigo-700" id="modalRoomNum">-</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Lengkap</label>
+                    <input type="text" id="bookName" placeholder="Nama sesuai KTP"
+                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nomor WhatsApp</label>
+                    <input type="tel" id="bookPhone" placeholder="08..."
+                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Rencana Masuk</label>
+                    <input type="date" id="bookDate"
+                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Durasi Sewa</label>
+                    <select id="bookDuration"
+                        class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                        <option value="1">1 Bulan</option>
+                        <option value="3">3 Bulan</option>
+                        <option value="6">6 Bulan</option>
+                        <option value="12">1 Tahun</option>
+                    </select>
+                </div>
+
+                <div class="pt-2">
+                    <button onclick="submitBooking()"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex justify-center items-center">
+                        Pesan Sekarang
+                    </button>
+                    <p class="text-[10px] text-center text-slate-400 mt-2">
+                        Dengan memesan, Anda setuju untuk dihubungi via WhatsApp untuk konfirmasi pembayaran.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Init Supabase
+        // client is already initialized in app_config.js as window.client
+
+        // Config - Dynamic Project from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const PROJECT_NAME = urlParams.get('project') || "Kos Sunrise Banta-Bantaeng";
+        const TOTAL_ROOMS = 20; // Default or fetch dynamically if possible
+
+        // Update Header Title
+        const headerTitle = document.getElementById('headerTitle');
+        if (headerTitle) headerTitle.textContent = PROJECT_NAME;
+        document.title = `Booking - ${PROJECT_NAME}`;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderPublicRooms();
+
+            // Set min date to today
+            document.getElementById('bookDate').min = new Date().toISOString().split('T')[0];
+            document.getElementById('bookDate').value = new Date().toISOString().split('T')[0];
+        });
+
+        async function renderPublicRooms() {
+            const grid = document.getElementById('roomGrid');
+
+            try {
+                // Fetch Active/Booked Tenants
+                const { data: tenants, error } = await client
+                    .from('tenants')
+                    .select('room_number, status, name')
+                    .eq('project_name', PROJECT_NAME)
+                    .in('status', ['ACTIVE', 'MAINTENANCE', 'BOOKED']);
+
+                if (error) throw error;
+
+                grid.innerHTML = '';
+
+                for (let i = 1; i <= TOTAL_ROOMS; i++) {
+                    const tenant = tenants.find(t => t.room_number == i);
+                    const isOccupied = !!tenant;
+
+                    // Style
+                    let bgClass = isOccupied ? 'bg-red-500 border-red-600 text-white' : 'bg-emerald-500 border-emerald-600 text-white shadow-emerald-200';
+                    let statusText = isOccupied ? (tenant.status === 'BOOKED' ? 'Booked' : 'Terisi') : 'KOSONG';
+                    let icon = isOccupied ? 'fa-user-lock' : 'fa-door-open';
+
+                    // Card
+                    const div = document.createElement('div');
+                    div.className = `room-card relative p-4 rounded-2xl shadow-lg border-b-4 flex flex-col items-center justify-center aspect-[4/3] ${bgClass}`;
+
+                    if (!isOccupied) {
+                        div.onclick = () => openBookingModal(i);
+                        // Add ripple/pulse effect for available rooms
+                        div.className += ' cursor-pointer hover:-translate-y-1 hover:shadow-xl';
+                    } else {
+                        div.className += ' opacity-90 cursor-not-allowed';
+                        // Special styling if BOOKED?
+                        if (tenant.status === 'BOOKED') {
+                            div.className = div.className.replace('bg-red-500', 'bg-amber-500').replace('border-red-600', 'border-amber-600');
+                            statusText = 'Booked';
+                        }
+                    }
+
+                    div.innerHTML = `
+                        <span class="text-3xl font-black opacity-30 absolute top-2 right-3 italic">#${i}</span>
+                        <i class="fas ${icon} text-2xl mb-2 opacity-90"></i>
+                        <h3 class="font-bold text-lg tracking-wide">${statusText}</h3>
+                        ${!isOccupied ? '<span class="text-[10px] uppercase font-bold bg-white/20 px-2 py-0.5 rounded mt-1">Pesan</span>' : ''}
+                    `;
+
+                    grid.appendChild(div);
+                }
+
+            } catch (e) {
+                console.error(e);
+                grid.innerHTML = '<p class="text-red-500 col-span-2 text-center">Gagal memuat data.</p>';
+            }
+        }
+
+        function openBookingModal(roomNum) {
+            document.getElementById('modalRoomNum').textContent = `Kamar ${roomNum}`;
+            document.getElementById('bookingModal').classList.remove('hidden');
+        }
+
+        function closeBookingModal() {
+            document.getElementById('bookingModal').classList.add('hidden');
+        }
+
+        async function submitBooking() {
+            const roomNum = document.getElementById('modalRoomNum').textContent.replace('Kamar ', '');
+            const name = document.getElementById('bookName').value;
+            const phone = document.getElementById('bookPhone').value;
+            const checkInDate = document.getElementById('bookDate').value;
+            const duration = document.getElementById('bookDuration').value;
+
+            if (!name || !phone || !checkInDate) {
+                alert("Mohon lengkapi data pemesanan.");
+                return;
+            }
+
+            const btn = document.querySelector('button[onclick="submitBooking()"]');
+            const originalText = btn.innerText;
+            btn.innerText = 'Memproses...';
+            btn.disabled = true;
+
+            try {
+                // Insert Tenant with status 'BOOKED'
+                const { error } = await client
+                    .from('tenants')
+                    .insert({
+                        project_name: PROJECT_NAME,
+                        room_number: roomNum,
+                        name: name,
+                        phone: phone,
+                        check_in_date: checkInDate,
+                        duration_months: duration,
+                        status: 'BOOKED',
+                        // Optional: Add a note or default rent amount?
+                        rent_amount: 0 // Will be set by Admin later
+                    });
+
+                if (error) throw error;
+
+                alert("Pemesanan Berhasil! Admin kami akan segera menghubungi Anda.");
+                closeBookingModal();
+                renderPublicRooms(); // Refresh grid
+
+            } catch (e) {
+                console.error(e);
+                alert("Gagal melakukan pemesanan: " + e.message);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Close modal on click outside
+        document.getElementById('bookingModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('bookingModal')) closeBookingModal();
+        });
+    </script>
+</body>
+
+</html>
