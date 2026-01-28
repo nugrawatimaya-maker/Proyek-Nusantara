@@ -155,6 +155,9 @@
       <div class="flex gap-2">
         <button onclick="window.location.href='dashboard_marketing.html'"
           class="px-4 py-2 rounded-full bg-white text-blue-700 font-semibold shadow">Back to Gallery</button>
+        <button onclick="openAdminModal()"
+          class="px-4 py-2 rounded-full bg-slate-800 text-white font-semibold shadow hover:bg-slate-700 flex items-center gap-2"><i
+            class="fas fa-tools"></i> Admin</button>
         <button onclick="window.location.href='sunrise_city_maros.html'"
           class="px-4 py-2 rounded-full bg-blue-200 text-blue-800 font-semibold shadow flex items-center gap-2"><i
             class="fas fa-map"></i> Siteplan</button>
@@ -317,6 +320,155 @@
           <i class="fa-solid fa-quote-left absolute top-3 left-3 text-amber-200 text-xl opacity-50"></i>
           <p class="text-sm text-slate-600 italic leading-relaxed pl-6 relative z-10" id="modalNote">Tidak ada catatan.
           </p>
+        </div>
+      </div>
+
+    </div>
+  </dialog>
+
+  <!-- ADMIN MODAL -->
+  <dialog id="adminModal"
+    class="p-0 rounded-2xl shadow-2xl w-full max-w-2xl bg-white overflow-hidden backdrop:bg-slate-900/50">
+    <form method="dialog" class="absolute right-4 top-4 z-10">
+      <button
+        class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition focus:outline-none">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </form>
+
+    <div class="bg-slate-800 text-white p-6 border-b border-slate-700">
+      <h3 class="font-bold text-xl"><i class="fas fa-tools mr-2"></i> Admin & Pemberkasan</h3>
+      <p class="text-slate-300 text-sm mt-1">Kelola dokumen unit dan download materi marketing</p>
+    </div>
+
+    <!-- TABS -->
+    <div class="flex border-b border-slate-200 bg-slate-50/50">
+      <button onclick="switchAdminTab('create')"
+        class="admin-tab-btn flex-1 py-4 text-sm font-bold text-blue-600 border-b-2 border-blue-600 bg-blue-50 transition">
+        <i class="fas fa-file-circle-plus mr-2"></i> Buat Berkas
+      </button>
+      <button onclick="switchAdminTab('download')"
+        class="admin-tab-btn flex-1 py-4 text-sm font-bold text-slate-500 hover:text-slate-700 transition">
+        <i class="fas fa-cloud-download-alt mr-2"></i> Download File
+      </button>
+    </div>
+
+    <div class="p-6 overflow-y-auto max-h-[60vh]">
+
+      <!-- TAB 1: CREATE FILE -->
+      <div id="tab-create" class="admin-tab-panel space-y-6">
+        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 text-blue-700 text-sm">
+          <i class="fas fa-info-circle mt-0.5"></i>
+          <p>Fitur ini digunakan untuk membuat dokumen resmi (Surat Pesanan, Kwitansi, dll) secara otomatis berdasarkan
+            data unit.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Pilih Blok / Unit</label>
+            <input type="text" id="admBlok" placeholder="Contoh: A1"
+              class="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Jenis Dokumen</label>
+            <select id="admJenis"
+              class="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+              <option value="">-- Pilih --</option>
+              <option value="sp">Surat Pesanan (SP)</option>
+              <option value="ppjb">Draft PPJB</option>
+              <option value="kwitansi">Kwitansi Booking</option>
+              <option value="wawancara">Form Wawancara</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Customer (Opsional)</label>
+            <input type="text" placeholder="Jika kosong, akan mengambil dari data unit..."
+              class="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex justify-end">
+          <button onclick="simpanBerkas()"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-600/20 transition flex items-center gap-2">
+            <i class="fas fa-file-export"></i> Generate Dokumen
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 2: DOWNLOAD -->
+      <div id="tab-download" class="admin-tab-panel hidden space-y-4">
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <h4 class="font-bold text-slate-700 mb-3 text-sm">Marketing Kit</h4>
+          <ul class="space-y-2">
+            <li>
+              <a href="#"
+                class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded bg-red-100 text-red-600 flex items-center justify-center font-bold text-lg">
+                    <i class="fas fa-file-pdf"></i></div>
+                  <div>
+                    <p class="font-bold text-slate-700 text-sm group-hover:text-blue-600">Brosur Digital Sunrise City
+                    </p>
+                    <p class="text-[10px] text-slate-400">PDF • 5.2 MB</p>
+                  </div>
+                </div>
+                <i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>
+              </a>
+            </li>
+            <li>
+              <a href="#"
+                class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded bg-green-100 text-green-600 flex items-center justify-center font-bold text-lg">
+                    <i class="fas fa-file-excel"></i></div>
+                  <div>
+                    <p class="font-bold text-slate-700 text-sm group-hover:text-blue-600">Pricelist Terbaru (2025)</p>
+                    <p class="text-[10px] text-slate-400">XLSX • 120 KB</p>
+                  </div>
+                </div>
+                <i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>
+              </a>
+            </li>
+            <li>
+              <a href="#"
+                class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg">
+                    <i class="fas fa-image"></i></div>
+                  <div>
+                    <p class="font-bold text-slate-700 text-sm group-hover:text-blue-600">Master Siteplan High-Res</p>
+                    <p class="text-[10px] text-slate-400">JPG • 8.5 MB</p>
+                  </div>
+                </div>
+                <i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <h4 class="font-bold text-slate-700 mb-3 text-sm">Dokumen Legalitas (Template)</h4>
+          <ul class="space-y-2">
+            <li>
+              <a href="#"
+                class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
+                    <i class="fas fa-file-word"></i></div>
+                  <div>
+                    <p class="font-bold text-slate-700 text-sm group-hover:text-blue-600">Template Surat Pesanan (SP)
+                    </p>
+                    <p class="text-[10px] text-slate-400">DOCX • 500 KB</p>
+                  </div>
+                </div>
+                <i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>
+              </a>
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -600,6 +752,38 @@
 
       dialog.showModal();
     }
+
+    // --- ADMIN MODAL LOGIC ---
+    function openAdminModal() {
+      document.getElementById('adminModal').showModal();
+    }
+
+    function switchAdminTab(tabName) {
+      // Hide all panels
+      document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.add('hidden'));
+      // Show selected
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+      // Update Tab Styles
+      document.querySelectorAll('.admin-tab-btn').forEach(b => {
+        b.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600', 'bg-blue-50');
+        b.classList.add('text-slate-500', 'hover:text-slate-700');
+      });
+      const activeBtn = document.querySelector(`button[onclick="switchAdminTab('${tabName}')"]`);
+      activeBtn.classList.remove('text-slate-500', 'hover:text-slate-700');
+      activeBtn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600', 'bg-blue-50');
+    }
+
+    function simpanBerkas() {
+      // Dummy Logic
+      const blok = document.getElementById('admBlok').value;
+      const jns = document.getElementById('admJenis').value;
+      if (!blok || !jns) return alert("Harap lengkapi form!");
+
+      alert(`✅ Berkas "${jns}" untuk Blok ${blok} berhasil dibuat!\n(Simulasi: File akan otomatis terunduh atau tersimpan di database)`);
+      document.getElementById('adminModal').close();
+    }
+
 
     function buildTimelineLarge(currentStatus) {
       let activeIndex = -1;
