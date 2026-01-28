@@ -9,6 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="supabase.js"></script>
   <script src="app_config.js"></script>
+  <script src="auth.js"></script>
   <style>
     body {
       background: #f1f5f9;
@@ -397,78 +398,27 @@
 
       <!-- TAB 2: DOWNLOAD -->
       <div id="tab-download" class="admin-tab-panel hidden space-y-4">
-        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-          <h4 class="font-bold text-slate-700 mb-3 text-sm">Marketing Kit</h4>
-          <ul class="space-y-2">
-            <li>
-              <a href="#"
-                class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
-                <div class="flex items-center gap-3">
-                  <div
-                    class="w-10 h-10 rounded bg-red-100 text-red-600 flex items-center justify-center font-bold text-lg">
-                    <i class="fas fa-file-pdf"></i></div>
-                  <div>
-                    <p class="font-bold text-slate-700 text-sm group-hover:text-blue-600">Brosur Digital Sunrise City
-                    </p>
-                    <p class="text-[10px] text-slate-400">PDF • 5.2 MB</p>
-                  </div>
-                </div>
-                <i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>
-              </a>
-            </li>
-            <li>
-              <a href="#"
-                class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
-                <div class="flex items-center gap-3">
-                  <div
-                    class="w-10 h-10 rounded bg-green-100 text-green-600 flex items-center justify-center font-bold text-lg">
-                    <i class="fas fa-file-excel"></i></div>
-                  <div>
-                    <p class="font-bold text-slate-700 text-sm group-hover:text-blue-600">Pricelist Terbaru (2025)</p>
-                    <p class="text-[10px] text-slate-400">XLSX • 120 KB</p>
-                  </div>
-                </div>
-                <i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>
-              </a>
-            </li>
-            <li>
-              <a href="#"
-                class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
-                <div class="flex items-center gap-3">
-                  <div
-                    class="w-10 h-10 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg">
-                    <i class="fas fa-image"></i></div>
-                  <div>
-                    <p class="font-bold text-slate-700 text-sm group-hover:text-blue-600">Master Siteplan High-Res</p>
-                    <p class="text-[10px] text-slate-400">JPG • 8.5 MB</p>
-                  </div>
-                </div>
-                <i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>
-              </a>
-            </li>
-          </ul>
+        <div class="flex flex-col gap-3 mb-2">
+          <div class="flex justify-between items-center">
+            <h4 class="font-bold text-slate-700 text-sm">File Tersedia</h4>
+            <button onclick="promptUpload()"
+              class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 shadow transition">
+              <i class="fas fa-upload"></i> Upload Baru
+            </button>
+          </div>
+
+          <!-- Search Input -->
+          <div class="relative">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="fileSearchInput" onkeyup="loadMarketingFiles()" placeholder="Cari nama file..."
+              class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-blue-400 bg-slate-50 focus:bg-white transition shadow-sm">
+          </div>
         </div>
 
-        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-          <h4 class="font-bold text-slate-700 mb-3 text-sm">Dokumen Legalitas (Template)</h4>
-          <ul class="space-y-2">
-            <li>
-              <a href="#"
-                class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
-                <div class="flex items-center gap-3">
-                  <div
-                    class="w-10 h-10 rounded bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
-                    <i class="fas fa-file-word"></i></div>
-                  <div>
-                    <p class="font-bold text-slate-700 text-sm group-hover:text-blue-600">Template Surat Pesanan (SP)
-                    </p>
-                    <p class="text-[10px] text-slate-400">DOCX • 500 KB</p>
-                  </div>
-                </div>
-                <i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>
-              </a>
-            </li>
-          </ul>
+        <div id="downloadListContainer" class="space-y-4 min-h-[100px]">
+          <div class="text-center py-8 text-slate-400">
+            <i class="fas fa-circle-notch fa-spin"></i> Memuat data...
+          </div>
         </div>
       </div>
 
@@ -772,6 +722,185 @@
       const activeBtn = document.querySelector(`button[onclick="switchAdminTab('${tabName}')"]`);
       activeBtn.classList.remove('text-slate-500', 'hover:text-slate-700');
       activeBtn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600', 'bg-blue-50');
+
+      // Load Data if Download Tab
+      if (tabName === 'download') {
+        loadMarketingFiles();
+      }
+    }
+
+    async function loadMarketingFiles() {
+      const container = document.getElementById('downloadListContainer');
+
+      try {
+        const { data, error } = await window.client
+          .from('marketing_files')
+          .select('*')
+          .order('category')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          // If table not found, show helpful msg
+          if (error.code === '42P01') { // Undefined Table
+            container.innerHTML = `
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 text-center">
+                            <p class="text-amber-800 font-bold mb-2">Database Belum Siap</p>
+                            <p class="text-xs text-amber-700 mb-3">Tabel 'marketing_files' belum dibuat.</p>
+                            <a href="setup_marketing_db.html" target="_blank" class="inline-block bg-amber-600 text-white px-3 py-1 rounded text-xs font-bold">Jalankan Setup Database</a>
+                        </div>
+                    `;
+            return;
+          }
+          throw error;
+        }
+
+        if (!data || data.length === 0) {
+          container.innerHTML = `<div class="text-center py-8 text-slate-400 italic">Belum ada file yang diupload.</div>`;
+          return;
+        }
+
+        // Get User Role - DEBUGGING
+        const session = window.PNAuth?.getSession();
+        console.log("Session Data:", session); // Removed for production, but logic retained
+        const userRole = session?.user?.role;
+        const isAdmin = userRole === 'superadmin';
+
+        // Filter by Search Query (Client Side)
+        const searchQuery = (document.getElementById('fileSearchInput')?.value || '').toLowerCase();
+        const filteredData = data.filter(f => f.title.toLowerCase().includes(searchQuery));
+
+        if (filteredData.length === 0) {
+          container.innerHTML = `<div class="text-center py-8 text-slate-400 italic">Tidak ada file yang cocok dengan pencarian "${searchQuery}".</div>`;
+          return;
+        }
+
+        // Group by Category & Sort Alphabetically
+        const groups = {};
+        filteredData.sort((a, b) => a.title.localeCompare(b.title)); // Sort Client-Side Alphabetical
+
+        filteredData.forEach(f => {
+          const cat = f.category === 'legalitas' ? 'Dokumen Legalitas (Template)' : 'Marketing Kit';
+          if (!groups[cat]) groups[cat] = [];
+          groups[cat].push(f);
+        });
+
+        let html = '';
+        for (const [catName, files] of Object.entries(groups)) {
+          html += `
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <h4 class="font-bold text-slate-700 mb-3 text-sm">${catName}</h4>
+                    <ul class="space-y-2">`;
+
+          files.forEach(file => {
+            // Icon
+            let icon = 'fa-file-alt';
+            let bg = 'bg-slate-100 text-slate-600';
+            const ext = (file.file_type || '').toLowerCase();
+
+            if (ext.includes('pdf')) { icon = 'fa-file-pdf'; bg = 'bg-red-100 text-red-600'; }
+            else if (ext.includes('xls')) { icon = 'fa-file-excel'; bg = 'bg-green-100 text-green-600'; }
+            else if (ext.includes('doc')) { icon = 'fa-file-word'; bg = 'bg-blue-100 text-blue-600'; }
+            else if (ext.includes('jpg') || ext.includes('png')) { icon = 'fa-image'; bg = 'bg-indigo-100 text-indigo-600'; }
+
+            // Admin Actions
+            let actions = `<i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>`;
+            if (isAdmin) {
+              actions = `
+                            <div class="flex items-center gap-1">
+                                <button onclick="editFile(${file.id}, '${file.title.replace(/'/g, "\\'")}', '${file.file_url.replace(/'/g, "\\'")}', event)" class="w-7 h-7 rounded-lg hover:bg-blue-100 text-slate-300 hover:text-blue-600 transition" title="Edit"><i class="fas fa-pen text-xs"></i></button>
+                                <button onclick="deleteFile(${file.id}, event)" class="w-7 h-7 rounded-lg hover:bg-red-100 text-slate-300 hover:text-red-500 transition" title="Hapus"><i class="fas fa-trash-alt text-xs"></i></button>
+                                <div class="w-px h-4 bg-slate-200 mx-1"></div>
+                                <i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>
+                            </div>
+                         `;
+            }
+
+            html += `
+                         <li>
+                             <a href="${file.file_url}" target="_blank" class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
+                                 <div class="flex items-center gap-3">
+                                     <div class="w-10 h-10 rounded ${bg} flex items-center justify-center font-bold text-lg"><i class="fas ${icon}"></i></div>
+                                     <div>
+                                         <p class="font-bold text-slate-700 text-sm group-hover:text-blue-600">${file.title}</p>
+                                         <p class="text-[10px] text-slate-400 uppercase">${file.file_type} • ${file.size || 'Unknown'}</p>
+                                     </div>
+                                 </div>
+                                 ${actions}
+                             </a>
+                         </li>
+                     `;
+          });
+
+          html += `</ul></div>`;
+        }
+        container.innerHTML = html;
+
+      } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="text-red-500 text-center text-xs">Gagal memuat: ${e.message}</div>`;
+      }
+    }
+
+    async function promptUpload() {
+      const url = prompt("Masukkan Link File (Google Drive / Dropbox / ImageKit):");
+      if (!url) return;
+      const title = prompt("Nama File / Judul:");
+      if (!title) return;
+
+      const cat = confirm("Apakah ini template legalitas? (Cancel = Marketing Kit)") ? 'legalitas' : 'marketing_kit';
+      const type = prompt("Tipe File (pdf/xlsx/docx/jpg):", "pdf");
+
+      // Simple Insert
+      try {
+        const { error } = await window.client.from('marketing_files').insert([{
+          title, file_url: url, category: cat, file_type: type, size: 'External Link'
+        }]);
+        if (error) throw error;
+        alert("✅ File berhasil ditambahkan!");
+        loadMarketingFiles();
+      } catch (e) {
+        alert("Gagal: " + e.message);
+      }
+    }
+
+    async function editFile(id, oldTitle, oldUrl, e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const newTitle = prompt("Edit Nama File:", oldTitle);
+      if (newTitle === null) return; // Cancelled
+
+      const newUrl = prompt("Edit URL File:", oldUrl);
+      if (newUrl === null) return; // Cancelled
+
+      if (!newTitle || !newUrl) return alert("Data tidak boleh kosong!");
+
+      try {
+        const { error } = await window.client
+          .from('marketing_files')
+          .update({ title: newTitle, file_url: newUrl })
+          .eq('id', id);
+
+        if (error) throw error;
+        alert("✅ File berhasil diupdate!");
+        loadMarketingFiles();
+      } catch (e) {
+        alert("Gagal update: " + e.message);
+      }
+    }
+
+    async function deleteFile(id, e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!confirm("Hapus file ini dari daftar?")) return;
+
+      try {
+        const { error } = await window.client.from('marketing_files').delete().eq('id', id);
+        if (error) throw error;
+        loadMarketingFiles();
+      } catch (e) {
+        alert("Gagal hapus: " + e.message);
+      }
     }
 
     function simpanBerkas() {

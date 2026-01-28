@@ -535,6 +535,7 @@
                     <input type="hidden" id="bqty-${idx}" value="${item.jumlah}">
                     <input type="hidden" id="bsat-${idx}" value="${item.satuan}">
                     <input type="hidden" id="bstaff-${idx}" value="${item.pengorder}">
+                    <input type="hidden" id="bproyek-${idx}" value="${item.nama_proyek || ''}"> 
                 </td>
                 <td class="p-3 text-center text-sm font-bold bg-gray-50">${item.jumlah} ${item.satuan}</td>
                 <td class="p-3">
@@ -625,13 +626,15 @@
 
                 const qty = parseFloat(document.getElementById(`bqty-${i}`).value) || 0;
                 const harga = parseFloat(hargaEl.value) || 0;
+                const proyekVal = document.getElementById(`bproyek-${i}`).value || '';
 
                 items.push({
                     req_id: parseInt(document.getElementById(`bid-${i}`).value),
                     qty: qty,
                     harga: harga,
                     nama_barang: namaBarang,
-                    satuan: document.getElementById(`bsat-${i}`).value
+                    satuan: document.getElementById(`bsat-${i}`).value,
+                    nama_proyek: proyekVal // Capture Project Name
                 });
                 total += (qty * harga);
             }
@@ -687,7 +690,8 @@
                     harga_satuan: item.harga,
                     total_harga: item.qty * item.harga,
                     status: poStatus,
-                    dibuat_oleh: staffName
+                    dibuat_oleh: staffName,
+                    nama_proyek: item.nama_proyek // Save Explicit Project Name
                 }));
 
                 const { data: savedPO, error: poError } = await client.from('purchase_order').insert(poRecords).select('id');

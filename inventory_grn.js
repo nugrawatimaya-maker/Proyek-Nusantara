@@ -100,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     client = window.client;
 
     activeProject = sessionStorage.getItem('active_project_name');
+    if (activeProject) activeProject = activeProject.trim();
     if (!activeProject) {
         showError("⚠️ Sesi proyek habis. Mengalihkan...");
         setTimeout(() => window.location.href = 'portal_proyek.html', 1500);
@@ -157,13 +158,16 @@ async function loadOpenPO() {
         const startDate = document.getElementById('filterStartDate').value;
         const endDate = document.getElementById('filterEndDate').value;
 
+        // Debug Active Project
+        console.log("Loading PO for Project:", activeProject);
+
         if (currentMode === 'pending') {
             // --- MODE PENDING ---
             let query = client
                 .from('purchase_order')
                 .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
                 .eq('status', 'APPROVED')
-                .ilike('nama_proyek', activeProject)
+                .ilike('nama_proyek', activeProject) // Revert to ILIKE for Case Insensitivity
                 .order('created_at', { ascending: false });
 
             // Apply Date Filter if set
@@ -181,7 +185,7 @@ async function loadOpenPO() {
                 .from('purchase_order')
                 .select(`*, inventory_req!fk_req_id ( nama_barang, satuan, jumlah )`)
                 .in('status', ['APPROVED', 'DITERIMA', 'SELESAI', 'LUNAS'])
-                .ilike('nama_proyek', activeProject)
+                .ilike('nama_proyek', activeProject) // Revert to ILIKE
                 .order('created_at', { ascending: false });
 
             // Apply Date Filter if valid
