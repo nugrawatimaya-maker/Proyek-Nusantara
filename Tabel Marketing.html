@@ -401,8 +401,8 @@
         <div class="flex flex-col gap-3 mb-2">
           <div class="flex justify-between items-center">
             <h4 class="font-bold text-slate-700 text-sm">File Tersedia</h4>
-            <button onclick="promptUpload()"
-              class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 shadow transition">
+            <button id="btnUploadBaru" onclick="promptUpload()"
+              class="hidden bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 shadow transition">
               <i class="fas fa-upload"></i> Upload Baru
             </button>
           </div>
@@ -765,7 +765,14 @@
         const userRole = session?.user?.role;
         const isAdmin = userRole === 'superadmin';
 
-        // Filter by Search Query (Client Side)
+        // TOGGLE UPLOAD BUTTON
+        const btnUpload = document.getElementById('btnUploadBaru');
+        if (btnUpload) {
+          if (isAdmin) btnUpload.classList.remove('hidden');
+          else btnUpload.classList.add('hidden');
+        }
+
+        // Filter by Search Query
         const searchQuery = (document.getElementById('fileSearchInput')?.value || '').toLowerCase();
         const filteredData = data.filter(f => f.title.toLowerCase().includes(searchQuery));
 
@@ -774,9 +781,9 @@
           return;
         }
 
-        // Group by Category & Sort Alphabetically
+        // Group & Sort
         const groups = {};
-        filteredData.sort((a, b) => a.title.localeCompare(b.title)); // Sort Client-Side Alphabetical
+        filteredData.sort((a, b) => a.title.localeCompare(b.title));
 
         filteredData.forEach(f => {
           const cat = f.category === 'legalitas' ? 'Dokumen Legalitas (Template)' : 'Marketing Kit';
@@ -792,7 +799,6 @@
                     <ul class="space-y-2">`;
 
           files.forEach(file => {
-            // Icon
             let icon = 'fa-file-alt';
             let bg = 'bg-slate-100 text-slate-600';
             const ext = (file.file_type || '').toLowerCase();
@@ -802,27 +808,27 @@
             else if (ext.includes('doc')) { icon = 'fa-file-word'; bg = 'bg-blue-100 text-blue-600'; }
             else if (ext.includes('jpg') || ext.includes('png')) { icon = 'fa-image'; bg = 'bg-indigo-100 text-indigo-600'; }
 
-            // Admin Actions
-            let actions = `<i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>`;
+            // Actions HTML
+            let actions = `<i class="fas fa-download text-slate-300 group-hover:text-blue-500 mt-2 md:mt-0"></i>`;
             if (isAdmin) {
               actions = `
-                            <div class="flex items-center gap-1">
-                                <button onclick="editFile(${file.id}, '${file.title.replace(/'/g, "\\'")}', '${file.file_url.replace(/'/g, "\\'")}', event)" class="w-7 h-7 rounded-lg hover:bg-blue-100 text-slate-300 hover:text-blue-600 transition" title="Edit"><i class="fas fa-pen text-xs"></i></button>
-                                <button onclick="deleteFile(${file.id}, event)" class="w-7 h-7 rounded-lg hover:bg-red-100 text-slate-300 hover:text-red-500 transition" title="Hapus"><i class="fas fa-trash-alt text-xs"></i></button>
-                                <div class="w-px h-4 bg-slate-200 mx-1"></div>
-                                <i class="fas fa-download text-slate-300 group-hover:text-blue-500"></i>
+                            <div class="flex items-center gap-1 mt-2 md:mt-0">
+                                <button onclick="editFile(${file.id}, '${file.title.replace(/'/g, "\\'")}', '${file.file_url.replace(/'/g, "\\'")}', event)" class="w-8 h-8 rounded-lg hover:bg-blue-100 text-slate-300 hover:text-blue-600 transition" title="Edit"><i class="fas fa-pen text-xs"></i></button>
+                                <button onclick="deleteFile(${file.id}, event)" class="w-8 h-8 rounded-lg hover:bg-red-100 text-slate-300 hover:text-red-500 transition" title="Hapus"><i class="fas fa-trash-alt text-xs"></i></button>
+                                <div class="hidden md:block w-px h-4 bg-slate-200 mx-1"></div>
+                                <i class="hidden md:inline fas fa-download text-slate-300 group-hover:text-blue-500 ml-1"></i>
                             </div>
                          `;
             }
 
             html += `
                          <li>
-                             <a href="${file.file_url}" target="_blank" class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
+                             <a href="${file.file_url}" target="_blank" class="flex flex-col md:flex-row md:items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-md transition group">
                                  <div class="flex items-center gap-3">
-                                     <div class="w-10 h-10 rounded ${bg} flex items-center justify-center font-bold text-lg"><i class="fas ${icon}"></i></div>
-                                     <div>
-                                         <p class="font-bold text-slate-700 text-sm group-hover:text-blue-600">${file.title}</p>
-                                         <p class="text-[10px] text-slate-400 uppercase">${file.file_type} • ${file.size || 'Unknown'}</p>
+                                     <div class="w-10 h-10 flex-shrink-0 rounded ${bg} flex items-center justify-center font-bold text-lg"><i class="fas ${icon}"></i></div>
+                                     <div class="min-w-0">
+                                         <p class="font-bold text-slate-700 text-sm group-hover:text-blue-600 truncate">${file.title}</p>
+                                         <p class="text-[10px] text-slate-400 uppercase truncate">${file.file_type} • ${file.size || 'External Link'}</p>
                                      </div>
                                  </div>
                                  ${actions}
